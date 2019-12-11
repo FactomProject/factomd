@@ -1,5 +1,5 @@
-hash: 69316cdb6a96be11003a45316ae6dc668c5b12aa76a59a3fe2036c39515cc331
-updated: 2019-08-14T15:47:12.374507909-05:00
+hash: be325a39703da36f082bb6aa5cb32180dedff498909c18bb8626026c088328ef
+updated: 2019-11-18T12:15:29.227732479-06:00
 imports:
 - name: github.com/beorn7/perks
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
@@ -66,8 +66,15 @@ imports:
   - utils
 - name: github.com/FactomProject/snappy-go
   version: f2f83b22c29e5abc60e3a95062ce1491d3b95371
+- name: github.com/gogo/protobuf
+  version: 8a5ed79f688836cf007ca23aefe0299791e7bea5
+  subpackages:
+  - gogoproto
+  - proto
+  - sortkeys
+  - types
 - name: github.com/golang/protobuf
-  version: ddf22928ea3c56eb4292a0adbbf5001b1e8e7d0d
+  version: 6c65a5562fc06764971b7c5d05c76c75e84bdbf7
   subpackages:
   - proto
   - ptypes
@@ -136,7 +143,7 @@ imports:
 - name: github.com/spf13/pflag
   version: 298182f68c66c05229eb03ac171abe6e309ee79a
 - name: github.com/stretchr/testify
-  version: ffdc059bfe9ce6a4e144ba849dbedead332c6053
+  version: 221dbe5ed46703ee255b1da0dec05086f5035f62
   subpackages:
   - assert
 - name: golang.org/x/crypto

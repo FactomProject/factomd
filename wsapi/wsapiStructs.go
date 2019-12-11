@@ -166,6 +166,12 @@ type SendRawMessageResponse struct {
 	Message string `json:"message"`
 }
 
+type SendReplayMessageResponse struct {
+	Message string `json:"message"`
+	Start   uint32 `json:"startheight"`
+	End     uint32 `json:"endheight"`
+}
+
 type TransactionRateResponse struct {
 	TotalTransactionRate   float64 `json:"totaltxrate"`
 	InstantTransactionRate float64 `json:"instanttxrate"`
@@ -269,6 +275,11 @@ type HeightRequest struct {
 	Height int64 `json:"height"`
 }
 
+type ReplayRequest struct {
+	StartHeight uint32 `json:"startheight"`
+	EndHeight   uint32 `json:"endheight,omitempty"`
+}
+
 type HeightOrHashRequest struct {
 	Height *int64 `json:"height,omitempty"`
 	Hash   string `json:"hash,omitempty"`
@@ -348,13 +359,13 @@ type DiagnosticsResponse struct {
 	PublicKey string `json:"publickey,omitempty"`
 	Role      string `json:"role"`
 
-	LeaderHeight          uint32 `json:"leaderheight"`
-	CurrentMinute         int    `json:"currentminute"`
-	CurrentMinuteDuration int64  `json:"currentminuteduration"`
-	PrevMinuteDuration    int64  `json:"previousminuteduration"`
-	BalanceHash           string `json:"balancehash"`
-	TempBalanceHash       string `json:"tempbalancehash"`
-	LastBlockFromDBState  bool   `json:"lastblockfromdbstate"`
+	LeaderHeight           uint32 `json:"leaderheight"`
+	CurrentMinute          int    `json:"currentminute"`
+	CurrentMinuteDuration  int64  `json:"currentminuteduration"`
+	PrevMinuteDuration     int64  `json:"previousminuteduration"`
+	BalanceHash            string `json:"balancehash"`
+	TempBalanceHash        string `json:"tempbalancehash"`
+	LastBlockFromDBState   bool   `json:"lastblockfromdbstate"`
 
 	SyncInfo     *SyncInfo     `json:"syncing"`
 	AuthSet      *AuthSet      `json:"authset"`

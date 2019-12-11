@@ -68,9 +68,11 @@ type FactomdConfig struct {
 		FactomdTlsPublicCert    string
 		FactomdRpcUser          string
 		FactomdRpcPass          string
-		RequestTimeout          int
-		RequestLimit            int
-		CorsDomains             string
+		// Timout and Limit for outstanding missing DBState requests
+		RequestTimeout int // timeout in seconds
+		RequestLimit   int
+
+		CorsDomains string
 
 		ChangeAcksHeight uint32
 	}
@@ -106,6 +108,16 @@ type FactomdConfig struct {
 		FactomdLocation     string
 		WalletdLocation     string
 		WalletEncrypted     bool
+	}
+	LiveFeedAPI struct {
+		EnableLiveFeedAPI        bool
+		EventReceiverProtocol    string
+		EventReceiverHost        string
+		EventReceiverPort        int
+		EventFormat              string
+		EventReplayDuringStartup bool
+		EventSendStateChange     bool
+		EventBroadcastContent    string
 	}
 }
 
@@ -175,9 +187,8 @@ FactomdRpcPass                        = ""
 
 ; RequestTimeout is the amount of time in seconds before a pending request for a
 ; missing DBState is considered too old and the state is put back into the
-; missing states list. If RequestTimout is not set or is set to 0 it will become
-; 1/10th of DirectoryBlockInSeconds
-;RequestTimeout						= 30
+; missing states list. 
+RequestTimeout						= 30
 ; RequestLimit is the maximum number of pending requests for missing states.
 ; factomd will stop making DBStateMissing requests until current requests are
 ; moved out of the waiting list
@@ -226,6 +237,19 @@ WalletdLocation                       = "localhost:8089"
 ; Enables wallet database encryption on factom-walletd. If this option is enabled, an unencrypted database
 ; cannot exist. If an unencrypted database exists, the wallet will exit.
 WalletEncrypted                       = false
+
+; ------------------------------------------------------------------------------
+; Configuration options for the live feed API
+; ------------------------------------------------------------------------------
+[LiveFeedAPI]
+EnableLiveFeedAPI                     = false
+EventReceiverProtocol                 = tcp
+EventReceiverHost                     = 127.0.0.1
+EventReceiverPort                     = 8040
+EventFormat                           = protobuf
+EventReplayDuringStartup              = false
+EventSendStateChange                  = false
+EventBroadcastContent                 = once 
 `
 
 func (s *FactomdConfig) String() string {
@@ -293,6 +317,16 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    FactomdLocation         %v", s.Walletd.FactomdLocation))
 	out.WriteString(fmt.Sprintf("\n    WalletdLocation         %v", s.Walletd.WalletdLocation))
 	out.WriteString(fmt.Sprintf("\n    WalletEncryption        %v", s.Walletd.WalletEncrypted))
+
+	out.WriteString(fmt.Sprintf("\n  LiveFeedAPI"))
+	out.WriteString(fmt.Sprintf("\n    EnableLiveFeedAPI        %v", s.LiveFeedAPI.EnableLiveFeedAPI))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverProtocol    %v", s.LiveFeedAPI.EventReceiverProtocol))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverHost        %v", s.LiveFeedAPI.EventReceiverHost))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverPort        %v", s.LiveFeedAPI.EventReceiverPort))
+	out.WriteString(fmt.Sprintf("\n    EventFormat              %v", s.LiveFeedAPI.EventFormat))
+	out.WriteString(fmt.Sprintf("\n    EventBroadcastContent    %v", s.LiveFeedAPI.EventBroadcastContent))
+	out.WriteString(fmt.Sprintf("\n    EventSendStateChange     %v", s.LiveFeedAPI.EventSendStateChange))
+	out.WriteString(fmt.Sprintf("\n    EventReplayDuringStartup %v", s.LiveFeedAPI.EventReplayDuringStartup))
 
 	return out.String()
 }

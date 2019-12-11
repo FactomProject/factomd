@@ -13,6 +13,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -76,6 +78,7 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.Holding[hash] = msg
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
+		s.EventService.EmitRegistrationEvent(msg)
 	}
 }
 
@@ -85,6 +88,9 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		delete(s.Holding, hash)
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
+		if reason != "Process()" {
+			s.EventService.EmitStateChangeEvent(msg, eventmessages.EntityState_REJECTED)
+		}
 	}
 
 	s.Hold.RemoveDependentMsg(hash, reason)
@@ -92,14 +98,6 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 }
 
 var FilterTimeLimit = int64(Range * 60 * 2 * 1000000000) // Filter hold two hours of messages, one in the past one in the future
-
-func (s *State) GetFilterTimeNano() int64 {
-	t := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
-	if t == 0 {
-		panic("got 0 time")
-	}
-	return t
-}
 
 // this is the common validation to all messages. they must not be a reply, they must not be out size the time window
 // for the replay filter.
@@ -124,14 +122,9 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 		return -1, -1
 	}
 
-	// Pokemon bug protection.  Ignore any msg without a valid GetMsgHash()
-	if msg.GetMsgHash() == nil || msg.GetHash() == nil || msg.GetRepeatHash() == nil {
-		return -1, -1
-	}
-
 	if constants.NeedsAck(msg.Type()) {
 		// Make sure we don't put in an old ack'd message (outside our repeat filter range)
-		filterTime := s.GetFilterTimeNano()
+		filterTime := s.GetMessageFilterTimestamp().GetTime().UnixNano()
 		if filterTime == 0 {
 			panic("got 0 time")
 		}
@@ -402,6 +395,8 @@ func (s *State) Process() (progress bool) {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing
 					s.IgnoreDone = true
 				}
+				s.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SYNCED,
+					"Node %s has finished syncing up it's database", s.GetFactomNodeName())
 			}
 		}
 	} else if s.IgnoreMissing {
@@ -866,8 +861,12 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 				dbstate.ReadyToSave = true
 			}
 			s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
+			s.EventService.EmitProcessListEventNewBlock(dbheight)
 		case 2:
 			s.ExpireHolding() // expire anything in holding that is old.
+			fallthrough
+		default:
+			s.EventService.EmitProcessListEventNewMinute(newMinute, dbheight)
 		}
 		s.CurrentMinute = newMinute // Update just the minute
 		// We are between blocks make sure we are setup to sync
@@ -2409,7 +2408,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = -1
 			vm.HighestNil = 0
 			return false
 		}
@@ -2426,7 +2424,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = -1
 			vm.HighestNil = 0
 			return false
 		}
@@ -2440,7 +2437,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogMessage("processList", "drop from pl", vm.ListAck[0])
 			vm.ListAck[0] = nil
 			vm.List[0] = nil
-			vm.HighestAsk = -1
 			vm.HighestNil = 0
 			return false
 		}

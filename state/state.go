@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/events"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -131,6 +132,7 @@ type State struct {
 	transCnt    int
 	lasttime    time.Time
 	tps         float64
+	longTps     float64
 	ResetTryCnt int
 	ResetCnt    int
 
@@ -220,7 +222,7 @@ type State struct {
 	IgnoreMissing bool
 
 	// Timout and Limit for outstanding missing DBState requests
-	RequestTimeout time.Duration
+	RequestTimeout int // timeout in seconds
 	RequestLimit   int
 
 	LLeaderHeight   uint32
@@ -241,6 +243,7 @@ type State struct {
 	CurrentBlockStartTime   int64
 
 	EOMsyncing   bool
+	EOMSyncTime  int64
 	EOM          bool // Set to true when the first EOM is encountered
 	EOMLimit     int
 	EOMProcessed int
@@ -427,7 +430,8 @@ type State struct {
 	StateUpdateState      int64
 	ValidatorLoopSleepCnt int64
 	processCnt            int64 // count of attempts to process .. so we can see if the thread is running
-	MMRInfo                     // fields for MMR processing
+	ProcessTime           interfaces.Timestamp
+	MMRInfo               // fields for MMR processing
 
 	reportedActivations       [activations.ACTIVATION_TYPE_COUNT + 1]bool // flags about which activations we have reported (+1 because we don't use 0)
 	validatorLoopThreadID     string
@@ -437,6 +441,7 @@ type State struct {
 	InputRegExString          string
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      HoldingList
+	EventService              events.EventService
 
 	// MissingMessageResponse is a cache of the last 1000 msgs we receive such that when
 	// we send out a missing message, we can find that message locally before we ask the net
@@ -533,6 +538,7 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	newState.ControlPanelPort = s.ControlPanelPort
 	newState.ControlPanelSetting = s.ControlPanelSetting
+	newState.EventService = s.EventService
 
 	//newState.Identities = s.Identities
 	//newState.Authorities = s.Authorities
@@ -594,6 +600,57 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		os.MkdirAll(path, 0775)
 	}
 	return newState
+}
+
+func (s *State) GetEventService() events.EventService {
+	return s.EventService
+}
+
+func (s *State) EmitDirectoryBlockEventsFromHeight(height uint32, end uint32) {
+	i := height
+	msgCount := 0
+	for i <= end {
+		d, err := s.DB.FetchDBlockByHeight(i)
+		if err != nil || d == nil {
+			break
+		}
+
+		a, err := s.DB.FetchABlockByHeight(i)
+		if err != nil || a == nil {
+			break
+		}
+		f, err := s.DB.FetchFBlockByHeight(i)
+		if err != nil || f == nil {
+			break
+		}
+		ec, err := s.DB.FetchECBlockByHeight(i)
+		if err != nil || ec == nil {
+			break
+		}
+
+		var eblocks []interfaces.IEntryBlock
+		var entries []interfaces.IEBEntry
+
+		ebs := d.GetEBlockDBEntries()
+		for _, eb := range ebs {
+			eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
+			if eblock != nil {
+				eblocks = append(eblocks, eblock)
+				for _, e := range eblock.GetEntryHashes() {
+					ent, _ := s.DB.FetchEntry(e)
+					if ent != nil {
+						entries = append(entries, ent)
+					}
+				}
+			}
+		}
+
+		msg := messages.NewDBStateMsg(d.GetTimestamp(), d, a, f, ec, eblocks, entries, nil)
+		i++
+		msgCount++
+
+		s.EventService.EmitReplayDirectoryBlockCommit(msg)
+	}
 }
 
 func (s *State) AddPrefix(prefix string) {
@@ -811,10 +868,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
-		// if RequestTimeout is not set by the configuration it will default to 0.
-		//		If it is 0, the loop that uses it will set it to the blocktime/20
-		//		We set it there, as blktime might change after this function (from mainnet selection)
-		s.RequestTimeout = time.Duration(cfg.App.RequestTimeout) * time.Second
+		s.RequestTimeout = cfg.App.RequestTimeout
 		s.RequestLimit = cfg.App.RequestLimit
 
 		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
@@ -979,6 +1033,7 @@ func (s *State) Init() {
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
 	s.TimestampAtBoot = primitives.NewTimestampNow()
+	s.ProcessTime = s.TimestampAtBoot
 
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
@@ -2339,34 +2394,39 @@ func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 // this ensure messages from prior boot and messages that predate the current replay filter are
 // are dropped.
 // It marks the start of the replay filter content
-func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
+func (s *State) SetMessageFilterTimestamp(requestedTS interfaces.Timestamp) {
+	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) from %s", requestedTS.String(), atomic.WhereAmIString(1))
 
-	// make a copy of the time stamp so we don't change the source
-	requestedTS := new(primitives.Timestamp)
-	requestedTS.SetTimestamp(leaderTS)
+	// create a new timestamp
+	appliedTimestamp := primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
 
-	onehourago := new(primitives.Timestamp)
-	onehourago.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 60*60*1000) // now() - one hour
+	// It's ok for the follower to be working on a block that is two behind the network, the block two back could be
+	// 20 before now and it accepts commits from up to an hour before it plus we gave messages 10 minutes to transit
+	// gossip network so 20 + 60 + 10 = 90 minutes ago is ok.
+	historicallimit := new(primitives.Timestamp)
+	historicallimit.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 90*60*1000) // now() - 90 minutes
 
-	if requestedTS.GetTimeMilli() < onehourago.GetTimeMilli() {
-		requestedTS.SetTimestamp(onehourago)
+	if appliedTimestamp.GetTimeMilli() < historicallimit.GetTimeMilli() {
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to historical limit %s", requestedTS.String(), appliedTimestamp.String(), historicallimit.String())
+		appliedTimestamp.SetTimestamp(historicallimit)
 	}
 
 	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
 	preBootTime := new(primitives.Timestamp)
-	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
+	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - constants.PreBootWindow*60*1000)
 
-	if requestedTS.GetTimeMilli() < preBootTime.GetTimeMilli() {
-		requestedTS.SetTimestamp(preBootTime)
+	if appliedTimestamp.GetTimeMilli() < preBootTime.GetTimeMilli() {
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to preboot limit    %s", requestedTS.String(), appliedTimestamp.String(), preBootTime.String())
+		appliedTimestamp.SetTimestamp(preBootTime)
 	}
 
-	if s.messageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
-		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
-		return
+	if s.messageFilterTimestamp != nil && appliedTimestamp.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to current limit    %s", requestedTS.String(), appliedTimestamp.String(), s.messageFilterTimestamp.String())
+		appliedTimestamp.SetTimestamp(s.messageFilterTimestamp)
 	}
 
-	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", leaderTS, requestedTS.String())
-	s.messageFilterTimestamp = primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
+	//	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", requestedTS.String(), appliedTimestamp.String())
+	s.messageFilterTimestamp = appliedTimestamp
 }
 
 func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) {
@@ -2386,14 +2446,14 @@ func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) 
 		"%d)", heartbeatTS, dbheight)
 
 	// set filter to one hour before target
-	s.SetMessageFilterTimestamp(primitives.NewTimestampFromMilliseconds(uint64(newTS - 60*60*1000)))
+	//	s.SetMessageFilterTimestamp(primitives.NewTimestampFromMilliseconds(uint64(newTS - 60*60*1000)))
 
 	// set Highest Ack & Known blocks
 	s.SetHighestAck(dbheight)
 	s.SetHighestKnownBlock(dbheight)
 
 	// re-center replay filter
-	s.Replay.Recenter(primitives.NewTimestampFromMilliseconds(uint64(newTS)))
+	//	s.Replay.Recenter(primitives.NewTimestampFromMilliseconds(uint64(newTS)))
 }
 
 func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
@@ -2602,7 +2662,7 @@ func (s *State) InitLevelDB() error {
 		}
 	}
 
-	s.DB = databaseOverlay.NewOverlay(dbase)
+	s.DB = databaseOverlay.NewOverlayWithState(dbase, s)
 	return nil
 }
 
@@ -2618,7 +2678,7 @@ func (s *State) InitBoltDB() error {
 
 	dbase := new(boltdb.BoltDB)
 	dbase.Init(nil, path+"FactomBolt.db")
-	s.DB = databaseOverlay.NewOverlay(dbase)
+	s.DB = databaseOverlay.NewOverlayWithState(dbase, s)
 	return nil
 }
 
@@ -2629,7 +2689,7 @@ func (s *State) InitMapDB() error {
 
 	dbase := new(mapdb.MapDB)
 	dbase.Init(nil)
-	s.DB = databaseOverlay.NewOverlay(dbase)
+	s.DB = databaseOverlay.NewOverlayWithState(dbase, s)
 	return nil
 }
 
@@ -2717,12 +2777,13 @@ func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64
 	if shorttime >= time.Second*3 {
 		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
 		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
+		s.longTps = ((float64(delta) / float64(shorttime.Seconds())) + 31*s.longTps) / 32
 		s.lasttime = time.Now()
 		s.transCnt = total                     // transactions accounted for
 		InstantTransactionPerSecond.Set(s.tps) // Prometheus
 	}
 
-	return tps, s.tps
+	return s.longTps, s.tps
 }
 
 func (s *State) SetStringQueues() {
@@ -3112,6 +3173,6 @@ func (s *State) GetDBFinished() bool {
 	return s.DBFinished
 }
 
-func (s *State) GetRunLeader() bool {
+func (s *State) IsRunLeader() bool {
 	return s.RunLeader
 }

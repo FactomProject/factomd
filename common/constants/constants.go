@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// MaxEntrySizeInBytes is the maximum entry size in bytes, here 10k
+const MaxEntrySizeInBytes = 10240
+
 // Messages
 const (
 	EOM_MSG                       byte = iota // 0
@@ -412,6 +415,9 @@ var FACTOID_CHAINID = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 var ZERO_HASH = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 var ZERO = []byte{0}
 
+// The Entry Credit (EC) chain id string
+var EC_CHAINID_STRING = "000000000000000000000000000000000000000000000000000000000000000c"
+
 //---------------------------------------------------------------
 // Types of entries (transactions) for Admin Block
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#adminid-bytes
@@ -484,3 +490,4 @@ const (
 //Fast boot save state version (savestate)
 //To be increased whenever the data being saved changes from the last version
 const SaveStateVersion = 13
+const PreBootWindow = 20 // allow an N minute window before boot where messages will be accepted
