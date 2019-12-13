@@ -7,6 +7,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/activations"
 	"hash"
 	"os"
 	"reflect"
@@ -1661,8 +1662,6 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
 	as, ok := addServerMsg.(*messages.AddServerMsg)
 
-	// TODO: add a condition where this is not checked until above a certain block height (there might be old blocks that fail this rule)
-	// check that the starting feds will still have a majority after this addition
 	pl := s.LeaderPL
 	startingFeds := pl.StartingFedServers
 	startingFedsCount := len(startingFeds)
@@ -1672,9 +1671,11 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 			if !containsServerWithChainID(startingFeds, as.ServerChainID) {
 				newFedsAdded, startingFedsRemoved := pl.CountFederatedServersAddedAndRemoved()
 				startingFedsRemaining := startingFedsCount - startingFedsRemoved
-				if startingFedsRemaining < (startingFedsRemaining + newFedsAdded + 1) / 2 + 1 {
-					s.LogPrintf("process", "Failed to process AddServerMessage: by adding %s as a new fed, the block's starting feds no longer have a majority", as.ServerChainID.String()[:10])
-					return true
+				if startingFedsRemaining < (startingFedsRemaining+newFedsAdded+1)/2+1 {
+					if s.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+						s.LogPrintf("process", "Failed to process AddServerMessage: by adding %s as a new fed, the block's starting feds no longer have a majority", as.ServerChainID.String()[:10])
+						return true
+					}
 				}
 			}
 		} else if as.ServerType == 1 {
@@ -1682,9 +1683,11 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 			if containsServerWithChainID(startingFeds, as.ServerChainID) {
 				newFedsAdded, startingFedsRemoved := pl.CountFederatedServersAddedAndRemoved()
 				startingFedsRemaining := startingFedsCount - startingFedsRemoved
-				if startingFedsRemaining - 1 < (startingFedsRemaining + newFedsAdded - 1) / 2 + 1 {
-					s.LogPrintf("process", "Failed to process AddServerMessage: by demoting %s to an audit, the block's starting feds no longer have a majority", as.ServerChainID.String()[:10])
-					return true
+				if startingFedsRemaining-1 < (startingFedsRemaining+newFedsAdded-1)/2+1 {
+					if s.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+						s.LogPrintf("process", "Failed to process AddServerMessage: by demoting %s to an audit, the block's starting feds no longer have a majority", as.ServerChainID.String()[:10])
+						return true
+					}
 				}
 			}
 		}
@@ -1692,7 +1695,7 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 
 	if ok && !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
 		s.LogPrintf("process", "Failed to add %x as server type %d", as.ServerChainID.Bytes()[3:6], as.ServerType)
-		return true // If it fails it will never work so just move along.
+		// REVIEW: should this return false?
 	}
 	return true
 }
@@ -1722,9 +1725,13 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 	if startingFedsCount > 1 && rs.ServerType == 0 && containsServerWithChainID(pl.StartingFedServers, rs.ServerChainID) {
 		newFedsAdded, startingFedsRemoved := pl.CountFederatedServersAddedAndRemoved()
 		startingFedsRemaining := startingFedsCount - startingFedsRemoved
-		if startingFedsRemaining - 1 < (startingFedsRemaining + newFedsAdded - 1) / 2 + 1 {
-			s.LogPrintf("process", "Failed to process RemoveServerMessage: by removing %s as a server, the block's starting feds no longer have a majority", rs.ServerChainID.String()[:10])
-			return true
+		if startingFedsRemaining-1 < (startingFedsRemaining+newFedsAdded-1)/2+1 {
+			if s.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+				s.LogPrintf("process", "Failed to process RemoveServerMessage: by removing %s as a server, the block's starting feds no longer have a majority", rs.ServerChainID.String()[:10])
+				return true
+			} else {
+				s.LogPrintf("process", "WARN by removing %s as a server, the block's starting feds no longer have a majority", rs.ServerChainID.String()[:10])
+			}
 		}
 	}
 

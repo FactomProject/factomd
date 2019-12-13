@@ -6,6 +6,7 @@ package electionMsgs
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/activations"
 	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -153,8 +154,12 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		fedID := e.Federated[electing].GetChainID()
 
 		if !e.IsSafeToReplaceFed(fedID) {
-			e.LogPrintf("election", "TimeoutInternal.ElectionProcess(): cannot remove more than half of the block's starting feds")
-			return
+			if is.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+				e.LogPrintf("election", "TimeoutInternal.ElectionProcess(): cannot remove more than half of the block's starting feds")
+				return
+			} else {
+				e.LogPrintf("election", "TimeoutInternal.ElectionProcess() WARN: replacing more than half of the block's starting feds")
+			}
 		}
 
 		e.Electing = electing

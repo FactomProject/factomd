@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/FactomProject/factomd/activations"
 	"os"
 	"reflect"
 
@@ -214,8 +215,6 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
-	// TODO: add a condition where this is not checked until above a certain block height (there are likely old blocks that fail this rule)
-	// check that the starting feds still hold a majority for the next block
 	startingFeds := state.GetFedServers(dbheight - 1)
 	startingFedsCount := len(startingFeds)
 	startingFedsRemaining := startingFedsCount
@@ -264,9 +263,14 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 			}
 		}
 	}
-	if startingFedsCount > 1 && startingFedsRemaining < (startingFedsRemaining + newFedsAdded) / 2 + 1 {
-		state.AddStatus("DBStateMsg.Validate() Fail because the block's starting feds no longer have a majority")
-		return -1
+
+	if startingFedsCount > 1 && startingFedsRemaining < (startingFedsRemaining+newFedsAdded)/2+1 {
+		if state.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+			state.AddStatus("DBStateMsg.Validate() FAIL: the block's starting feds no longer have a majority")
+			return -1
+		} else {
+			state.AddStatus("DBStateMsg.Validate() WARN: replaced more than half of all feds")
+		}
 	}
 
 	return 1
