@@ -18,6 +18,8 @@ type AllConnectionsTotals struct {
 	BytesReceivedTotal uint64
 	MessagesSent       uint64
 	MessagesReceived   uint64
+	BPSDown            float64
+	BPSUp              float64
 }
 
 func NewAllConnectionTotals() *AllConnectionsTotals {
@@ -61,6 +63,8 @@ func (cm *ConnectionsMap) TallyTotals() {
 		totals.BytesReceivedTotal += peer.BytesReceived
 		totals.MessagesSent += peer.MessagesSent
 		totals.MessagesReceived += peer.MessagesReceived
+		totals.BPSDown += peer.BPSDown
+		totals.BPSUp += peer.BPSUp
 		count++
 		totalQuality += peer.PeerQuality
 	}
@@ -75,6 +79,8 @@ func (cm *ConnectionsMap) TallyTotals() {
 		totals.BytesReceivedTotal += peer.BytesReceived
 		totals.MessagesSent += peer.MessagesSent
 		totals.MessagesReceived += peer.MessagesReceived
+		totals.BPSDown += peer.BPSDown
+		totals.BPSUp += peer.BPSUp
 	}
 
 	cm.Lock.Lock()

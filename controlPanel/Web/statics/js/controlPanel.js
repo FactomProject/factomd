@@ -269,8 +269,10 @@ function updateAllPeers() {
       //$("#peerList > tfoot > tr > #peerquality").text("0")
     } else {
       //$("#peerList > tfoot > tr > #peerquality").text(formatQuality(obj.PeerQualityAvg))
-      $("#peerList > tfoot > tr > #up").text(formatBytes(respOne.BytesSentTotal, respOne.MessagesSent))
-      $("#peerList > tfoot > tr > #down").text(formatBytes(respOne.BytesReceivedTotal, respOne.MessagesReceived))
+      $("#peerList > tfoot > tr > #data-up").text(formatBytes(respOne.BytesSentTotal))
+      $("#peerList > tfoot > tr > #data-down").text(formatBytes(respOne.BytesReceivedTotal))
+      $("#peerList > tfoot > tr > #speed-up").text(formatBps(respOne.BPSUp))
+      $("#peerList > tfoot > tr > #speed-down").text(formatBps(respOne.BPSDown))
     }
     // Table Body
     if(resp.length == 0) {
@@ -288,43 +290,44 @@ function updateAllPeers() {
       peerHashes.push(peer.PeerHash)
       if($("#" + peer.Hash).length > 0) {
         con = peer.Connection;
-        updatePeerIcon($("#" + peer.Hash).find("#ip i"), con);
         if ($("#" + peer.Hash).find("#ip").val() != peer.PeerHash) {
           $("#" + peer.Hash).find("#ip span").text(con.PeerAddress)
           $("#" + peer.Hash).find("#ip").val(peer.PeerHash) // Value
-          $("#" + peer.Hash).find("#disconnect").attr("value", peer.PeerHash)
-
           $("#" + peer.Hash).foundation()
         }
         if ($("#" + peer.Hash).find("#ip span").attr("title") != con.ConnectionNotes) {
           element = $("#" + peer.Hash).find("#ip span") 
           wich = $("has-tip").index(element); 
-          $(".tooltip").eq(wich).html(con.ConnectionNotes); 
+          $(".tooltip").eq(wich).html(con.Hash);
 
         }
-        if ($("#" + peer.Hash).find("#connected").val() != con.ConnectionState) {
-          $("#" + peer.Hash).find("#connected").val(con.ConnectionState) // Value
-          $("#" + peer.Hash).find("#connected").text(con.ConnectionState)
-
-          if(peer.Connected == false) { // Need to move to end
+        if ($("#" + peer.Hash).find("#protocol").val() != con.ConnectionState) {
+          $("#" + peer.Hash).find("#protocol").val(con.ConnectionState) // Value
+          $("#" + peer.Hash).find("#protocol").text(con.ConnectionState)
+        }
+        if(peer.Connected == false) { // Need to move to end
             $("#peerList > tbody").find(("#" + peer.Hash)).remove()
-          }
-        }
-        if ($("#" + peer.Hash).find("#peerquality").val() != con.PeerQuality) {
-          $("#" + peer.Hash).find("#peerquality").val(con.PeerQuality) // Value
-          if(!($("#" + peer.Hash).hasClass(formatQuality(con.PeerQuality)))){
-            $("#" + peer.Hash).removeClass()
-            $("#" + peer.Hash).addClass(formatQuality(con.PeerQuality))
-          }
         }
 
+        if ($("#" + peer.Hash).find("#up").val().length == 0 || $("#" + peer.Hash).find("#up").val() != con.BPSUp) {
+            $("#" + peer.Hash).find("#up").val(con.BPSUp) // Value
+            $("#" + peer.Hash).find("#up").text(formatBps(con.BPSUp))
+        }
+        if ($("#" + peer.Hash).find("#down").val().length == 0 || $("#" + peer.Hash).find("#down").val() != con.BPSDown) {
+            $("#" + peer.Hash).find("#down").val(con.BPSDown) // Value
+            $("#" + peer.Hash).find("#down").text(formatBps(con.BPSDown))
+        }
         if ($("#" + peer.Hash).find("#sent").val().length == 0 || $("#" + peer.Hash).find("#sent").val() != con.BytesSent) {
           $("#" + peer.Hash).find("#sent").val(con.BytesSent) // Value
-          $("#" + peer.Hash).find("#sent").text(formatBytes(con.BytesSent, con.MessagesSent))
+          $("#" + peer.Hash).find("#sent").text(formatBytes(con.BytesSent))
         }
         if ($("#" + peer.Hash).find("#received").val().length == 0 || $("#" + peer.Hash).find("#received").val() != con.BytesReceived) {
           $("#" + peer.Hash).find("#received").val(con.BytesReceived) // Value
-          $("#" + peer.Hash).find("#received").text(formatBytes(con.BytesReceived, con.MessagesReceived))
+          $("#" + peer.Hash).find("#received").text(formatBytes(con.BytesReceived))
+          if(!($("#" + peer.Hash).hasClass(formatQuality(con.BytesReceived)))){
+            $("#" + peer.Hash).removeClass()
+            $("#" + peer.Hash).addClass(formatQuality(con.BytesReceived))
+          }
         }
         if ($("#" + peer.Hash).find("#momentconnected").val() != peer.ConnectionTimeFormatted) {
           $("#" + peer.Hash).find("#momentconnected").val(peer.ConnectionTimeFormatted) // Value
@@ -339,12 +342,12 @@ function updateAllPeers() {
                   <td id='ip'>\
                       <i class='fa fa-link hidden'></i>\
                       <span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
-                  <td id='connected'></td>\
-                  <td id='peerquality'></td>\
+                  <td id='protocol'></td>\
                   <td id='momentconnected'></td>\
-                  <td id='sent' value='-10'></td>\
+                  <td id='down' value='-10'></td>\
+                  <td id='up' value='-10'></td>\
                   <td id='received' value='-10'></td>\
-                  <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
+                  <td id='sent' value='-10'></td>\
               </tr>")
             } else {
               $("#peerList > tbody").append("\
@@ -352,12 +355,12 @@ function updateAllPeers() {
                   <td id='ip'>\
                       <i class='fa fa-link hidden'></i>\
                       <span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
-                  <td id='connected'></td>\
-                  <td id='peerquality'></td>\
+                  <td id='protocol'></td>\
                   <td id='momentconnected'></td>\
-                  <td id='sent' value='-10'></td>\
+                  <td id='down' value='-10'></td>\
+                  <td id='up' value='-10'></td>\
                   <td id='received' value='-10'></td>\
-                  <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
+                  <td id='sent' value='-10'></td>\
               </tr>")
             }
         }
@@ -438,6 +441,46 @@ $("#peer-ip").on('mouseup', function(e){
   $("#peerList tbody").html(array)
 })
 
+// Sort by Downrate
+$("#peer-down").on('mouseup', function(e){
+    $(".sorting-img").addClass("hide")
+    if(SortToggle == true) {
+      $("#peer-down-sort-img").removeClass("hide")
+      $("#peer-down-sort-img").attr("src","img/up.png")
+    } else {
+      $("#peer-down-sort-img").removeClass("hide")
+      $("#peer-down-sort-img").attr("src","img/down.png")
+    }
+  
+    array = $("#peerList tbody tr").get()
+    valArray = $("#peerList tbody tr").find("#down").get()
+  
+    array = generalSort(msgIsLessThan, array, valArray)
+  
+    $("#peerList tbody").html(array)
+    PeerAddFromTopToggle = SortToggle
+})
+
+// Sort by Downrate
+$("#peer-up").on('mouseup', function(e){
+    $(".sorting-img").addClass("hide")
+    if(SortToggle == true) {
+      $("#peer-up-sort-img").removeClass("hide")
+      $("#peer-up-sort-img").attr("src","img/up.png")
+    } else {
+      $("#peer-up-sort-img").removeClass("hide")
+      $("#peer-up-sort-img").attr("src","img/down.png")
+    }
+  
+    array = $("#peerList tbody tr").get()
+    valArray = $("#peerList tbody tr").find("#up").get()
+  
+    array = generalSort(msgIsLessThan, array, valArray)
+  
+    $("#peerList tbody").html(array)
+    PeerAddFromTopToggle = SortToggle
+})
+
 // Sort by Sent
 $("#peer-sent").on('mouseup', function(e){
   $(".sorting-img").addClass("hide")
@@ -515,13 +558,11 @@ function msgIsLessThan(a, b) {
     return 0
   }
 
-  aSplit = a.split("(")
-  aData = aSplit[1].split(" ")
-  aVal = convertToBytes(aData[0], aData[1])
+  aSplit = a.split(" ")
+  aVal = convertToBytes(aSplit[0], aSplit[1])
 
-  bSplit = b.split("(")
-  bData = bSplit[1].split(" ")
-  bVal = convertToBytes(bData[0], bData[1])
+  bSplit = b.split(" ")
+  bVal = convertToBytes(bSplit[0], bSplit[1])
 
   if(aVal < bVal) {
     return 1
@@ -596,12 +637,12 @@ function convertToSeconds(time) {
 }
 
 function convertToBytes(number, string) {
-  if(string.includes("KB")) {
-    return number * 1000
-  } else if(string.includes("MB")) {
-    return number * 1000000
-  } else if(string.includes("GB")) {
-    return number * 1000000
+  if(string.includes("KB") || string.includes("Kbps")) {
+    return number * 1e+3;
+  } else if(string.includes("MB") || string.includes("Mbps")) {
+    return number * 1e+6;
+  } else if(string.includes("GB") || string.includes("Gbps")) {
+    return number * 1e+9;
   }
 }
 
@@ -624,16 +665,49 @@ function getIPCountry(address){
 
 // Using two logistic functions
 function formatQuality(quality) {
-  if(quality >= 100) {
+  if(quality >= 10485760) { // 10 MB
     return "rank-green"
-  } else if(quality >= -50) {
+  } else if(quality >= 1048576) { // 1 MB
     return "rank-gold"
   } else {
     return "rank-red"
   }
 }
 
-function formatBytes(bytes, messages) {
+function formatBytes(bytes) {
+    if (bytes == undefined) {
+      return "0 Kb"
+    }
+    b = Number(bytes / 1e+3).toFixed(1)
+    if (b < 100) {
+      b = b + " KB"
+    } else if ((bytes / 1e+6) < 100) {
+      b = Number(bytes / 1e+6).toFixed(1)
+      b = b + " MB"
+    } else {
+        b = Number(bytes / 1e+9).toFixed(1)
+      b = b + " GB"
+    }
+    return b;
+}
+function formatBps(bytes) {
+    if (bytes == undefined) {
+      return "0 Kbps"
+    }
+
+    var bits = bytes * 8;
+
+    if (bits > 1e+9) {
+        return Number(bits / 1e+9).toFixed(1) + " Gbps";
+    }
+    if (bits > 1e+6) {
+        return Number(bits / 1e+6).toFixed(1) + " Mbps";
+    }
+    return Number(bits / 1e+3).toFixed(1) + " Kbps";
+}
+ 
+
+function formatBytesMessages(bytes, messages) {
   if (bytes == undefined || messages == undefined) {
     return "0 (0 Kb)"
   }

@@ -248,16 +248,16 @@ func (p *Peer) statLoop() {
 		select {
 		case <-ticker.C:
 			p.metricsMtx.Lock()
-			mr, ms, br, bs := p.metrics.Collect()
+			mw, mr, bw, br := p.metrics.Collect()
 			p.bpsDown = float64(br) / 5
-			p.bpsUp = float64(bs) / 5
+			p.bpsUp = float64(bw) / 5
 			p.totalBytesReceived += br
-			p.totalBytesSent += bs
+			p.totalBytesSent += bw
 
 			p.mpsDown = float64(mr) / 5
-			p.mpsUp = float64(ms) / 5
+			p.mpsUp = float64(mw) / 5
 			p.totalParcelsReceived += mr
-			p.totalParcelsSent += ms
+			p.totalParcelsSent += mw
 
 			p.metricsMtx.Unlock()
 		case <-p.stop:
@@ -389,7 +389,7 @@ func (p *Peer) GetMetrics() PeerMetrics {
 		MPSUp:            p.mpsUp,
 		BPSDown:          p.bpsDown,
 		BPSUp:            p.bpsUp,
-		ConnectionState:  fmt.Sprintf("v%s|%.1f/%.1f", p.prot.Version(), p.bpsDown/1000, p.bpsUp/1000),
+		ConnectionState:  fmt.Sprintf("v%s", p.prot.Version()),
 		Capacity:         p.Capacity(),
 		Dropped:          p.dropped,
 	}
