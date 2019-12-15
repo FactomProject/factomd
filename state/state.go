@@ -220,7 +220,7 @@ type State struct {
 	IgnoreMissing bool
 
 	// Timout and Limit for outstanding missing DBState requests
-	RequestTimeout time.Duration
+	RequestTimeout int // timeout in seconds
 	RequestLimit   int
 
 	LLeaderHeight   uint32
@@ -812,10 +812,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
-		// if RequestTimeout is not set by the configuration it will default to 0.
-		//		If it is 0, the loop that uses it will set it to the blocktime/20
-		//		We set it there, as blktime might change after this function (from mainnet selection)
-		s.RequestTimeout = time.Duration(cfg.App.RequestTimeout) * time.Second
+		s.RequestTimeout = cfg.App.RequestTimeout
 		s.RequestLimit = cfg.App.RequestLimit
 
 		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
