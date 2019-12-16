@@ -1,4 +1,4 @@
-package DependentHolding
+package dependentholding
 
 import (
 	"context"
@@ -15,7 +15,7 @@ type DependentHolding struct {
 	outMsgs pubsub.IPublisher  // outgoing messages to VMs
 }
 
-func NewDependentHolding(parent *common.Name, instance int) *DependentHolding {
+func NewDependentHolding(parent common.NamedObject, instance int) *DependentHolding {
 	b := new(DependentHolding)
 	b.NameInit(parent, fmt.Sprintf("dependentHolding%d", instance), reflect.TypeOf(b).String())
 	b.inMsgs = pubsub.SubFactory.Channel(100) //.Subscribe("path?")

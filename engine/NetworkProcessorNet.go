@@ -10,8 +10,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/FactomProject/factomd/modules/DependentHolding"
 	"github.com/FactomProject/factomd/modules/bmv"
+	"github.com/FactomProject/factomd/modules/dependentholding"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/state"
 
@@ -32,8 +32,8 @@ func NetworkProcessorNet(w *worker.Thread, fnode *fnode.FactomNode) {
 	FromPeerToPeer(w, fnode)
 	stubs(w, fnode)
 
-	BasicMessageValidation(w, fnode) // create instances of basic message validation
-	startDependentHolding(w, fnode)  // create instances of dependent holding
+	startBasicMessageValidation(w, fnode) // create instances of basic message validation
+	startDependentHolding(w, fnode)       // create instances of dependent holding
 
 	sort(w, fnode.State) // TODO: Replace this service entirely
 	w.Run("NetworkOutputs", func() { NetworkOutputs(fnode) })
@@ -243,7 +243,7 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 	})
 }
 
-func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
+func startBasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
 	for i := 0; i < 2; i++ { // 2 Basic message validators
 		parent.Spawn(fmt.Sprintf("BMV%d", i), func(w *worker.Thread) {
 			ctx, cancel := context.WithCancel(context.Background())
@@ -252,24 +252,17 @@ func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
 			//			w.Init(&parent.Name, "bmv")
 
 			// Run init conditions. Setup publishers
-			msgIn := bmv.NewBasicMessageValidator(fnode.State.GetFactomNodeName())
+			basicMessageValidator := bmv.NewBasicMessageValidator(&fnode.Name, i)
 
 			w.OnReady(func() {
+				basicMessageValidator.Publish()
 				// Subscribe to publishers
-				msgIn.Subscribe()
+				basicMessageValidator.Subscribe()
 			})
 
 			w.OnRun(func() {
-				// TODO: Temporary print all messages out of bmv. We need to actually use them...
-				//go func() {
-				//	sub := pubsub.SubFactory.Channel(100).Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "rest"))
-				//	for v := range sub.Channel() {
-				//		fmt.Println("MESSAGE -> ", v)
-				//	}
-				//}()
-
 				// do work
-				msgIn.Run(ctx)
+				basicMessageValidator.Run(ctx)
 				cancel() // If run is over, we can end the ctx
 			})
 
@@ -278,7 +271,7 @@ func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
 			})
 
 			w.OnComplete(func() {
-				msgIn.ClosePublishing()
+				basicMessageValidator.ClosePublishing()
 			})
 		})
 	}
@@ -289,7 +282,7 @@ func startDependentHolding(parent *worker.Thread, fnode *fnode.FactomNode) {
 		parent.Spawn(fmt.Sprintf("DH%d", i), func(w *worker.Thread) {
 			ctx, cancel := context.WithCancel(context.Background())
 			// Run init conditions. Setup publishers
-			dependentHolding := DependentHolding.NewDependentHolding(&fnode.Name, i)
+			dependentHolding := dependentholding.NewDependentHolding(&fnode.Name, i)
 
 			w.OnReady(func() {
 				dependentHolding.Publish()

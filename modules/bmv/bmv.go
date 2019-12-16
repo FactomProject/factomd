@@ -3,9 +3,11 @@ package bmv
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"regexp"
 	"time"
 
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/modules/debugsettings"
 
@@ -14,6 +16,7 @@ import (
 )
 
 type BasicMessageValidator struct {
+	common.Name
 	// bootTime is used to set the
 	bootTime time.Time
 	// Anything before this timestamp is ignored
@@ -48,9 +51,9 @@ type msgPub struct {
 	Types []byte
 }
 
-func NewBasicMessageValidator(nodeName string) *BasicMessageValidator {
+func NewBasicMessageValidator(parent common.NamedObject, instance int) *BasicMessageValidator {
 	b := new(BasicMessageValidator)
-	b.NodeName = nodeName
+	b.NameInit(parent, fmt.Sprintf("bmv%d", instance), reflect.TypeOf(b).String())
 
 	b.msgs = pubsub.SubFactory.Channel(100)  //.Subscribe("path?")
 	b.times = pubsub.SubFactory.Channel(100) //.Subscribe("path?")
@@ -62,6 +65,10 @@ func NewBasicMessageValidator(nodeName string) *BasicMessageValidator {
 
 	b.replay = NewMsgReplay(6)
 	return b
+}
+
+func (b *BasicMessageValidator) Publish() {
+	go b.rest.Start()
 }
 
 func (b *BasicMessageValidator) Subscribe() {
@@ -80,7 +87,6 @@ func (b *BasicMessageValidator) ClosePublishing() {
 }
 
 func (b *BasicMessageValidator) Run(ctx context.Context) {
-	go b.rest.Start()
 	for {
 		select {
 		case <-ctx.Done():
