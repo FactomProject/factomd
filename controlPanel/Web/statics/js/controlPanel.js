@@ -1,5 +1,6 @@
 var currentHeight = 0
 var leaderHeight = 0
+var SortingFunction = SortDuration;
 
 setInterval(updateHTML,3000);
 var serverOnline = false
@@ -381,6 +382,8 @@ function updateAllPeers() {
         }
       }
     })
+
+    SortingFunction();
   }) 
 }
 
@@ -398,51 +401,53 @@ $("body").on('mouseup',"#peerList  #disconnect",function(e) {
   })
 })
 
+
 SortToggle = true
 PeerAddFromTopToggle = true
 // Sorting
 // Sort by Duration
-$("#peer-duration").on('mouseup', function(e){
-  $(".sorting-img").addClass("hide")
-  if(SortToggle == true) {
-    $("#peer-duration-sort-img").removeClass("hide")
-    $("#peer-duration-sort-img").attr("src","img/up.png")
-  } else {
-    $("#peer-duration-sort-img").removeClass("hide")
-    $("#peer-duration-sort-img").attr("src","img/down.png")
-  }
+function SortDuration () {
+    SortingFunction = SortDuration;
+    $(".sorting-img").addClass("hide")
+    if(SortToggle == true) {
+      $("#peer-duration-sort-img").removeClass("hide")
+      $("#peer-duration-sort-img").attr("src","img/up.png")
+    } else {
+      $("#peer-duration-sort-img").removeClass("hide")
+      $("#peer-duration-sort-img").attr("src","img/down.png")
+    }
+  
+    array = $("#peerList tbody tr").get()
+    valArray = $("#peerList tbody tr").find("#momentconnected").get()
+  
+    array = generalSort(durationIsLessThan, array, valArray)
+  
+    $("#peerList tbody").html(array)
+  
+    PeerAddFromTopToggle = SortToggle
+}
 
-  array = $("#peerList tbody tr").get()
-  valArray = $("#peerList tbody tr").find("#momentconnected").get()
+function SortIP() {
+    SortingFunction = SortIP;
+    $(".sorting-img").addClass("hide")
+    if(SortToggle == true) {
+      $("#peer-ip-sort-img").removeClass("hide")
+      $("#peer-ip-sort-img").attr("src","img/up.png")
+    } else {
+      $("#peer-ip-sort-img").removeClass("hide")
+      $("#peer-ip-sort-img").attr("src","img/down.png")
+    }
+  
+    array = $("#peerList tbody tr").get()
+    valArray = $("#peerList tbody tr").find("#ip span").get()
+  
+    array = generalSort(ipIsLessThan, array, valArray)
+  
+    $("#peerList tbody").html(array)
+}
 
-  array = generalSort(durationIsLessThan, array, valArray)
-
-  $("#peerList tbody").html(array)
-
-  PeerAddFromTopToggle = SortToggle
-})
-
-// Sort by IP
-$("#peer-ip").on('mouseup', function(e){
-  $(".sorting-img").addClass("hide")
-  if(SortToggle == true) {
-    $("#peer-ip-sort-img").removeClass("hide")
-    $("#peer-ip-sort-img").attr("src","img/up.png")
-  } else {
-    $("#peer-ip-sort-img").removeClass("hide")
-    $("#peer-ip-sort-img").attr("src","img/down.png")
-  }
-
-  array = $("#peerList tbody tr").get()
-  valArray = $("#peerList tbody tr").find("#ip span").get()
-
-  array = generalSort(ipIsLessThan, array, valArray)
-
-  $("#peerList tbody").html(array)
-})
-
-// Sort by Downrate
-$("#peer-down").on('mouseup', function(e){
+function SortDownrate() {
+    SortingFunction = SortDownrate;
     $(".sorting-img").addClass("hide")
     if(SortToggle == true) {
       $("#peer-down-sort-img").removeClass("hide")
@@ -459,10 +464,32 @@ $("#peer-down").on('mouseup', function(e){
   
     $("#peerList tbody").html(array)
     PeerAddFromTopToggle = SortToggle
+}
+
+
+
+$("#peer-duration").on('mouseup', function(e){
+    SortToggle = !SortToggle;
+    SortDuration();
+    
+})
+
+// Sort by IP
+$("#peer-ip").on('mouseup', function(e){
+    SortToggle = !SortToggle;
+    SortIP();
+    
 })
 
 // Sort by Downrate
-$("#peer-up").on('mouseup', function(e){
+$("#peer-down").on('mouseup', function(e){
+    SortToggle = !SortToggle;
+    SortDownrate();
+})
+
+
+function SortUprate() {
+    SortingFunction = SortUprate;
     $(".sorting-img").addClass("hide")
     if(SortToggle == true) {
       $("#peer-up-sort-img").removeClass("hide")
@@ -479,54 +506,66 @@ $("#peer-up").on('mouseup', function(e){
   
     $("#peerList tbody").html(array)
     PeerAddFromTopToggle = SortToggle
+}
+// Sort by Downrate
+$("#peer-up").on('mouseup', function(e){
+    SortToggle = !SortToggle;
+    SortUprate();
 })
+
+function SortSent() {
+    SortingFunction = SortSent;
+    $(".sorting-img").addClass("hide")
+    if(SortToggle == true) {
+      $("#peer-sent-sort-img").removeClass("hide")
+      $("#peer-sent-sort-img").attr("src","img/up.png")
+    } else {
+      $("#peer-sent-sort-img").removeClass("hide")
+      $("#peer-sent-sort-img").attr("src","img/down.png")
+    }
+  
+    array = $("#peerList tbody tr").get()
+    valArray = $("#peerList tbody tr").find("#sent").get()
+  
+    array = generalSort(msgIsLessThan, array, valArray)
+  
+    $("#peerList tbody").html(array)
+    PeerAddFromTopToggle = SortToggle
+}
 
 // Sort by Sent
 $("#peer-sent").on('mouseup', function(e){
-  $(".sorting-img").addClass("hide")
-  if(SortToggle == true) {
-    $("#peer-sent-sort-img").removeClass("hide")
-    $("#peer-sent-sort-img").attr("src","img/up.png")
-  } else {
-    $("#peer-sent-sort-img").removeClass("hide")
-    $("#peer-sent-sort-img").attr("src","img/down.png")
-  }
-
-  array = $("#peerList tbody tr").get()
-  valArray = $("#peerList tbody tr").find("#sent").get()
-
-  array = generalSort(msgIsLessThan, array, valArray)
-
-  $("#peerList tbody").html(array)
-  PeerAddFromTopToggle = SortToggle
+    SortToggle = !SortToggle;
+    SortSent();
 })
 
+
+function SortReceived() {
+    SortingFunction = SortReceived;
+    $(".sorting-img").addClass("hide")
+    if(SortToggle == true) {
+      $("#peer-received-sort-img").removeClass("hide")
+      $("#peer-received-sort-img").attr("src","img/up.png")
+    } else {
+      $("#peer-received-sort-img").removeClass("hide")
+      $("#peer-received-sort-img").attr("src","img/down.png")
+    }
+  
+    array = $("#peerList tbody tr").get()
+    valArray = $("#peerList tbody tr").find("#received").get()
+  
+    array = generalSort(msgIsLessThan, array, valArray)
+  
+    $("#peerList tbody").html(array)
+    PeerAddFromTopToggle = SortToggle
+}
 // Sort by Received
 $("#peer-received").on('mouseup', function(e){
-  $(".sorting-img").addClass("hide")
-  if(SortToggle == true) {
-    $("#peer-received-sort-img").removeClass("hide")
-    $("#peer-received-sort-img").attr("src","img/up.png")
-  } else {
-    $("#peer-received-sort-img").removeClass("hide")
-    $("#peer-received-sort-img").attr("src","img/down.png")
-  }
-
-  array = $("#peerList tbody tr").get()
-  valArray = $("#peerList tbody tr").find("#received").get()
-
-  array = generalSort(msgIsLessThan, array, valArray)
-
-  $("#peerList tbody").html(array)
-  PeerAddFromTopToggle = SortToggle
+    SortToggle = !SortToggle;
+    SortReceived();
 })
 
 function generalSort(lessThanFunction, array, valueArray) {
-  if(SortToggle == true) {
-    SortToggle = false
-  } else {
-    SortToggle = true
-  }
   peerLen = valueArray.length
   for(index = 0; index < peerLen; index++) {
     tmpVal = valueArray[index]
