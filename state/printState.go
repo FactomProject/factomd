@@ -91,6 +91,7 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingResponseAppliedCnt", state.MissingResponseAppliedCnt)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ResendCnt", state.ResendCnt)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ExpireCnt", state.ExpireCnt)
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "tickerQueue", state.tickerQueue)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "timerMsgQueue", state.timerMsgQueue)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "TimeOffset", state.TimeOffset)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MaxTimeOffset", state.MaxTimeOffset)

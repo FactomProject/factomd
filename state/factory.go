@@ -451,6 +451,8 @@ func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IEle
 	s.TimeOffset = new(primitives.Timestamp)                  //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0) //
 	s.ShutdownChan = make(chan int, 1)                        //SubChannel to gracefully shut down.
+	s.tickerQueue = make(chan int, 100)                       //ticks from a clock
+	s.timerMsgQueue = make(chan interfaces.IMsg, 100)         //incoming eom notifications, used by leaders
 	//	s.ControlPanelChannel = make(chan DisplayState, 20)                     //
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network inMessages
 	s.networkOutMsgQueue = NewNetOutMsgQueue(s, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network

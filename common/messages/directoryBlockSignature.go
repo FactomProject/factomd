@@ -166,7 +166,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	//vlog makes logging anything in Validate() easier
 	//		The instantiation as a function makes it almost no overhead if you do not use it
 	vlog := func(format string, args ...interface{}) {
-		//		//		dLogger.WithFields(log.Fields{"func": "Validate", "msgheight": m.DBHeight, "lheight": state.GetLeaderHeight()})
+		//	dLogger.WithFields(log.Fields{"func": "Validate", "msgheight": m.DBHeight, "lheight": state.GetLeaderHeight()})
 	}
 
 	// if we already did all the checks just be valid
@@ -241,7 +241,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	}
 
 	//state.Logf("info", "DirectoryBlockSignature: VALID  dbht: %v %s. MsgHash: %s\n [%s] RAW: %x ", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), m.GetMsgHash().String(), raw)
-	//	//	dLogger.WithFields(m.LogFields()).WithField("node-name", state.GetFactomNodeName()).Info("DirectoryBlockSignature Valid")
+	//	dLogger.WithFields(m.LogFields()).WithField("node-name", state.GetFactomNodeName()).Info("DirectoryBlockSignature Valid")
 	m.SetValid()
 	return 1
 }

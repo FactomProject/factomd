@@ -110,6 +110,7 @@ type IState interface {
 	//==========
 
 	// Network Processor
+	TickerQueue() chan int
 	TimerMsgQueue() chan IMsg
 	NetworkOutMsgQueue() IQueue
 	NetworkInvalidMsgQueue() chan IMsg
@@ -202,6 +203,7 @@ type IState interface {
 	// ====
 
 	GetSystemMsg(dbheight, height uint32) IMsg // Return the system message at the given height.
+	SendDBSig(dbheight uint32, vmIndex int)    // If a Leader, we have to send a DBSig out for the previous block
 
 	FollowerExecuteMsg(IMsg)          // Messages that go into the process list
 	FollowerExecuteEOM(IMsg)          // Messages that go into the process list

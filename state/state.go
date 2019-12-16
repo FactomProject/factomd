@@ -178,6 +178,7 @@ type State struct {
 	ResendCnt int
 	ExpireCnt int
 
+	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
 	MaxTimeOffset          interfaces.Timestamp
 	networkOutMsgQueue     *queue.MsgQueue
@@ -203,10 +204,12 @@ type State struct {
 	// RPC connection config
 
 	// Server State
-	StartDelay int64 // Time in Milliseconds since the last DBState was applied
-	DBFinished bool
-	RunLeader  bool
-	BootTime   int64 // Time in seconds that we last booted
+	StartDelay   int64 // Time in Milliseconds since the last DBState was applied
+	DBFinished   bool
+	RunLeader    bool
+	BootTime     int64 // Time in seconds that we last booted
+	EOMIssueTime int64
+	EOMSyncEnd   int64
 
 	// Ignore missing inMessages for a period to allow rebooting a network where your
 	// own inMessages from the previously executing network can confuse you.
@@ -1543,6 +1546,10 @@ func (s *State) SetPort(port int) {
 
 func (s *State) GetPort() int {
 	return s.PortNumber
+}
+
+func (s *State) TickerQueue() chan int {
+	return s.tickerQueue
 }
 
 func (s *State) TimerMsgQueue() chan interfaces.IMsg {
