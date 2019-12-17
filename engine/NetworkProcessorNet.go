@@ -12,6 +12,7 @@ import (
 
 	"github.com/FactomProject/factomd/modules/bmv"
 	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/worker"
@@ -30,22 +31,21 @@ func NetworkProcessorNet(w *worker.Thread, fnode *fnode.FactomNode) {
 	FromPeerToPeer(w, fnode)
 	stubs(w, fnode)
 	BasicMessageValidation(w, fnode)
-	sort(w, fnode) // TODO: Replace this service entirely
-	w.Run(func() { NetworkOutputs(fnode) })
-	w.Run(func() { InvalidOutputs(fnode) })
+	sort(w, fnode.State) // TODO: Replace this service entirely
+	w.Run("NetworkOutputs", func() { NetworkOutputs(fnode) })
+	w.Run("InvalidOutputs", func() { InvalidOutputs(fnode.State) })
 }
 
 // TODO: sort should not exist, we should have each module subscribing to the
 //		msgs, rather than this one.
-func sort(parent *worker.Thread, fnode *fnode.FactomNode) {
-	parent.Spawn(func(w *worker.Thread) {
-		w.Init(&parent.Name, "msgSort")
+func sort(parent *worker.Thread, s *state.State) {
+	parent.Spawn("MsgSort", func(w *worker.Thread) {
 
 		// Run init conditions. Setup publishers
 		sub := pubsub.SubFactory.Channel(50)
 
 		w.OnReady(func() {
-			sub.Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "rest"))
+			sub.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), "bmv", "rest"))
 		})
 
 		w.OnRun(func() {
@@ -55,7 +55,7 @@ func sort(parent *worker.Thread, fnode *fnode.FactomNode) {
 					continue
 				}
 				//fmt.Println("sorted ->", msg)
-				sortMsg(msg, fnode, "pubsub")
+				sortMsg(msg, s, "pubsub")
 			}
 		})
 
@@ -69,9 +69,7 @@ func sort(parent *worker.Thread, fnode *fnode.FactomNode) {
 
 // stubs are things we need to implement
 func stubs(parent *worker.Thread, fnode *fnode.FactomNode) {
-	parent.Spawn(func(w *worker.Thread) {
-		w.Init(&parent.Name, "stubs")
-
+	parent.Spawn("stubs", func(w *worker.Thread) {
 		// Run init conditions. Setup publishers
 		pub := pubsub.PubFactory.Base().Publish(fnode.State.GetFactomNodeName() + "/blocktime")
 
@@ -95,7 +93,8 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 	// TODO: All this logic should be removed. All messages should get filtered and sorted by the basic message
 	// 		validators.
 	// TODO: Construct the proper setup and teardown of this publisher.
-	msgPub := pubsub.PubFactory.MsgSplit(100).Publish(fnode.State.GetFactomNodeName() + "/msgs")
+	s := fnode.State
+	msgPub := pubsub.PubFactory.MsgSplit(100).Publish(s.GetFactomNodeName() + "/msgs")
 	go msgPub.Start()
 
 	// ackHeight is used in ignoreMsg to determine if we should ignore an acknowledgment
@@ -121,11 +120,11 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 	//				If our inmsg queue has too many msgs, then don't help others.
 	ignoreMsg := func(amsg interfaces.IMsg) bool {
 		// Stop uint32 underflow
-		if fnode.State.GetTrueLeaderHeight() < 35 {
+		if s.GetTrueLeaderHeight() < 35 {
 			return false
 		}
 		// If we are syncing up, then apply the filter
-		if fnode.State.GetHighestCompletedBlk() < fnode.State.GetTrueLeaderHeight()-35 {
+		if s.GetHighestCompletedBlk() < s.GetTrueLeaderHeight()-35 {
 			// Discard all commits, reveals, and acks <= the highest ack height we have seen.
 			switch amsg.Type() {
 			case constants.COMMIT_CHAIN_MSG:
@@ -137,9 +136,9 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 			case constants.EOM_MSG:
 				return true
 			case constants.MISSING_DATA:
-				if !fnode.State.DBFinished {
+				if !s.DBFinished {
 					return true
-				} else if fnode.State.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
+				} else if s.InMsgQueue().Length() > constants.INMSGQUEUE_HIGH {
 					// If > 4000, we won't get to this in time anyway. Just drop it since we are behind
 					return true
 				}
@@ -154,13 +153,13 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 		return false
 	} // func ignoreMsg(){...}
 
-	parent.Run(func() {
+	parent.Run("FromPeer", func() {
 		for {
 			// now := fnode.State.GetTimestamp()
 			cnt := 0
 
-			for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
-				msg := fnode.State.APIQueue().Dequeue()
+			for i := 0; i < 100 && s.APIQueue().Length() > 0; i++ {
+				msg := s.APIQueue().Dequeue()
 
 				if globals.Params.FullHashesLog {
 					primitives.Loghash(msg.GetMsgHash())
@@ -177,11 +176,11 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 
 				if constants.NeedsAck(msg.Type()) {
 					// send msg to MMRequest processing to suppress requests for messages we already have
-					fnode.State.RecentMessage.NewMsgs <- msg
+					s.RecentMessage.NewMsgs <- msg
 				}
 
 				//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-				sendToExecute(msg, fnode, "from API", msgPub)
+				sendToExecute(msg, msgPub)
 
 			} // for the api queue read up to 100 messages {...}
 
@@ -198,7 +197,7 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 						break // move to next peer
 					}
 					if err != nil {
-						fnode.State.LogPrintf("NetworkInputs", "error on receive from %v: %v", peer.GetNameFrom(), err)
+						s.LogPrintf("NetworkInputs", "error on receive from %v: %v", peer.GetNameFrom(), err)
 						// TODO: Maybe we should check the error type and/or count errors and change status to offline?
 						break // move to next peer
 					}
@@ -215,7 +214,7 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 
 					ignore := ignoreMsg(msg)
 					if ignore {
-						fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, ignoreMsg()", msg)
+						s.LogMessage("NetworkInputs", fromPeer+" Drop, ignoreMsg()", msg)
 						continue
 					}
 
@@ -225,12 +224,12 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 					}
 					// check if any P2P msg types slip by
 					if msg.IsPeer2Peer() && !msg.GetNoResend() {
-						fnode.State.LogMessage("NetworkInputs", "unmarked P2P msg", msg)
+						s.LogMessage("NetworkInputs", "unmarked P2P msg", msg)
 						msg.SetNoResend(true)
 					}
 
 					msg.SetNetwork(true)
-					sendToExecute(msg, fnode, fromPeer, msgPub)
+					sendToExecute(msg, msgPub)
 				} // For a peer read up to 100 messages {...}
 			} // for each peer {...}
 			if cnt == 0 {
@@ -242,11 +241,11 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 
 func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
 	for i := 0; i < 2; i++ { // 2 Basic message validators
-		parent.Spawn(func(w *worker.Thread) {
+		parent.Spawn(fmt.Sprintf("BMV%d", i), func(w *worker.Thread) {
 			ctx, cancel := context.WithCancel(context.Background())
 			// w.Name is my parent?
 			// Init my name object?
-			w.Init(&parent.Name, "bmv")
+			//w.Init(&parent.Name, "bmv")
 
 			// Run init conditions. Setup publishers
 			msgIn := bmv.NewBasicMessageValidator(fnode.State.GetFactomNodeName())
@@ -380,7 +379,7 @@ func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 		return false
 	} // func ignoreMsg(){...}
 
-	w.Run(func() {
+	w.Run("FromAPI", func() {
 		for {
 			now := fnode.State.GetTimestamp()
 			if now.GetTimeSeconds()-fnode.State.BootTime > int64(constants.CROSSBOOT_SALT_REPLAY_DURATION.Seconds()) {
@@ -445,7 +444,7 @@ func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 				}
 
 				//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-				sendToExecute(msg, fnode, "from API", msgPub)
+				sendToExecute(msg, msgPub)
 
 			} // for the api queue read up to 100 messages {...}
 
@@ -593,7 +592,7 @@ func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 
 					msg.SetNetwork(true)
 					if !crossBootIgnore(msg) {
-						sendToExecute(msg, fnode, fromPeer, msgPub)
+						sendToExecute(msg, msgPub)
 					}
 				} // For a peer read up to 100 messages {...}
 			} // for each peer {...}
@@ -604,61 +603,61 @@ func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 	})
 }
 
-func sendToExecute(msg interfaces.IMsg, _ *fnode.FactomNode, _ string, pub pubsub.IPublisher) {
+func sendToExecute(msg interfaces.IMsg, pub pubsub.IPublisher) {
 	pub.Write(msg)
 }
 
-func sortMsg(msg interfaces.IMsg, fnode *fnode.FactomNode, source string) {
+func sortMsg(msg interfaces.IMsg, s *state.State, source string) {
 	// TODO: These state updates need to be moved to their modules
 	t := msg.Type()
 	switch t {
 	case constants.MISSING_MSG:
-		fnode.State.LogMessage("mmr_response", fmt.Sprintf("%s, enqueue %d", source, len(fnode.State.MissingMessageResponseHandler.MissingMsgRequests)), msg)
-		fnode.State.MissingMessageResponseHandler.NotifyPeerMissingMsg(msg)
+		s.LogMessage("mmr_response", fmt.Sprintf("%s, enqueue %d", source, len(s.MissingMessageResponseHandler.MissingMsgRequests)), msg)
+		s.MissingMessageResponseHandler.NotifyPeerMissingMsg(msg)
 
 	case constants.COMMIT_CHAIN_MSG:
-		fnode.State.ChainCommits.Add(msg) // keep last 100 chain commits
-		Q1(fnode, source, msg)            // send it fast track
-		reveal := fnode.State.Reveals.Get(msg.GetHash().Fixed())
+		s.ChainCommits.Add(msg) // keep last 100 chain commits
+		Q1(s, source, msg)      // send it fast track
+		reveal := s.Reveals.Get(msg.GetHash().Fixed())
 		if reveal != nil {
-			Q1(fnode, source, reveal) // if we have it send it fast track
+			Q1(s, source, reveal) // if we have it send it fast track
 			// it will still arrive from thr slow track but that is ok.
 		}
 
 	case constants.REVEAL_ENTRY_MSG:
 		// if this is a chain commit reveal send it fast track to allow processing of dependant reveals
-		if fnode.State.ChainCommits.Get(msg.GetHash().Fixed()) != nil {
-			Q1(fnode, source, msg) // fast track chain reveals
+		if s.ChainCommits.Get(msg.GetHash().Fixed()) != nil {
+			Q1(s, source, msg) // fast track chain reveals
 		} else {
-			Q2(fnode, source, msg) // all other reveals are slow track
-			fnode.State.Reveals.Add(msg)
+			Q2(s, source, msg) // all other reveals are slow track
+			s.Reveals.Add(msg)
 		}
 
 	case constants.COMMIT_ENTRY_MSG:
-		Q2(fnode, source, msg) // slow track
+		Q2(s, source, msg) // slow track
 
 	default:
 		//todo: Probably should send EOM/DBSig and their ACKs on a faster yet track
 		// in general this makes ACKs more likely to arrive first.
-		Q1(fnode, source, msg) // fast track
+		Q1(s, source, msg) // fast track
 	}
 
 	if constants.NeedsAck(msg.Type()) {
 		// send msg to MMRequest processing to suppress requests for messages we already have
-		fnode.State.RecentMessage.NewMsgs <- msg
+		s.RecentMessage.NewMsgs <- msg
 	}
 }
 
-func Q1(fnode *fnode.FactomNode, source string, msg interfaces.IMsg) {
-	fnode.State.LogMessage("NetworkInputs", source+", enqueue", msg)
-	fnode.State.LogMessage("InMsgQueue", source+", enqueue", msg)
-	fnode.State.InMsgQueue().Enqueue(msg)
+func Q1(s *state.State, source string, msg interfaces.IMsg) {
+	s.LogMessage("NetworkInputs", source+", enqueue", msg)
+	s.LogMessage("InMsgQueue", source+", enqueue", msg)
+	s.InMsgQueue().Enqueue(msg)
 }
 
-func Q2(fnode *fnode.FactomNode, source string, msg interfaces.IMsg) {
-	fnode.State.LogMessage("NetworkInputs", source+", enqueue2", msg)
-	fnode.State.LogMessage("InMsgQueue2", source+", enqueue2", msg)
-	fnode.State.InMsgQueue2().Enqueue(msg)
+func Q2(s *state.State, source string, msg interfaces.IMsg) {
+	s.LogMessage("NetworkInputs", source+", enqueue2", msg)
+	s.LogMessage("InMsgQueue2", source+", enqueue2", msg)
+	s.InMsgQueue2().Enqueue(msg)
 }
 
 func NetworkOutputs(fnode *fnode.FactomNode) {
@@ -666,40 +665,42 @@ func NetworkOutputs(fnode *fnode.FactomNode) {
 		// if len(fnode.State.NetworkOutMsgQueue()) > 500 {
 		// 	fmt.Print(fnode.State.GetFactomNodeName(), "-", len(fnode.State.NetworkOutMsgQueue()), " ")
 		// }
-		//msg := <-fnode.State.NetworkOutMsgQueue()
-		msg := fnode.State.NetworkOutMsgQueue().Dequeue()
+		//msg := <-fnode.State.Ne
+		//tworkOutMsgQueue()
+		s := fnode.State
+		msg := s.NetworkOutMsgQueue().Dequeue()
 
 		NetworkOutTotalDequeue.Inc()
-		fnode.State.LogMessage("NetworkOutputs", "Dequeue", msg)
+		s.LogMessage("NetworkOutputs", "Dequeue", msg)
 
 		// Local Messages are Not broadcast out.  This is mostly the block signature
 		// generated by the timer for the leaders which needs to be processed, but replaced
 		// by an updated version when the block is ready.
 		if msg.IsLocal() {
 			// todo: Should be a dead case. Add tracking code to see if it ever happens -- clay
-			fnode.State.LogMessage("NetworkOutputs", "Drop, local", msg)
+			s.LogMessage("NetworkOutputs", "Drop, local", msg)
 			continue
 		}
 		if msg.GetRepeatHash() == nil {
-			fnode.State.LogMessage("NetworkOutputs", "Drop, no repeat hash", msg)
+			s.LogMessage("NetworkOutputs", "Drop, no repeat hash", msg)
 			continue
 		}
 
-		regex, _ := fnode.State.GetOutputRegEx()
+		regex, _ := s.GetOutputRegEx()
 		if regex != nil {
 			t := ""
 			if mm, ok := msg.(*messages.MissingMsgResponse); ok {
-				t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, mm.MsgResponse.String())
+				t = fmt.Sprintf("%7d-:-%d %s", s.LLeaderHeight, s.CurrentMinute, mm.MsgResponse.String())
 			} else {
-				t = fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, msg.String())
+				t = fmt.Sprintf("%7d-:-%d %s", s.LLeaderHeight, s.CurrentMinute, msg.String())
 			}
 
 			if mm, ok := msg.(*messages.MissingMsgResponse); ok {
 				if eom, ok := mm.MsgResponse.(*messages.EOM); ok {
-					t2 := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, eom.String())
+					t2 := fmt.Sprintf("%7d-:-%d %s", s.LLeaderHeight, s.CurrentMinute, eom.String())
 					messageResult := regex.MatchString(t2)
 					if messageResult {
-						fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
+						s.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
 						continue
 					}
 				}
@@ -707,7 +708,7 @@ func NetworkOutputs(fnode *fnode.FactomNode) {
 			messageResult := regex.MatchString(t)
 			if messageResult {
 				//fmt.Println("Found it!", t)
-				fnode.State.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
+				s.LogMessage("NetworkOutputs", "Drop, matched filter Regex", msg)
 				continue
 			}
 		}
@@ -735,31 +736,31 @@ func NetworkOutputs(fnode *fnode.FactomNode) {
 					p = rand.Int() % len(fnode.Peers)
 				}
 				peer := fnode.Peers[p]
-				if !fnode.State.GetNetStateOff() { // don't Send p2p messages if he is OFF
+				if !s.GetNetStateOff() { // don't Send p2p messages if he is OFF
 					// Don't do a rand int if drop rate is 0
-					if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
+					if s.GetDropRate() > 0 && rand.Int()%1000 < s.GetDropRate() {
 						//drop the message, rather than processing it normally
 
-						fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+						s.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
 					} else {
 						preSendTime := time.Now()
-						fnode.State.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
+						s.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
 						peer.Send(msg)
 						sendTime := time.Since(preSendTime)
 						TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-						if fnode.State.MessageTally {
-							fnode.State.TallySent(int(msg.Type()))
+						if s.MessageTally {
+							s.TallySent(int(msg.Type()))
 						}
 					}
 				} else {
 
-					fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl X", msg)
+					s.LogMessage("NetworkOutputs", "Drop, simCtrl X", msg)
 				}
 			} else {
-				fnode.State.LogMessage("NetworkOutputs", "Drop, no peers", msg)
+				s.LogMessage("NetworkOutputs", "Drop, no peers", msg)
 			}
 		} else {
-			fnode.State.LogMessage("NetworkOutputs", "Send broadcast", msg)
+			s.LogMessage("NetworkOutputs", "Send broadcast", msg)
 			for i, peer := range fnode.Peers {
 				wt := 1
 				if p >= 0 {
@@ -768,18 +769,18 @@ func NetworkOutputs(fnode *fnode.FactomNode) {
 				// Don't resend to the node that sent it to you.
 				if i != p || wt > 1 {
 					//bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-					if !fnode.State.GetNetStateOff() { // Don't send him broadcast message if he is off
-						if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() && !msg.IsFullBroadcast() {
+					if !s.GetNetStateOff() { // Don't send him broadcast message if he is off
+						if s.GetDropRate() > 0 && rand.Int()%1000 < s.GetDropRate() && !msg.IsFullBroadcast() {
 							//drop the message, rather than processing it normally
 
-							fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+							s.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
 						} else {
 							preSendTime := time.Now()
 							peer.Send(msg)
 							sendTime := time.Since(preSendTime)
 							TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-							if fnode.State.MessageTally {
-								fnode.State.TallySent(int(msg.Type()))
+							if s.MessageTally {
+								s.TallySent(int(msg.Type()))
 							}
 						}
 					}
@@ -790,10 +791,10 @@ func NetworkOutputs(fnode *fnode.FactomNode) {
 }
 
 // Just throw away the trash
-func InvalidOutputs(fnode *fnode.FactomNode) {
+func InvalidOutputs(s *state.State) {
 	for {
 		time.Sleep(1 * time.Millisecond)
-		_ = <-fnode.State.NetworkInvalidMsgQueue()
+		_ = <-s.NetworkInvalidMsgQueue()
 		//fmt.Println(invalidMsg)
 
 		// The following code was giving a demerit for each instance of a message in the NetworkInvalidMsgQueue.

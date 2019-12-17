@@ -7,6 +7,8 @@
 package generated
 
 import (
+	"reflect"
+
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/telemetry"
@@ -22,7 +24,7 @@ type Queue_IMsg struct {
 }
 
 func (q *Queue_IMsg) Init(parent common.NamedObject, name string, size int) *Queue_IMsg {
-	q.Name.Init(parent, name)
+	q.Name.NameInit(parent, name, reflect.TypeOf(q).String())
 	q.Channel = make(chan interfaces.IMsg, size)
 	return q
 }

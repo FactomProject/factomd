@@ -8,11 +8,10 @@ import (
 	"bytes"
 	"fmt"
 	"hash/crc32"
-
-	log "github.com/sirupsen/logrus"
 )
 
-var parcelLogger = packageLogger.WithField("subpack", "connection")
+//
+//var parcelLogger = packageLogger.WithField("subpack", "connection")
 
 // Parcel is the atomic level of communication for the p2p network.  It contains within it the necessary info for
 // the networking protocol, plus the message that the Application is sending.
@@ -143,21 +142,21 @@ func (p *Parcel) UpdateHeader() {
 	p.Header.Length = uint32(len(p.Payload))
 }
 
-func (p *Parcel) LogEntry() *log.Entry {
-	return parcelLogger.WithFields(log.Fields{
-		"network":     p.Header.Network.String(),
-		"version":     p.Header.Version,
-		"app_hash":    p.Header.AppHash,
-		"app_type":    p.Header.AppType,
-		"command":     CommandStrings[p.Header.Type],
-		"length":      p.Header.Length,
-		"target_peer": p.Header.TargetPeer,
-		"crc32":       p.Header.Crc32,
-		"node_id":     p.Header.NodeID,
-		"part_no":     p.Header.PartNo + 1,
-		"parts_total": p.Header.PartsTotal,
-	})
-}
+//func (p *Parcel) LogEntry() *log.Entry {
+//	return parcelLogger.WithFields(log.Fields{
+//		"network":     p.Header.Network.String(),
+//		"version":     p.Header.Version,
+//		"app_hash":    p.Header.AppHash,
+//		"app_type":    p.Header.AppType,
+//		"command":     CommandStrings[p.Header.Type],
+//		"length":      p.Header.Length,
+//		"target_peer": p.Header.TargetPeer,
+//		"crc32":       p.Header.Crc32,
+//		"node_id":     p.Header.NodeID,
+//		"part_no":     p.Header.PartNo + 1,
+//		"parts_total": p.Header.PartsTotal,
+//	})
+//}
 
 func (p *Parcel) MessageType() string {
 	return (fmt.Sprintf("[%s]", CommandStrings[p.Header.Type]))

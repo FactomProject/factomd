@@ -1,27 +1,27 @@
 package state
 
 import (
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/queue"
-	"github.com/FactomProject/factomd/worker"
 )
 
 // Now really sure the thread should be the parent but for now ...
-func NewInMsgQueue(w *worker.Thread, capacity int) *queue.MsgQueue {
-	return new(queue.MsgQueue).Init(w, "InMsgQueue", capacity)
+func NewInMsgQueue(o common.NamedObject, capacity int) *queue.MsgQueue {
+	return new(queue.MsgQueue).Init(o, "InMsgQueue", capacity)
 }
 
-func NewInMsgQueue2(w *worker.Thread, capacity int) *queue.MsgQueue {
-	return new(queue.MsgQueue).Init(w, "InMsgQueue2", capacity)
+func NewInMsgQueue2(o common.NamedObject, capacity int) *queue.MsgQueue {
+	return new(queue.MsgQueue).Init(o, "InMsgQueue2", capacity)
 }
 
-func NewElectionQueue(w *worker.Thread, capacity int) *queue.MsgQueue {
-	return new(queue.MsgQueue).Init(w, "ElectionQueue", capacity)
+func NewElectionQueue(o common.NamedObject, capacity int) *queue.MsgQueue {
+	return new(queue.MsgQueue).Init(o, "ElectionQueue", capacity)
 }
 
-func NewNetOutMsgQueue(w *worker.Thread, capacity int) *queue.MsgQueue {
-	return new(queue.MsgQueue).Init(w, "NetworkOutputQueue", capacity)
+func NewNetOutMsgQueue(o common.NamedObject, capacity int) *queue.MsgQueue {
+	return new(queue.MsgQueue).Init(o, "NetworkOutputQueue", capacity)
 }
 
-func NewAPIQueue(w *worker.Thread, capacity int) *queue.MsgQueue {
-	return new(queue.MsgQueue).Init(w, "APInQueue", capacity)
+func NewAPIQueue(o common.NamedObject, capacity int) *queue.MsgQueue {
+	return new(queue.MsgQueue).Init(o, "APInQueue", capacity)
 }

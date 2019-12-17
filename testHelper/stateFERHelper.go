@@ -99,10 +99,10 @@ func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredH
 	p.Register(func(w *worker.Thread) {
 		s.Initialize(w, new(electionMsgs.ElectionsFactory))
 		s.SetFactoshisPerEC(1)
-		state.LoadDatabase(s)
+		s.LoadDatabase()
 		s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
 		s.UpdateState()
-		s.ValidatorLoop(w)
+		s.MsgSort()
 	})
 	go p.Run()
 

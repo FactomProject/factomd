@@ -1,8 +1,9 @@
 package pubsub_test
 
 import (
-	"github.com/FactomProject/factomd/common/interfaces"
 	"testing"
+
+	"github.com/FactomProject/factomd/common/interfaces"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"

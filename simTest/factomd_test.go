@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -20,7 +21,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -80,13 +80,13 @@ func TestLoad(t *testing.T) {
 	RanSimTest = true
 
 	// use a tree so the messages get reordered
-	state0 := SetupSim("LLLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "30"}, 15, 0, 0, t)
+	state0 := SetupSim("LLLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "15"}, 15, 0, 0, t)
 
 	RunCmd("2")    // select 2
 	RunCmd("w")    // feed load into follower
 	RunCmd("F200") // delay messages
 	RunCmd("R25")  // Feed load
-	WaitBlocks(state0, 3)
+	WaitBlocks(state0, 1)
 	RunCmd("R0") // Stop load
 	for state0.Hold.GetSize() > 10 || len(state0.Holding) > 10 {
 		WaitBlocks(state0, 1)
@@ -1354,7 +1354,7 @@ func TestCatchupEveryMinute(t *testing.T) {
 	RunCmd("T25") // switch to 25 second blocks because dbstate catchup code fails at 6 second blocks
 	// bring them all back
 	for i := 0; i < 10; i++ {
-		state0.LogPrintf("test", "%s %d %s", atomic.WhereAmIString(0), i)
+		state0.LogPrintf("test", "%s %d", atomic.WhereAmIString(0), i)
 		RunCmd(fmt.Sprintf("%d", i+1))
 		WaitMinutes(state0, 1)
 		RunCmd("x")
@@ -1410,7 +1410,7 @@ func TestDebugLocationParse(t *testing.T) {
 
 	for i := 0; i < len(stringsToCheck); i++ {
 		// Checks that the SplitUpDebugLogRegEx function works as expected
-		dirlocation, regex := log.SplitUpDebugLogRegEx(stringsToCheck[i])
+		dirlocation, regex := filepath.Split(stringsToCheck[i])
 		if dirlocation != tempdir {
 			t.Fatalf("Error SplitUpDebugLogRegEx() did not return the correct directory location.")
 		}

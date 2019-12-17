@@ -163,7 +163,7 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "AuthoritySetString", state.AuthoritySetString)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "NetworkNumber", state.NetworkNumber)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "DB", state.DB)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "Logger", state.Logger)
+	//str = fmt.Sprintf("%s %35s = %+v\n", str, "Logger", state.Logger)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Anchor", state.Anchor)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "DBStates", state.DBStates)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ResetRequest", state.ResetRequest)

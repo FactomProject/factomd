@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants"
@@ -36,7 +37,7 @@ type HoldingList struct {
 	commits            *pubsub.SubChannel
 }
 
-func (l *HoldingList) doWork(w *worker.Thread, id int) {
+func (l *HoldingList) doWork(w *worker.Thread) {
 	l.outMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/dependentHolding/messages", pubsub.PubMultiWrap()))
 	l.fctMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/fctMessages", pubsub.PubMultiWrap()))
 	l.gossipMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/gossipMessages", pubsub.PubMultiWrap()))
@@ -49,14 +50,13 @@ func (l *HoldingList) doWork(w *worker.Thread, id int) {
 
 func (l *HoldingList) Run(w *worker.Thread) {
 
-	w.Spawn(func(w *worker.Thread) {
-		w.Init(l, "even")
-		w.OnRun(func() { l.doWork(w, 0) })
-	})
-	w.Spawn(func(w *worker.Thread) {
-		w.Init(l, "odd")
-		w.OnRun(func() { l.doWork(w, 1) })
-	})
+	l.outMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/dependentHolding/messages", pubsub.PubMultiWrap()))
+	l.fctMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/fctMessages", pubsub.PubMultiWrap()))
+	l.gossipMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/gossipMessages", pubsub.PubMultiWrap()))
+
+	l.inMessages = generated.Subscribe_ByChannel_IMsg(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/msgValidation/messages"))
+	l.heights = generated.Subscribe_ByChannel_DBHT(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/heights"))
+	l.metDependencyHashs = generated.Subscribe_ByChannel_Hash(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/dependencyHashs"))
 
 }
 
@@ -66,12 +66,12 @@ func (l *HoldingList) metric(msg interfaces.IMsg) telemetry.Gauge {
 }
 
 func NewHoldingList(s *State) *HoldingList {
-	l := HoldingList{}
-	l.Init(s, "DependentHolding")
+	l := new(HoldingList)
+	l.NameInit(s, "DependentHolding", reflect.TypeOf(l).String())
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
 	l.dependents = make(map[[32]byte]heldMessage)
-	return &l
+	return l
 }
 
 func (l *HoldingList) Messages() map[[32]byte][]interfaces.IMsg {

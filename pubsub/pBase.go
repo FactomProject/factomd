@@ -1,8 +1,9 @@
 package pubsub
 
 import (
-	"github.com/FactomProject/factomd/common/interfaces"
 	"sync"
+
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 // PubBase publisher has the basic necessary function implementations.

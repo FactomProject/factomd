@@ -9,11 +9,10 @@ import (
 	"hash/crc32"
 	"math/rand"
 	"time"
-
-	"github.com/FactomProject/factomd/common/primitives"
 )
 
-var prLogger = packageLogger.WithField("subpack", "protocol")
+//
+//var prLogger = packageLogger.WithField("subpack", "protocol")
 
 // This file contains the global variables and utility functions for the p2p network operation.  The global variables and constants can be tweaked here.
 
@@ -26,8 +25,7 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
 	clen := len(channel)
 	switch {
 	case highWaterMark < clen:
-		str, _ := primitives.EncodeJSONString(message)
-		prLogger.Warnf("nonBlockingChanSend() - DROPPING MESSAGES. SubChannel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, str)
+		//		prLogger.Warnf("nonBlockingChanSend() - DROPPING MESSAGES. SubChannel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, primitives.EncodeJSONString(message))
 		for highWaterMark <= len(channel) { // Clear out some messages
 			removed++
 			<-channel

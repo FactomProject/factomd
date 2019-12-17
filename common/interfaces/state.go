@@ -44,8 +44,6 @@ type IState interface {
 	GetIdentityChainID() IHash
 	SetIdentityChainID(IHash)
 	Sign([]byte) IFullSignature
-	Log(level string, message string)
-	Logf(level string, format string, args ...interface{})
 	GetServerPublicKeyString() string
 
 	GetDBStatesSent() []*DBStateSent
@@ -204,7 +202,6 @@ type IState interface {
 	// MISC
 	// ====
 
-	Reset()                                    // Trim back the state to the last saved block
 	GetSystemMsg(dbheight, height uint32) IMsg // Return the system message at the given height.
 	SendDBSig(dbheight uint32, vmIndex int)    // If a Leader, we have to send a DBSig out for the previous block
 
@@ -212,8 +209,6 @@ type IState interface {
 	FollowerExecuteEOM(IMsg)          // Messages that go into the process list
 	FollowerExecuteAck(IMsg)          // Ack Msg calls this function.
 	FollowerExecuteDBState(IMsg)      // Add the given DBState to this server
-	FollowerExecuteSFault(IMsg)       // Handling of Server Fault Messages
-	FollowerExecuteFullFault(IMsg)    // Handle Server Full-Fault Messages
 	FollowerExecuteMMR(IMsg)          // Handle Missing Message Responses
 	FollowerExecuteDataResponse(IMsg) // Handle Data Response
 	FollowerExecuteMissingMsg(IMsg)   // Handle requests for missing messages

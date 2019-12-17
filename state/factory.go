@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/globals"
@@ -16,11 +17,10 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/logging"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
-	"github.com/FactomProject/factomd/worker"
-	"github.com/FactomProject/factomd/wsapi"
-	log "github.com/sirupsen/logrus"
 )
 
 func (s *State) LoadConfigFromFile(filename string, networkFlag string) {
@@ -220,17 +220,23 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 // original constructor
 func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	s := new(State)
+	// Must add the prefix before loading the configuration.
+	s.AddPrefix(p.Prefix)
+	// Setup the name to catch any early logging
+	s.FactomNodeName = p.Prefix + "FNode0"
+	//s.NameInit(common.NilName, s.FactomNodeName+"State", reflect.TypeOf(s).String())
+	s.logging = logging.NewLayerLogger(log.GlobalLogger, map[string]string{"fnode": s.FactomNodeName})
+
+	// print current dbht-:-minute
+	s.logging.AddPrintField("dbht",
+		func(interface{}) string { return fmt.Sprintf("%7d-:-%-2d", *&s.LLeaderHeight, *&s.CurrentMinute) },
+		"")
 	s.TimestampAtBoot = primitives.NewTimestampNow()
 	preBootTime := new(primitives.Timestamp)
 	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
 	s.SetLeaderTimestamp(s.TimestampAtBoot)
 	s.SetMessageFilterTimestamp(preBootTime)
 	s.RunState = runstate.New
-
-	// Must add the prefix before loading the configuration.
-	s.AddPrefix(p.Prefix)
-	// Setup the name to catch any early logging
-	s.FactomNodeName = s.Prefix + "FNode0"
 
 	// build a timestamp 20 minutes before boot so we will accept inMessages from nodes who booted before us.
 	s.PortNumber = 8088
@@ -344,6 +350,12 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	newState := new(State)
 	newState.StateConfig = s.StateConfig
 	number := fmt.Sprintf("%02d", cloneNumber)
+	newState.FactomNodeName = s.Prefix + "FNode" + number
+	// the DBHT value is replaced by the result of running the formatter for dbht which has the current value
+	newState.logging = logging.NewLayerLogger(log.GlobalLogger, map[string]string{"fnode": newState.FactomNodeName, "dbht": "unused"})
+	newState.logging.AddPrintField("dbht",
+		func(interface{}) string { return fmt.Sprintf("%7d-:-%-2d", *&s.LLeaderHeight, *&s.CurrentMinute) },
+		"") // the
 	simConfigPath := util.GetHomeDir() + "/.factom/m2/simConfig/"
 	configfile := fmt.Sprintf("%sfactomd%03d.conf", simConfigPath, cloneNumber)
 
@@ -355,7 +367,6 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 		os.MkdirAll(simConfigPath, 0775)
 	}
 
-	newState.FactomNodeName = s.Prefix + "FNode" + number
 	config := false
 	if _, err := os.Stat(configfile); !os.IsNotExist(err) {
 		os.Stderr.WriteString(fmt.Sprintf("   Using the %s config file.\n", configfile))
@@ -369,14 +380,14 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 		newState.LogPath = s.LogPath + "/Sim" + number
 	}
 
-	newState.FactomNodeName = s.Prefix + "FNode" + number
 	newState.RunState = runstate.New // reset runstate since this clone will be started by sim node
 	newState.LdbPath = s.LdbPath + "/Sim" + number
 	newState.BoltDBPath = s.BoltDBPath + "/Sim" + number
 	newState.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
-	newState.IdentityControl = s.IdentityControl.Clone()
+	newState.IdentityControl = s.IdentityControl.Clone() // FIXME relocate
 
 	if !config {
+		// FIXME: add hack so wew can do Fnode00, Fnode01, ...
 		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
 		s.LogPrintf("AckChange", "Default3 IdentityChainID %v", s.IdentityChainID.String())
 
@@ -387,6 +398,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 		s.initServerKeys()
 	}
 
+	// FIXME change to use timestamp.Clone
 	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
 	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
 	newState.SetMessageFilterTimestamp(s.GetMessageFilterTimestamp())
@@ -407,7 +419,7 @@ func Clone(s *State, cloneNumber int) interfaces.IState {
 	return newState
 }
 
-func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectionsFactory) {
+func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IElectionsFactory) {
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -417,8 +429,7 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 		s.Salt = primitives.Sha(b)
 	}
 
-	salt := fmt.Sprintf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
-	fmt.Print(salt)
+	fmt.Printf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
 
 	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We can't start as a leader until we know we are upto date
 	s.RunLeader = false
@@ -427,13 +438,13 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 	s.TimestampAtBoot = primitives.NewTimestampNow()
 	s.ProcessTime = s.TimestampAtBoot
 	if s.LogPath == "stdout" {
-		wsapi.InitLogs(s.LogPath, s.LogLevel)
+		//wsapi.InitLogs(s.LogPath, s.LogLevel)
 	} else {
 		er := os.MkdirAll(s.LogPath, 0775)
 		if er != nil {
 			panic("Could not create " + s.LogPath + "\n error: " + er.Error())
 		}
-		wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
+		//wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 	}
 
 	s.Hold = NewHoldingList(s)                                // setup the dependent holding map
@@ -444,11 +455,11 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 	s.timerMsgQueue = make(chan interfaces.IMsg, 100)         //incoming eom notifications, used by leaders
 	//	s.ControlPanelChannel = make(chan DisplayState, 20)                     //
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100)              //incoming message queue from the network inMessages
-	s.networkOutMsgQueue = NewNetOutMsgQueue(w, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(w, constants.INMSGQUEUE_HIGH)              //incoming message queue for Factom application inMessages
-	s.inMsgQueue2 = NewInMsgQueue2(w, constants.INMSGQUEUE_HIGH)            //incoming message queue for Factom application inMessages
-	s.electionsQueue = NewElectionQueue(w, constants.INMSGQUEUE_HIGH)       //incoming message queue for Factom application inMessages
-	s.apiQueue = NewAPIQueue(w, constants.INMSGQUEUE_HIGH)                  //incoming message queue from the API
+	s.networkOutMsgQueue = NewNetOutMsgQueue(s, constants.INMSGQUEUE_MED)   //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(s, constants.INMSGQUEUE_HIGH)              //incoming message queue for Factom application inMessages
+	s.inMsgQueue2 = NewInMsgQueue2(s, constants.INMSGQUEUE_HIGH)            //incoming message queue for Factom application inMessages
+	s.electionsQueue = NewElectionQueue(s, constants.INMSGQUEUE_HIGH)       //incoming message queue for Factom application inMessages
+	s.apiQueue = NewAPIQueue(s, constants.INMSGQUEUE_HIGH)                  //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 50)                             //queue of Leadership inMessages
 	s.msgQueue = make(chan interfaces.IMsg, 50)                             //queue of Follower inMessages
 	s.prioritizedMsgQueue = make(chan interfaces.IMsg, 50)                  //a prioritized queue of Follower inMessages (from mmr.go)
@@ -489,7 +500,6 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
-	w.Run(s.DBStates.Catchup)
 
 	s.StatesMissing = NewStatesMissing()
 	s.StatesWaiting = NewStatesWaiting()
@@ -605,8 +615,8 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 	// end of FER removal
 	s.Starttime = time.Now()
 	// Allocate the MMR queues
-	s.asks = make(chan askRef, 50) // Should be > than the number of VMs so each VM can have at least one outstanding ask.
-	s.adds = make(chan plRef, 50)  // No good rule of thumb on the size of this
+	s.asks = make(chan askRef, 100) // Should be > than the number of VMs so each VM can have at least one outstanding ask.
+	s.adds = make(chan plRef, 50)   // No good rule of thumb on the size of this
 	s.dbheights = make(chan int, 1)
 	s.rejects = make(chan MsgPair, 1) // Messages rejected from process list
 
@@ -638,16 +648,6 @@ func (s *State) Initialize(w *worker.Thread, electionFactory interfaces.IElectio
 					}
 				}
 			}
-		}
-	}
-
-	s.Logger = log.WithFields(log.Fields{"node-name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()})
-
-	// Set up Logstash Hook for Logrus (if enabled)
-	if s.UseLogstash {
-		err := s.HookLogstash()
-		if err != nil {
-			log.Fatal(err)
 		}
 	}
 

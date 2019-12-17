@@ -5,6 +5,7 @@ package testHelper
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/FactomProject/factomd/pubsub"
 	"os/exec"
 	"regexp"
 	"runtime"
@@ -37,7 +38,9 @@ var BlockCount int = 10
 var DefaultCoinbaseAmount uint64 = 100000000
 
 func CreateEmptyTestState() *state.State {
+	pubsub.Reset()
 	s := new(state.State)
+	s.BindPublishers()
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
 	s.LoadConfig("", "")
@@ -51,7 +54,7 @@ func CreateEmptyTestState() *state.State {
 
 	s.Network = "LOCAL"
 	s.CheckChainHeads.CheckChainHeads = false
-	state.LoadDatabase(s)
+	s.LoadDatabase()
 	s.Process()
 	s.DBFinished = true
 	return s
@@ -61,7 +64,7 @@ func CreateAndPopulateTestStateAndStartValidator() *state.State {
 	s := CreateAndPopulateTestState()
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
-		s.ValidatorLoop(w)
+		w.OnRun(s.MsgSort)
 	})
 	go p.Run()
 
@@ -75,7 +78,7 @@ func CreatePopulateAndExecuteTestState() *state.State {
 	ExecuteAllBlocksFromDatabases(s)
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
-		s.ValidatorLoop(w)
+		s.MsgSort()
 	})
 	go p.Run()
 	time.Sleep(30 * time.Millisecond)
@@ -124,7 +127,9 @@ func CreateAndPopulateStaleHolding() *state.State {
 }
 
 func CreateAndPopulateTestState() *state.State {
+	pubsub.Reset() // clear existing pubsub paths between tests
 	s := new(state.State)
+	s.BindPublishers()
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
@@ -154,7 +159,7 @@ func CreateAndPopulateTestState() *state.State {
 	}*/
 	s.SetFactoshisPerEC(1)
 	s.MMRDummy() // Need to start MMR to ensure queues don't fill up
-	state.LoadDatabase(s)
+	s.LoadDatabase()
 	s.Process()
 	s.UpdateState()
 
