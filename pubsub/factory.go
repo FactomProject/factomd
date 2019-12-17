@@ -14,7 +14,11 @@ var PubFactory pubFactory
 
 type pubFactory struct{}
 
-func (pubFactory) Base() *PubBase                       { return new(PubBase) }
-func (pubFactory) RoundRobin(buffer int) *PubRoundRobin { return NewPubRoundRobin(buffer) }
-func (pubFactory) MsgSplit(buffer int) *PubMsgSplit     { return NewPubMsgSplit(buffer) }
-func (pubFactory) Threaded(buffer int) *PubThreaded     { return NewPubThreaded(buffer) }
+func (pubFactory) Base() *PubBase { return new(PubBase) }
+func (pubFactory) RoundRobin(buffer int) *PubSelector {
+	return NewPubSelector(buffer, &RoundRobinSelector{})
+}
+func (pubFactory) MsgSplit(buffer int) *PubSelector {
+	return NewPubSelector(buffer, &MsgSplitSelector{})
+}
+func (pubFactory) Threaded(buffer int) *PubThreaded { return NewPubThreaded(buffer) }
