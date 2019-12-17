@@ -348,9 +348,9 @@ func startFnodes(w *worker.Thread) {
 	for i, _ := range fnode.GetFnodes() {
 		node := fnode.Get(i)
 		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) {
+			// publish my hooks
 			w.OnReady(func() {
-				node.State.Publish()
-				// Subscribe to publishers
+				// subscribe to publishers
 				node.State.Subscribe()
 			})
 

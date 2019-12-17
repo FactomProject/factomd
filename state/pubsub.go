@@ -27,6 +27,8 @@ func (s *State) newPublisher(name string) pubsub.IPublisher {
 }
 
 func (s *State) BindPublishers() {
+	s.Publish()
+
 	// MoveStateToHeight
 	s.Pub.BlkSeq = s.newPublisher(event.Path.Seq)
 	s.Pub.Bank = s.newPublisher(event.Path.Bank)
