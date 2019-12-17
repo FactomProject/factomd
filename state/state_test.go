@@ -173,6 +173,7 @@ func TestClone(t *testing.T) {
 }
 
 func TestLog(t *testing.T) {
+	t.Skip("this type of logging is deprecated")
 	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	buf := new(bytes.Buffer)
 	//s.Logger = log.New(buf, "debug", "unit_test")
@@ -182,7 +183,9 @@ func TestLog(t *testing.T) {
 	var levels []string = []string{"debug", "info", "warning", "error"}
 	for _, l := range levels {
 		msg := "A test message"
-		s.Logf(l, "%s", msg)
+		// FIXME
+		//s.Logf(l, "%s", msg)
+		_ = s
 
 		data := buf.Next(buf.Len())
 		if !strings.Contains(string(data), msg) {
@@ -190,7 +193,7 @@ func TestLog(t *testing.T) {
 		}
 
 		msg2 := "Another test message"
-		s.Log(l, msg2)
+		//s.Log(l, msg2)
 		data = buf.Next(buf.Len())
 		if !strings.Contains(string(data), msg2) {
 			t.Error("Log did not log the msg for level", l)

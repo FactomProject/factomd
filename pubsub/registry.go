@@ -11,6 +11,10 @@ import (
 var globalReg *Registry
 
 func init() {
+	Reset()
+}
+
+func Reset() {
 	globalReg = NewRegistry()
 }
 

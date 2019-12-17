@@ -593,8 +593,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	// This node cannot be validated until the previous node (d) has been saved to disk, which means processed
 	// and signed as well.
 	if d == nil {
-		state.LogPrintf("dbstateprocess", "Cannot validate because DBState is nil",
-			dbheight)
+		state.LogPrintf("dbstateprocess", "Cannot validate because DBState is nil at height %v", dbheight)
 		return 0
 	}
 	if !d.Locked || !d.Signed || !d.Saved {
@@ -984,7 +983,7 @@ func (list *DBStateList) ProcessBlock(d *DBState) (progress bool) {
 	if dbht > 0 && dbht == list.ProcessHeight && list.State.CurrentMinute > 0 {
 		progress = true
 		d.Repeat = true
-		s.LogPrintf("dbstateprocess", "ProcessBlock(%d) Skipping Repeated current block", dbht, d.Locked, d.IsNew, d.Repeat)
+		s.LogPrintf("dbstateprocess", "ProcessBlock(%d) Skipping Repeated current block locked/new/repeat %v/%v/%v", dbht, d.Locked, d.IsNew, d.Repeat)
 		return false
 	}
 

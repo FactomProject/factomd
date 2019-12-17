@@ -5,6 +5,7 @@ package testHelper
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/FactomProject/factomd/pubsub"
 	"os/exec"
 	"regexp"
 	"runtime"
@@ -61,7 +62,7 @@ func CreateAndPopulateTestStateAndStartValidator() *state.State {
 	s := CreateAndPopulateTestState()
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
-		s.MsgSort()
+		w.OnRun(s.MsgSort)
 	})
 	go p.Run()
 
@@ -124,7 +125,9 @@ func CreateAndPopulateStaleHolding() *state.State {
 }
 
 func CreateAndPopulateTestState() *state.State {
+	pubsub.Reset() // clear existing pubsub paths between tests
 	s := new(state.State)
+	s.BindPublishers()
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
