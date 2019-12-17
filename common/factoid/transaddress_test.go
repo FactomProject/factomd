@@ -17,6 +17,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestUnmarshalNilTransAddress checks that unmarshalling nil or the empty interface returns proper errors
 func TestUnmarshalNilTransAddress(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -36,6 +37,8 @@ func TestUnmarshalNilTransAddress(t *testing.T) {
 	}
 }
 
+// TestTAddressEquals creates 1000 random trans addresses does various manipulations to check that they are equal when they should be
+// and not equal when different. Also checks for integrity of marshal and unmarshal
 func TestTAddressEquals(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		a1 := RandomTransAddress()
@@ -81,6 +84,7 @@ func TestTAddressEquals(t *testing.T) {
 	}
 }
 
+// TestTransMarshalUnmarshal checks that trans address can be marshalled and unmarshalled correctly
 func TestTransAddressMarshalUnmarshal(t *testing.T) {
 	ta := new(TransAddress)
 	ta.SetAmount(12345678)
@@ -113,6 +117,7 @@ func TestTransAddressMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestOutECAddress checks that NewOutECAddress returns the proper object
 func TestOutECAddress(t *testing.T) {
 	h, err := primitives.HexToHash("ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973")
 	if err != nil {
@@ -141,6 +146,7 @@ func TestOutECAddress(t *testing.T) {
 	}
 }
 
+// TestOutAddress checks that NewOutAddress returns the proper object
 func TestOutAddress(t *testing.T) {
 	h, err := primitives.HexToHash("ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973")
 	if err != nil {
@@ -169,6 +175,7 @@ func TestOutAddress(t *testing.T) {
 	}
 }
 
+// TestInAddress checks that NewInAddress returns the proper object
 func TestInAddress(t *testing.T) {
 	h, err := primitives.HexToHash("ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973")
 	if err != nil {
@@ -197,7 +204,7 @@ func TestInAddress(t *testing.T) {
 	}
 }
 
-// Test multiple trans addresses in the same binary blob
+// TestTransAddressBlob tests multiple trans addresses in the same binary blob
 func TestTransAddressBlob(t *testing.T) {
 	var err error
 	// TODO: Add unit test to cover unmarshaling multiple transaddresses from same binary blob
@@ -235,6 +242,7 @@ func TestTransAddressBlob(t *testing.T) {
 	}
 }
 
+// TestVectorTransAddressMarshalling checks trans addresses can be marshalled and unmarshalled properly
 func TestVectorTransAddressMarshalling(t *testing.T) {
 	amounts := []uint64{
 		0, 1, 2, 3, 4, 5, 100, 1000, 1e10, math.MaxUint32, math.MaxUint64 - 1, math.MaxUint64,
@@ -252,6 +260,7 @@ func TestVectorTransAddressMarshalling(t *testing.T) {
 
 }
 
+// TestRandomTransAddressMarshalling checks that 100 random trans addresses can be marshalled and unmarshalled properly
 func TestRandomTransAddressMarshalling(t *testing.T) {
 	// Test Random addresses with random amounts
 	for i := 0; i < 100; i++ {

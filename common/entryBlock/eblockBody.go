@@ -15,13 +15,13 @@ import (
 
 // EBlockBody is the series of Hashes that form the Entry Block Body.
 type EBlockBody struct {
-	EBEntries []interfaces.IHash `json:"ebentries"` // Array of entries from a single chain id associated with this entry block
+	EBEntries []interfaces.IHash `json:"ebentries"` // Slice of entries from a single chain id associated with this entry block
 }
 
 var _ interfaces.Printable = (*EBlockBody)(nil)
 var _ interfaces.IEBlockBody = (*EBlockBody)(nil)
 
-// IsSameAs returns true iff th einput object is the same as this object
+// IsSameAs returns true iff the input object is the same as this object
 func (e *EBlockBody) IsSameAs(b interfaces.IEBlockBody) bool {
 	if e == nil || b == nil {
 		if e == nil && b == nil {
@@ -84,7 +84,7 @@ func (e *EBlockBody) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-// GetEBEntries returns the hash array associated with the entry block
+// GetEBEntries returns the hash slice associated with the entry block
 func (e *EBlockBody) GetEBEntries() []interfaces.IHash {
 	return e.EBEntries[:]
 }
@@ -96,7 +96,7 @@ func (e *EBlockBody) AddEBEntry(entry interfaces.IHash) {
 }
 
 // AddEndOfMinuteMarker adds the End of Minute to the Entry Block. The End of
-// Minut byte becomes the last byte in a 32 byte slice that is added to the
+// Minute byte becomes the last byte in a 32 byte slice that is added to the
 // Entry Block Body as an Entry Block Entry.
 func (e *EBlockBody) AddEndOfMinuteMarker(m byte) {
 	// create a map of possible minute markers that may be found in the

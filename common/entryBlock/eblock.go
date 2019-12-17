@@ -14,12 +14,11 @@ import (
 	llog "github.com/FactomProject/factomd/log"
 )
 
-// EBlock is the Entry Block. It holds the hashes of the Entries and its Merkle
-// Root is written into the Directory Blocks. Each Entry Block represents all
-// of the entries for a particular Chain during a 10 minute period (a single directory block's worth of time)
+// EBlock (Entry Block) holds an index of all entries written to a particular chain in the course of a Directory Block.
+// The EBlock's Merkle Root is written to the Directory Block.
 type EBlock struct {
 	Header interfaces.IEntryBlockHeader `json:"header"` // Header of the Eblock
-	Body   *EBlockBody                  `json:"body"`   // Array of entries from a single chain id associated with this entry block
+	Body   *EBlockBody                  `json:"body"`   // Body contains a slice of entries from a single chain id associated with this entry block
 }
 
 var _ interfaces.Printable = (*EBlock)(nil)

@@ -23,6 +23,7 @@ var adr1 = [constants.ADDRESS_LENGTH]byte{
 	0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c, 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00,
 }
 
+// TestUnmarshalNilTransaction checks that unmarshalling the nil or empty inferface result in proper errors
 func TestUnmarshalNilTransaction(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -42,12 +43,16 @@ func TestUnmarshalNilTransaction(t *testing.T) {
 	}
 }
 
+// zeroReader is an global type for this package to describe an empty struct
 type zeroReader struct{}
 
+// zero is a global empty struct for this package used
 var zero zeroReader
 
+// r is global random number generator for this package
 var r *rand.Rand
 
+// Read fills the input slice with random integers
 func (zeroReader) Read(buf []byte) (int, error) {
 	//if r==nil { r = rand.New(rand.NewSource(time.Now().Unix())) }
 	if r == nil {
@@ -59,6 +64,7 @@ func (zeroReader) Read(buf []byte) (int, error) {
 	return len(buf), nil
 }
 
+// nextAddress returns a new address with a public key created from the global 'zero'
 func nextAddress() interfaces.IAddress {
 	public, _, _ := ed25519.GenerateKey(zero)
 
@@ -67,6 +73,7 @@ func nextAddress() interfaces.IAddress {
 	return addr
 }
 
+// nextSig returns key generated from the global 'zero'
 func nextSig() []byte {
 	// Get me a private key.
 	public, _, _ := ed25519.GenerateKey(zero)
@@ -74,6 +81,8 @@ func nextSig() []byte {
 	return public[:]
 }
 
+// nextAuth2 creates a new RCD_2 object created from a random length slice of addresses filled
+// with public keys created from the global 'zero'
 func nextAuth2() interfaces.IRCD {
 	if r == nil {
 		r = rand.New(rand.NewSource(1))
@@ -89,6 +98,7 @@ func nextAuth2() interfaces.IRCD {
 	return rcd
 }
 
+// getDeterministicTransaction creates a specific new transation used for testing
 func getDeterministicTransaction() interfaces.ITransaction {
 	tx := new(Transaction)
 
@@ -120,8 +130,10 @@ func getDeterministicTransaction() interfaces.ITransaction {
 	return tx
 }
 
+// nb is a global transaction in this package used for testing
 var nb interfaces.ITransaction
 
+// getSignedTrans creates a new transaction to fill the global 'nb' if nil, then returns 'nb'
 func getSignedTrans() interfaces.ITransaction {
 	if nb != nil {
 		return nb
@@ -165,18 +177,26 @@ func TestTransaction(t *testing.T) {
 }
 */
 
+// TestAddress_MarshalUnMarshal checks that an address may be marshalled and unmarshalled correctly
 func TestAddress_MarshalUnMarshal(t *testing.T) {
 	a := nextAddress()
 	adr, err := a.MarshalBinary()
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	_, err = a.UnmarshalBinaryData(adr)
+
+	b := CreateAddress(nil)
+	_, err = b.UnmarshalBinaryData(adr)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
+
+	if a.IsSameAs(b) == false {
+		t.Errorf("Unmarshalled object not the same as marshalled object")
+	}
 }
 
+// TestMultisig_MarshalUnMarshal checks that the RCD2 can be marshalled and unmarshalled correctly
 func TestMultisig_MarshalUnMarshal(t *testing.T) {
 	rcd := nextAuth2()
 	auth2, err := rcd.MarshalBinary()
@@ -191,6 +211,7 @@ func TestMultisig_MarshalUnMarshal(t *testing.T) {
 	}
 }
 
+// TestTransaction_MarshalUnMarshal marshals a signed transaction and unmarshals it, checking before and after are identical
 func TestTransaction_MarshalUnMarshal(t *testing.T) {
 	getSignedTrans()                // Make sure we have a signed transaction
 	data, err := nb.MarshalBinary() // Marshal our signed transaction
@@ -213,26 +234,37 @@ func TestTransaction_MarshalUnMarshal(t *testing.T) {
 	}
 }
 
+// TestValidateAmounts checks to ensure the function ValidateAmounts correctly flags errors that result in negative sums
+// of inputs, or crosses the int64 signed boundary
 func TestValidateAmounts(t *testing.T) {
 	var zero uint64
-	_, err := ValidateAmounts(zero - 1)
-	if err != nil {
-		t.Failed()
+	_, err := ValidateAmounts(zero - 1) // uint64max should overflow int64
+	if err == nil {
+		t.Errorf("ValidateAmounts did not fail on overflow")
 	}
 	_, err = ValidateAmounts(1, 2, 3, 4, 5, zero-1)
-	if err != nil {
-		t.Failed()
+	if err == nil {
+		t.Errorf("ValidateAmounts did not fail on overflow2")
 	}
-	_, err = ValidateAmounts(0x6FFFFFFFFFFFFFFF, 1)
+	_, err = ValidateAmounts(0x7FFFFFFFFFFFFFFF) // int64max should be ok by itself
 	if err != nil {
-		t.Failed()
+		t.Errorf("ValidateAmounts failed when it shouldn't have")
 	}
-	_, err = ValidateAmounts(1, 0x6FFFFFFFFFFFFFFF, 1)
+	_, err = ValidateAmounts(0x7FFFFFFFFFFFFFFF, 1) // int64max + 1 should fail
+	if err == nil {
+		t.Errorf("ValidateAmounts did not fail on overflow3")
+	}
+	_, err = ValidateAmounts(0x7FFFFFFFFFFFFFFE, 1) // should be ok (sum=int64max)
 	if err != nil {
-		t.Failed()
+		t.Errorf("ValidateAmounts failed when it shouldn't have2")
+	}
+	_, err = ValidateAmounts(1, 0x7FFFFFFFFFFFFFFE, 1) // should fail since sum goes above int64max
+	if err == nil {
+		t.Errorf("ValidateAmounts did not fail on overflow4")
 	}
 }
 
+// TestUnmarshalTransaction checks that a specific test string is decoded and unmarshalled correctly into a transaction
 func TestUnmarshalTransaction(t *testing.T) {
 	str := "02014f8a7fcd1b000000"
 	h, err := hex.DecodeString(str)
@@ -278,6 +310,8 @@ func TestUnmarshalTransaction(t *testing.T) {
 	}
 }
 
+// TestHasUserAddress checks that the specific addresses set up in getDeterministicTransaction are indeed present
+// in the returned object for the function
 func TestHasUserAddress(t *testing.T) {
 	tx := getDeterministicTransaction()
 	t.Logf("%v", tx.String())
@@ -290,14 +324,14 @@ func TestHasUserAddress(t *testing.T) {
 	}
 
 	for i := 0; i < 3; i++ {
-		_, _, str := testHelper.NewFactoidAddressStrings(uint64(i))
+		_, _, str := testHelper.NewFactoidAddressStrings(uint64(i + 5)) // Make the addresses unique by adding 5 for the 5 created abvove
 		if tx.HasUserAddress(str) == false {
 			t.Errorf("Did not found user address %v", str)
 		}
 	}
 
 	for i := 0; i < 2; i++ {
-		add := testHelper.NewECAddress(uint64(i + 8))
+		add := testHelper.NewECAddress(uint64(i + 8)) // Make the addresses unique by adding 8 for the 8 addresses created above
 		str, err := PublicKeyStringToECAddressString(add.String())
 		if err != nil {
 			t.Errorf("Error converting - %v", err)
