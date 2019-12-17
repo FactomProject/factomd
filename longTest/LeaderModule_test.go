@@ -2,10 +2,11 @@ package longtest
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/fnode"
 	. "github.com/FactomProject/factomd/testHelper"
-	"testing"
 )
 
 //  Currently just tests FCT/EC Commit/Reveal messages to make sure leader is working

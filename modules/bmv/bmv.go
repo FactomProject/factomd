@@ -1,12 +1,15 @@
 package bmv
 
 import (
+	"accountedmaps/common"
 	"context"
 	"fmt"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/modules/debugsettings"
+	"reflect"
 	"regexp"
 	"time"
+
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/modules/debugsettings"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/pubsub"
@@ -33,7 +36,6 @@ type BasicMessageValidator struct {
 	rest pubsub.IPublisher
 
 	replay *MsgReplay
-
 
 	// Settings
 	// Updates to regex filter

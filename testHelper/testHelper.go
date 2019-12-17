@@ -5,10 +5,11 @@ package testHelper
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/FactomProject/factomd/pubsub"
 	"os/exec"
 	"regexp"
 	"runtime"
+
+	"github.com/FactomProject/factomd/pubsub"
 
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
