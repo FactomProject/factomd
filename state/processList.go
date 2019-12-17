@@ -905,7 +905,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 	// Until the first couple signatures are processed, we will be 2 behind.
 	//TODO: Why is this in the execution per message per VM when it's global to the processlist -- clay
 	if s.WaitForEntries {
-		s.LogPrintf("processList", "s.WaitForEntries %d-:-%d [%d] > %d + 2", p.DBHeight, s.CurrentMinute, s.EntryDBHeightComplete)
+		s.LogPrintf("processList", "s.WaitForEntries %d-:-%d [%d]", p.DBHeight, s.CurrentMinute, s.EntryDBHeightComplete)
 		return false // Don't process further in this list, go to the next.
 	}
 
@@ -1221,7 +1221,7 @@ func (p *ProcessList) String() string {
 // Intended to let a demoted leader come back before the next DB state but interfered with boot under load so disable for now
 // that means demoted leaders are not sane till the next DBState (up to 10 minutes). Maybe revisit after the missing message storms are fixed.
 func (p *ProcessList) Reset() bool {
-	p.State.LogPrintf("processList", "ProcessList.Reset %d minute %s @ %s", p.DBHeight, p.State.CurrentMinute, atomic.WhereAmIString(1))
+	p.State.LogPrintf("processList", "ProcessList.Reset %d minute %v @ %s", p.DBHeight, p.State.CurrentMinute, atomic.WhereAmIString(1))
 
 	return true
 }

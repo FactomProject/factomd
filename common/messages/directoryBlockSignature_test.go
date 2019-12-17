@@ -203,11 +203,7 @@ func BenchmarkValidateMakingFunctionNoUse(b *testing.B) {
 	s := testHelper.CreateEmptyTestState()
 	m, _, _ := newSignedDirectoryBlockSignature()
 	for i := 0; i < b.N; i++ {
-		//m.Validate(s)
-		vlog := func(format string, args ...interface{}) {
-			//			log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
-		}
-		var _ = vlog
+		m.Validate(s)
 	}
 }
 
@@ -218,9 +214,7 @@ func BenchmarkValidateMakingInstantiateNoUse(b *testing.B) {
 	s := testHelper.CreateEmptyTestState()
 	m, _, _ := newSignedDirectoryBlockSignature()
 	for i := 0; i < b.N; i++ {
-		//m.Validate(s)
-		//		vlog := log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()})
-		var _ = vlog
+		m.Validate(s)
 	}
 }
 
@@ -237,10 +231,6 @@ func BenchmarkValidateMakingFunctionUse(b *testing.B) {
 	m, _, _ := newSignedDirectoryBlockSignature()
 	log.SetOutput(ioutil.Discard)
 	for i := 0; i < b.N; i++ {
-		//m.Validate(s)
-		vlog := func(format string, args ...interface{}) {
-			//			log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
-		}
-		vlog("%s", "hello")
+		m.Validate(s)
 	}
 }

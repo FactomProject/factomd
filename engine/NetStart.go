@@ -15,7 +15,6 @@ import (
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/modules/debugsettings"
-
 	"github.com/FactomProject/factomd/simulation"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -315,6 +314,7 @@ var state0Init sync.Once // we do some extra init for the first state
 //**********************************************************************
 func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNode) {
 	i := fnode.Len()
+
 	if i == 0 {
 		node = fnode.New(state.NewState(p, FactomdVersion))
 	} else {
@@ -324,6 +324,7 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 	// Election factory was created and passed int to avoid import loop
 	node.State.Initialize(w, new(electionMsgs.ElectionsFactory))
 	node.State.NameInit(node, node.State.GetFactomNodeName()+"STATE", reflect.TypeOf(node.State).String())
+	node.State.BindPublishers()
 
 	state0Init.Do(func() {
 		logPort = p.LogPort
@@ -344,7 +345,6 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 
 func startFnodes(w *worker.Thread) {
 	state.CheckGrants() // check the grants table hard coded into the build is well formed.
-
 	for i, _ := range fnode.GetFnodes() {
 		node := fnode.Get(i)
 		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) {
@@ -365,14 +365,13 @@ func startFnodes(w *worker.Thread) {
 	time.Sleep(10 * time.Second)
 	common.PrintAllNames()
 	fmt.Println(registry.Graph())
-
 }
 
 func startServer(w *worker.Thread, node *fnode.FactomNode) {
-
 	NetworkProcessorNet(w, node)
 	s := node.State
 	w.Run("MsgSort", s.MsgSort)
+
 	w.Run("MsgExecute", s.MsgExecute)
 
 	elections.Run(w, s)
@@ -381,7 +380,7 @@ func startServer(w *worker.Thread, node *fnode.FactomNode) {
 	w.Run("DBStateCatchup", s.DBStates.Catchup)
 	w.Run("LoadDatabase", s.LoadDatabase)
 	w.Run("SyncEntries", s.GoSyncEntries)
-	w.Run("EOMTicker", s.EOMTicker)
+	w.Run("EOMTicker", func() { Timer(node.State) })
 	w.Run("MMResponseHandler", s.MissingMessageResponseHandler.Run)
 }
 

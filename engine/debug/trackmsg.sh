@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
+
+# trackmsg.sh <pattern> <node>
+
+if [ "$#" -gt 2 ] || [ "$#" -lt 1 ] ; then
+    echo "trackmsg.sh <pattern> <node>"
+    exit 1
+fi
+
+
 pattern="$1"
 shift
+fnode=$1
+shift
+
 ################################
 # AWK scripts                  #
 ################################
@@ -27,5 +39,5 @@ EOF
 ################################
 # End of AWK Scripts           #
 ################################
-echo "grep -E \"$pattern\" $@ | awk -f msgOrder.awk | sort -n | grep -E \"$pattern\" --color='always' | less -R"
-grep -H -E "$pattern" $@ | awk "$scriptVariable" | sort -n | grep -E "$pattern" --color='always' | less -R
+echo "grep -E \"$pattern\" ${fnode:-fnode0_}* | awk -f msgOrder.awk | sort -n | grep -E \"$pattern\" --color='always' | less -R"
+grep -H -E "$pattern" ${fnode:-fnode0_}* | awk "$scriptVariable" | sort -n | grep -E "$pattern" --color='always' | less -R

@@ -104,8 +104,18 @@ func (d *testAccount) SendFCT(a *testAccount, amt uint64) {
 }
 
 // check EC balance
-func (d *testAccount) GetECBalance() int64 {
-	state0 := fnode.GetFnodes()[0].State
+func (d *testAccount) GetECBalance(args ...*fnode.FactomNode) int64 {
+	var state0 *state.State
+
+	switch len(args) {
+	case 0:
+		state0 = fnode.Get(0).State // default to the first one
+	case 1:
+		state0 = args[0].State
+	default:
+		panic("expect 0 or 1 fnode param")
+	}
+
 	return simulation.GetBalanceEC(state0, d.EcPub())
 }
 
@@ -336,12 +346,13 @@ func WaitForEcBalanceUnder(s *state.State, ecPub string, target int64) int64 {
 // loop until balance is >= target
 func WaitForEcBalanceOver(s *state.State, ecPub string, target int64) int64 {
 
-	s.LogPrintf(logName, "WaitForEcBalanceOver%v:  %v", target, ecPub)
+	s.LogPrintf(logName, "WaitForEcBalanceOver %v:  %v", target, ecPub)
 
 	for {
 		bal := simulation.GetBalanceEC(s, ecPub)
 		time.Sleep(balanceWaitInterval)
 
+		s.LogPrintf(logName, "FoundEcBalance(%v): %v", target, bal)
 		if bal > target {
 			s.LogPrintf(logName, "FoundEcBalancerOver%v: %v", target, bal)
 			return bal

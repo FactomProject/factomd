@@ -6,13 +6,15 @@ package state
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/messages"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	llog "github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/event"
+	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/util/atomic"
 )
 
@@ -83,6 +85,11 @@ func (s *State) MsgExecute() {
 }
 
 func (s *State) MsgSort() {
+	CheckGrants()
+
+	// We should only generate 1 EOM for each height/minute/vmindex
+	lastHeight, lastMinute, lastVM := -1, -1, -1
+
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("A panic state occurred in ValidatorLoop.", r)
@@ -91,8 +98,12 @@ func (s *State) MsgSort() {
 		}
 	}()
 
-	// We should only generate 1 EOM for each height/minute/vmindex
-	lastHeight, lastMinute, lastVM := -1, -1, -1
+	if false { // KLUDGE DISABLE LEADER Publisher
+		leaderOut := pubsub.SubFactory.Channel(50)
+		if s.GetFactomNodeName() == "FNode0" {
+			leaderOut.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), event.Path.LeaderMsgOut))
+		}
+	}
 
 	// Look for pending inMessages, and get one if there is one.
 	for { // this is the message sort
@@ -153,6 +164,7 @@ func (s *State) MsgSort() {
 		case msg = <-s.inMsgQueue2.Channel:
 			s.LogMessage("InMsgQueue2", "dequeue", msg)
 			s.inMsgQueue2.Metric(msg).Dec()
+			// TODO include leaderOut  queue
 		}
 
 		if t := msg.Type(); t == constants.ACK_MSG {

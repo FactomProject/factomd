@@ -44,8 +44,6 @@ type IState interface {
 	GetIdentityChainID() IHash
 	SetIdentityChainID(IHash)
 	Sign([]byte) IFullSignature
-	Log(level string, message string)
-	Logf(level string, format string, args ...interface{})
 	GetServerPublicKeyString() string
 
 	GetDBStatesSent() []*DBStateSent

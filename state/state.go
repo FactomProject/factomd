@@ -105,8 +105,8 @@ type StateConfig struct {
 type State struct {
 	common.Name
 	StateConfig
-
 	logging           *logging.LayerLogger
+	Pub               // Publisher hooks
 	RunState          runstate.RunState
 	NetworkController *p2p.Controller
 	Salt              interfaces.IHash
@@ -627,20 +627,6 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 	c := primitives.Sha(b[:])
 	return binary.BigEndian.Uint32(c.Bytes())
 }
-
-//func (s *State) HookLogstash() error {
-//	hook, err := logrustash.NewAsyncHook("tcp", s.LogstashURL, "factomdLogs")
-//	if err != nil {
-//		return err
-//	}
-//
-//	hook.ReconnectBaseDelay = time.Second // Wait for one second before first reconnect.
-//	hook.ReconnectDelayMultiplier = 2
-//	hook.MaxReconnectRetries = 10
-//
-//	s.Logger.Logger.Hooks.Add(hook)
-//	return nil
-//}
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {
 	return s.EntryBlockDBHeightComplete
@@ -1544,32 +1530,6 @@ func (s *State) initServerKeys() {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
 	s.ServerPubKey = s.ServerPrivKey.Pub
-}
-
-func (s *State) Log(level string, message string) {
-	//	//	packageLogger.WithFields(s.Logger.Data).Info(message)
-}
-
-func (s *State) Logf(level string, format string, args ...interface{}) {
-	//	//	llog := packageLogger.WithFields(s.Logger.Data)
-	//switch level {
-	//case "emergency":
-	//	llog.Panicf(format, args...)
-	//case "alert":
-	//	llog.Panicf(format, args...)
-	//case "critical":
-	//	llog.Panicf(format, args...)
-	//case "error":
-	//	llog.Errorf(format, args...)
-	//case "llog":
-	//	llog.Warningf(format, args...)
-	//case "info":
-	//	llog.Infof(format, args...)
-	//case "debug":
-	//	llog.Debugf(format, args...)
-	//default:
-	//	llog.Infof(format, args...)
-	//}
 }
 
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
