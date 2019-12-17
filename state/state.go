@@ -18,7 +18,9 @@ import (
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants/runstate"
+	"github.com/FactomProject/factomd/generated"
 	"github.com/FactomProject/factomd/modules/logging"
+	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/queue"
 
 	"github.com/FactomProject/factomd/activations"
@@ -420,6 +422,22 @@ type State struct {
 	MissingMessageResponseHandler *MissingMessageResponseCache
 	ChainCommits                  Last100
 	Reveals                       Last100
+
+	// publish subscribe hooks for new modules
+	leaderTimestampPub *generated.Publish_PubBase_Timestamp_type // Current Leader Timestamp
+
+}
+
+func (s *State) Publish() {
+	s.leaderTimestampPub = generated.Publish_PubBase_Timestamp(pubsub.PubFactory.Base().Publish(s.GetParentName() + "/leadertimestamp"))
+}
+
+func (s *State) Subscribe() {
+
+}
+
+func (s *State) ClosePublishing() {
+	_ = s.leaderTimestampPub.Close()
 }
 
 var _ interfaces.IState = (*State)(nil)

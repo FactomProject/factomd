@@ -16,18 +16,18 @@ import (
 // Start subscribeByValue generated go code
 
 // Value subscriber has the basic necessary function implementations. All this does is add a wrapper with typing.
-type Subscribe_ByValue_DBHT_type struct {
+type Subscribe_ByValue_Timestamp_type struct {
 	*SubValue
 }
 
 // type the Read function
-func (s *Subscribe_ByValue_DBHT_type) Read() DBHT {
-	return s.SubValue.Read().(DBHT) // cast the return to the specific type
+func (s *Subscribe_ByValue_Timestamp_type) Read() Timestamp {
+	return s.SubValue.Read().(Timestamp) // cast the return to the specific type
 }
 
 // Create a typed instance form a generic instance
-func Subscribe_ByValue_DBHT(p *SubValue) *Subscribe_ByValue_DBHT_type {
-	return &Subscribe_ByValue_DBHT_type{p}
+func Subscribe_ByValue_Timestamp(p *SubValue) *Subscribe_ByValue_Timestamp_type {
+	return &Subscribe_ByValue_Timestamp_type{p}
 }
 
 // End subscribe_byvalue generated code

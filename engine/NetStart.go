@@ -347,7 +347,20 @@ func startFnodes(w *worker.Thread) {
 
 	for i, _ := range fnode.GetFnodes() {
 		node := fnode.Get(i)
-		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) { startServer(w, node) })
+		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) {
+			w.OnReady(func() {
+				node.State.Publish()
+				// Subscribe to publishers
+				node.State.Subscribe()
+			})
+
+			// do work
+			w.OnRun(func() { startServer(w, node) })
+
+			w.OnExit(func() {})
+
+			w.OnComplete(func() { node.State.ClosePublishing() })
+		})
 	}
 	time.Sleep(10 * time.Second)
 	common.PrintAllNames()

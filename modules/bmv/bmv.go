@@ -37,8 +37,6 @@ type BasicMessageValidator struct {
 
 	replay *MsgReplay
 
-	NodeName string
-
 	// Settings
 	// Updates to regex filter
 	inputRegexUpdates <-chan interface{}
@@ -61,7 +59,7 @@ func NewBasicMessageValidator(parent common.NamedObject, instance int) *BasicMes
 	// 20min grace period
 	b.preBootFilter = b.bootTime.Add(-20 * time.Minute)
 
-	b.rest = pubsub.PubFactory.Threaded(100).Publish(pubsub.GetPath(b.NodeName, "bmv", "rest"), pubsub.PubMultiWrap())
+	b.rest = pubsub.PubFactory.Threaded(100).Publish(pubsub.GetPath(b.GetParentName(), "bmv", "rest"), pubsub.PubMultiWrap())
 
 	b.replay = NewMsgReplay(6)
 	return b
@@ -73,13 +71,13 @@ func (b *BasicMessageValidator) Publish() {
 
 func (b *BasicMessageValidator) Subscribe() {
 	// TODO: Find actual paths
-	b.msgs = b.msgs.Subscribe(pubsub.GetPath(b.NodeName, "msgs"))
-	b.times = b.times.Subscribe(pubsub.GetPath(b.NodeName, "blocktime"))
+	b.msgs = b.msgs.Subscribe(pubsub.GetPath(b.GetParentName(), "msgs"))
+	b.times = b.times.Subscribe(pubsub.GetPath(b.GetParentName(), "blocktime"))
 
-	sub := debugsettings.GetSettings(b.NodeName).InputRegexC()
+	sub := debugsettings.GetSettings(b.GetParentName()).InputRegexC()
 	b.inputRegexUpdates = sub.Channel()
 
-	b.netState = debugsettings.GetSettings(b.NodeName).NetStatOffV()
+	b.netState = debugsettings.GetSettings(b.GetParentName()).NetStatOffV()
 }
 
 func (b *BasicMessageValidator) ClosePublishing() {

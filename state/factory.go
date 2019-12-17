@@ -345,6 +345,9 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	s.AddPrefix(p.Prefix)
 	s.SetOut(false)
 	s.SetDropRate(p.DropRate)
+
+	// publishing hooks for new modules
+
 	return s
 }
 

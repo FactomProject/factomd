@@ -2,7 +2,6 @@ package pubsubtypes
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type DBHT struct {
@@ -10,5 +9,11 @@ type DBHT struct {
 	Minute byte
 }
 
-type IMsg struct{ interfaces.IMsg }
-type Hash primitives.Hash
+type IMsg interfaces.IMsg
+type Hash interfaces.IHash
+type Timestamp interfaces.Timestamp
+
+type CommitRequest struct {
+	IMsg    IMsg
+	Channel chan error
+}
