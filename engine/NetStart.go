@@ -324,7 +324,6 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 	// Election factory was created and passed int to avoid import loop
 	node.State.Initialize(w, new(electionMsgs.ElectionsFactory))
 	node.State.NameInit(node, node.State.GetFactomNodeName()+"STATE", reflect.TypeOf(node.State).String())
-	node.State.BindPublishers()
 
 	state0Init.Do(func() {
 		logPort = p.LogPort
@@ -347,19 +346,11 @@ func startFnodes(w *worker.Thread) {
 	state.CheckGrants() // check the grants table hard coded into the build is well formed.
 	for i, _ := range fnode.GetFnodes() {
 		node := fnode.Get(i)
+
 		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) {
-			// publish my hooks
-			w.OnReady(func() {
-				// subscribe to publishers
-				node.State.Subscribe()
-			})
-
-			// do work
-			w.OnRun(func() { startServer(w, node) })
-
-			w.OnExit(func() {})
-
-			w.OnComplete(func() { node.State.ClosePublishing() })
+			startServer(w, node)
+			w.OnReady(node.State.Subscribe)
+			w.OnExit(func() { node.State.ClosePublishing() }) // should cause your thread loops to exit
 		})
 	}
 	time.Sleep(10 * time.Second)
@@ -370,6 +361,8 @@ func startFnodes(w *worker.Thread) {
 func startServer(w *worker.Thread, node *fnode.FactomNode) {
 	NetworkProcessorNet(w, node)
 	s := node.State
+	s.BindPublishers()
+
 	w.Run("MsgSort", s.MsgSort)
 
 	w.Run("MsgExecute", s.MsgExecute)
