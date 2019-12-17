@@ -38,7 +38,9 @@ var BlockCount int = 10
 var DefaultCoinbaseAmount uint64 = 100000000
 
 func CreateEmptyTestState() *state.State {
+	pubsub.Reset()
 	s := new(state.State)
+	s.BindPublishers()
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
 	s.LoadConfig("", "")
