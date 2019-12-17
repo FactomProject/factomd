@@ -16,7 +16,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// FBlockHeader defines information about a block and is used in the bitcoin
+// FBlock defines information about a block and is used in the bitcoin
 // block (MsgBlock) and headers (MsgHeaders) messages.
 //
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-block
@@ -33,7 +33,7 @@ type FBlock struct {
 	// body size
 	Transactions []interfaces.ITransaction `json:"transactions"` // List of transactions in this block
 
-	endOfPeriod [10]int // End of Minute transaction heights.  The mark the height of the first entry of
+	endOfPeriod [10]int // End of Minute transaction heights.  They mark the transaction height of the first entry of
 	// the NEXT period.  This entry may not exist.  The Coinbase transaction is considered
 	// to be in the first period.  Factom's periods will initially be a minute long, and
 	// there will be 10 of them.  This may change in the future.
@@ -44,24 +44,27 @@ var _ interfaces.Printable = (*FBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*FBlock)(nil)
 var _ interfaces.DatabaseBlockWithEntries = (*FBlock)(nil)
 
-func (a *FBlock) Init() {
-	if a.BodyMR == nil {
-		a.BodyMR = primitives.NewZeroHash()
+// Init initializes any nil hashes to the zero hash
+func (b *FBlock) Init() {
+	if b.BodyMR == nil {
+		b.BodyMR = primitives.NewZeroHash()
 	}
-	if a.PrevKeyMR == nil {
-		a.PrevKeyMR = primitives.NewZeroHash()
+	if b.PrevKeyMR == nil {
+		b.PrevKeyMR = primitives.NewZeroHash()
 	}
-	if a.PrevLedgerKeyMR == nil {
-		a.PrevLedgerKeyMR = primitives.NewZeroHash()
+	if b.PrevLedgerKeyMR == nil {
+		b.PrevLedgerKeyMR = primitives.NewZeroHash()
 	}
 }
 
-func (a *FBlock) IsSameAs(b interfaces.IFBlock) bool {
+// IsSameAs does not actually compare the input block, it always returns true
+func (b *FBlock) IsSameAs(interfaces.IFBlock) bool {
 	return true
 }
 
-func (c *FBlock) GetEntryHashes() []interfaces.IHash {
-	entries := c.Transactions[:]
+// GetEntryHashes computes and returns the hashes of each transaction entry in the Fblock
+func (b *FBlock) GetEntryHashes() []interfaces.IHash {
+	entries := b.Transactions[:]
 	answer := make([]interfaces.IHash, len(entries))
 	for i, entry := range entries {
 		answer[i] = entry.GetHash()
@@ -69,12 +72,14 @@ func (c *FBlock) GetEntryHashes() []interfaces.IHash {
 	return answer
 }
 
-func (c *FBlock) GetTransactionByHash(hash interfaces.IHash) interfaces.ITransaction {
+// GetTransactionByHash returns the transaction that matches the input hash, if no transaction
+// is found, returns nil
+func (b *FBlock) GetTransactionByHash(hash interfaces.IHash) interfaces.ITransaction {
 	if hash == nil {
 		return nil
 	}
 
-	txs := c.GetTransactions()
+	txs := b.GetTransactions()
 	for _, tx := range txs {
 		if hash.IsSameAs(tx.GetHash()) {
 			return tx
@@ -86,8 +91,9 @@ func (c *FBlock) GetTransactionByHash(hash interfaces.IHash) interfaces.ITransac
 	return nil
 }
 
-func (c *FBlock) GetEntrySigHashes() []interfaces.IHash {
-	entries := c.Transactions[:]
+// GetEntrySigHashes returns a slice of the signature hashes for each transaction
+func (b *FBlock) GetEntrySigHashes() []interfaces.IHash {
+	entries := b.Transactions[:]
 	answer := make([]interfaces.IHash, len(entries))
 	for i, entry := range entries {
 		answer[i] = entry.GetSigHash()
@@ -95,27 +101,32 @@ func (c *FBlock) GetEntrySigHashes() []interfaces.IHash {
 	return answer
 }
 
-func (c *FBlock) New() interfaces.BinaryMarshallableAndCopyable {
+// New returns a new Fblock
+func (b *FBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(FBlock)
 }
 
-func (c *FBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
+// DatabasePrimaryIndex returns the key Merkle root of the Fblock
+// Merkle root = sha256[ sha256(marshaled header), body Merkle root ]
+func (b *FBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.DatabasePrimaryIndex") }()
 
-	return c.GetKeyMR()
+	return b.GetKeyMR()
 }
 
-func (c *FBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
+// DatabaseSecondaryIndex returns the ledger key Merkle root
+func (b *FBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.DatabaseSecondaryIndex") }()
 
-	return c.GetLedgerKeyMR()
+	return b.GetLedgerKeyMR()
 }
 
-func (c *FBlock) GetDatabaseHeight() uint32 {
-	return c.DBHeight
+// GetDatabaseHeight returns the directory block height for the transactions in this Fblock
+func (b *FBlock) GetDatabaseHeight() uint32 {
+	return b.DBHeight
 }
 
-// Return the timestamp of the coinbase transaction
+// GetCoinbaseTimestamp returns the timestamp of the coinbase transaction
 func (b *FBlock) GetCoinbaseTimestamp() interfaces.Timestamp {
 	if len(b.Transactions) == 0 {
 		return nil
@@ -123,30 +134,36 @@ func (b *FBlock) GetCoinbaseTimestamp() interfaces.Timestamp {
 	return b.Transactions[0].GetTimestamp().Clone()
 }
 
+// EndOfPeriod takes an integer minute marker input of (1-10) signaling the end of a minute period for transactions. The
+// FBlock stores the number of transactions having occurred thus far into its endOfPeriod[period], and sets all future
+// endOfPeriods[future periods]=0.
 func (b *FBlock) EndOfPeriod(period int) {
 	if period == 0 {
 		return
-	} else {
-		period = period - 1 // Make the period zero based.
-		b.endOfPeriod[period] = len(b.Transactions)
-		for i := period + 1; i < len(b.endOfPeriod); i++ {
-			b.endOfPeriod[i] = 0
-		}
+	}
+	period = period - 1 // Make the period zero based.
+	b.endOfPeriod[period] = len(b.Transactions)
+	for i := period + 1; i < len(b.endOfPeriod); i++ {
+		b.endOfPeriod[i] = 0
 	}
 }
 
+// GetTransactions returns the transactions in the Fblock
 func (b *FBlock) GetTransactions() []interfaces.ITransaction {
 	return b.Transactions
 }
 
+// GetNewInstance returns a copy of this Fblock
 func (b FBlock) GetNewInstance() interfaces.IFBlock {
 	return new(FBlock)
 }
 
+// GetEndOfPeriod returns the end of period array
 func (b *FBlock) GetEndOfPeriod() [10]int {
 	return b.endOfPeriod
 }
 
+// MarshalTrans marshals only the transactions of the FBlock
 func (b *FBlock) MarshalTrans() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -165,9 +182,12 @@ func (b *FBlock) MarshalTrans() (rval []byte, err error) {
 	// 	}
 
 	for i, trans = range b.Transactions {
+
+		// Write the end of minute marker to the marshaled object before dealing with this transaction
+		// if the current transaction is the first transaction in the next period block
 		for periodMark < len(b.endOfPeriod) &&
 			b.endOfPeriod[periodMark] > 0 && // Ignore if markers are not set
-			i == b.endOfPeriod[periodMark] {
+			i == b.endOfPeriod[periodMark] { // This is the first transaction of a new minute mark
 			out.WriteByte(constants.MARKER)
 			periodMark++
 		}
@@ -181,6 +201,8 @@ func (b *FBlock) MarshalTrans() (rval []byte, err error) {
 			return nil, err
 		}
 	}
+	// If there hasn't been an transactions in specific minute periods, then just write the minute mark for each
+	// period when this is true (since we've already looped through all the transactions in this FBlock above)
 	for periodMark < len(b.endOfPeriod) {
 		out.WriteByte(constants.MARKER)
 		periodMark++
@@ -188,6 +210,8 @@ func (b *FBlock) MarshalTrans() (rval []byte, err error) {
 	return out.DeepCopyBytes(), nil
 }
 
+// MarshalHeader marshals the full block. Despite the name implying only a 'header' is marshaled, the
+// entire block is marshaled with this function.
 func (b *FBlock) MarshalHeader() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -242,7 +266,7 @@ func (b *FBlock) MarshalHeader() (rval []byte, err error) {
 	return h, nil
 }
 
-// Write out the block
+// MarshalBinary marshals the object
 func (b *FBlock) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -267,6 +291,7 @@ func (b *FBlock) MarshalBinary() (rval []byte, err error) {
 	return out.DeepCopyBytes(), nil
 }
 
+// UnmarshalFBlock umarshals the input data into this Fblock
 func UnmarshalFBlock(data []byte) (interfaces.IFBlock, error) {
 	block := new(FBlock)
 
@@ -278,7 +303,7 @@ func UnmarshalFBlock(data []byte) (interfaces.IFBlock, error) {
 	return block, nil
 }
 
-// UnmarshalBinary assumes that the Binary is all good.  We do error
+// UnmarshalBinaryData assumes that the Binary is all good.  We do error
 // out if there isn't enough data, or the transaction is too large.
 func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	b.Init()
@@ -350,7 +375,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 
 	b.Transactions = make([]interfaces.ITransaction, int(txCount), int(txCount))
-	for i, _ := range b.endOfPeriod {
+	for i := range b.endOfPeriod {
 		b.endOfPeriod[i] = 0
 	}
 	var periodMark = 0
@@ -396,18 +421,21 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinary unmarshals the input data into this block
 func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 	_, err = b.UnmarshalBinaryData(data)
 	return err
 }
 
+// GetChainID returns the hash of the hardcoded constants.FACTOID_CHAINID
 func (b *FBlock) GetChainID() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetChainID") }()
 
 	return primitives.NewHash(constants.FACTOID_CHAINID)
 }
 
-// Calculates the Key Merkle Root for this block and returns it.
+// GetKeyMR calculates the Key Merkle Root for this block by taking the sha256 of the concatonated:
+// Merkle root = sha256[ sha256(marshaled header), body Merkle root ]
 func (b *FBlock) GetKeyMR() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetKeyMR") }()
 
@@ -424,12 +452,14 @@ func (b *FBlock) GetKeyMR() (rval interfaces.IHash) {
 	return kmr
 }
 
+// GetHash returns the ledger key Merkle root: sha256( ledger MR, sha256(FBlock header))
 func (b *FBlock) GetHash() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetHash") }()
 
 	return b.GetLedgerKeyMR()
 }
 
+// GetLedgerKeyMR returns the ledger key Merkle root: sha256( ledger MR, sha256(FBlock header)
 func (b *FBlock) GetLedgerKeyMR() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetLedgerKeyMR") }()
 
@@ -446,7 +476,8 @@ func (b *FBlock) GetLedgerKeyMR() (rval interfaces.IHash) {
 	return lkmr
 }
 
-// Returns the LedgerMR for this block.
+// GetLedgerMR returns the 'ledger' Merkle root for this block. The ledger Merkle root is the Merkle root of the object
+// computed without any signatures from the transactions
 func (b *FBlock) GetLedgerMR() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetLedgerMR") }()
 
@@ -469,6 +500,7 @@ func (b *FBlock) GetLedgerMR() (rval interfaces.IHash) {
 	return lmr
 }
 
+// GetBodyMR computes the Merkle root from all the transactions in the block (ie, the 'body')
 func (b *FBlock) GetBodyMR() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetBodyMR") }()
 
@@ -492,47 +524,57 @@ func (b *FBlock) GetBodyMR() (rval interfaces.IHash) {
 	return b.BodyMR
 }
 
+// GetPrevKeyMR returns the previous blocks Merkle root
 func (b *FBlock) GetPrevKeyMR() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetPrevKeyMR") }()
 
 	return b.PrevKeyMR
 }
 
+// SetPrevKeyMR sets the previous blocks key Merkle root
 func (b *FBlock) SetPrevKeyMR(hash interfaces.IHash) {
 	b.PrevKeyMR = hash
 }
 
+// GetPrevLedgerKeyMR returns the previous blocks ledger key Merkle root
 func (b *FBlock) GetPrevLedgerKeyMR() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetPrevLedgerKeyMR") }()
 
 	return b.PrevLedgerKeyMR
 }
 
+// SetPrevLedgerKeyMR sets the previous block's ledger key Merkle root
 func (b *FBlock) SetPrevLedgerKeyMR(hash interfaces.IHash) {
 	b.PrevLedgerKeyMR = hash
 }
 
+// CalculateHashes computes the key Merkle root of the all the transactions (the 'body') in the block
 func (b *FBlock) CalculateHashes() {
 	b.BodyMR = nil
 	b.GetBodyMR()
 }
 
+// SetDBHeight sets the directory block height
 func (b *FBlock) SetDBHeight(dbheight uint32) {
 	b.DBHeight = dbheight
 }
 
+// GetDBHeight returns the directory block height
 func (b *FBlock) GetDBHeight() uint32 {
 	return b.DBHeight
 }
 
+// SetExchRate sets the exchange rate
 func (b *FBlock) SetExchRate(rate uint64) {
 	b.ExchRate = rate
 }
 
+// GetExchRate returns the exchange rate
 func (b *FBlock) GetExchRate() uint64 {
 	return b.ExchRate
 }
 
+// ValidateTransaction checks that the transaction is valid, including signatures and balances
 func (b FBlock) ValidateTransaction(index int, trans interfaces.ITransaction) error {
 	// Calculate the fee due.
 	err := trans.Validate(index)
@@ -580,6 +622,7 @@ func (b FBlock) ValidateTransaction(index int, trans interfaces.ITransaction) er
 	return nil
 }
 
+// Validate checks that all transactions in the block are valid and the key Merkle root hasn't changed
 func (b FBlock) Validate() error {
 	for i, trans := range b.Transactions {
 		if err := b.ValidateTransaction(i, trans); err != nil {
@@ -612,7 +655,7 @@ func (b FBlock) Validate() error {
 	return nil
 }
 
-// Add the first transaction of a block.  This transaction makes the
+// AddCoinbase adds the first transaction of a block.  This transaction makes the
 // payout to the servers, so it has no inputs.   This transaction must
 // be deterministic so that all servers will know and expect its output.
 func (b *FBlock) AddCoinbase(trans interfaces.ITransaction) error {
@@ -639,7 +682,7 @@ func (b *FBlock) AddCoinbase(trans interfaces.ITransaction) error {
 	return nil
 }
 
-// Add the given transaction to this block.  Reports an error if this
+// AddTransaction adds the given transaction to this block.  Reports an error if this
 // cannot be done, or if the transaction is invalid.
 func (b *FBlock) AddTransaction(trans interfaces.ITransaction) error {
 	// These tests check that the Transaction itself is valid.  If it
@@ -656,6 +699,7 @@ func (b *FBlock) AddTransaction(trans interfaces.ITransaction) error {
 	return nil
 }
 
+// String returns the Fblock as a string
 func (b FBlock) String() string {
 	txt, err := b.CustomMarshalText()
 	if err != nil {
@@ -664,7 +708,7 @@ func (b FBlock) String() string {
 	return string(txt)
 }
 
-// Marshal to text.  Largely a debugging thing.
+// CustomMarshalText marshals the Fblock to a custom text.  Largely a debugging thing.
 func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	var out primitives.Buffer
 
@@ -723,27 +767,30 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	return out.DeepCopyBytes(), nil
 }
 
-func (e *FBlock) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+// JSONByte returns the json encoded byte array
+func (b *FBlock) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(b)
 }
 
-func (e *FBlock) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+// JSONString returns the json encoded string
+func (b *FBlock) JSONString() (string, error) {
+	return primitives.EncodeJSONString(b)
 }
 
 type ExpandedFBlock FBlock
 
-func (e FBlock) MarshalJSON() ([]byte, error) {
+// MarshalJSON returns the json encoded byte array
+func (b FBlock) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		ExpandedFBlock
 		ChainID     string `json:"chainid"`
 		KeyMR       string `json:"keymr"`
 		LedgerKeyMR string `json:"ledgerkeymr"`
 	}{
-		ExpandedFBlock: ExpandedFBlock(e),
+		ExpandedFBlock: ExpandedFBlock(b),
 		ChainID:        "000000000000000000000000000000000000000000000000000000000000000f",
-		KeyMR:          e.GetKeyMR().String(),
-		LedgerKeyMR:    e.GetLedgerKeyMR().String(),
+		KeyMR:          b.GetKeyMR().String(),
+		LedgerKeyMR:    b.GetLedgerKeyMR().String(),
 	})
 }
 
@@ -751,6 +798,7 @@ func (e FBlock) MarshalJSON() ([]byte, error) {
  * Helper Functions
  **************************/
 
+// NewFBlock creates a new Fblock that is sequentially 'next' in line to the input block
 func NewFBlock(prev interfaces.IFBlock) interfaces.IFBlock {
 	scb := new(FBlock)
 	scb.BodyMR = new(primitives.Hash)
@@ -768,6 +816,8 @@ func NewFBlock(prev interfaces.IFBlock) interfaces.IFBlock {
 	return scb
 }
 
+// CheckBlockPairIntegrity checks that the input block is truly the 'next' block after the
+// input 'prev' block by ensuring the Merkle roots and DB heights are set correctly
 func CheckBlockPairIntegrity(block interfaces.IFBlock, prev interfaces.IFBlock) error {
 	if block == nil {
 		return fmt.Errorf("No block specified")

@@ -30,6 +30,7 @@ Corresponding to public key: 8bee2930-cbe4772a-e5454c48-01d4ef36-6276f6e4-cc65ba
 
 */
 
+// TestPublicToAddress checks that a pupil key can convert to the proper factoid address
 func TestPublicToAddress(t *testing.T) {
 	add, err := PublicKeyStringToFactoidAddressString("8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4")
 	if err != nil {
@@ -40,6 +41,7 @@ func TestPublicToAddress(t *testing.T) {
 	}
 }
 
+// TestCombined checks that a human readable factoid private key can be converted into proper keys and addresses
 func TestCombined(t *testing.T) {
 	priv, pub, add, err := HumanReadablePrivateKeyStringToEverythingString("Fs37iVGnZ7jShPudsXuB98qURxk35eLrmh9cgPuPpTXHAJEBkUTh")
 	if err != nil {
@@ -56,6 +58,7 @@ func TestCombined(t *testing.T) {
 	}
 }
 
+// TestPublicKeyStringToFactoidAddress checks that a public key can be converted to a proper factoid address
 func TestPublicKeyStringToFactoidAddress(t *testing.T) {
 	add, err := PublicKeyStringToFactoidAddress("8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4")
 	if err != nil {
@@ -66,6 +69,7 @@ func TestPublicKeyStringToFactoidAddress(t *testing.T) {
 	}
 }
 
+// TestPublicKeyStringToECAddress checks that a public key can be converted to a proper EC address
 func TestPublicKeyStringToECAddress(t *testing.T) {
 	add, err := PublicKeyStringToECAddress("8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4")
 	if err != nil {
@@ -76,6 +80,7 @@ func TestPublicKeyStringToECAddress(t *testing.T) {
 	}
 }
 
+// TestECAddress checks that a public key can be converted to a proper EC address
 func TestECAddress(t *testing.T) {
 	add, err := PublicKeyStringToECAddressString("8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4")
 	if err != nil {

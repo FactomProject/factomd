@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestUnmarshalNilFBlock checks that unmarshaling nil or the empty interface results in the proper errors
 func TestUnmarshalNilFBlock(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -29,12 +30,14 @@ func TestUnmarshalNilFBlock(t *testing.T) {
 	}
 }
 
+// TestFBlock is a test structure used in the below tests
 type TestFBlock struct {
 	Raw   string
 	KeyMR string
 	Hash  string
 }
 
+// TestMarshalUnmarshal checks that two test blocks can be properly marshaled and unmarshaled
 func TestMarshalUnmarshal(t *testing.T) {
 	ts := []TestFBlock{}
 
@@ -83,6 +86,9 @@ func TestMarshalUnmarshal(t *testing.T) {
 		if f.DatabaseSecondaryIndex().String() != tBlock.Hash {
 			t.Errorf("Wrong SecondaryIndex - %v vs %v", f.DatabaseSecondaryIndex().String(), tBlock.Hash)
 		}
+		if f.GetHash().String() != tBlock.Hash {
+			t.Errorf("Wrong Ledger Hash - %v vs %v", f.GetHash().String(), tBlock.Hash)
+		}
 
 		err = f.Validate()
 		if err != nil {
@@ -91,11 +97,12 @@ func TestMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestBadFBlockUnmarshal checks that a corrupted hexidecimal string unmarshales into an FBlock with an error
 func TestBadFBlockUnmarshal(t *testing.T) {
 
 	t1 := TestFBlock{}
 
-	//bad raw
+	//bad raw - search ffffffff to see the differences from the good below
 	t1.Raw = "000000000000000000000000000000000000000000000000000000000000000f16a82932aa64e6ad45b2749f2abb871fcf3353ab9d4e163c9bd90e5bbd745b59a164ccbb77a21904edc4f2bb753aa60635fb2b60279c06ae01aa211f375417362fb170f73c3961d4218ff806dd75e6e348ca1798a5fc7a99d443fbe2ff939d9900000000000a2be80000000100ffffffff000000c702014f8a7fcd1b00000002014f8a851657010001e397a1607d4f56c528ab09da5bbf7b37b0b453f43db303730e28e9ebe02657dff431d4f7dfaf840017ef7a21d1a616d65e6b73f3c6a7ad5c49340a6c2592872020ec60767ff00d7d01a5be79b6ada79c0af4d6b7f91234ff321f3b647ed01e02ccbbc0fe9dcc63293482f22455b9756ee4b4db411a5d00e31b689c1bd1abe1d1e887cf4c52e67fc51fe4d9594c24643a91009c6ea91701b5b6df240248c2f39453162b61d71b98270100000000000000000000"
 	// good raw
 	// t1.Raw = "000000000000000000000000000000000000000000000000000000000000000f16a82932aa64e6ad45b2749f2abb871fcf3353ab9d4e163c9bd90e5bbd745b59a164ccbb77a21904edc4f2bb753aa60635fb2b60279c06ae01aa211f375417362fb170f73c3961d4218ff806dd75e6e348ca1798a5fc7a99d443fbe2ff939d9900000000000a2be8000000010000000002000000c702014f8a7fcd1b00000002014f8a851657010001e397a1607d4f56c528ab09da5bbf7b37b0b453f43db303730e28e9ebe02657dff431d4f7dfaf840017ef7a21d1a616d65e6b73f3c6a7ad5c49340a6c2592872020ec60767ff00d7d01a5be79b6ada79c0af4d6b7f91234ff321f3b647ed01e02ccbbc0fe9dcc63293482f22455b9756ee4b4db411a5d00e31b689c1bd1abe1d1e887cf4c52e67fc51fe4d9594c24643a91009c6ea91701b5b6df240248c2f39453162b61d71b98270100000000000000000000"
@@ -116,6 +123,7 @@ func TestBadFBlockUnmarshal(t *testing.T) {
 
 }
 
+// TestGetEntryHashes checks that computing the hashes of the entries are the same as expected
 func TestGetEntryHashes(t *testing.T) {
 	f := GetDeterministicFBlock(t)
 	hashes := f.GetEntryHashes()
@@ -136,6 +144,7 @@ func TestGetEntryHashes(t *testing.T) {
 	}
 }
 
+// TestGetEntrySigHashes checks that computing the entry signature hashes are the same as expected
 func TestGetEntrySigHashes(t *testing.T) {
 	f := GetDeterministicFBlock(t)
 	hashes := f.GetEntrySigHashes()
@@ -156,6 +165,7 @@ func TestGetEntrySigHashes(t *testing.T) {
 	}
 }
 
+// TestGetTransactionByHash checks that you can get transactions properly when finding them by their hash
 func TestGetTransactionByHash(t *testing.T) {
 	f := GetDeterministicFBlock(t)
 	txs := f.Transactions
@@ -176,6 +186,7 @@ func TestGetTransactionByHash(t *testing.T) {
 	}
 }
 
+// GetDeterministicFBlock returns a deterministic FBlock used for testing
 func GetDeterministicFBlock(t *testing.T) *FBlock {
 	rawStr := "000000000000000000000000000000000000000000000000000000000000000f16a82932aa64e6ad45b2749f2abb871fcf3353ab9d4e163c9bd90e5bbd745b59a164ccbb77a21904edc4f2bb753aa60635fb2b60279c06ae01aa211f375417362fb170f73c3961d4218ff806dd75e6e348ca1798a5fc7a99d443fbe2ff939d9900000000000a2be8000000010000000002000000c702014f8a7fcd1b00000002014f8a851657010001e397a1607d4f56c528ab09da5bbf7b37b0b453f43db303730e28e9ebe02657dff431d4f7dfaf840017ef7a21d1a616d65e6b73f3c6a7ad5c49340a6c2592872020ec60767ff00d7d01a5be79b6ada79c0af4d6b7f91234ff321f3b647ed01e02ccbbc0fe9dcc63293482f22455b9756ee4b4db411a5d00e31b689c1bd1abe1d1e887cf4c52e67fc51fe4d9594c24643a91009c6ea91701b5b6df240248c2f39453162b61d71b98270100000000000000000000"
 	raw, err := hex.DecodeString(rawStr)
@@ -190,6 +201,7 @@ func GetDeterministicFBlock(t *testing.T) *FBlock {
 	return f.(*FBlock)
 }
 
+// TestMerkleTrees checks that the various Merkle roots computed from the FBlock match their expected values
 func TestMerkleTrees(t *testing.T) {
 	f := GetDeterministicFBlock(t)
 
@@ -205,6 +217,18 @@ func TestMerkleTrees(t *testing.T) {
 	if f.GetBodyMR().String() != "16a82932aa64e6ad45b2749f2abb871fcf3353ab9d4e163c9bd90e5bbd745b59" {
 		t.Errorf("Invalid GetBodyMR")
 	}
+	oldbodymr := f.GetBodyMR().String()
+	f.CalculateHashes() // This just computes the body MR
+	if f.GetBodyMR().String() != oldbodymr {
+		t.Errorf("Invalid CalculateHashes")
+	}
+
+	nextf := NewFBlock(f)
+	err := CheckBlockPairIntegrity(nextf, f)
+	if err != nil {
+		t.Errorf("Block integrity check failed: %s", err)
+	}
+
 	/*
 		t.Errorf("GetKeyMR - %v", f.GetKeyMR().String())
 		t.Errorf("GetLedgerKeyMR - %v", f.GetLedgerKeyMR().String())
@@ -213,6 +237,7 @@ func TestMerkleTrees(t *testing.T) {
 	*/
 }
 
+// TestFBlockDump checks that setting various DBHeights can be retrieved from the dumped string properly
 func TestFBlockDump(t *testing.T) {
 	var i uint32
 	i = 1
@@ -249,6 +274,7 @@ func TestFBlockDump(t *testing.T) {
 	}
 }
 
+// findLine looks for a substring within a larger 'full' string
 func findLine(full, toFind string) string {
 	strs := strings.Split(full, "\n")
 	for _, v := range strs {
@@ -259,8 +285,13 @@ func findLine(full, toFind string) string {
 	return ""
 }
 
+// TestExpandedDBlockHeader checks that a new new FBlock json string contains the proper chain id string
 func TestExpandedDBlockHeader(t *testing.T) {
 	block := NewFBlock(nil)
+	err := CheckBlockPairIntegrity(block, nil)
+	if err != nil {
+		t.Errorf("Block integrity failed on new block: %s", err)
+	}
 	j, err := block.JSONString()
 	if err != nil {
 		t.Error(err)
