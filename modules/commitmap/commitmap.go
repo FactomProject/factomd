@@ -24,7 +24,6 @@ type CommitMap struct {
 	common.Name
 	commits map[[32]byte]commitStatus
 
-	// New DependentHolding
 	addMsg          *generated.Subscribe_ByChannel_CommitRequest_type // commit/reveal messages from VMs to be added to map
 	checkHash       *generated.Subscribe_ByChannel_CommitRequest_type // check for commit to exits
 	leaderTimestamp *generated.Subscribe_ByValue_Timestamp_type       // Current Leader Timestamp
@@ -36,24 +35,18 @@ func NewCommitMap(parent common.NamedObject, instance int) *CommitMap {
 	b.addMsg = generated.Subscribe_ByChannel_CommitRequest(pubsub.SubFactory.Channel(100))    //.Subscribe("path?")
 	b.checkHash = generated.Subscribe_ByChannel_CommitRequest(pubsub.SubFactory.Channel(100)) //.Subscribe("path?")
 	b.leaderTimestamp = generated.Subscribe_ByValue_Timestamp(pubsub.SubFactory.Value())
-	// All dependent holdings in an fnode publish into one multiwrap
-	//path := pubsub.GetPath(b.Name.GetParentName(), "commitmap", "msgout")
-	//b.outMsgs = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Threaded(100).Publish(path, pubsub.PubMultiWrap()))
 	return b
 }
 
-func (b *CommitMap) Publish() {
-	//	go b.outMsgs.Start()
-}
+func (b *CommitMap) Publish() {}
+
 func (b *CommitMap) Subscribe() {
 	// TODO: Find actual paths
-	b.addMsg.SubChannel.Subscribe(pubsub.GetPath(b.GetParentName(), "commits"))
-	b.checkHash.SubChannel.Subscribe(pubsub.GetPath(b.GetParentName(), "checkcommits"))
+	b.addMsg.SubChannel.Subscribe(pubsub.GetPath(b.GetParentName(), "commitmap", "commits"))
+	b.checkHash.SubChannel.Subscribe(pubsub.GetPath(b.GetParentName(), "commitmap", "checkcommits"))
 }
 
-func (b *CommitMap) ClosePublishing() {
-	//_ = b.outMsgs.Close()
-}
+func (b *CommitMap) ClosePublishing() {}
 
 func (b *CommitMap) get(hash [32]byte) (valid bool, revealed bool, iMsg interfaces.IMsg) {
 	status, ok := b.commits[hash]
@@ -66,31 +59,6 @@ func (b *CommitMap) get(hash [32]byte) (valid bool, revealed bool, iMsg interfac
 		}
 	}
 	return ok, status.revealed, status.iMsg
-}
-
-// Handle checking a CommitEntry or CommitChain or Reveal to see if its valid to add to the Commit Map
-func (b *CommitMap) handleHash(iMsg interfaces.IMsg) error {
-	hash := iMsg.GetHash().Fixed()
-	ok, revealed, commit := b.get(hash)
-	switch iMsg.Type() {
-	case constants.REVEAL_ENTRY_MSG:
-		if !ok {
-			return errors.New("reveal before commit")
-		}
-		if revealed {
-			return errors.New("reveal already revealed") // toss the new commit if it hits an unexpired revealed commit
-		}
-		return nil // Good to go for reveal.
-
-	case constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
-		if revealed {
-			return errors.New("commit already revealed") // toss the new commit if it hits an unexpired revealed commit
-		}
-		fee0, fee1 := getFees(iMsg, commit)
-		if fee0 > fee1 { // new commit is higher paid so keep it instead
-			return errors.New("duplicate lower fee") // toss the new commit if it hits an unexpired revealed commit
-		}
-	}
 }
 
 func getFees(iMsg interfaces.IMsg, commit interfaces.IMsg) (uint8, uint8) {
@@ -107,8 +75,50 @@ func getFees(iMsg interfaces.IMsg, commit interfaces.IMsg) (uint8, uint8) {
 	return fee0, fee1
 }
 
-// Handle a CommitEntry or CommitChain or Reveal being added to the commit map
-func (b *CommitMap) handleIMsg(iMsg interfaces.IMsg) error {
+// Handle checking a CommitEntry or CommitChain or Reveal to see if its valid to add to the Commit Map
+func (b *CommitMap) handleCheck(iMsg interfaces.IMsg) (err error) {
+
+	defer func() {
+		if err != nil {
+			panic(err)
+		}
+	}() // Until we are using this as the authoritative commit map...
+
+	hash := iMsg.GetHash().Fixed()
+	ok, revealed, commit := b.get(hash)
+	switch iMsg.Type() {
+	case constants.REVEAL_ENTRY_MSG:
+		if !ok {
+			return errors.New("reveal before commit")
+		}
+		if revealed {
+			return errors.New("reveal already revealed") // toss the new reveal if it hits an unexpired revealed commit
+		}
+		return nil // Good to go for reveal.
+
+	case constants.COMMIT_ENTRY_MSG, constants.COMMIT_CHAIN_MSG:
+		if revealed {
+			return errors.New("commit already revealed") // toss the new commit if it hits an unexpired revealed commit
+		}
+		fee0, fee1 := getFees(iMsg, commit)
+		if fee0 > fee1 { // new commit is higher paid so keep it instead
+			return errors.New("duplicate lower fee") // toss the new commit if it hits an unexpired revealed commit
+		}
+		return nil
+	default:
+		panic("not a commit or reveal")
+	}
+}
+
+// Handle adding a CommitEntry or CommitChain or Reveal to the commit map
+func (b *CommitMap) handleIMsg(iMsg interfaces.IMsg) (err error) {
+
+	defer func() {
+		if err != nil {
+			panic(err)
+		}
+	}() // Until we are using this as the authoritative commit map...
+
 	hash := iMsg.GetHash().Fixed()
 	ok, revealed, commit := b.get(hash)
 	switch iMsg.Type() {
@@ -151,10 +161,14 @@ func (b *CommitMap) Run(ctx context.Context) {
 			return
 		case data := <-b.addMsg.Channel():
 			req := data.(pubsubtypes.CommitRequest)
-			req.Channel <- b.handleIMsg(req.IMsg)
+			if req.Channel != nil {
+				req.Channel <- b.handleIMsg(req.IMsg)
+			}
 		case data := <-b.checkHash.Channel():
 			req := data.(pubsubtypes.CommitRequest)
-			req.Channel <- b.handleCheck(req.Hash)
+			if req.Channel != nil {
+				req.Channel <- b.handleCheck(req.IMsg)
+			}
 		}
 
 	}

@@ -18,7 +18,6 @@ import (
 // Start accountedqueue_test generated go code
 
 func TestAccountedQueue_Queue_IMsg(t *testing.T) {
-	t.Skip("test times out") // KLUDGE: this is generated code
 	q := new(Queue_IMsg).Init(common.NilName, "TestQueue_IMsg", 10)
 
 	if q.Dequeue() != nil {

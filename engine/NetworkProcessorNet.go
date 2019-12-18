@@ -282,7 +282,7 @@ func startDependentHolding(parent *worker.Thread, fnode *fnode.FactomNode) {
 		parent.Spawn(fmt.Sprintf("DH%d", i), func(w *worker.Thread) {
 			ctx, cancel := context.WithCancel(context.Background())
 			// Run init conditions. Setup publishers
-			dependentHolding := dependentholding.NewDependentHolding(&fnode.Name, i)
+			dependentHolding := dependentholding.NewDependentHolding(w, &fnode.Name, i)
 
 			w.OnReady(func() {
 				dependentHolding.Publish()
