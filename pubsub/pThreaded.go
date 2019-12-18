@@ -1,5 +1,7 @@
 package pubsub
 
+var _ IPublisher = (*PubThreaded)(nil)
+
 // PubThreaded handles all writes on a separate go routine.
 type PubThreaded struct {
 	PubBase

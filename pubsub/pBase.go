@@ -6,6 +6,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+var _ IPublisher = (*PubBase)(nil)
+
 // PubBase publisher has the basic necessary function implementations.
 type PubBase struct {
 	Subscribers []IPubSubscriber

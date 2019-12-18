@@ -6,6 +6,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+var _ IPublisher = (*PubSelector)(nil)
+
 // PubSelector only sends events to 1 subscriber on depending on the select
 // function.
 type PubSelector struct {

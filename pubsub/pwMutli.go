@@ -2,6 +2,8 @@ package pubsub
 
 import "sync"
 
+var _ IPublisherWrapper = (*PubInitValueWrapper)(nil)
+
 // PubMultiWrapper is a very basic idea of keeping track of multiple
 // writers. The close functionality only happens if ALL writers close
 // the publish.
@@ -52,7 +54,7 @@ func (m *PubMultiWrapper) Publish(path string) IPublisherWrapper {
 	pub := globalReg.FindPublisher(path)
 	if pub == nil {
 		// First multi, initiate the register
-		globalPublish(path, m)
+		globalPublishWith(path, m)
 		return m
 	}
 	// Publisher already exists
