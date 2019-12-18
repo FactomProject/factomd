@@ -6,8 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants/runstate"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
 	"os"
@@ -17,6 +15,9 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants/runstate"
+	log "github.com/sirupsen/logrus"
 )
 
 const supportedProtocolVersion = 1

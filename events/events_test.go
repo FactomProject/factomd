@@ -3,6 +3,8 @@ package events_test
 import (
 	"bytes"
 	"encoding/binary"
+	"reflect"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
@@ -17,7 +19,6 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
-	"reflect"
 
 	"testing"
 	"time"

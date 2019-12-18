@@ -1,12 +1,13 @@
 package eventservices
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestMapFactoidBlock(t *testing.T) {

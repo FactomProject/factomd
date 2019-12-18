@@ -6,8 +6,9 @@ package engine
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/events"
 	"runtime"
+
+	"github.com/FactomProject/factomd/events"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants/runstate"

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"testing"
 	"path/filepath"
+	"testing"
 
 	"github.com/FactomProject/factomd/util"
 )
