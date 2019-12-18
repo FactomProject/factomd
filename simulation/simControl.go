@@ -106,10 +106,10 @@ func StartSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 
 	if loadGenerator == nil {
 		loadGenerator = NewLoadGenerator(fnode.Get(0).State)
-		w.Run(loadGenerator.KeepUsFunded)
+		w.Run("LoadGenerator", loadGenerator.KeepUsFunded)
 	}
 
-	w.Run(func() {
+	w.Run("SimControl", func() {
 		for {
 			// This splits up the command at anycodepoint that is not a letter, number or punctuation, so usually by spaces.
 			parseFunc := func(c rune) bool {
@@ -144,13 +144,13 @@ func StartSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 				//go controlPanel.ServeControlPanel(fnode.Get(ListenTo).State.ControlPanelChannel, fnode.Get(ListenTo).State, connectionMetricsChannel, p2pNetwork, Build, "")
 			} else {
 				switch {
-				case '!' == b[0]:
-					if ListenTo < 0 || ListenTo > fnode.Len() {
-						break
-					}
-					s := fnode.Get(ListenTo).State
-					os.Stderr.WriteString("Reset Node: " + s.FactomNodeName + "\n")
-					s.Reset()
+				//case '!' == b[0]:
+				//	if ListenTo < 0 || ListenTo > fnode.Len() {
+				//		break
+				//	}
+				//	s := fnode.Get(ListenTo).State
+				//	os.Stderr.WriteString("Reset Node: " + s.FactomNodeName + "\n")
+				//	s.Reset()
 
 				case 'b' == b[0]:
 					if len(b) == 1 {
@@ -514,15 +514,6 @@ func StartSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 							go faultTest(&faulting)
 						} else {
 							os.Stderr.WriteString("Stop Faulting Test\n")
-						}
-						break
-					}
-
-					// Reset Everything
-					if b[1] == 'r' {
-						os.Stderr.WriteString("Reset all nodes in the simulation!\n")
-						for _, f := range fnode.GetFnodes() {
-							f.State.Reset()
 						}
 						break
 					}

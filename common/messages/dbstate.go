@@ -734,7 +734,6 @@ func (m *DBStateMsg) String() string {
 		m.FactoidBlock.GetHash().Bytes()[:3],
 		m.EntryCreditBlock.GetHash().Bytes()[:3],
 		m.GetHash().Bytes()[:3], m.DirectoryBlock.GetTimestamp().String(), m.IsInDB, m.IsLast, m.SignatureList.Length)
-
 }
 
 func (m *DBStateMsg) LogFields() log.Fields {

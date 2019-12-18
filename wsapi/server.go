@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/FactomProject/factomd/worker"
 
@@ -34,7 +33,7 @@ func InitServer(state interfaces.IState) *Server {
 
 	if tlsIsEnabled {
 		router.Schemes("HTTPS")
-		wsLog.Info("Starting encrypted API server")
+		//wsLog.Info("Starting encrypted API server")
 		if !fileExists(keyFile) && !fileExists(certFile) {
 			err := genCertPair(certFile, keyFile, state.GetFactomdLocations())
 			if err != nil {
@@ -55,22 +54,22 @@ func InitServer(state interfaces.IState) *Server {
 		server.httpServer = &http.Server{Addr: address, Handler: router}
 	}
 
-	wsLog.Infof("Init API server at: %s\n", address)
+	//wsLog.Infof("Init API server at: %s\n", address)
 
 	return &server
 }
 
 func (server *Server) Start(w *worker.Thread) {
-	wsLog.Info("Starting API server")
-	w.Run(func() {
+	//wsLog.Info("Starting API server")
+	w.Run("APIServer", func() {
 		// returns ErrServerClosed on graceful close
 		if server.tlsEnabled {
 			if err := server.httpServer.ListenAndServeTLS(server.certFile, server.keyFile); err != http.ErrServerClosed {
-				wsLog.Errorf("ListenAndServeTLS %v", err)
+				//wsLog.Errorf("ListenAndServeTLS %v", err)
 			}
 		} else {
 			if err := server.httpServer.ListenAndServe(); err != http.ErrServerClosed {
-				wsLog.Errorf("ListenAndServe %v", err)
+				//wsLog.Errorf("ListenAndServe %v", err)
 			}
 		}
 	})
@@ -78,7 +77,7 @@ func (server *Server) Start(w *worker.Thread) {
 
 func (server *Server) Stop() {
 	// close the server gracefully ("shutdown")
-	wsLog.Info("closing wsapi server")
+	//wsLog.Info("closing wsapi server")
 	if err := server.httpServer.Shutdown(context.Background()); err != nil {
 		panic(err) // failure/timeout shutting down the server gracefully
 	}
@@ -88,8 +87,8 @@ func (server *Server) Stop() {
 func APILogger() Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
-			wsLog.Debugf("%s\t%s\t%s\n", r.Method, r.RequestURI, time.Since(start))
+			//start := time.Now()
+			//wsLog.Debugf("%s\t%s\t%s\n", r.Method, r.RequestURI, time.Since(start))
 
 			// Call the next middleware/handler in chain
 			f(w, r)

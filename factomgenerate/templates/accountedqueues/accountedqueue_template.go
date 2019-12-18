@@ -11,6 +11,8 @@ package accountedqueues // this is only here to make gofmt happy and is never in
 //Ͼdefine "accountedqueue-imports"Ͽ
 
 import (
+	"reflect"
+
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/telemetry"
 )
@@ -29,7 +31,7 @@ type Ͼ_typenameϿ struct {
 }
 
 func (q *Ͼ_typenameϿ) Init(parent common.NamedObject, name string, size int) *Ͼ_typenameϿ {
-	q.Name.Init(parent, name)
+	q.Name.NameInit(parent, name, reflect.TypeOf(q).String())
 	q.Channel = make(chan Ͼ_typeϿ, size)
 	return q
 }

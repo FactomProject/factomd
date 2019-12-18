@@ -21,7 +21,7 @@ import (
 
 // packageLogger is the general logger for all message related logs. You can add additional fields,
 // or create more context loggers off of this
-var packageLogger = log.WithFields(log.Fields{"package": "messages"})
+//var packageLogger = log.WithFields(log.Fields{"package": "messages"})
 
 //General acknowledge message
 type Ack struct {
@@ -148,7 +148,7 @@ func (m *Ack) Validate(s interfaces.IState) int {
 			s.LogMessage("executeMsg", "Ack slot taken", m)
 			s.LogMessage("executeMsg", "found:", msg)
 		} else {
-			s.LogPrintf("executeMsg", "duplicate at %d/%d/%d", int(m.DBHeight), m.VMIndex, int(m.Height))
+			s.LogPrintf("executeMsg", "duplicate at %7d/%02d/%-5d", int(m.DBHeight), m.VMIndex, int(m.Height))
 		}
 		return -1
 	}
@@ -424,7 +424,6 @@ func (m *Ack) String() string {
 		fmt.Sprintf("DBh/VMh/h %d/%d/%d       ", m.DBHeight, m.VMIndex, m.Height),
 		m.LeaderChainID.Bytes()[3:6],
 		m.GetHash().Bytes()[:3])
-
 }
 
 func (m *Ack) LogFields() log.Fields {

@@ -9,11 +9,12 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"reflect"
 	"sync"
 	"time"
 
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/modules/debugsettings"
-
 	"github.com/FactomProject/factomd/simulation"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -155,6 +156,9 @@ func initEngine(w *worker.Thread, p *globals.FactomParams) {
 	messages.AckBalanceHash = p.AckbalanceHash
 	w.RegisterInterruptHandler(interruptHandler)
 
+	// add these to the name substitution table in logs so election dumps of the authority set look better
+	globals.FnodeNames["Fed"] = "erated "
+	globals.FnodeNames["Aud"] = "id     "
 	// nodes can spawn with a different thread lifecycle
 	fnode.Factory = func(w *worker.Thread) {
 		makeServer(w, p)
@@ -280,11 +284,11 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 
 	p2pNetwork = new(p2p.Controller).Initialize(ci)
 	s.NetworkController = p2pNetwork
-	p2pNetwork.Init(s, "p2pNetwork")
+	p2pNetwork.NameInit(s, "p2pNetwork", reflect.TypeOf(p2pNetwork).String())
 	p2pNetwork.StartNetwork(w)
 
 	p2pProxy = new(P2PProxy).Initialize(s.FactomNodeName, "P2P Network").(*P2PProxy)
-	p2pProxy.Init(s, "p2pProxy")
+	p2pProxy.NameInit(s, "p2pProxy", reflect.TypeOf(p2pProxy).String())
 	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 	p2pProxy.StartProxy(w)
@@ -292,11 +296,11 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 
 func printGraphData(filename string, period int) {
 	downscale := int64(1)
-	llog.LogPrintf(filename, "\t%9s\t%9s\t%9s\t%9s\t%9s\t%9s", "Dbh-:-min", "Node", "ProcessCnt", "ListPCnt", "UpdateState", "SleepCnt")
+	llog.LogPrintf(filename, "%10s%10s%10s%10s%10s%10s", "Dbh-:-min", "Node", "ProcessCnt", "ListPCnt", "UpdateState", "SleepCnt")
 	for {
 		for _, f := range fnode.GetFnodes() {
 			s := f.State
-			llog.LogPrintf(filename, "\t%9s\t%9s\t%9d\t%9d\t%9d\t%9d", fmt.Sprintf("%d-:-%d", s.LLeaderHeight, s.CurrentMinute), s.FactomNodeName, s.StateProcessCnt/downscale, s.ProcessListProcessCnt/downscale, s.StateUpdateState/downscale, s.ValidatorLoopSleepCnt/downscale)
+			llog.LogPrintf(filename, "%10s%10s%10d%10d%10d%10d", fmt.Sprintf("%d-:-%d", s.LLeaderHeight, s.CurrentMinute), s.FactomNodeName, s.StateProcessCnt/downscale, s.ProcessListProcessCnt/downscale, s.StateUpdateState/downscale, s.ValidatorLoopSleepCnt/downscale)
 		}
 		time.Sleep(time.Duration(period) * time.Second)
 	} // for ever ...
@@ -319,6 +323,8 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 
 	// Election factory was created and passed int to avoid import loop
 	node.State.Initialize(w, new(electionMsgs.ElectionsFactory))
+	node.State.NameInit(node, node.State.GetFactomNodeName()+"STATE", reflect.TypeOf(node.State).String())
+	node.State.BindPublishers()
 
 	state0Init.Do(func() {
 		logPort = p.LogPort
@@ -338,21 +344,31 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 }
 
 func startFnodes(w *worker.Thread) {
-	for _, node := range fnode.GetFnodes() {
-		startServer(w, node)
+	state.CheckGrants() // check the grants table hard coded into the build is well formed.
+	for i, _ := range fnode.GetFnodes() {
+		node := fnode.Get(i)
+		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) { startServer(w, node) })
 	}
+	time.Sleep(10 * time.Second)
+	common.PrintAllNames()
+	fmt.Println(registry.Graph())
 }
 
 func startServer(w *worker.Thread, node *fnode.FactomNode) {
 	NetworkProcessorNet(w, node)
-	node.State.ValidatorLoop(w)
-	elections.Run(w, node.State)
-	node.State.StartMMR(w)
+	s := node.State
+	w.Run("MsgSort", s.MsgSort)
 
-	w.Run(func() { state.LoadDatabase(node.State) })
-	w.Run(node.State.GoSyncEntries)
-	w.Run(func() { Timer(node.State) })
-	w.Run(node.State.MissingMessageResponseHandler.Run)
+	w.Run("MsgExecute", s.MsgExecute)
+
+	elections.Run(w, s)
+	s.StartMMR(w)
+
+	w.Run("DBStateCatchup", s.DBStates.Catchup)
+	w.Run("LoadDatabase", s.LoadDatabase)
+	w.Run("SyncEntries", s.GoSyncEntries)
+	w.Run("EOMTicker", func() { Timer(node.State) })
+	w.Run("MMResponseHandler", s.MissingMessageResponseHandler.Run)
 }
 
 func setupFirstAuthority(s *state.State) {

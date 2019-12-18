@@ -21,16 +21,15 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/event"
+	. "github.com/FactomProject/factomd/modules/logging"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
-
-	llog "github.com/FactomProject/factomd/log"
-	log "github.com/sirupsen/logrus"
 )
 
 // consenLogger is the general logger for all consensus related logs. You can add additional fields,
 // or create more context loggers off of this
-var consenLogger = packageLogger.WithFields(log.Fields{"subpack": "consensus"})
 
 var _ = fmt.Print
 var _ = (*hash.Hash32)(nil)
@@ -42,7 +41,7 @@ var _ = (*hash.Hash32)(nil)
 //***************************************************************
 
 func (s *State) CheckFileName(name string) bool {
-	return llog.CheckFileName(name)
+	return true
 }
 
 func (s *State) DebugExec() (ret bool) {
@@ -51,20 +50,29 @@ func (s *State) DebugExec() (ret bool) {
 
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
 	if s.DebugExec() {
-		if s == nil {
-			llog.StateLogMessage("unknown", 0, 0, logName, comment, msg)
+		if s == nil || s.logging == nil {
+			log.GlobalLogger.Log(LogData{
+				"fnode":   "fnodeX", // don't know the fnode number
+				"logname": logName,
+				"dbht":    "unknown",
+				"comment": comment,
+				"message": msg})
 		} else {
-			llog.StateLogMessage(s.FactomNodeName, int(s.LLeaderHeight), int(s.CurrentMinute), logName, comment, msg)
+			s.logging.Log(LogData{"logname": logName, "comment": comment, "message": msg})
 		}
 	}
 }
 
 func (s *State) LogPrintf(logName string, format string, more ...interface{}) {
 	if s.DebugExec() {
-		if s == nil {
-			llog.StateLogPrintf("unknown", 0, 0, logName, format, more...)
+		if s == nil || s.logging == nil {
+			log.GlobalLogger.Log(LogData{
+				"fnode":   "fnodeX", // don't know the fnode number
+				"logname": logName,
+				"dbht":    "unknown", // don't know the height is we don't have a state
+				"comment": Delay_formater(format, more...)})
 		} else {
-			llog.StateLogPrintf(s.FactomNodeName, int(s.LLeaderHeight), int(s.CurrentMinute), logName, format, more...)
+			s.logging.Log(LogData{"logname": logName, "comment": Delay_formater(format, more...)})
 		}
 	}
 }
@@ -179,7 +187,6 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		consenLogger.WithFields(msg.LogFields()).Debug("executeMsg (Replay Invalid)")
 		s.LogMessage("executeMsg", "drop, INTERNAL_REPLAY2", msg)
 		return -1, -1
 	}
@@ -354,11 +361,6 @@ func (s *State) Process() (progress bool) {
 	}
 
 	s.StateProcessCnt++
-	if s.ResetRequest {
-		s.ResetRequest = false
-		s.DoReset()
-		return false
-	}
 
 	LeaderPL := s.ProcessLists.Get(s.LLeaderHeight)
 
@@ -769,6 +771,15 @@ processholdinglist:
 func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	//	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) called from %s", dbheight, newMinute, atomic.WhereAmIString(1))
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d)", dbheight, newMinute)
+	s.LogPrintf("executemsg", "MoveStateToHeight(%d-:-%d)", dbheight, newMinute)
+	s.LogPrintf("leader", "MoveStateToHeight(%d-:-%d)", dbheight, newMinute)
+
+	if s.LLeaderHeight == dbheight && newMinute == s.CurrentMinute {
+		s.LogPrintf("leader", "early return - MoveStateToHeight(%d-:-%d)", dbheight, newMinute)
+		return
+	}
+
+	callUpdateState := false
 
 	if (s.LLeaderHeight+1 == dbheight && newMinute == 0) || (s.LLeaderHeight == dbheight && s.CurrentMinute+1 == newMinute) {
 		// these are the allowed cases; move to nextblock-:-0 or move to next minute
@@ -844,8 +855,21 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		// Do not send out dbsigs while loading from disk
 		if s.Leader && !s.LeaderPL.DBSigAlreadySent && s.LLeaderHeight > s.DBHeightAtBoot {
 			s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
+			{                                             // send a directory event
+				dbstate := s.DBStates.Get(int(dbheight - 1))
+
+				directory := event.Directory{
+					DBHeight:             dbheight,
+					VMIndex:              s.LeaderVMIndex,
+					DirectoryBlockHeader: dbstate.DirectoryBlock.GetHeader(),
+					Timestamp:            s.GetTimestamp(),
+				}
+				s.Pub.Directory.Write(&directory)
+				s.LogPrintf("leader", "%v", directory)
+
+			}
 		}
-		s.DBStates.UpdateState() // go process the DBSigs
+		callUpdateState = true
 
 		// Expire old commits and stuff ...
 		s.Commits.Cleanup(s)
@@ -859,7 +883,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 				s.LogPrintf("dbstateprocess", "Set ReadyToSave %d", dbstate.DirectoryBlock.GetHeader().GetDBHeight())
 				dbstate.ReadyToSave = true
 			}
-			s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
+			callUpdateState = true
 		case 2:
 			s.ExpireHolding() // expire anything in holding that is old.
 		}
@@ -869,14 +893,18 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		// there might be a circumstance where we get here in a weird state
 		// so make it the normal starting state
 
-		s.CurrentMinuteStartTime = time.Now().UnixNano()
-		// If an election took place, our lists will be unsorted. Fix that
-		s.LeaderPL.SortAuditServers()
-		s.LeaderPL.SortFedServers()
-
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
-		s.LogPrintf("executeMsg", "MoveStateToHeight new minute set leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
 	}
+
+	if callUpdateState {
+		s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
+	}
+	s.CurrentMinuteStartTime = time.Now().UnixNano()
+	// If an election took place, our lists will be unsorted. Fix that
+	s.LeaderPL.SortAuditServers()
+	s.LeaderPL.SortFedServers()
+
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
+	s.LogPrintf("executeMsg", "MoveStateToHeight new minute set leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
 
 	{ // debug
 		vmSync := false
@@ -898,6 +926,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
 	s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
+	s.Pub.BlkSeq.Write(&event.DBHT{DBHeight: s.LLeaderHeight, Minute: s.CurrentMinute})
 
 	s.Hold.ExecuteForNewHeight(s.LLeaderHeight, s.CurrentMinute) // execute held inMessages
 	s.Hold.Review()                                              // cleanup old inMessages
@@ -982,7 +1011,7 @@ func (s *State) repost(m interfaces.IMsg, delay int) {
 	}()
 }
 
-// FactomSecond finds the time duration of 1 second relative to 10min blocks.
+// DirectoryBlocktimeInSeconds finds the time duration of 1 second relative to 10min blocks.
 //		Blktime			EOMs		Second
 //		600s			60s			1s
 //		300s			30s			0.5s
@@ -1876,7 +1905,7 @@ func (s *State) CreateDBSig(dbheight uint32, vmIndex int) (interfaces.IMsg, inte
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	s.LogPrintf("executeMsg", "SendDBSig(dbht=%d,vm=%d)", dbheight, vmIndex)
-	dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig"})
+	//dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig"})
 
 	ht := s.GetHighestSavedBlk()
 	if dbheight <= ht { // if it's in the past, just return.
@@ -1907,7 +1936,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				return
 			}
 
-			dbslog.WithFields(dbs.LogFields()).WithFields(log.Fields{"lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).Infof("Generate DBSig")
+			//dbslog.WithFields(dbs.LogFields()).WithFields(log.Fields{"lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).Infof("Generate DBSig")
 			dbs.LeaderExecute(s)
 			vm.Signed = true
 			pl.DBSigAlreadySent = true
@@ -1920,12 +1949,11 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	TotalProcessEOMs.Inc()
 	e := msg.(*messages.EOM)
-	// plog := consenLogger.WithFields(log.Fields{"func": "ProcessEOM", "msgheight": e.DBHeight, "lheight": s.GetLeaderHeight(), "min", e.Minute})
 	pl := s.ProcessLists.Get(dbheight)
 	vmIndex := msg.GetVMIndex()
 	vm := pl.VMs[vmIndex]
 
-	s.LogPrintf("dbsig-eom", "ProcessEOM@%d/%d/%d minute %d, Syncing %v , EOM %v, EOMDone %v, EOMProcessed %v, EOMLimit %v DBSigDone %v",
+	s.LogPrintf("dbsig-eom", "ProcessEOM@%7d/%02d/%d minute %d, Syncing %v , EOM %v, EOMDone %v, EOMProcessed %v, EOMLimit %v DBSigDone %v",
 		dbheight, msg.GetVMIndex(), len(vm.List), s.CurrentMinute, s.Syncing, s.EOM, s.EOMDone, s.EOMProcessed, s.EOMLimit, s.DBSigDone)
 
 	// debug
@@ -2118,7 +2146,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed++
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d EOMProcessed++ (%2d)", s.FactomNodeName, e.VMIndex, s.EOMProcessed))
 		vm.Synced = true // ProcessEOM
-		markNoFault(pl, msg.GetVMIndex())
+		//markNoFault(pl, msg.GetVMIndex())
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Process this SigType: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 		return false
 	}
@@ -2200,6 +2228,12 @@ func (s *State) CheckForIDChange() {
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
 		s.initServerKeys()
 		s.LogPrintf("AckChange", "ReloadIdentity new local_priv: %v ident_chain: %v, prev local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID, prev_LocalServerPrivKey, prev_ChainID)
+		s.Pub.LeaderConfig.Write(&event.LeaderConfig{
+			IdentityChainID:    s.IdentityChainID,
+			Salt:               s.Salt,
+			ServerPrivKey:      s.ServerPrivKey,
+			BlocktimeInSeconds: s.DirectoryBlockInSeconds,
+		})
 	}
 }
 
@@ -2227,7 +2261,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
 
 	// debug
-	s.LogPrintf("dbsig-eom", "ProcessDBSig@%d/%d/%d minute %d, Syncing %v , DBSig %v, DBSigDone %v, DBSigProcessed %v, DBSigLimit %v DBSigDone %v",
+	s.LogPrintf("dbsig-eom", "ProcessDBSig@%7d/%02d/%d minute %d, Syncing %v , DBSig %v, DBSigDone %v, DBSigProcessed %v, DBSigLimit %v DBSigDone %v",
 		dbheight, msg.GetVMIndex(), len(vm.List), s.CurrentMinute, s.Syncing, s.DBSig, s.DBSigDone, s.DBSigProcessed, s.DBSigLimit, s.DBSigDone)
 
 	// debug
@@ -2336,7 +2370,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if dblk != nil {
 			hashes := dblk.GetEntryHashes()
 			if hashes != nil {
-				llog.LogPrintf("marshalsizes.txt", "DirectoryBlock unmarshaled entry count: %d", len(hashes))
+				//llog.LogPrintf("marshalsizes.txt", "DirectoryBlock unmarshaled entry count: %d", len(hashes))
 			}
 		}
 		if err != nil || dblk == nil {
@@ -2776,7 +2810,7 @@ func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interf
 	} else {
 		last := s.LeaderPL.GetAckAt(vmIndex, listlen-1)
 		ack.Height = last.Height + 1
-		ack.SerialHash, _ = primitives.CreateHash(last.MessageHash, ack.MessageHash)
+		ack.SerialHash, _ = primitives.CreateHash(last.MessageHash, ack.MessageHash) // REVIEW ? bug here? should be last.GetMsgHash() ?
 	}
 
 	ack.Sign(s)

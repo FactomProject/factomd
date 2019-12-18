@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#grep "done.*EOM.*./0/" fnode0_processlist.txt  | ./minutelength.sh
+#grep "done.*EOM.*./00?/" fnode0_processlist.txt  | minutelength.sh
 ################################
 # AWK scripts                  #
 ################################
@@ -12,8 +12,8 @@ func time2sec(t) {
         print "<"$0">"; 
         exit;
     }
-    sec = (ary[1]*60+ary[2])*60+ary[3];
-    #printf("time2sec(%s) %02d:%02d:%02d= %d\\n",t, ary[1]+0, ary[2]+0,ary[3]+0,sec);
+    sec = (ary[1]*60+ary[2])*60+ary[3]*1.0;
+#    printf("time2sec(%s) %02d:%02d:%7.3f= %9.3f\\n",t, ary[1]+0, ary[2]+0,ary[3]+0.0,sec);
     return sec;
 }
 
@@ -23,7 +23,7 @@ func timeDiff(t1,t2){
     if(tDiff < 0) {
         tDiff = tDiff+24*60*60;
     }
-    return sprintf("%d seconds %2d:%02d:%02d.%03d H:M:S", tDiff, (tDiff/(60*60)),(tDiff/60)%60,tDiff%60,(tDiff - int(tDiff))*1000 );
+    return sprintf("%7.3f seconds %2d:%02d:%07.3f H:M:S", tDiff, (tDiff/(60*60)),(tDiff/60)%60,tDiff%60,(tDiff - int(tDiff))*1000 );
 }
 
  { sub(/\\(standard input\\):/,"");

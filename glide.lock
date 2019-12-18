@@ -1,5 +1,5 @@
 hash: 59a5bf8832d158b87de4858e2c7f8231c0dcb5b866278c5b889197e18e96b1af
-updated: 2019-10-24T08:24:51.498335798-05:00
+updated: 2019-11-12T11:57:07.751501763-06:00
 imports:
 - name: github.com/beorn7/perks
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
@@ -13,6 +13,8 @@ imports:
   version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
   subpackages:
   - spew
+- name: github.com/DiSiqueira/GoTree
+  version: 4f483a16f18b9257e976f3b8f7846bc872a76727
 - name: github.com/dustin/go-humanize
   version: 9f541cc9db5d55bce703bd99987c9d5cb8eea45e
 - name: github.com/FactomProject/basen
@@ -125,6 +127,10 @@ imports:
   version: 221dbe5ed46703ee255b1da0dec05086f5035f62
   subpackages:
   - assert
+- name: go.uber.org/ratelimit
+  version: cd1f0abeddc3fe992a7be8d533332897936efbc0
+  subpackages:
+  - internal/clock
 - name: golang.org/x/crypto
   version: 0c41d7ab0a0ee717d4590a44bcb987dfd9e183eb
   subpackages:

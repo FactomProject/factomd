@@ -46,14 +46,18 @@ func (a *AtomicUint32) Load() uint32 {
 	return uint32(atomic.LoadUint32((*uint32)(a)))
 }
 
+func (a *AtomicUint32) Add(x int) uint32 {
+	return uint32(atomic.AddUint32((*uint32)(a), uint32(x)))
+}
+
 type AtomicInt int64
 
 func (a *AtomicInt) Store(x int) {
 	atomic.StoreInt64((*int64)(a), int64(x))
 }
 
-func (a *AtomicInt) Add(x int) {
-	atomic.AddInt64((*int64)(a), int64(x))
+func (a *AtomicInt) Add(x int) int {
+	return int(atomic.AddInt64((*int64)(a), int64(x)))
 }
 
 func (a *AtomicInt) Load() int {
@@ -66,8 +70,8 @@ func (a *AtomicInt64) Store(x int64) {
 	atomic.StoreInt64((*int64)(a), x)
 }
 
-func (a *AtomicInt64) Add(x int64) {
-	atomic.AddInt64((*int64)(a), x)
+func (a *AtomicInt64) Add(x int64) int64 {
+	return atomic.AddInt64((*int64)(a), x)
 }
 
 func (a *AtomicInt64) Load() int64 {
