@@ -106,8 +106,16 @@ func globalSubscribeWith(path string, sub IPubSubscriber, wrappers ...ISubscribe
 
 func globalPublishWith(path string, p IPublisher, wrappers ...IPublisherWrapper) IPublisher {
 	if len(wrappers) > 0 {
+		// Check the first
+		if _, ok := wrappers[0].(*PubMultiWrapper); ok && (0) != len(wrappers)-1 {
+			panic("A mutli must always be the last wrapper")
+		}
+
 		newpub := wrappers[0].Wrap(p)
-		for _, wrap := range wrappers[1:] {
+		for i, wrap := range wrappers[1:] {
+			if _, ok := wrap.(*PubMultiWrapper); ok && (i+1) != len(wrappers)-1 {
+				panic("A mutli must always be the last wrapper")
+			}
 			newpub = wrap.Wrap(newpub)
 		}
 		return newpub.Publish(path)
