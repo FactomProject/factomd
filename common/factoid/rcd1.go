@@ -20,7 +20,7 @@ import (
  * RCD_1 Simple Signature
  **************************/
 
-// In this case, we are simply validating one address to ensure it signed
+// RCD_1 is a Redeem Condition Datastructure (RCD) of type 1, which is simply validating one address to ensure it signed
 // this transaction.
 type RCD_1 struct {
 	PublicKey [constants.ADDRESS_LENGTH]byte
@@ -33,41 +33,47 @@ var _ interfaces.IRCD = (*RCD_1)(nil)
  *       Methods
  ***************************************/
 
-func (b RCD_1) IsSameAs(rcd interfaces.IRCD) bool {
-	return b.String() == rcd.String()
+// IsSameAs checks whether the incoming RCD is the same as this RCD
+func (r RCD_1) IsSameAs(rcd interfaces.IRCD) bool {
+	return r.String() == rcd.String()
 }
 
-func (b RCD_1) UnmarshalBinary(data []byte) error {
-	_, err := b.UnmarshalBinaryData(data)
+// UnmarshalBinary unmarshals the input data into this object
+func (r RCD_1) UnmarshalBinary(data []byte) error {
+	_, err := r.UnmarshalBinaryData(data)
 	return err
 }
 
-func (e *RCD_1) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+// JSONByte returns the json encoded byte array
+func (r *RCD_1) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(r)
 }
 
-func (e *RCD_1) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+// JSONString returns the json encoded string
+func (r *RCD_1) JSONString() (string, error) {
+	return primitives.EncodeJSONString(r)
 }
 
-// MarshalJSON will prepend the RCD type
-func (e *RCD_1) MarshalJSON() (rval []byte, err error) {
+// MarshalJSON will return the json encoding of the string "<rcd_type><public_key>"
+func (r *RCD_1) MarshalJSON() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "RCD_1.MarshalJSON err:%v", *pe)
 		}
 	}(&err)
-	return json.Marshal(fmt.Sprintf("%x", append([]byte{0x01}, e.PublicKey[:]...)))
+	return json.Marshal(fmt.Sprintf("%x", append([]byte{0x01}, r.PublicKey[:]...)))
 }
 
-func (b RCD_1) String() string {
-	txt, err := b.CustomMarshalText()
+// String returns this object as a string
+func (r RCD_1) String() string {
+	txt, err := r.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
 	return string(txt)
 }
 
+// MarshalText returns the public key as a byte array
 func (r *RCD_1) MarshalText() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -77,8 +83,10 @@ func (r *RCD_1) MarshalText() (rval []byte, err error) {
 	return []byte(hex.EncodeToString(r.PublicKey[:])), nil
 }
 
-func (w RCD_1) CheckSig(trans interfaces.ITransaction, sigblk interfaces.ISignatureBlock) bool {
-	if w.validSig {
+// CheckSig returns validSig if its already been found to be true, otherwise sets and returns the internal validSig bool
+// by verifying transaction using the public key has been properly signed by the input signature
+func (r *RCD_1) CheckSig(trans interfaces.ITransaction, sigblk interfaces.ISignatureBlock) bool {
+	if r.validSig {
 		return true
 	}
 	if sigblk == nil {
@@ -97,32 +105,37 @@ func (w RCD_1) CheckSig(trans interfaces.ITransaction, sigblk interfaces.ISignat
 		return false
 	}
 
-	w.validSig = ed25519.VerifyCanonical(&w.PublicKey, data, cryptosig)
+	r.validSig = ed25519.VerifyCanonical(&r.PublicKey, data, cryptosig)
 
-	return w.validSig
+	return r.validSig
 }
 
-func (w RCD_1) Clone() interfaces.IRCD {
+// Clone creates a copy of this RCD
+func (r RCD_1) Clone() interfaces.IRCD {
 	c := new(RCD_1)
-	copy(c.PublicKey[:], w.PublicKey[:])
+	copy(c.PublicKey[:], r.PublicKey[:])
 	return c
 }
 
-func (w RCD_1) GetAddress() (interfaces.IAddress, error) {
+// GetAddress returns a new address created by sha256(sha256(public key))
+func (r RCD_1) GetAddress() (interfaces.IAddress, error) {
 	data := []byte{1}
-	data = append(data, w.PublicKey[:]...)
+	data = append(data, r.PublicKey[:]...)
 	return CreateAddress(primitives.Shad(data)), nil
 }
 
-func (a RCD_1) GetPublicKey() []byte {
-	return a.PublicKey[:]
+// GetPublicKey returns the public key of the RCD
+func (r RCD_1) GetPublicKey() []byte {
+	return r.PublicKey[:]
 }
 
-func (w1 RCD_1) NumberOfSignatures() int {
+// NumberOfSignatures returns the number of signatures (a hardcoded 1 for RCD type 1 objects)
+func (r RCD_1) NumberOfSignatures() int {
 	return 1
 }
 
-func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+// UnmarshalBinaryData unmarshals the input data into this object
+func (r *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	if data == nil || len(data) < 1+constants.ADDRESS_LENGTH {
 		return nil, fmt.Errorf("Not enough data to unmarshal")
 	}
@@ -137,26 +150,28 @@ func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, fmt.Errorf("Data source too short to unmarshal an address: %d", len(data))
 	}
 
-	copy(t.PublicKey[:], data[:constants.ADDRESS_LENGTH])
+	copy(r.PublicKey[:], data[:constants.ADDRESS_LENGTH])
 	data = data[constants.ADDRESS_LENGTH:]
 
 	return data, nil
 }
 
-func (a RCD_1) MarshalBinary() ([]byte, error) {
+// MarshalBinary marshals the object
+func (r RCD_1) MarshalBinary() ([]byte, error) {
 	var out primitives.Buffer
 	out.WriteByte(byte(1)) // The First Authorization method
-	out.Write(a.PublicKey[:])
+	out.Write(r.PublicKey[:])
 
 	return out.DeepCopyBytes(), nil
 }
 
-func (a RCD_1) CustomMarshalText() (text []byte, err error) {
+// CustomMarshalText writes this RCD as a string "RCD 1: 1 <hexidecimal_public_key>\n" and returns its byte array
+func (r RCD_1) CustomMarshalText() (text []byte, err error) {
 	var out primitives.Buffer
 	out.WriteString("RCD 1: ")
 	primitives.WriteNumber8(&out, uint8(1)) // Type Zero Authorization
 	out.WriteString(" ")
-	out.WriteString(hex.EncodeToString(a.PublicKey[:]))
+	out.WriteString(hex.EncodeToString(r.PublicKey[:]))
 	out.WriteString("\n")
 
 	return out.DeepCopyBytes(), nil
