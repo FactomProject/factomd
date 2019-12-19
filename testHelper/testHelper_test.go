@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/FactomProject/factom"
-	"github.com/FactomProject/factomd/util"
-	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/ed25519"
+	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/engine"
 	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/util"
 	"github.com/stretchr/testify/assert"
 )
 

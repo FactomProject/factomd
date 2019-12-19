@@ -1,9 +1,10 @@
 package eventservices
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestMapEntryCreditBlock(t *testing.T) {

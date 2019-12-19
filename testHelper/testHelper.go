@@ -6,12 +6,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/events"
 	"os"
 	"os/exec"
 	"regexp"
 	"runtime"
 	"time"
+
+	"github.com/FactomProject/factomd/events"
 
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/adminBlock"

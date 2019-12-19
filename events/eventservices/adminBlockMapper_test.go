@@ -1,10 +1,11 @@
 package eventservices_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/events/eventservices"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestMapAdminBlock(t *testing.T) {

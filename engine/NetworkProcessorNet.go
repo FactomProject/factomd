@@ -7,6 +7,7 @@ package engine
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -87,6 +88,11 @@ func Peers(fnode *FactomNode) {
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
 
+			if msg.GetRepeatHash() == nil || reflect.ValueOf(msg.GetRepeatHash()).IsNil() || msg.GetMsgHash() == nil || reflect.ValueOf(msg.GetMsgHash()).IsNil() { // Do not send pokemon messages
+				fnode.State.LogMessage("badEvents", "PokeMon seen on APIQueue", msg)
+				continue
+			}
+
 			if globals.Params.FullHashesLog {
 				primitives.Loghash(msg.GetMsgHash())
 				primitives.Loghash(msg.GetHash())
@@ -163,6 +169,11 @@ func Peers(fnode *FactomNode) {
 					fnode.State.LogPrintf("NetworkInputs", "error on receive from %v: %v", peer.GetNameFrom(), err)
 					// TODO: Maybe we should check the error type and/or count errors and change status to offline?
 					break // move to next peer
+				}
+
+				if msg.GetRepeatHash() == nil || reflect.ValueOf(msg.GetRepeatHash()).IsNil() || msg.GetMsgHash() == nil || reflect.ValueOf(msg.GetMsgHash()).IsNil() { // Do not send pokemon messages
+					fnode.State.LogMessage("badEvents", fmt.Sprintf("PokeMon seen on Peer %s", peer.GetNameFrom()), msg)
+					continue
 				}
 
 				if globals.Params.FullHashesLog {
@@ -502,7 +513,7 @@ func MissingData(fnode *FactomNode) {
 	q := fnode.State.DataMsgQueue()
 	for {
 		select {
-		case msg := <- q:
+		case msg := <-q:
 			fnode.State.LogMessage("DataQueue", fmt.Sprintf("dequeue %v", len(q)), msg)
 			msg.(*messages.MissingData).SendResponse(fnode.State)
 		}

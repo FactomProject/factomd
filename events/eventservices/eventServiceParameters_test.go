@@ -2,11 +2,12 @@ package eventservices
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/util"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestEventServiceParameters_DefaultParameters(t *testing.T) {

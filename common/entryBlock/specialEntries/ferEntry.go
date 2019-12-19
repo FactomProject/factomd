@@ -17,20 +17,20 @@ var _ = fmt.Print
 
 // FEREntry stands for 'Factoid Exchange Rate' (FER) entry.
 type FEREntry struct {
-	Version                string `json:"version"`                  // This appears unused
+	Version string `json:"version"` // This appears unused
 
 	// The directory block height the FER request will be cancelled if not performed. Must be >= current directory block height
 	// and <= current directory block height + 12
-	ExpirationHeight       uint32 `json:"expiration_height"`        
+	ExpirationHeight uint32 `json:"expiration_height"`
 
 	// The directory block height set by the state machine when the entry is processed. Used only for validity checking the expiration height
-	ResidentHeight         uint32 `json:"resident_height"`          
+	ResidentHeight uint32 `json:"resident_height"`
 
 	// The directory block height the FER change should occur. Must be >= expiration height - 6
-	TargetActivationHeight uint32 `json:"target_activation_height"` 
+	TargetActivationHeight uint32 `json:"target_activation_height"`
 
-	Priority               uint32 `json:"priority"`                 // Higher priorities take precidence over lower priorities
-	TargetPrice            uint64 `json:"target_price"`             // The actual FER in Factoshis per EC (Entry Credit)
+	Priority    uint32 `json:"priority"`     // Higher priorities take precedence over lower priorities
+	TargetPrice uint64 `json:"target_price"` // The actual FER in Factoshis per EC (Entry Credit)
 }
 
 var _ interfaces.Printable = (*FEREntry)(nil)

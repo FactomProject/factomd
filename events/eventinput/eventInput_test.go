@@ -1,6 +1,8 @@
 package eventinput_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
@@ -12,7 +14,6 @@ import (
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestEventInput_RegistrationEvent(t *testing.T) {

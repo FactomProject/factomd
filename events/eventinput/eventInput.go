@@ -2,6 +2,7 @@ package eventinput
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/sirupsen/logrus"
