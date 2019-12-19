@@ -43,11 +43,15 @@ func NewDependentHolding(parent *worker.Thread, instance int) *DependentHolding 
 	b := new(DependentHolding)
 	b.logging = parent.Log
 	b.NameInit(parent, fmt.Sprintf("dependentHolding%d", instance), reflect.TypeOf(b).String())
-	b.inMsgs = generated.Subscribe_ByChannel_IMsg(pubsub.SubFactory.Channel(100)) //.Subscribe("path?")
+
+	// publishers
 	path := pubsub.GetPath(b.Name.GetParentName(), "dependentholding", "msgout")
 	b.outMsgs = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Threaded(100).Publish(path, pubsub.PubMultiWrap()))
-	path = pubsub.GetPath(b.Name.GetParentName(), "commitmap", "checkcommits")
+	path = pubsub.GetPath(b.Name.GetParentName(), "dependentholding", "checkcommits")
 	b.checkCommits = generated.Publish_PubBase_CommitRequest(pubsub.PubFactory.Threaded(100).Publish(path, pubsub.PubMultiWrap()))
+	// subscribers
+	b.inMsgs = generated.Subscribe_ByChannel_IMsg(pubsub.SubFactory.Channel(100)) //.Subscribe("path?")
+
 	return b
 }
 
@@ -57,11 +61,28 @@ func (b *DependentHolding) metric(msg interfaces.IMsg) telemetry.Gauge {
 }
 
 func (b *DependentHolding) Publish() {
+	//l.outMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/dependentHolding/messages", pubsub.PubMultiWrap()))
+	//l.fctMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/fctMessages", pubsub.PubMultiWrap()))
+	//l.gossipMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/gossipMessages", pubsub.PubMultiWrap()))
+	//
+	//l.inMessages = generated.Subscribe_ByChannel_IMsg(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/msgValidation/messages"))
+	//l.heights = generated.Subscribe_ByChannel_DBHT(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/heights"))
+	//l.metDependencyHashs = generated.Subscribe_ByChannel_Hash(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/dependencyHashs"))
+	//l.outMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/dependentHolding/messages", pubsub.PubMultiWrap()))
+	//l.fctMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/fctMessages", pubsub.PubMultiWrap()))
+	//l.gossipMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/gossipMessages", pubsub.PubMultiWrap()))
+	//
+	//l.inMessages = generated.Subscribe_ByChannel_IMsg(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/msgValidation/messages"))
+	//l.heights = generated.Subscribe_ByChannel_DBHT(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/heights"))
+	//l.metDependencyHashs = generated.Subscribe_ByChannel_Hash(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/dependencyHashs"))
+
 	go b.outMsgs.Start()
 }
+
 func (b *DependentHolding) Subscribe() {
 	// TODO: Find actual paths
-	b.inMsgs.SubChannel.Subscribe(pubsub.GetPath(b.GetParentName(), "bmv", "rest"))
+	path := pubsub.GetPath(b.GetParentName(), "bmv", "rest")
+	b.inMsgs.SubChannel.Subscribe(path)
 }
 
 func (b *DependentHolding) ClosePublishing() {

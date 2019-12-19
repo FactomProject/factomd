@@ -42,8 +42,8 @@ func (b *CommitMap) Publish() {}
 
 func (b *CommitMap) Subscribe() {
 	// TODO: Find actual paths
-	b.addMsg.SubChannel.Subscribe(pubsub.GetPath(b.GetParentName(), "commitmap", "commits"))
-	b.checkHash.SubChannel.Subscribe(pubsub.GetPath(b.GetParentName(), "commitmap", "checkcommits"))
+	b.addMsg.SubChannel.Subscribe(pubsub.GetPath(b.GetParentName(), "vms", "commits"))
+	b.checkHash.SubChannel.Subscribe(pubsub.GetPath(b.GetParentName(), "dependentholding", "checkcommits"))
 }
 
 func (b *CommitMap) ClosePublishing() {}

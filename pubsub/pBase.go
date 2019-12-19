@@ -1,6 +1,7 @@
 package pubsub
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -19,6 +20,7 @@ type PubBase struct {
 }
 
 func (p *PubBase) Publish(path string, wrappers ...IPublisherWrapper) IPublisher {
+	fmt.Printf("globalPublish  : %v\n", path)
 	return globalPublishWith(path, p, wrappers...)
 }
 

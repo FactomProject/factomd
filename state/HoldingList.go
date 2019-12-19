@@ -38,26 +38,9 @@ type HoldingList struct {
 }
 
 func (l *HoldingList) doWork(w *worker.Thread) {
-	l.outMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/dependentHolding/messages", pubsub.PubMultiWrap()))
-	l.fctMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/fctMessages", pubsub.PubMultiWrap()))
-	l.gossipMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/gossipMessages", pubsub.PubMultiWrap()))
-
-	l.inMessages = generated.Subscribe_ByChannel_IMsg(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/msgValidation/messages"))
-	l.heights = generated.Subscribe_ByChannel_DBHT(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/heights"))
-	l.metDependencyHashs = generated.Subscribe_ByChannel_Hash(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/dependencyHashs"))
-
 }
 
 func (l *HoldingList) Run(w *worker.Thread) {
-
-	l.outMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/dependentHolding/messages", pubsub.PubMultiWrap()))
-	l.fctMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/fctMessages", pubsub.PubMultiWrap()))
-	l.gossipMessages = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Base().Publish(w.GetParentName()+"/gossipMessages", pubsub.PubMultiWrap()))
-
-	l.inMessages = generated.Subscribe_ByChannel_IMsg(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/msgValidation/messages"))
-	l.heights = generated.Subscribe_ByChannel_DBHT(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/heights"))
-	l.metDependencyHashs = generated.Subscribe_ByChannel_Hash(pubsub.SubFactory.Channel(10).Subscribe(w.GetParentName() + "/dependencyHashs"))
-
 }
 
 // access gauge w/ proper labels

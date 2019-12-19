@@ -136,7 +136,7 @@ func globalPublishWith(path string, p IPublisher, wrappers ...IPublisherWrapper)
 }
 
 func globalPublish(path string, p IPublisher) IPublisher {
-	fmt.Printf("globalPublish: %v\n", path)
+	fmt.Printf("globalPublish  : %v\n", path)
 	err := globalReg.Register(path, p)
 	if err != nil {
 		tree := globalReg.PrintTree()

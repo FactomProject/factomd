@@ -49,7 +49,8 @@ func sort(parent *worker.Thread, s *state.State) {
 		sub := pubsub.SubFactory.Channel(50)
 
 		w.OnReady(func() {
-			sub.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), "dependentholding", "msgout"))
+			path := pubsub.GetPath(s.GetFactomNodeName(), "dependentholding", "msgout")
+			sub.Subscribe(path)
 		})
 
 		w.OnRun(func() {
@@ -279,10 +280,10 @@ func startBasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode)
 
 func startDependentHolding(parent *worker.Thread, fnode *fnode.FactomNode) {
 	for i := 0; i < 2; i++ { // 2 Basic message validators
-		parent.Spawn(fmt.Sprintf("DH%d", i), func(w *worker.Thread) {
+		parent.Spawn(fmt.Sprintf("dependentholding%d", i), func(w *worker.Thread) {
 			ctx, cancel := context.WithCancel(context.Background())
 			// Run init conditions. Setup publishers
-			dependentHolding := dependentholding.NewDependentHolding(w, &fnode.Name, i)
+			dependentHolding := dependentholding.NewDependentHolding(w, i)
 
 			w.OnReady(func() {
 				dependentHolding.Publish()

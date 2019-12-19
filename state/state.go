@@ -426,14 +426,14 @@ type State struct {
 	// publish subscribe hooks for new modules
 	leaderTimestampPub *generated.Publish_PubBase_Timestamp_type     // Current Leader Timestamp
 	addMsg             *generated.Publish_PubBase_CommitRequest_type // Add Comits/reveals to commit map
-	checkHash          *generated.Publish_PubBase_CommitRequest_type // check commits/reveals against commitmap
+	//	checkHash          *generated.Publish_PubBase_CommitRequest_type // check commits/reveals against commitmap
 
 }
 
 func (s *State) Publish() {
 	s.leaderTimestampPub = generated.Publish_PubBase_Timestamp(pubsub.PubFactory.Base().Publish(pubsub.GetPath(s.GetParentName(), "leadertimestamp")))
-	s.addMsg = generated.Publish_PubBase_CommitRequest(pubsub.PubFactory.Base().Publish(pubsub.GetPath(s.GetParentName(), "commits")))   // Add commits/reveals to commit map
-	s.checkHash = generated.Publish_PubBase_CommitRequest(pubsub.PubFactory.Base().Publish(pubsub.GetPath(s.GetParentName(), "checks"))) // check commits/reveals against commit map
+	s.addMsg = generated.Publish_PubBase_CommitRequest(pubsub.PubFactory.Base().Publish(pubsub.GetPath(s.GetParentName(), "vms", "commits"))) // Add commits/reveals to commit map
+	//	s.checkHash = generated.Publish_PubBase_CommitRequest(pubsub.PubFactory.Base().Publish(pubsub.GetPath(s.GetParentName(), "commitmap", "checks"))) // check commits/reveals against commit map
 }
 
 func (s *State) Subscribe() {
