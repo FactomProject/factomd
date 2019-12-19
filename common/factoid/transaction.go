@@ -41,6 +41,7 @@ var _ interfaces.ITransaction = (*Transaction)(nil)
 var _ interfaces.Printable = (*Transaction)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*Transaction)(nil)
 
+// IsSameAs returns true iff the input transaction is identical to this one
 func (t *Transaction) IsSameAs(trans interfaces.ITransaction) bool {
 	if trans == nil {
 		if t == nil {
@@ -100,27 +101,32 @@ func (t *Transaction) IsSameAs(trans interfaces.ITransaction) bool {
 	return true
 }
 
-func (w *Transaction) New() interfaces.BinaryMarshallableAndCopyable {
+// New returns a new empty transaction
+func (t *Transaction) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(Transaction)
 }
 
+// SetBlockHeight sets the block height to the input value
 func (t *Transaction) SetBlockHeight(height uint32) {
 	t.BlockHeight = height
 }
 
+// GetBlockHeight returns the block height of this transaction
 func (t *Transaction) GetBlockHeight() (height uint32) {
 	return t.BlockHeight
 }
 
-// Clears caches if they are no long valid.
+// clearCaches is a dummy function that does nothing
 func (t *Transaction) clearCaches() {
 	return
 }
 
+// GetVersion returns a hardcoded 2
 func (*Transaction) GetVersion() uint64 {
 	return 2
 }
 
+// GetTxID returns the sha256 hash of the marshaled object without signatures
 func (t *Transaction) GetTxID() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -132,6 +138,7 @@ func (t *Transaction) GetTxID() (rval interfaces.IHash) {
 	return t.GetSigHash()
 }
 
+// GetHash returns the sha256 hash of the marshaled object
 func (t *Transaction) GetHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -140,13 +147,10 @@ func (t *Transaction) GetHash() (rval interfaces.IHash) {
 		}
 	}()
 
-	m, err := t.MarshalBinary()
-	if err != nil {
-		return nil
-	}
-	return primitives.Sha(m)
+	return t.GetFullHash()
 }
 
+// GetFullHash returns the sha256 hash of the marshaled object
 func (t Transaction) GetFullHash() interfaces.IHash {
 	m, err := t.MarshalBinary()
 	if err != nil {
@@ -155,6 +159,7 @@ func (t Transaction) GetFullHash() interfaces.IHash {
 	return primitives.Sha(m)
 }
 
+// GetSigHash returns the sha256 of the marshaled object without signatures
 func (t Transaction) GetSigHash() interfaces.IHash {
 	m, err := t.MarshalBinarySig()
 	if err != nil {
@@ -163,6 +168,7 @@ func (t Transaction) GetSigHash() interfaces.IHash {
 	return primitives.Sha(m)
 }
 
+// String returns this object as a string
 func (t Transaction) String() string {
 	txt, err := t.CustomMarshalText()
 	if err != nil {
@@ -171,11 +177,12 @@ func (t Transaction) String() string {
 	return string(txt)
 }
 
-// MilliTimestamp is in milliseconds
+// GetTimestamp returns the time stamp in milliseconds
 func (t *Transaction) GetTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampFromMilliseconds(t.MilliTimestamp)
 }
 
+// SetTimestamp sets the timestamp to the input value
 func (t *Transaction) SetTimestamp(ts interfaces.Timestamp) {
 	milli := ts.GetTimeMilliUInt64()
 
@@ -185,6 +192,9 @@ func (t *Transaction) SetTimestamp(ts interfaces.Timestamp) {
 	t.MilliTimestamp = milli
 }
 
+// SetSignatureBlock sets the 'ith' signature block to the input signature. If 'i' is larger than the length
+// of the available signature blocks, it appends empty signatures and finally inserts the input signature at the
+// 'ith' position
 func (t *Transaction) SetSignatureBlock(i int, sig interfaces.ISignatureBlock) {
 	for len(t.SigBlocks) <= i {
 		t.SigBlocks = append(t.SigBlocks, new(SignatureBlock))
@@ -192,6 +202,8 @@ func (t *Transaction) SetSignatureBlock(i int, sig interfaces.ISignatureBlock) {
 	t.SigBlocks[i] = sig
 }
 
+// GetSignatureBlock returns the 'ith' signature block. If 'i' is larger than the length of the available signature
+// blocks, it appends empty signatures until the 'ith' spot, and returns the new empty signature at the 'ith' position
 func (t *Transaction) GetSignatureBlock(i int) interfaces.ISignatureBlock {
 	for len(t.SigBlocks) <= i {
 		t.SigBlocks = append(t.SigBlocks, new(SignatureBlock))
@@ -199,12 +211,13 @@ func (t *Transaction) GetSignatureBlock(i int) interfaces.ISignatureBlock {
 	return t.SigBlocks[i]
 }
 
+// AddRCD appends the input RCD to the current RCDs
 func (t *Transaction) AddRCD(rcd interfaces.IRCD) {
 	t.RCDs = append(t.RCDs, rcd)
 	t.clearCaches()
 }
 
-// Fee structure can be found:
+// CalculateFee - Fee structure can be found:
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#sighash-type
 //
 //Transaction data size. -- Factoid transactions are charged the same
@@ -216,7 +229,7 @@ func (t *Transaction) AddRCD(rcd interfaces.IRCD) {
 //    output. A purchase of Entry Credits also requires the 10 EC sized
 //    fee to be valid.
 //Number of signatures checked -- These cause expensive computation on
-//    all full nodes. A fee of 10 EC equivalent must be paid for each
+//    all full nodes. A fee of 1 EC equivalent must be paid for each
 //    signature included.
 func (t Transaction) CalculateFee(factoshisPerEC uint64) (uint64, error) {
 	// First look at the size of the transaction, and make sure
@@ -243,7 +256,7 @@ func (t Transaction) CalculateFee(factoshisPerEC uint64) (uint64, error) {
 	return fee, nil
 }
 
-// Checks that the sum of the given amounts do not cross
+// ValidateAmounts checks that the sum of the given amounts do not cross
 // a signed boundary.  Returns false if invalid, and the
 // sum if valid.  Returns 0 and true if nothing is passed in.
 func ValidateAmounts(amts ...uint64) (uint64, error) {
@@ -260,6 +273,7 @@ func ValidateAmounts(amts ...uint64) (uint64, error) {
 	return uint64(sum), nil
 }
 
+// TotalInputs totals the input values in this object
 func (t Transaction) TotalInputs() (sum uint64, err error) {
 	if len(t.Inputs) > 255 {
 		return 0, fmt.Errorf("The number of inputs must be less than 255")
@@ -273,6 +287,7 @@ func (t Transaction) TotalInputs() (sum uint64, err error) {
 	return
 }
 
+// TotalOutputs totals the output values of this object
 func (t Transaction) TotalOutputs() (sum uint64, err error) {
 	if len(t.Outputs) > 255 {
 		return 0, fmt.Errorf("The number of outputs must be less than 255")
@@ -286,6 +301,7 @@ func (t Transaction) TotalOutputs() (sum uint64, err error) {
 	return
 }
 
+// TotalECs totals the output EC values of this object
 func (t Transaction) TotalECs() (sum uint64, err error) {
 	if len(t.OutECs) > 255 {
 		return 0, fmt.Errorf("The number of Entry Credit outputs must be less than 255")
@@ -299,7 +315,7 @@ func (t Transaction) TotalECs() (sum uint64, err error) {
 	return
 }
 
-// Only validates that the transaction is well formed.  This means that
+// Validate only validates that the transaction is well formed.  This means that
 // the inputs cover the value of the outputs.  Can't validate addresses,
 // as they are hashes.  Can't validate the fee, because it might change
 // in the next period.
@@ -378,9 +394,8 @@ func (t Transaction) Validate(index int) error {
 	return nil
 }
 
-// This call ONLY checks signatures.  Call interfaces.ITransaction.Validate() to check the structure of the
+// ValidateSignatures ONLY checks signatures.  Call interfaces.ITransaction.Validate() to check the structure of the
 // transaction.
-//
 func (t Transaction) ValidateSignatures() error {
 	if !t.sigValid {
 		missingCnt := 0
@@ -398,11 +413,19 @@ func (t Transaction) ValidateSignatures() error {
 	return nil
 }
 
-func (t Transaction) GetInputs() []interfaces.ITransAddress    { return t.Inputs }
-func (t Transaction) GetOutputs() []interfaces.ITransAddress   { return t.Outputs }
-func (t Transaction) GetECOutputs() []interfaces.ITransAddress { return t.OutECs }
-func (t Transaction) GetRCDs() []interfaces.IRCD               { return t.RCDs }
+// GetInputs returns the inputs
+func (t Transaction) GetInputs() []interfaces.ITransAddress { return t.Inputs }
 
+// GetOutputs returns the outputs
+func (t Transaction) GetOutputs() []interfaces.ITransAddress { return t.Outputs }
+
+// GetECOutputs returns the OutECs
+func (t Transaction) GetECOutputs() []interfaces.ITransAddress { return t.OutECs }
+
+// GetRCDs returns the RCDs
+func (t Transaction) GetRCDs() []interfaces.IRCD { return t.RCDs }
+
+// GetSignatureBlocks returns the signature blocks FIX - why does it nil out extras? shouldn't something else handle adding these objects?
 func (t *Transaction) GetSignatureBlocks() []interfaces.ISignatureBlock {
 	if len(t.SigBlocks) > len(t.Inputs) { // If too long, nil out
 		for i := len(t.Inputs); i < len(t.SigBlocks); i++ { // the extra entries, and
@@ -417,6 +440,7 @@ func (t *Transaction) GetSignatureBlocks() []interfaces.ISignatureBlock {
 	return t.SigBlocks
 }
 
+// GetInput returns the 'ith' input
 func (t *Transaction) GetInput(i int) (interfaces.ITransAddress, error) {
 	if i > len(t.Inputs) {
 		return nil, fmt.Errorf("Index out of Range")
@@ -424,6 +448,7 @@ func (t *Transaction) GetInput(i int) (interfaces.ITransAddress, error) {
 	return t.Inputs[i], nil
 }
 
+// GetOutput returns the 'ith' output
 func (t *Transaction) GetOutput(i int) (interfaces.ITransAddress, error) {
 	if i > len(t.Outputs) {
 		return nil, fmt.Errorf("Index out of Range")
@@ -431,6 +456,7 @@ func (t *Transaction) GetOutput(i int) (interfaces.ITransAddress, error) {
 	return t.Outputs[i], nil
 }
 
+// GetECOutput returns the 'ith' EC output
 func (t *Transaction) GetECOutput(i int) (interfaces.ITransAddress, error) {
 	if i > len(t.OutECs) {
 		return nil, fmt.Errorf("Index out of Range")
@@ -438,6 +464,7 @@ func (t *Transaction) GetECOutput(i int) (interfaces.ITransAddress, error) {
 	return t.OutECs[i], nil
 }
 
+// GetRCD returns the 'ith' RCD
 func (t *Transaction) GetRCD(i int) (interfaces.IRCD, error) {
 	if i > len(t.RCDs) {
 		return nil, fmt.Errorf("Index out of Range")
@@ -445,7 +472,7 @@ func (t *Transaction) GetRCD(i int) (interfaces.IRCD, error) {
 	return t.RCDs[i], nil
 }
 
-// UnmarshalBinary assumes that the Binary is all good.  We do error
+// UnmarshalBinaryData assumes that the Binary is all good.  We do error
 // out if there isn't enough data, or the transaction is too large.
 func (t *Transaction) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
@@ -485,7 +512,7 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	t.Outputs = make([]interfaces.ITransAddress, int(numOutputs), int(numOutputs))
 	t.OutECs = make([]interfaces.ITransAddress, int(numOutECs), int(numOutECs))
 
-	for i, _ := range t.Inputs {
+	for i := range t.Inputs {
 		t.Inputs[i] = new(TransAddress)
 		err = buf.PopBinaryMarshallable(t.Inputs[i])
 		if err != nil {
@@ -493,7 +520,7 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		}
 		t.Inputs[i].(*TransAddress).UserAddress = primitives.ConvertFctAddressToUserStr(t.Inputs[i].(*TransAddress).Address)
 	}
-	for i, _ := range t.Outputs {
+	for i := range t.Outputs {
 		t.Outputs[i] = new(TransAddress)
 		err = buf.PopBinaryMarshallable(t.Outputs[i])
 		if err != nil {
@@ -501,7 +528,7 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		}
 		t.Outputs[i].(*TransAddress).UserAddress = primitives.ConvertFctAddressToUserStr(t.Outputs[i].(*TransAddress).Address)
 	}
-	for i, _ := range t.OutECs {
+	for i := range t.OutECs {
 		t.OutECs[i] = new(TransAddress)
 		err = buf.PopBinaryMarshallable(t.OutECs[i])
 		if err != nil {
@@ -534,12 +561,13 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinary unmarshals the input data into this object
 func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
 	data, err = t.UnmarshalBinaryData(data)
 	return err
 }
 
-// This is what Gets Signed.  Yet signature blocks are part of the transaction.
+// MarshalBinarySig marshals the object without signatures. This is what Gets Signed.  Yet signature blocks are part of the transaction.
 // We don't include them here, and tack them on later.
 func (t *Transaction) MarshalBinarySig() (rval []byte, err error) {
 	defer func(pe *error) {
@@ -601,7 +629,7 @@ func (t *Transaction) MarshalBinarySig() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-// This just Marshals what gets signed, i.e. MarshalBinarySig(), then
+// MarshalBinary just Marshals what gets signed, i.e. MarshalBinarySig(), then
 // Marshals the signatures and the RCDs for this transaction.
 func (t Transaction) MarshalBinary() ([]byte, error) {
 	data, err := t.MarshalBinarySig()
@@ -634,7 +662,7 @@ func (t Transaction) MarshalBinary() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-// Helper function for building transactions.  Add an input to
+// AddInput is a helper function for building transactions.  Add an input to
 // the transaction.  I'm guessing 5 inputs is about all anyone
 // will need, so I'll default to 5.  Of course, go will grow
 // past that if needed.
@@ -647,7 +675,7 @@ func (t *Transaction) AddInput(input interfaces.IAddress, amount uint64) {
 	t.clearCaches()
 }
 
-// Helper function for building transactions.  Add an output to
+// AddOutput is a helper function for building transactions.  Add an output to
 // the transaction.  I'm guessing 5 outputs is about all anyone
 // will need, so I'll default to 5.  Of course, go will grow
 // past that if needed.
@@ -660,7 +688,7 @@ func (t *Transaction) AddOutput(output interfaces.IAddress, amount uint64) {
 	t.clearCaches()
 }
 
-// Add a EntryCredit output.  Validating this is going to require
+// AddECOutput adds a EntryCredit output.  Validating this is going to require
 // access to the exchange rate.  This is literally how many entry
 // credits are being added to the specified Entry Credit address.
 func (t *Transaction) AddECOutput(ecoutput interfaces.IAddress, amount uint64) {
@@ -672,7 +700,7 @@ func (t *Transaction) AddECOutput(ecoutput interfaces.IAddress, amount uint64) {
 	t.clearCaches()
 }
 
-// Marshal to text.  Largely a debugging thing.
+// CustomerMarshalText marshals the object to text.  Largely a debugging thing.
 func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 	data, err := t.MarshalBinary()
 	if err != nil {
@@ -731,7 +759,7 @@ func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 	return out.DeepCopyBytes(), nil
 }
 
-// Helper Function.  This simply adds an Authorization to a
+// AddAuthorization is a helper Function.  This simply adds an Authorization to a
 // transaction.  DOES NO VALIDATION.  Not the job of construction.
 // That's why we have a validation call.
 func (t *Transaction) AddAuthorization(auth interfaces.IRCD) {
@@ -741,15 +769,18 @@ func (t *Transaction) AddAuthorization(auth interfaces.IRCD) {
 	t.RCDs = append(t.RCDs, auth)
 }
 
-func (e *Transaction) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+// JSONByte returns the json encoded byte array
+func (t *Transaction) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(t)
 }
 
-func (e *Transaction) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+// JSONString returns the json encoded string
+func (t *Transaction) JSONString() (string, error) {
+	return primitives.EncodeJSONString(t)
 }
 
-func (e *Transaction) HasUserAddress(userAddr string) bool {
+// HasUserAddress checks whether any of the transactions involve this input user address
+func (t *Transaction) HasUserAddress(userAddr string) bool {
 	//  do any of the inputs or outputs of this transaction belong to the inputed user address
 	// Other than a minimal length check, this does not address validation of the requested user address
 	// in some cases, the useraddress is not being filled in the address struct.  if it is blank, convert the address (hash)
@@ -762,7 +793,7 @@ func (e *Transaction) HasUserAddress(userAddr string) bool {
 	// if this address starts with EC it can only be an EC output address.  No need to check any others.
 
 	if userAddr[0:2] == "EC" {
-		ecoutputs := e.GetECOutputs()
+		ecoutputs := t.GetECOutputs()
 		for _, addLine := range ecoutputs {
 			if addLine.GetUserAddress() == "" {
 				matchString = primitives.ConvertECAddressToUserStr(addLine.GetAddress())
@@ -776,7 +807,7 @@ func (e *Transaction) HasUserAddress(userAddr string) bool {
 	} else {
 		// if it is NOT an ec address, it can't be a factoid address, so don't check those.
 		// check input addresses
-		inputs := e.GetInputs()
+		inputs := t.GetInputs()
 		for _, addLine := range inputs {
 			if addLine.GetUserAddress() == "" {
 				matchString = primitives.ConvertFctAddressToUserStr(addLine.GetAddress())
@@ -789,7 +820,7 @@ func (e *Transaction) HasUserAddress(userAddr string) bool {
 		}
 
 		//check output addresses
-		outputs := e.GetOutputs()
+		outputs := t.GetOutputs()
 		for _, addLine := range outputs {
 			if addLine.GetUserAddress() == "" {
 				matchString = primitives.ConvertFctAddressToUserStr(addLine.GetAddress())
