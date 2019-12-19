@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/activations"
 	"os"
 	"reflect"
 
@@ -86,6 +87,16 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	e := elect.(*elections.Elections)
 
 	elections.CheckAuthSetsMatch("FedVoteLevelMsg.ElectionProcess()", e, e.State.(*state.State))
+
+	// TODO: determine if we need to check here too, or if checking before every election is fine
+	if !e.IsSafeToReplaceFed(e.FedID) {
+		if is.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+			e.LogPrintf("election", "FedVoteLevelMsg.ElectionProcess(): cannot remove more than half of the block's starting feds")
+			return
+		} else {
+			e.LogPrintf("election", "FedVoteLevelMsg.ElectionProcess() WARN: removing more than half of the block's starting feds")
+		}
+	}
 
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
