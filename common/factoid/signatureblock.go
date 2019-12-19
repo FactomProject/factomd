@@ -19,23 +19,25 @@ import (
  * how to apply the signatures to the addresses in the RCD.
  **************************************/
 
+// SignatureBlock is an object for holding multiple signatures
 type SignatureBlock struct {
-	Signatures []interfaces.ISignature `json:"signatures"`
+	Signatures []interfaces.ISignature `json:"signatures"` // Slice of signatures
 }
 
 var _ interfaces.ISignatureBlock = (*SignatureBlock)(nil)
 
-func (b *SignatureBlock) IsSameAs(s interfaces.ISignatureBlock) bool {
-	if s == nil {
-		return b == nil
+// IsSameAs returns true iff the input signature block contains the same signatures in the same ordering
+func (s *SignatureBlock) IsSameAs(si interfaces.ISignatureBlock) bool {
+	if si == nil {
+		return s == nil
 	}
 
-	sigs := s.GetSignatures()
-	if len(b.Signatures) != len(sigs) {
+	sigs := si.GetSignatures()
+	if len(s.Signatures) != len(sigs) {
 		return false
 	}
-	for i := range b.Signatures {
-		if b.Signatures[i].IsSameAs(sigs[i]) == false {
+	for i := range s.Signatures {
+		if s.Signatures[i].IsSameAs(sigs[i]) == false {
 			return false
 		}
 	}
@@ -43,27 +45,32 @@ func (b *SignatureBlock) IsSameAs(s interfaces.ISignatureBlock) bool {
 	return true
 }
 
-func (b SignatureBlock) UnmarshalBinary(data []byte) error {
-	_, err := b.UnmarshalBinaryData(data)
+// UnmarshalBinary unmarshals the input data into this object
+func (s SignatureBlock) UnmarshalBinary(data []byte) error {
+	_, err := s.UnmarshalBinaryData(data)
 	return err
 }
 
-func (e *SignatureBlock) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+// JSONByte returns the json encoded byte array
+func (s *SignatureBlock) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(s)
 }
 
-func (e *SignatureBlock) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+// JSONString returns the json encoded string
+func (s *SignatureBlock) JSONString() (string, error) {
+	return primitives.EncodeJSONString(s)
 }
 
-func (b SignatureBlock) String() string {
-	txt, err := b.CustomMarshalText()
+// String returns this object as a string
+func (s SignatureBlock) String() string {
+	txt, err := s.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
 	return string(txt)
 }
 
+// AddSignature appends the input signature to the existing signatures - FIX, is this how its supposed to work? always set to zeroth?
 func (s *SignatureBlock) AddSignature(sig interfaces.ISignature) {
 	if len(s.Signatures) > 0 {
 		s.Signatures[0] = sig
@@ -72,6 +79,7 @@ func (s *SignatureBlock) AddSignature(sig interfaces.ISignature) {
 	}
 }
 
+// GetSignature returns the signature at the input index
 func (s SignatureBlock) GetSignature(index int) interfaces.ISignature {
 	if len(s.Signatures) <= index {
 		return nil
@@ -79,6 +87,7 @@ func (s SignatureBlock) GetSignature(index int) interfaces.ISignature {
 	return s.Signatures[index]
 }
 
+// GetSignatures returns the signature slice
 func (s SignatureBlock) GetSignatures() []interfaces.ISignature {
 	if s.Signatures == nil {
 		s.Signatures = make([]interfaces.ISignature, 1, 1)
@@ -87,9 +96,10 @@ func (s SignatureBlock) GetSignatures() []interfaces.ISignature {
 	return s.Signatures
 }
 
-func (a SignatureBlock) MarshalBinary() ([]byte, error) {
+// MarshalBinary marshals this object
+func (s SignatureBlock) MarshalBinary() ([]byte, error) {
 	buf := primitives.NewBuffer(nil)
-	for _, sig := range a.GetSignatures() {
+	for _, sig := range s.GetSignatures() {
 		err := buf.PushBinaryMarshallable(sig)
 		if err != nil {
 			return nil, err
@@ -98,6 +108,7 @@ func (a SignatureBlock) MarshalBinary() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// CustomMarshalText returns this object as a custom string
 func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
 	var out primitives.Buffer
 
@@ -116,6 +127,7 @@ func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
 	return out.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinaryData unmarshals the input data into this object
 func (s *SignatureBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	s.Signatures = make([]interfaces.ISignature, 1)
@@ -127,6 +139,8 @@ func (s *SignatureBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// NewSingleSignatureBlock creates a new signature block with a single signature created from the
+// input private key and data
 func NewSingleSignatureBlock(priv, data []byte) *SignatureBlock {
 	s := new(SignatureBlock)
 	s.AddSignature(NewED25519Signature(priv, data))

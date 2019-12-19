@@ -17,13 +17,12 @@ import (
  * RCD 2
  ************************/
 
-// Type 2 RCD implement multisig
+// RCD_2 is a type 2 RCD implementing multisignatures
 // m of n
 // Must have m addresses from which to choose, no fewer, no more
 // Must have n RCD, no fewer no more.
 // NOTE: This does mean you can have a multisig nested in a
 // multisig.  It just works.
-
 type RCD_2 struct {
 	M           int                   // Number signatures required
 	N           int                   // Total signatures possible
@@ -36,11 +35,13 @@ var _ interfaces.IRCD = (*RCD_2)(nil)
  *       Stubs
  *************************************/
 
-func (b RCD_2) GetAddress() (interfaces.IAddress, error) {
+// GetAddress returns nil,nil always
+func (r RCD_2) GetAddress() (interfaces.IAddress, error) {
 	return nil, nil
 }
 
-func (b RCD_2) NumberOfSignatures() int {
+// NumberOfSignatures returns a hardcoded 1 always
+func (r RCD_2) NumberOfSignatures() int {
 	return 1
 }
 
@@ -48,56 +49,63 @@ func (b RCD_2) NumberOfSignatures() int {
  *       Methods
  ***************************************/
 
-func (b RCD_2) IsSameAs(rcd interfaces.IRCD) bool {
-	return b.String() == rcd.String()
+// IsSameAs returns true iff the input rcd is identical to this one
+func (r RCD_2) IsSameAs(rcd interfaces.IRCD) bool {
+	return r.String() == rcd.String()
 }
 
-func (b RCD_2) UnmarshalBinary(data []byte) error {
-	_, err := b.UnmarshalBinaryData(data)
+// UnmarshalBinary unmarshals the input data into this object
+func (r RCD_2) UnmarshalBinary(data []byte) error {
+	_, err := r.UnmarshalBinaryData(data)
 	return err
 }
 
-func (b RCD_2) CheckSig(trans interfaces.ITransaction, sigblk interfaces.ISignatureBlock) bool {
+// CheckSig always returns a hardcoded false
+func (r RCD_2) CheckSig(trans interfaces.ITransaction, sigblk interfaces.ISignatureBlock) bool {
 	return false
 }
 
-func (e *RCD_2) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+// JSONByte returns the json encoded byte array
+func (r *RCD_2) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(r)
 }
 
-// TODO: Fix Json marshaling of RCD_2. Right now the RCD type
+// JSONString returns the json encoded string. TODO: Fix Json marshaling of RCD_2. Right now the RCD type
 // is not included in the json marshal.
-func (e *RCD_2) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (r *RCD_2) JSONString() (string, error) {
+	return primitives.EncodeJSONString(r)
 }
 
-func (b RCD_2) String() string {
-	txt, err := b.CustomMarshalText()
+// String returns this object as a string
+func (r RCD_2) String() string {
+	txt, err := r.CustomMarshalText()
 	if err != nil {
 		return "<error>"
 	}
 	return string(txt)
 }
 
-func (w RCD_2) Clone() interfaces.IRCD {
+// Clone returns an exact copy of this RCD_2
+func (r RCD_2) Clone() interfaces.IRCD {
 	c := new(RCD_2)
-	c.M = w.M
-	c.N = w.N
-	c.N_Addresses = make([]interfaces.IAddress, len(w.N_Addresses))
-	for i, address := range w.N_Addresses {
+	c.M = r.M
+	c.N = r.N
+	c.N_Addresses = make([]interfaces.IAddress, len(r.N_Addresses))
+	for i, address := range r.N_Addresses {
 		c.N_Addresses[i] = CreateAddress(address)
 	}
 	return c
 }
 
-func (a RCD_2) MarshalBinary() ([]byte, error) {
+// MarshalBinary marshals this object
+func (r RCD_2) MarshalBinary() ([]byte, error) {
 	var out primitives.Buffer
 
 	binary.Write(&out, binary.BigEndian, uint8(2))
-	binary.Write(&out, binary.BigEndian, uint16(a.N))
-	binary.Write(&out, binary.BigEndian, uint16(a.M))
-	for i := 0; i < a.M; i++ {
-		data, err := a.N_Addresses[i].MarshalBinary()
+	binary.Write(&out, binary.BigEndian, uint16(r.N))
+	binary.Write(&out, binary.BigEndian, uint16(r.M))
+	for i := 0; i < r.M; i++ {
+		data, err := r.N_Addresses[i].MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
@@ -107,7 +115,8 @@ func (a RCD_2) MarshalBinary() ([]byte, error) {
 	return out.DeepCopyBytes(), nil
 }
 
-func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+// UnmarshalBinaryData unmarshals the input data into this object
+func (r *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	if data == nil || len(data) < 5 {
 		return nil, fmt.Errorf("Not enough data to unmarshal")
 	}
@@ -117,32 +126,32 @@ func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, fmt.Errorf("Bad data fed to RCD_2 UnmarshalBinaryData()")
 	}
 
-	t.N, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
-	t.M, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
-	if t.N > t.M {
+	r.N, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
+	r.M, data = int(binary.BigEndian.Uint16(data[0:2])), data[2:]
+	if r.N > r.M {
 		return nil, fmt.Errorf(
 			"Error: RCD_2.UnmarshalBinary: signatures possible %d is lower "+
 				"than signatures reqired %d",
-			t.M, t.N,
+			r.M, r.N,
 		)
 	}
 
 	sigLimit := len(data) / 32
-	if t.M > sigLimit {
+	if r.M > sigLimit {
 		// TODO: replace this message with a proper error
 		return nil, fmt.Errorf(
 			"Error: RCD_2.UnmarshalBinary: signatures required %d is larger "+
 				"than space in binary %d (uint underflow?)",
-			t.M, sigLimit,
+			r.M, sigLimit,
 		)
 
 	}
 
-	t.N_Addresses = make([]interfaces.IAddress, t.M, t.M)
+	r.N_Addresses = make([]interfaces.IAddress, r.M, r.M)
 
-	for i, _ := range t.N_Addresses {
-		t.N_Addresses[i] = new(Address)
-		data, err = t.N_Addresses[i].UnmarshalBinaryData(data)
+	for i := range r.N_Addresses {
+		r.N_Addresses[i] = new(Address)
+		data, err = r.N_Addresses[i].UnmarshalBinaryData(data)
 		if err != nil {
 			return nil, err
 		}
@@ -151,18 +160,19 @@ func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	return data, nil
 }
 
-func (a RCD_2) CustomMarshalText() ([]byte, error) {
+// CustomMarshalText marshals this object into a string and returns its bytes
+func (r RCD_2) CustomMarshalText() ([]byte, error) {
 	var out primitives.Buffer
 
 	primitives.WriteNumber8(&out, uint8(2)) // Type 2 Authorization
 	out.WriteString("\n n: ")
-	primitives.WriteNumber16(&out, uint16(a.N))
+	primitives.WriteNumber16(&out, uint16(r.N))
 	out.WriteString(" m: ")
-	primitives.WriteNumber16(&out, uint16(a.M))
+	primitives.WriteNumber16(&out, uint16(r.M))
 	out.WriteString("\n")
-	for i := 0; i < a.M; i++ {
+	for i := 0; i < r.M; i++ {
 		out.WriteString("  m: ")
-		out.WriteString(hex.EncodeToString(a.N_Addresses[i].Bytes()))
+		out.WriteString(hex.EncodeToString(r.N_Addresses[i].Bytes()))
 		out.WriteString("\n")
 	}
 
