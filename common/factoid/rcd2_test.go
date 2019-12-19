@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+// TestUnmarshalNilRCD_2 checks that unmarshalling nil or the empty interface results in errors
 func TestUnmarshalNilRCD_2(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -31,8 +32,9 @@ func TestUnmarshalNilRCD_2(t *testing.T) {
 	}
 }
 
+// TestRCD2MarshalUnmarshal checks that marshalling and unmarshalling RCD2 preserves the data integrity
 func TestRCD2MarshalUnmarshal(t *testing.T) {
-	rcd := nextAuth2_rcd2()
+	rcd := nextAuth2()
 
 	hex, err := rcd.MarshalBinary()
 	if err != nil {
@@ -66,15 +68,16 @@ func TestRCD2MarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestUnmarshalBadRCD2 checks that corrupted data cannot be unmarshalled without an error
 func TestUnmarshalBadRCD2(t *testing.T) {
-	rcd := nextAuth2_rcd2()
+	rcd := nextAuth2()
 
 	p, err := rcd.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 
-	// wright bad signature count to rcd2
+	// write bad signature count to rcd2
 	p[3] = 0xff
 
 	rcd2 := new(RCD_2)
@@ -86,8 +89,9 @@ func TestUnmarshalBadRCD2(t *testing.T) {
 	}
 }
 
+// TestRCD2Clone checks that the clone function produces an identical copy
 func TestRCD2Clone(t *testing.T) {
-	rcd := nextAuth2_rcd2()
+	rcd := nextAuth2()
 
 	hex, err := rcd.MarshalBinary()
 	if err != nil {
@@ -113,8 +117,7 @@ func TestRCD2Clone(t *testing.T) {
 		t.Error("RCDs are not equal")
 	}
 }
-
-func nextAuth2_rcd2() *RCD_2 {
+func nextAuth2() interfaces.IRCD {
 	if r == nil {
 		r = rand.New(rand.NewSource(1))
 	}
@@ -126,5 +129,5 @@ func nextAuth2_rcd2() *RCD_2 {
 	}
 
 	rcd, _ := NewRCD_2(n, m, addresses)
-	return rcd.(*RCD_2)
+	return rcd
 }
