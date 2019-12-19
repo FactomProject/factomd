@@ -261,6 +261,26 @@ var (
 		Name: "factomd_state_execute_msg_time",
 		Help: "Time spent in executeMsg",
 	})
+
+	//		Eom/DBSig delay
+	LeaderSyncAckDelay = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "factomd_state_consensus_sync_delay_ack_vec_sec",
+		Help: "Instruments the delay in the time an ack (eom/dbsig only) was signed by a leader, " +
+			"and the time it took our node to receive it in nanoseconds.",
+	}, []string{"leader"})
+
+	LeaderSyncMsgDelay = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "factomd_state_consensus_sync_delay_msg_vec_sec",
+		Help: "Instruments the delay in the time a msg (eom/dbsig only) was signed by a leader, " +
+			"and the time it took our node to receive it in nanoseconds.",
+	}, []string{"leader"})
+
+	LeaderSyncAckPairDelay = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "factomd_state_consensus_ackpair_delay_vec_sec",
+		Help: "Instruments the delay in the time an ack & msg pair was received. " +
+			"If there is a delay, it means the ack+msg would benefit from being " +
+			"coupled. The delay is measured in seconds.",
+	}, []string{"leader"})
 )
 
 var registered bool = false
@@ -352,4 +372,8 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(TotalEmptyLoopTime)
 	prometheus.MustRegister(TotalAckLoopTime)
 	prometheus.MustRegister(TotalExecuteMsgTime)
+	//		Delays
+	prometheus.MustRegister(LeaderSyncMsgDelay)
+	prometheus.MustRegister(LeaderSyncAckDelay)
+	prometheus.MustRegister(LeaderSyncAckPairDelay)
 }
