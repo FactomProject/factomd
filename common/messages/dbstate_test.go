@@ -444,7 +444,7 @@ func TestDBStateValidateReplaceFeds(t *testing.T) {
 				if j <= replaced {
 					// replace an old one with a new one
 					a.RemoveFederatedServer(ids[j].ID)
-					newID := ids[j + fedsCount]
+					newID := ids[j+fedsCount]
 					a.AddFedServer(newID.ID)
 					a.AddFederatedServerSigningKey(newID.ID, newID.Key.Pub.Fixed())
 					signers = append(signers, newID)
@@ -460,7 +460,7 @@ func TestDBStateValidateReplaceFeds(t *testing.T) {
 			}
 			for j := 1; j <= replaced; j++ {
 				state.ProcessLists.Get(set.DBlock.GetDatabaseHeight()).RemoveFedServerHash(ids[j].ID)
-				state.ProcessLists.Get(set.DBlock.GetDatabaseHeight()).AddFedServer(ids[j + fedsCount].ID)
+				state.ProcessLists.Get(set.DBlock.GetDatabaseHeight()).AddFedServer(ids[j+fedsCount].ID)
 			}
 			var dbSigList []interfaces.IFullSignature
 			for _, s := range signers {
@@ -471,7 +471,7 @@ func TestDBStateValidateReplaceFeds(t *testing.T) {
 			m := msg.(*DBStateMsg)
 			m.IgnoreSigs = true
 
-			if fedsCount - replaced < fedsCount / 2 + 1 {
+			if fedsCount-replaced < fedsCount/2+1 {
 				if m.Validate(state) == 1 {
 					t.Errorf("New DBStateMsg should be invalid, replaced %d of %d starting feds", replaced, fedsCount)
 				}

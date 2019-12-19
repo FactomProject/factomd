@@ -633,7 +633,6 @@ func (p *ProcessList) CountFederatedServersAddedAndRemoved() (added int, removed
 	return added, removed
 }
 
-
 // Given a server index, return the last Ack
 func (p *ProcessList) GetAckAt(vmIndex int, height int) *messages.Ack {
 	vm := p.VMs[vmIndex]
