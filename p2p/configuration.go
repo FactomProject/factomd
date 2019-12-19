@@ -140,7 +140,7 @@ func DefaultP2PConfiguration() (c Configuration) {
 	c.ListenPort = "8108"
 	c.ListenLimit = time.Second
 	c.PingInterval = time.Second * 15
-	c.RedialInterval = time.Second * 20
+	c.RedialInterval = time.Minute
 
 	c.ReadDeadline = time.Minute * 5      // high enough to accomodate large packets
 	c.WriteDeadline = time.Minute * 5     // but fail eventually

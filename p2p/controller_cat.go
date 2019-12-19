@@ -255,5 +255,5 @@ func (c *controller) selectBroadcastPeers(count uint) []*Peer {
 		regular[i], regular[j] = regular[j], regular[i]
 	})
 
-	return append(special, peers[:count]...)
+	return append(special, regular[:count]...)
 }
