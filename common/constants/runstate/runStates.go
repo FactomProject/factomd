@@ -6,10 +6,10 @@ type RunState int
 
 const (
 	New      RunState = iota // State of a newly created Factomd object
-	Booting  RunState = iota // State when starting up the server
-	Running  RunState = iota // State when doing processing
-	Stopping RunState = iota // State when shutdown has been called but not finished
-	Stopped  RunState = iota // State when shutdown has been completed
+	Booting                  // State when starting up the server
+	Running                  // State when doing processing
+	Stopping                 // State when shutdown has been called but not finished
+	Stopped                  // State when shutdown has been completed
 )
 
 // IsTerminating returns true if factomd is terminated or in the process of terminating
