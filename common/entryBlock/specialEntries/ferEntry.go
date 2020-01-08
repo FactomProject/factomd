@@ -29,7 +29,7 @@ type FEREntry struct {
 	// The directory block height the FER change should occur. Must be >= expiration height - 6
 	TargetActivationHeight uint32 `json:"target_activation_height"`
 
-	Priority    uint32 `json:"priority"`     // Higher priorities take precidence over lower priorities
+	Priority    uint32 `json:"priority"`     // Higher priorities take precedence over lower priorities
 	TargetPrice uint64 `json:"target_price"` // The actual FER in Factoshis per EC (Entry Credit)
 }
 

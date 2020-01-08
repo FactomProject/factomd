@@ -52,20 +52,20 @@ func LogNilHashBug(msg string) {
 	c := noRepeat[whereAmI]
 	mutex.Unlock()
 	if c%100 == 1 {
-		if nilHashLog == nil {
-			f, err := os.Create("nilhashes.txt")
-			if err != nil {
-				panic(err)
-			}
-			nilHashLog = bufio.NewWriter(f)
-			fmt.Fprintln(nilHashLog, time.Now().String())
-		}
-
 		fmt.Fprintf(os.Stderr, "%s. Called from %s\n", msg, whereAmI)
-		fmt.Fprintf(nilHashLog, "%s. Called from %s\n", msg, whereAmI)
-		nilHashLog.Flush()
-
 	}
+	if nilHashLog == nil {
+		f, err := os.Create("nilhashes.txt")
+		if err != nil {
+			panic(err)
+		}
+		nilHashLog = bufio.NewWriter(f)
+		fmt.Fprintln(nilHashLog, time.Now().String())
+	}
+
+	fmt.Fprintf(nilHashLog, "%s. Called from %s\n", msg, whereAmI)
+	nilHashLog.Flush()
+
 }
 
 func CheckNil(h interfaces.IHash, caller string) (rval interfaces.IHash) {

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -40,6 +41,19 @@ type MessageBase struct {
 	Stalled     bool // This message is currently stalled
 	MarkInvalid bool
 	Sigvalid    bool
+
+	// The time the message was received by our node
+	// Use time.Time vs Timestamp so we don't have to deal with nils
+	// Also the code that adds this timestamp already has the time.Time
+	LocalReceived time.Time
+}
+
+func (m *MessageBase) GetReceivedTime() time.Time {
+	return m.LocalReceived
+}
+
+func (m *MessageBase) SetReceivedTime(time time.Time) {
+	m.LocalReceived = time
 }
 
 func (m *MessageBase) StringOfMsgBase() string {
