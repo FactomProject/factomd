@@ -2,7 +2,6 @@ package adminBlock
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -72,12 +71,7 @@ func (e *CancelCoinbaseDescriptor) Type() byte {
 
 // SortedIdentity has no identity to sort by, so we will just use the hash of the cancel.
 func (e *CancelCoinbaseDescriptor) SortedIdentity() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("CancelCoinbaseDescriptor.SortedIdentity() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "CancelCoinbaseDescriptor.SortedIdentity") }()
 
 	return e.Hash()
 }
@@ -202,12 +196,7 @@ func (e *CancelCoinbaseDescriptor) Interpret() string {
 }
 
 func (e *CancelCoinbaseDescriptor) Hash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("CancelCoinbaseDescriptor.Hash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "CancelCoinbaseDescriptor.Hash") }()
 
 	if e.hash == nil {
 		bin, err := e.MarshalBinary()

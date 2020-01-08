@@ -2,6 +2,7 @@ package events
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"

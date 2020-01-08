@@ -7,11 +7,12 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"

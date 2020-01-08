@@ -6,7 +6,6 @@ package electionMsgs
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -106,12 +105,7 @@ func (m *StartElectionInternal) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *StartElectionInternal) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("StartElectionInternal.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "StartElectionInternal.GetMsgHash") }()
 
 	// Internal messages don't have marshal code. Give them some hash to be happy
 	if m.MsgHash == nil {
@@ -125,24 +119,14 @@ func (m *StartElectionInternal) LogFields() log.Fields {
 }
 
 func (m *StartElectionInternal) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("StartElectionInternal.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "StartElectionInternal.GetRepeatHash") }()
 
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
 func (m *StartElectionInternal) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("StartElectionInternal.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "StartElectionInternal.GetHash") }()
 
 	return m.GetMsgHash()
 }

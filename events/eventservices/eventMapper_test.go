@@ -2,6 +2,9 @@ package eventservices_test
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -15,8 +18,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func TestDirectoryBlockMapping(t *testing.T) {
@@ -330,7 +331,7 @@ func TestMapToFactomEvent(t *testing.T) {
 		"StateChangeEventFromCommitChainResend": {
 			BroadcastContent:         eventconfig.BroadcastAlways,
 			EventReplayDuringStartup: false,
-			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
+			Input: eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
 				if assert.NotNil(t, event.GetChainCommit()) {

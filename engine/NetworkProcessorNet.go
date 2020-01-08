@@ -502,7 +502,7 @@ func MissingData(fnode *FactomNode) {
 	q := fnode.State.DataMsgQueue()
 	for {
 		select {
-		case msg := <- q:
+		case msg := <-q:
 			fnode.State.LogMessage("DataQueue", fmt.Sprintf("dequeue %v", len(q)), msg)
 			msg.(*messages.MissingData).SendResponse(fnode.State)
 		}

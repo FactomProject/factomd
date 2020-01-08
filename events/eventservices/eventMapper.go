@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -11,7 +13,6 @@ import (
 	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/gogo/protobuf/types"
-	"time"
 )
 
 func MapToFactomEvent(eventInput eventinput.EventInput, broadcastContent eventconfig.BroadcastContent, sendStateChangeEvents bool) (*eventmessages.FactomEvent, error) {

@@ -249,12 +249,7 @@ func (m *MessageBase) SetStall(b bool) {
 }
 
 func (m *MessageBase) GetFullMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("MessageBase.GetFullMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "MessageBase.GetFullMsgHash") }()
 
 	if m.FullMsgHash == nil {
 		m.FullMsgHash = primitives.NewZeroHash()
@@ -315,12 +310,7 @@ func (m *MessageBase) SetFullBroadcast(v bool) {
 	m.FullBroadcast = v
 }
 func (m *MessageBase) GetLeaderChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("MessageBase.GetLeaderChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "MessageBase.GetLeaderChainID") }()
 
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()

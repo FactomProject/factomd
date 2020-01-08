@@ -7,7 +7,6 @@ package entryCreditBlock
 import (
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -54,12 +53,7 @@ func (e *MinuteNumber) IsSameAs(b interfaces.IECBlockEntry) bool {
 
 // Hash marshals this object and computes its sha
 func (e *MinuteNumber) Hash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("MinuteNumber.Hash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "MinuteNumber.Hash") }()
 
 	bin, err := e.MarshalBinary()
 	if err != nil {
@@ -70,37 +64,20 @@ func (e *MinuteNumber) Hash() (rval interfaces.IHash) {
 
 // GetHash marshals this object and computes its hash
 func (e *MinuteNumber) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("MinuteNumber.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "MinuteNumber.GetHash") }()
 
 	return e.Hash()
 }
 
 // GetSigHash always returns nil
 func (e *MinuteNumber) GetSigHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("MinuteNumber.GetSigHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "MinuteNumber.GetSigHash") }()
 
 	return nil
 }
 
 // GetEntryHash always returns nil
 func (e *MinuteNumber) GetEntryHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("MinuteNumber.GetEntryHash() saw an interface that was nil")
-		}
-	}()
-
 	return nil
 }
 

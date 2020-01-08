@@ -2,6 +2,7 @@ package eventservices
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/log"

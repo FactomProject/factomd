@@ -7,7 +7,6 @@ package entryBlock
 import (
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -82,12 +81,7 @@ func (e *EBlock) GetDatabaseHeight() uint32 {
 
 // GetChainID returns the chain id associated with this entry block
 func (e *EBlock) GetChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EBlock.GetChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EBlock.GetChainID") }()
 
 	return e.GetHeader().GetChainID()
 }
@@ -99,12 +93,7 @@ func (e *EBlock) GetHashOfChainID() []byte {
 
 // GetHashOfChainIDHash returns the double sha of the chain id
 func (e *EBlock) GetHashOfChainIDHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EBlock.GetHashOfChainIDHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EBlock.GetHashOfChainIDHash") }()
 
 	hash := primitives.NewZeroHash()
 	hash.SetBytes(e.GetHashOfChainID())
@@ -113,12 +102,7 @@ func (e *EBlock) GetHashOfChainIDHash() (rval interfaces.IHash) {
 
 // DatabasePrimaryIndex returns the key Merkle root of the entry block
 func (e *EBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EBlock.DatabasePrimaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EBlock.DatabasePrimaryIndex") }()
 
 	key, _ := e.KeyMR()
 	return key
@@ -126,12 +110,7 @@ func (e *EBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
 
 // DatabaseSecondaryIndex returns the single sha of the marshalled object
 func (e *EBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EBlock.DatabaseSecondaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EBlock.DatabaseSecondaryIndex") }()
 
 	h, _ := e.Hash()
 	return h
@@ -183,12 +162,7 @@ func (e *EBlock) BuildHeader() error {
 
 // GetHash returns the single sha of the marshalled object
 func (e *EBlock) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EBlock.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EBlock.GetHash") }()
 
 	h, _ := e.Hash()
 	return h
@@ -217,12 +191,7 @@ func (e *EBlock) HeaderHash() (interfaces.IHash, error) {
 
 // BodyKeyMR updates the entry header with its current state, and then returns the body Merkle root
 func (e *EBlock) BodyKeyMR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EBlock.BodyKeyMR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EBlock.BodyKeyMR") }()
 
 	e.BuildHeader()
 	return e.GetHeader().GetBodyMR()

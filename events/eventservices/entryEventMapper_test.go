@@ -1,6 +1,8 @@
 package eventservices
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -8,7 +10,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestMapCommitEntryEvent(t *testing.T) {

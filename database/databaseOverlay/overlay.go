@@ -11,9 +11,10 @@ package databaseOverlay
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/events"
 	"os"
 	"sync"
+
+	"github.com/FactomProject/factomd/events"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"

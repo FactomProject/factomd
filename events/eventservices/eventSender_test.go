@@ -4,6 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
+	"net"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
@@ -13,12 +20,6 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"net"
-	"os"
-	"strings"
-	"testing"
-	"time"
 )
 
 func init() {

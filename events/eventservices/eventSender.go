@@ -6,6 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"reflect"
+	"time"
+
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
@@ -14,9 +18,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-	"net"
-	"reflect"
-	"time"
 )
 
 var eventSenderInstance *eventSender

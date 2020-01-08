@@ -7,7 +7,6 @@ package entryBlock
 import (
 	"encoding/hex"
 	"fmt"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -53,12 +52,7 @@ func NewEBlockBody() *EBlockBody {
 // MR calculates the Merkle Root of the Entry Block Body. See func
 // primitives.BuildMerkleTreeStore(hashes []interfaces.IHash) (merkles []interfaces.IHash) in common/merkle.go.
 func (e *EBlockBody) MR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EBlockBody.MR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EBlockBody.MR") }()
 
 	mrs := primitives.BuildMerkleTreeStore(e.EBEntries)
 	r := mrs[len(mrs)-1] // Remember, Merkle root is the last of the hashes

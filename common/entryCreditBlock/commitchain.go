@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -138,24 +137,14 @@ func NewCommitChain() *CommitChain {
 
 // GetEntryHash returns the entry hash
 func (c *CommitChain) GetEntryHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("CommitChain.GetEntryHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "CommitChain.GetEntryHash") }()
 
 	return c.EntryHash
 }
 
 // Hash marshals the object and computes the sha
 func (c *CommitChain) Hash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("CommitChain.Hash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "CommitChain.Hash") }()
 
 	bin, err := c.MarshalBinary()
 	if err != nil {
@@ -210,12 +199,7 @@ func (c *CommitChain) IsValid() bool {
 
 // GetHash marshals the entire object and computes the sha
 func (c *CommitChain) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("CommitChain.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "CommitChain.GetHash") }()
 
 	data, _ := c.MarshalBinary()
 	return primitives.Sha(data)
@@ -223,12 +207,7 @@ func (c *CommitChain) GetHash() (rval interfaces.IHash) {
 
 // GetSigHash marshals the object covered by the signature, and computes its sha (version through entry credits hashed)
 func (c *CommitChain) GetSigHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("CommitChain.GetSigHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "CommitChain.GetSigHash") }()
 
 	data := c.CommitMsg()
 	return primitives.Sha(data)

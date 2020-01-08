@@ -1,6 +1,8 @@
 package events
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -11,7 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestEventEmitter_Send(t *testing.T) {

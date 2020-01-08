@@ -10,7 +10,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -121,12 +120,7 @@ func (c *Entry) GetWeld() []byte {
 
 // GetWeldHash returns the doble sha of the entry's hash and chain id appended ('welded') together
 func (c *Entry) GetWeldHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("Entry.GetWeldHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "Entry.GetWeldHash") }()
 
 	hash := primitives.NewZeroHash()
 	hash.SetBytes(c.GetWeld())
@@ -135,36 +129,21 @@ func (c *Entry) GetWeldHash() (rval interfaces.IHash) {
 
 // GetChainID returns the chain id of this entry
 func (c *Entry) GetChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("Entry.GetChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "Entry.GetChainID") }()
 
 	return c.ChainID
 }
 
 // DatabasePrimaryIndex returns the hash of the entry object
 func (c *Entry) DatabasePrimaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("Entry.DatabasePrimaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "Entry.DatabasePrimaryIndex") }()
 
 	return c.GetHash()
 }
 
 // DatabaseSecondaryIndex always returns nil (ie, no secondary index)
 func (c *Entry) DatabaseSecondaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("Entry.DatabaseSecondaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "Entry.DatabaseSecondaryIndex") }()
 
 	return nil
 }
@@ -196,12 +175,7 @@ func (c *Entry) GetContent() []byte {
 
 // GetChainIDHash returns the chain id associated with this entry
 func (c *Entry) GetChainIDHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("Entry.GetChainIDHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "Entry.GetChainIDHash") }()
 
 	return c.ChainID
 }
@@ -233,12 +207,7 @@ func (c *Entry) IsValid() bool {
 
 // GetHash returns the hash of the entry: sha256(append(sha512(data),data))
 func (c *Entry) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("Entry.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "Entry.GetHash") }()
 
 	if c.hash == nil || c.hash.PFixed() == nil {
 		h := primitives.NewZeroHash()

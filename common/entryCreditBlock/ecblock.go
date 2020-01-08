@@ -7,7 +7,6 @@ package entryCreditBlock
 import (
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -157,24 +156,14 @@ func (e *ECBlock) GetDatabaseHeight() uint32 {
 
 // GetChainID returns the chain id of this EC block
 func (e *ECBlock) GetChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ECBlock.GetChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ECBlock.GetChainID") }()
 
 	return e.GetHeader().GetECChainID()
 }
 
 // DatabasePrimaryIndex returns the hash of the header
 func (e *ECBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ECBlock.DatabasePrimaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ECBlock.DatabasePrimaryIndex") }()
 
 	key, _ := e.HeaderHash()
 	return key
@@ -182,12 +171,7 @@ func (e *ECBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
 
 // DatabaseSecondaryIndex returns the full hash (header and body) of the object
 func (e *ECBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ECBlock.DatabaseSecondaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ECBlock.DatabaseSecondaryIndex") }()
 
 	key, _ := e.GetFullHash()
 	return key
@@ -200,12 +184,7 @@ func (e *ECBlock) AddEntry(entries ...interfaces.IECBlockEntry) {
 
 // GetHash returns the full hash (header and body) of the object
 func (e *ECBlock) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ECBlock.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ECBlock.GetHash") }()
 
 	h, _ := e.GetFullHash()
 	return h
