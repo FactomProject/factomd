@@ -1624,7 +1624,16 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 			eInfo.VmIndex = &vm
 			eInfo.FedIndex = &electing
 			eInfo.FedID = e.GetFedID().String()
-			eInfo.Round = &e.GetRound()[electing]
+			// bugfix for https://github.com/FactomProject/factomd/issues/947
+			// the round slice is frequently truncated to zero-length and the default
+			// behavior is to zero-pad it on demand
+			round := e.GetRound()
+			if electing < len(round) {
+				eInfo.Round = &round[electing]
+			} else {
+				zero := 0 // backward compatibility for any consumer that relied on this being present
+				eInfo.Round = &zero
+			}
 		}
 	}
 	resp.ElectionInfo = eInfo
