@@ -331,7 +331,7 @@ func TestMapToFactomEvent(t *testing.T) {
 		"StateChangeEventFromCommitChainResend": {
 			BroadcastContent:         eventconfig.BroadcastAlways,
 			EventReplayDuringStartup: false,
-			Input: eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
+			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
 				if assert.NotNil(t, event.GetChainCommit()) {
