@@ -3,7 +3,6 @@ package adminBlock
 import (
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -139,12 +138,7 @@ func (e *AddAuditServer) Interpret() string {
 }
 
 func (e *AddAuditServer) Hash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("AddAuditServer.Hash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "AddAuditServer.Hash") }()
 
 	bin, err := e.MarshalBinary()
 	if err != nil {

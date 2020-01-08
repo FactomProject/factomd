@@ -7,7 +7,6 @@ package identityEntries
 import (
 	"encoding/binary"
 	"fmt"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -138,12 +137,7 @@ func (nses *NewServerEfficiencyStruct) ToExternalIDs() [][]byte {
 }
 
 func (nses *NewServerEfficiencyStruct) GetChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("NewServerEfficiencyStruct.GetChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "NewServerEfficiencyStruct.GetChainID") }()
 
 	extIDs := nses.ToExternalIDs()
 

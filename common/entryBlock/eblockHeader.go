@@ -3,7 +3,6 @@ package entryBlock
 import (
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -113,12 +112,7 @@ func (e *EBlockHeader) String() string {
 
 // GetChainID returns the chain id of this entry block
 func (e *EBlockHeader) GetChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EBlockHeader.GetChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EBlockHeader.GetChainID") }()
 
 	return e.ChainID
 }
@@ -130,12 +124,7 @@ func (e *EBlockHeader) SetChainID(chainID interfaces.IHash) {
 
 // GetBodyMR returns the Merkle root of the entry blocks body (the hash array)
 func (e *EBlockHeader) GetBodyMR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EBlockHeader.GetBodyMR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EBlockHeader.GetBodyMR") }()
 
 	return e.BodyMR
 }
@@ -147,12 +136,7 @@ func (e *EBlockHeader) SetBodyMR(bodyMR interfaces.IHash) {
 
 // GetPrevKeyMR return the previous entry blocks Merkle root
 func (e *EBlockHeader) GetPrevKeyMR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EBlockHeader.GetPrevKeyMR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EBlockHeader.GetPrevKeyMR") }()
 
 	return e.PrevKeyMR
 }
@@ -164,12 +148,7 @@ func (e *EBlockHeader) SetPrevKeyMR(prevKeyMR interfaces.IHash) {
 
 // GetPrevFullHash returns the previous entry blocks full hash associated with this chain id
 func (e *EBlockHeader) GetPrevFullHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EBlockHeader.GetPrevFullHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EBlockHeader.GetPrevFullHash") }()
 
 	return e.PrevFullHash
 }

@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -137,24 +136,14 @@ func (e *ECBlockHeader) SetBodyHash(hash interfaces.IHash) {
 
 // GetBodyHash returns the body hash
 func (e *ECBlockHeader) GetBodyHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ECBlockHeader.GetBodyHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ECBlockHeader.GetBodyHash") }()
 
 	return e.BodyHash
 }
 
 // GetECChainID returns the EC chain id (see constants.EC_CHAINID)
 func (e *ECBlockHeader) GetECChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ECBlockHeader.GetECChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ECBlockHeader.GetECChainID") }()
 
 	h := primitives.NewZeroHash()
 	h.SetBytes(constants.EC_CHAINID)
@@ -168,12 +157,7 @@ func (e *ECBlockHeader) SetPrevHeaderHash(prev interfaces.IHash) {
 
 // GetPrevHeaderHash returns the previous header hash
 func (e *ECBlockHeader) GetPrevHeaderHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ECBlockHeader.GetPrevHeaderHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ECBlockHeader.GetPrevHeaderHash") }()
 
 	return e.PrevHeaderHash
 }
@@ -185,12 +169,7 @@ func (e *ECBlockHeader) SetPrevFullHash(prev interfaces.IHash) {
 
 // GetPrevFullHash returns the previous full hash
 func (e *ECBlockHeader) GetPrevFullHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ECBlockHeader.GetPrevFullHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ECBlockHeader.GetPrevFullHash") }()
 
 	return e.PrevFullHash
 }

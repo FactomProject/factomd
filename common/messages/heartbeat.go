@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -83,23 +82,13 @@ func (m *Heartbeat) Process(uint32, interfaces.IState) bool {
 }
 
 func (m *Heartbeat) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("Heartbeat.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "Heartbeat.GetRepeatHash") }()
 
 	return m.GetMsgHash()
 }
 
 func (m *Heartbeat) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("Heartbeat.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "Heartbeat.GetHash") }()
 
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()
@@ -112,12 +101,7 @@ func (m *Heartbeat) GetHash() (rval interfaces.IHash) {
 }
 
 func (m *Heartbeat) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("Heartbeat.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "Heartbeat.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()

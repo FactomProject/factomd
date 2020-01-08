@@ -7,7 +7,6 @@ package entryCreditBlock
 import (
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -93,24 +92,14 @@ func NewIncreaseBalance() *IncreaseBalance {
 
 // GetEntryHash always returns nil
 func (e *IncreaseBalance) GetEntryHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("IncreaseBalance.GetEntryHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "IncreaseBalance.GetEntryHash") }()
 
 	return nil
 }
 
 // Hash marshals the object and computes its sha
 func (e *IncreaseBalance) Hash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("IncreaseBalance.Hash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "IncreaseBalance.Hash") }()
 
 	bin, err := e.MarshalBinary()
 	if err != nil {
@@ -121,24 +110,14 @@ func (e *IncreaseBalance) Hash() (rval interfaces.IHash) {
 
 // GetHash marshals the object and computes its sha
 func (e *IncreaseBalance) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("IncreaseBalance.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "IncreaseBalance.GetHash") }()
 
 	return e.Hash()
 }
 
 // GetSigHash always returns nil
 func (e *IncreaseBalance) GetSigHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("IncreaseBalance.GetSigHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "IncreaseBalance.GetSigHash") }()
 
 	return nil
 }

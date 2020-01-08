@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -101,23 +100,13 @@ func (c *FBlock) New() interfaces.BinaryMarshallableAndCopyable {
 }
 
 func (c *FBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FBlock.DatabasePrimaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.DatabasePrimaryIndex") }()
 
 	return c.GetKeyMR()
 }
 
 func (c *FBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FBlock.DatabaseSecondaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.DatabaseSecondaryIndex") }()
 
 	return c.GetLedgerKeyMR()
 }
@@ -413,24 +402,14 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (b *FBlock) GetChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FBlock.GetChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetChainID") }()
 
 	return primitives.NewHash(constants.FACTOID_CHAINID)
 }
 
 // Calculates the Key Merkle Root for this block and returns it.
 func (b *FBlock) GetKeyMR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FBlock.GetKeyMR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetKeyMR") }()
 
 	bodyMR := b.GetBodyMR()
 
@@ -446,23 +425,13 @@ func (b *FBlock) GetKeyMR() (rval interfaces.IHash) {
 }
 
 func (b *FBlock) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FBlock.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetHash") }()
 
 	return b.GetLedgerKeyMR()
 }
 
 func (b *FBlock) GetLedgerKeyMR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FBlock.GetLedgerKeyMR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetLedgerKeyMR") }()
 
 	ledgerMR := b.GetLedgerMR()
 
@@ -479,12 +448,7 @@ func (b *FBlock) GetLedgerKeyMR() (rval interfaces.IHash) {
 
 // Returns the LedgerMR for this block.
 func (b *FBlock) GetLedgerMR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FBlock.GetLedgerMR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetLedgerMR") }()
 
 	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
@@ -506,12 +470,7 @@ func (b *FBlock) GetLedgerMR() (rval interfaces.IHash) {
 }
 
 func (b *FBlock) GetBodyMR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FBlock.GetBodyMR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetBodyMR") }()
 
 	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
@@ -534,12 +493,7 @@ func (b *FBlock) GetBodyMR() (rval interfaces.IHash) {
 }
 
 func (b *FBlock) GetPrevKeyMR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FBlock.GetPrevKeyMR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetPrevKeyMR") }()
 
 	return b.PrevKeyMR
 }
@@ -549,12 +503,7 @@ func (b *FBlock) SetPrevKeyMR(hash interfaces.IHash) {
 }
 
 func (b *FBlock) GetPrevLedgerKeyMR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FBlock.GetPrevLedgerKeyMR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetPrevLedgerKeyMR") }()
 
 	return b.PrevLedgerKeyMR
 }

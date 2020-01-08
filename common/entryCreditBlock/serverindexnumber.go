@@ -7,7 +7,6 @@ package entryCreditBlock
 import (
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -62,12 +61,7 @@ func (e *ServerIndexNumber) String() string {
 
 // Hash marshals this object and computes its sha
 func (e *ServerIndexNumber) Hash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ServerIndexNumber.Hash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ServerIndexNumber.Hash") }()
 
 	bin, err := e.MarshalBinary()
 	if err != nil {
@@ -78,36 +72,21 @@ func (e *ServerIndexNumber) Hash() (rval interfaces.IHash) {
 
 // GetHash returns the hash of this object
 func (e *ServerIndexNumber) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ServerIndexNumber.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ServerIndexNumber.GetHash") }()
 
 	return e.Hash()
 }
 
 // GetEntryHash always returns nil
 func (e *ServerIndexNumber) GetEntryHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ServerIndexNumber.GetEntryHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ServerIndexNumber.GetEntryHash") }()
 
 	return nil
 }
 
 // GetSigHash always returns nil
 func (e *ServerIndexNumber) GetSigHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ServerIndexNumber.GetSigHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ServerIndexNumber.GetSigHash") }()
 
 	return nil
 }
