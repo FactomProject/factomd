@@ -25,7 +25,6 @@ type AddLeaderInternal struct {
 	ServerID interfaces.IHash // Hash of message acknowledged
 	DBHeight uint32           // Directory Block Height that owns this ack
 	Height   uint32           // Height of this ack in this process list
-	//	MessageHash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*AddLeaderInternal)(nil)

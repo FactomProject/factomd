@@ -23,10 +23,9 @@ var _ = state.MakeMap
 //General acknowledge message
 type TimeoutInternal struct {
 	msgbase.MessageBase
-	Name        string
-	SigType     bool // True for EOM, false for DBSig
-	DBHeight    int
-	MessageHash interfaces.IHash
+	Name     string
+	SigType  bool // True for EOM, false for DBSig
+	DBHeight int
 }
 
 var _ interfaces.IMsg = (*TimeoutInternal)(nil)
@@ -261,7 +260,7 @@ func (m *TimeoutInternal) GetRepeatHash() (rval interfaces.IHash) {
 func (m *TimeoutInternal) GetHash() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "TimeoutInternal.GetHash") }()
 
-	return m.MessageHash
+	return m.GetMsgHash()
 }
 
 func (m *TimeoutInternal) GetTimestamp() interfaces.Timestamp {

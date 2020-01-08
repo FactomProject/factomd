@@ -33,8 +33,6 @@ type FedVoteProposalMsg struct {
 	Volunteer FedVoteVolunteerMsg
 
 	Signature interfaces.IFullSignature
-
-	messageHash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
