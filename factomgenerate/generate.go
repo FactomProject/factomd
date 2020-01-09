@@ -50,10 +50,20 @@ func LoadTemplates() *template.Template {
 	templates := template.New("FactomGenerate")
 	cwd, _ := os.Getwd()
 	fmt.Println(cwd)
-	template.Must(templates.ParseGlob("./factomgenerate/templates/*.tmpl"))
+	if strings.Contains(cwd, "factomd") {
+		for {
+			if strings.HasSuffix(cwd, "factomd") {
+				break
+			}
+			cwd = filepath.Dir(cwd)
+		}
+	}
+	fmt.Println(cwd)
+
+	template.Must(templates.ParseGlob(cwd + "/factomgenerate/templates/*.tmpl"))
 	// load the templates for go code
 	// these templates use "Ͼ", "Ͽ" as the delimiter to make the template gofmt compatible
-	goTemplateFiles, err := filepath.Glob("./factomgenerate/templates/*/*_template*.go")
+	goTemplateFiles, err := filepath.Glob(cwd + "/factomgenerate/templates/*/*_template*.go")
 	die(err)
 	for _, filename := range goTemplateFiles {
 		reformattedFilename := ReformatTemplateFile(filename)
@@ -210,7 +220,20 @@ func RunTemplates(templates *template.Template, requests []string) {
 
 func ExpandRequest(templates *template.Template, templateName string, requests []map[string]interface{}) {
 	templateName = strings.ToLower(templateName)
-	filename := "./generated/" + templateName + ".go"
+
+	cwd, _ := os.Getwd()
+	fmt.Println(cwd)
+	if strings.Contains(cwd, "factomd") {
+		for {
+			if strings.HasSuffix(cwd, "factomd") {
+				break
+			}
+			cwd = filepath.Dir(cwd)
+		}
+	}
+	fmt.Println(cwd)
+
+	filename := cwd + "/generated/" + templateName + ".go"
 	// place to keep all the files
 
 	fmt.Printf("ExpandRequests(%s,...) in %s\n", templateName, filename)

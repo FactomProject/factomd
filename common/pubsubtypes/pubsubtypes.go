@@ -17,3 +17,8 @@ type CommitRequest struct {
 	IMsg    IMsg
 	Channel chan error
 }
+
+type HoldRequest struct {
+	Hash Hash
+	Msg  IMsg
+}
