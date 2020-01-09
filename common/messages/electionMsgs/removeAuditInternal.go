@@ -20,11 +20,10 @@ import (
 //General acknowledge message
 type RemoveAuditInternal struct {
 	msgbase.MessageBase
-	NName       string
-	ServerID    interfaces.IHash // Hash of message acknowledged
-	DBHeight    uint32           // Directory Block Height that owns this ack
-	Height      uint32           // Height of this ack in this process list
-	MessageHash interfaces.IHash
+	NName    string
+	ServerID interfaces.IHash // Hash of message acknowledged
+	DBHeight uint32           // Directory Block Height that owns this ack
+	Height   uint32           // Height of this ack in this process list
 }
 
 var _ interfaces.IMsg = (*RemoveAuditInternal)(nil)
@@ -102,7 +101,7 @@ func (m *RemoveAuditInternal) GetRepeatHash() (rval interfaces.IHash) {
 func (m *RemoveAuditInternal) GetHash() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "RemoveAuditInternal.GetHash") }()
 
-	return m.MessageHash
+	return m.GetMsgHash()
 }
 
 func (m *RemoveAuditInternal) GetTimestamp() interfaces.Timestamp {

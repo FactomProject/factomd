@@ -24,12 +24,11 @@ import (
 //General acknowledge message
 type EomSigInternal struct {
 	msgbase.MessageBase
-	NName       string
-	SigType     bool             // True of EOM, False if DBSig
-	ServerID    interfaces.IHash // Hash of message acknowledged
-	DBHeight    uint32           // Directory Block Height that owns this ack
-	Height      uint32           // Height of this ack in this process list
-	MessageHash interfaces.IHash
+	NName    string
+	SigType  bool             // True of EOM, False if DBSig
+	ServerID interfaces.IHash // Hash of message acknowledged
+	DBHeight uint32           // Directory Block Height that owns this ack
+	Height   uint32           // Height of this ack in this process list
 }
 
 var _ interfaces.IMsg = (*EomSigInternal)(nil)
@@ -239,7 +238,7 @@ func (m *EomSigInternal) GetRepeatHash() (rval interfaces.IHash) {
 func (m *EomSigInternal) GetHash() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "EomSigInternal.GetHash") }()
 
-	return m.MessageHash
+	return m.GetMsgHash()
 }
 
 func (m *EomSigInternal) GetTimestamp() interfaces.Timestamp {
