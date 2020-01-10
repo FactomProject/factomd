@@ -3,6 +3,7 @@ package elections
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/modules/query"
+	"github.com/FactomProject/factomd/queue"
 	"github.com/FactomProject/factomd/worker"
 	"reflect"
 	"time"
@@ -458,19 +459,18 @@ func Run(w *worker.Thread, s *state.State) {
 		})
 		w.OnRun(func() {
 			var msg interfaces.IElectionMsg
+			msgIn := e.Input.(*queue.MsgQueue).Channel
 
 			for {
 				select {
 				case <-e.exit:
 					return
-				default:
-					msg = e.Input.Dequeue().(interfaces.IElectionMsg)
+				case v := <-msgIn:
+					msg = v.(interfaces.IElectionMsg)
+					e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
 				}
 
-				e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
-
-				valid := msg.ElectionValidate(e)
-				switch valid {
+				switch valid := msg.ElectionValidate(e); valid {
 				case -1:
 					// Do not process
 					continue
@@ -479,15 +479,10 @@ func Run(w *worker.Thread, s *state.State) {
 					if len(e.Waiting) > 9*cap(e.Waiting)/10 {
 						<-e.Waiting
 					}
-					// Waiting will get drained when a new election begins, or we move forward
-					e.Waiting <- msg
+					e.Waiting <- msg // Waiting will get drained when a new election begins, or we move forward
 					continue
 				}
 				msg.ElectionProcess(s, e)
-
-				//if msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set
-				//	CheckAuthSetsMatch("election.Run", e, s)
-				//}
 			}
 		})
 
