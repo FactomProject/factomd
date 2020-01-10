@@ -3,22 +3,15 @@ package electionMsgs
 import (
 	"crypto/sha256"
 	"fmt"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 	primitives2 "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/electionsCore/election"
 	"github.com/FactomProject/factomd/electionsCore/imessage"
-	"github.com/FactomProject/factomd/electionsCore/primitives"
-	"github.com/FactomProject/factomd/state"
-
-	// "github.com/FactomProject/factomd/common/messages/electionMsgs"
-	"github.com/FactomProject/factomd/elections"
-
-	//"github.com/FactomProject/factomd/state"
-
 	"github.com/FactomProject/factomd/electionsCore/messages"
-
+	"github.com/FactomProject/factomd/electionsCore/primitives"
 	llog "github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/state"
 )
 
 // ElectionAdapter is used to drive the election package, abstracting away factomd
@@ -37,7 +30,7 @@ type ElectionAdapter struct {
 	StateProcessed    bool // On State
 
 	// All messages we adapt so we can expand them
-	tagedMessages map[[32]byte]interfaces.IMsg
+	taggedMessages map[[32]byte]interfaces.IMsg
 
 	// We need these to expand our own votes
 	Volunteers map[[32]byte]*FedVoteVolunteerMsg
@@ -115,7 +108,7 @@ func buildPriorityOrder(audits []interfaces.IServer, dbHash interfaces.IHash, mi
 
 func NewElectionAdapter(e *elections.Elections, dbHash interfaces.IHash) *ElectionAdapter {
 	ea := new(ElectionAdapter)
-	ea.tagedMessages = make(map[[32]byte]interfaces.IMsg)
+	ea.taggedMessages = make(map[[32]byte]interfaces.IMsg)
 	ea.Volunteers = make(map[[32]byte]*FedVoteVolunteerMsg)
 
 	ea.DBHeight = e.DBHeight
@@ -282,7 +275,7 @@ func (ea *ElectionAdapter) expandGeneral(msg imessage.IMessage) interfaces.IMsg 
 	if !ok {
 		return nil
 	}
-	expandedGeneral, ok := ea.tagedMessages[tagable.Tag()]
+	expandedGeneral, ok := ea.taggedMessages[tagable.Tag()]
 	if !ok {
 		return nil
 	}
@@ -364,7 +357,7 @@ func (ea *ElectionAdapter) adaptLevelMessage(msg *FedVoteLevelMsg, single bool) 
 
 // tagMessage is called on all adapted messages.
 func (ea *ElectionAdapter) tagMessage(msg interfaces.IMsg) {
-	ea.tagedMessages[msg.GetMsgHash().Fixed()] = msg
+	ea.taggedMessages[msg.GetMsgHash().Fixed()] = msg
 	ea.saveVolunteer(msg)
 }
 
