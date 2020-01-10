@@ -14,9 +14,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/modules/debugsettings"
-	"github.com/FactomProject/factomd/simulation"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/messages"
@@ -26,8 +23,10 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/modules/debugsettings"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/simulation"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/worker"

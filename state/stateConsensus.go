@@ -850,7 +850,11 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.LogPrintf("executeMsg", "MoveStateToHeight set leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
 		// update the elections thread
 		authlistMsg := s.EFactory.NewAuthorityListInternal(s.LeaderPL.FedServers, s.LeaderPL.AuditServers, s.LLeaderHeight)
-		s.ElectionsQueue().Enqueue(authlistMsg)
+
+		{ // REVIEW: eventually Election Queue will be replaced completely w/ pubsub
+			s.ElectionsQueue().Enqueue(authlistMsg)
+			s.Pub.AuthoritySet.Write(authlistMsg) // Publish Message
+		}
 
 		// Do not send out dbsigs while loading from disk
 		if s.Leader && !s.LeaderPL.DBSigAlreadySent && s.LLeaderHeight > s.DBHeightAtBoot {

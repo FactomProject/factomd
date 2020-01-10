@@ -6,14 +6,13 @@ package electionMsgs
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/elections"
 	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/elections"
-
 	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
@@ -54,7 +53,7 @@ func (m *AuthorityListInternal) GetMsgHash() (rval interfaces.IHash) {
 	return m.MsgHash
 }
 
-func (m *AuthorityListInternal) ElectionProcess(s interfaces.IState, elect interfaces.IElections) {
+func (m *AuthorityListInternal) ElectionProcess(_ interfaces.IState, elect interfaces.IElections) {
 	e := elect.(*elections.Elections)
 	e.Federated = m.Federated
 	e.Audit = m.Audit

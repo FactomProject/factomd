@@ -13,6 +13,7 @@ type pubSubPaths struct {
 	LeaderConfig string
 	LeaderMsgIn  string
 	LeaderMsgOut string
+	AuthoritySet string
 }
 
 var Path = pubSubPaths{
@@ -23,6 +24,7 @@ var Path = pubSubPaths{
 	LeaderConfig: "leader-config",
 	LeaderMsgIn:  "leader-msg-in",
 	LeaderMsgOut: "leader-msg-out",
+	AuthoritySet: "authority-set",
 }
 
 type Balance struct {
