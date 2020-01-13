@@ -24,6 +24,7 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/modules/debugsettings"
+	"github.com/FactomProject/factomd/modules/leader"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/simulation"

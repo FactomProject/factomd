@@ -5,7 +5,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/pubsub"
@@ -16,6 +15,16 @@ type Pub struct {
 	MsgOut pubsub.IPublisher
 }
 
+// create and start all publishers
+func (p *Pub) Init(nodeName string) {
+	// REVIEW: will need to spawn/stop leader thread
+	// based on federated set membership
+	p.MsgOut = pubsub.PubFactory.Threaded(100).Publish(
+		pubsub.GetPath(nodeName, event.Path.LeaderMsgOut),
+	)
+	go p.MsgOut.Start()
+}
+
 type Sub struct {
 	MsgInput       *pubsub.SubChannel
 	MovedToHeight  *pubsub.SubChannel
@@ -23,62 +32,58 @@ type Sub struct {
 	DBlockCreated  *pubsub.SubChannel
 	EomTicker      *pubsub.SubChannel
 	LeaderConfig   *pubsub.SubChannel
-	// TODO: add InternalAuthoritySet listener - probably add an update auth set msg instead of listening to all
-	// Eventually also track swapping audits and leaders AddRemoveServer Messages (come in quads)
-	// currently sent to election process
-
+	AuthoritySet   *pubsub.SubChannel
 }
 
-// block level events
-type Events struct {
-	Config         *event.LeaderConfig //
-	*event.DBHT                        // from move-to-ht
-	*event.Balance                     // REVIEW: does this relate to a specific VM
-	*event.Directory
-	*event.Ack // record of last sent ack by leader
-	*event.LeaderConfig
+// start all subscriptions
+func (s *Sub) Start(nodeName string) {
+	// network inputs
+	s.MsgInput.Subscribe(pubsub.GetPath(nodeName, "bmv", "rest"))
+
+	// internal events
+	s.MovedToHeight.Subscribe(pubsub.GetPath(nodeName, event.Path.Seq))
+	s.DBlockCreated.Subscribe(pubsub.GetPath(nodeName, event.Path.Directory))
+	s.BalanceChanged.Subscribe(pubsub.GetPath(nodeName, event.Path.Bank))
+	s.AuthoritySet.Subscribe(pubsub.GetPath(nodeName, event.Path.AuthoritySet))
 }
 
-func (*Leader) mkChan() *pubsub.SubChannel {
+func (*Sub) mkChan() *pubsub.SubChannel {
 	return pubsub.SubFactory.Channel(1000) // FIXME: should calibrate channel depths
 }
 
+func (s *Sub) Init() {
+	s.MovedToHeight = s.mkChan()
+	s.MsgInput = s.mkChan()
+	s.BalanceChanged = s.mkChan()
+	s.DBlockCreated = s.mkChan()
+	s.EomTicker = s.mkChan()
+	s.LeaderConfig = s.mkChan()
+	s.AuthoritySet = s.mkChan()
+}
+
+type Events struct {
+	Config              *event.LeaderConfig //
+	*event.DBHT                             // from move-to-ht
+	*event.Balance                          // REVIEW: does this relate to a specific VM
+	*event.Directory                        //
+	*event.Ack                              // record of last sent ack by leader
+	*event.LeaderConfig                     //
+	*event.AuthoritySet                     //
+}
+
 func (l *Leader) Start(w *worker.Thread) {
-
 	w.Spawn("LeaderThread", func(w *worker.Thread) {
-		w.OnReady(l.Ready)
+		w.OnReady(func() {
+			l.Sub.Start(l.Config.NodeName)
+		})
 		w.OnRun(l.Run)
-		w.OnExit(l.Exit)
-
-		l.Pub.MsgOut = pubsub.PubFactory.Threaded(100).Publish(
-			pubsub.GetPath("FNode0", event.Path.LeaderMsgOut),
-		)
-		go l.Pub.MsgOut.Start()
-
-		l.Sub.MovedToHeight = l.mkChan()
-		l.Sub.MsgInput = l.mkChan()
-		l.Sub.BalanceChanged = l.mkChan()
-		l.Sub.DBlockCreated = l.mkChan()
-		l.Sub.EomTicker = l.mkChan()
-		l.Sub.LeaderConfig = l.mkChan()
+		w.OnExit(func() {
+			close(l.exit)
+			l.Pub.MsgOut.Close()
+		})
+		l.Sub.Init()
+		l.Pub.Init(l.Config.NodeName)
 	})
-}
-
-func (l *Leader) Exit() {
-	close(l.exit)
-	l.Pub.MsgOut.Close()
-}
-
-func (l *Leader) Ready() {
-	node0 := fnode.Get(0).State.GetFactomNodeName() // get follower name
-
-	// network inputs
-	l.Sub.MsgInput.Subscribe(pubsub.GetPath(node0, "bmv", "rest"))
-
-	// internal events
-	l.Sub.MovedToHeight.Subscribe(pubsub.GetPath(node0, event.Path.Seq))
-	l.Sub.DBlockCreated.Subscribe(pubsub.GetPath(node0, event.Path.Directory))
-	l.Sub.BalanceChanged.Subscribe(pubsub.GetPath(node0, event.Path.Bank))
 }
 
 func (l *Leader) processMin() {
@@ -93,7 +98,7 @@ func (l *Leader) processMin() {
 			l.Config = v.(*event.LeaderConfig)
 		case v := <-l.MsgInput.Updates:
 			m := v.(interfaces.IMsg)
-			// TODO: do leader work - actually validate the message by calling into Bank Service
+			// TODO: if message cannot be ack send to Dependent Holding
 			if constants.NeedsAck(m.Type()) {
 				log.LogMessage(logfile, "msgIn ", m)
 				l.sendAck(m)
@@ -127,7 +132,6 @@ func (l *Leader) waitForNextMinute() int {
 			return -1
 		}
 	}
-
 }
 
 // TODO: refactor to only get a single Directory event
@@ -152,20 +156,71 @@ func (l *Leader) WaitForBalanceChanged() {
 	log.LogPrintf(logfile, "BalChange: %v", v)
 }
 
+// get latest AuthoritySet event data
+// and compare w/ leader config
+func (l *Leader) currentAuthority() (isLeader bool, index int) {
+	evt := l.Events.AuthoritySet
+
+readLatestAuthSet:
+	for {
+		select {
+		case v := <-l.Sub.AuthoritySet.Updates:
+			{
+				evt = v.(*event.AuthoritySet)
+			}
+		default:
+			{
+				l.Events.AuthoritySet = evt
+				break readLatestAuthSet
+			}
+		}
+	}
+
+	for idx, srv := range l.Events.AuthoritySet.FedServers {
+		if l.Config.IdentityChainID.IsSameAs(srv.GetChainID()) {
+			// became a leader via election or brainswap
+			return true, idx
+		}
+	}
+
+	return false, -1
+}
+
+func (l *Leader) WaitForAuthority() (ok bool) {
+	log.LogPrintf(logfile, "WaitForAuthority %v ", l.Events.AuthoritySet.LeaderHeight)
+	defer func() { log.LogPrintf(logfile, "GotAuthority %v ", l.Events.AuthoritySet.LeaderHeight) }()
+
+	// FIXME: should also consume LeaderConfig events to detect brainswaps
+
+	// REVIEW: should we also perge event data from subscriptions while we are not a leader?
+	// or maybe register/unregister listener
+
+	for { // wait for AuthoritySetChange
+		select {
+		case <-l.exit:
+			{
+				return false
+			}
+		case v := <-l.Sub.AuthoritySet.Updates:
+			{
+				l.Events.AuthoritySet = v.(*event.AuthoritySet)
+				if ok, index := l.currentAuthority(); ok {
+					_ = index // FIXME set VM index
+					return true
+				}
+			}
+		}
+	}
+}
+
 func (l *Leader) Run() {
 	// TODO: wait until after boot height
 	// ignore these events during DB loading
 	l.waitForNextMinute()
 
-blockLoop:
-	for {
-		if false { // TODO: deal w/ new auth set
-			//case v := <-l.NewAuthoritySet
-			// if got a new Auth & no longer leader - break the block look
-			l.VMIndex = 0 // KLUDGE hard coded for single leader
-			break blockLoop
-		}
+	for { //blockLoop
 
+		l.WaitForAuthority()
 		l.WaitForBalanceChanged()
 		l.WaitForDBlockCreated()
 		l.sendDBSig()
@@ -192,6 +247,4 @@ blockLoop:
 		}
 		log.LogPrintf(logfile, "MinLoopEnd: %v", true)
 	}
-
-	// FIXME: block on waiting for an event to become a leader again
 }

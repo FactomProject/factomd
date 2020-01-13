@@ -312,7 +312,7 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 			s.LeaderPL.DBHeight+1 >= hkb {
 			//			panic("not old leader")
 			if vml == 0 { // if we have not generated a DBSig ...
-				//				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ExecuteMsg()
+				// s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // now sent via leader thread
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
 				s.LogMessage("executeMsg", "Missing DBSig use XReview", msg)
@@ -849,12 +849,19 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID) // MoveStateToHeight block
 
 		s.LogPrintf("executeMsg", "MoveStateToHeight set leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
-		// update the elections thread
-		authlistMsg := s.EFactory.NewAuthorityListInternal(s.LeaderPL.FedServers, s.LeaderPL.AuditServers, s.LLeaderHeight)
 
-		{ // REVIEW: eventually Election Queue will be replaced completely w/ pubsub
+		{
+			// REVIEW: eventually Election Queue will be replaced completely w/ pubsub
+
+			s.Pub.AuthoritySet.Write(&event.AuthoritySet{
+				LeaderHeight: s.LLeaderHeight,
+				FedServers:   s.LeaderPL.FedServers,
+				AuditServers: s.LeaderPL.AuditServers,
+			})
+
+			authlistMsg := s.EFactory.NewAuthorityListInternal(s.LeaderPL.FedServers, s.LeaderPL.AuditServers, s.LLeaderHeight)
+			// update the elections thread
 			s.ElectionsQueue().Enqueue(authlistMsg)
-			s.Pub.AuthoritySet.Write(authlistMsg) // Publish Message
 		}
 
 		// Do not send out dbsigs while loading from disk
@@ -1994,6 +2001,7 @@ func (s *State) CheckForIDChange() {
 		s.initServerKeys()
 		s.LogPrintf("AckChange", "ReloadIdentity new local_priv: %v ident_chain: %v, prev local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID, prev_LocalServerPrivKey, prev_ChainID)
 		s.Pub.LeaderConfig.Write(&event.LeaderConfig{
+			NodeName:           s.GetFactomNodeName(),
 			IdentityChainID:    s.IdentityChainID,
 			Salt:               s.Salt,
 			ServerPrivKey:      s.ServerPrivKey,

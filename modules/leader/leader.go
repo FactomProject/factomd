@@ -30,6 +30,7 @@ func New(s *state.State) *Leader {
 
 	l.Events = &Events{
 		Config: &event.LeaderConfig{
+			NodeName:           s.GetFactomNodeName(),
 			Salt:               s.Salt,
 			IdentityChainID:    s.IdentityChainID,
 			ServerPrivKey:      s.ServerPrivKey,
@@ -42,6 +43,11 @@ func New(s *state.State) *Leader {
 		Balance:   nil, // last perm balance computed
 		Directory: nil, // last dblock created
 		Ack:       nil, // last ack
+		AuthoritySet: &event.AuthoritySet{
+			LeaderHeight: s.LLeaderHeight,
+			FedServers:   make([]interfaces.IServer, 0),
+			AuditServers: make([]interfaces.IServer, 0),
+		},
 	}
 
 	return l
