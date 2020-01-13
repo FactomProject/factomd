@@ -13,7 +13,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -461,34 +460,19 @@ func (d *DBTestObject) GetDatabaseHeight() uint32 {
 }
 
 func (d *DBTestObject) DatabasePrimaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DBTestObject.DatabasePrimaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DBTestObject.DatabasePrimaryIndex") }()
 
 	return d.PrimaryIndex
 }
 
 func (d *DBTestObject) DatabaseSecondaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DBTestObject.DatabaseSecondaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DBTestObject.DatabaseSecondaryIndex") }()
 
 	return d.SecondaryIndex
 }
 
 func (d *DBTestObject) GetChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DBTestObject.GetChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DBTestObject.GetChainID") }()
 
 	return d.ChainID
 }

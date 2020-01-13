@@ -6,7 +6,6 @@ package messages
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -14,6 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -46,23 +47,13 @@ func (a *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
 }
 
 func (m *FactoidTransaction) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FactoidTransaction.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FactoidTransaction.GetRepeatHash") }()
 
 	return m.Transaction.GetSigHash()
 }
 
 func (m *FactoidTransaction) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FactoidTransaction.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FactoidTransaction.GetHash") }()
 
 	if m.hash == nil {
 		m.SetFullMsgHash(m.Transaction.GetFullHash())
@@ -78,12 +69,7 @@ func (m *FactoidTransaction) GetHash() (rval interfaces.IHash) {
 }
 
 func (m *FactoidTransaction) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FactoidTransaction.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FactoidTransaction.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
@@ -187,6 +173,7 @@ func (m *FactoidTransaction) UnmarshalTransData(datax []byte) (newData []byte, e
 		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Transaction Factoid: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Transaction Factoid: %v", r)
 		}
 	}()
 
@@ -202,6 +189,7 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Factoid: %v", r)
 		}
 	}()
 

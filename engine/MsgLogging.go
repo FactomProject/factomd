@@ -9,10 +9,8 @@ import (
 	"sync"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/log"
 )
 
-var _ = log.Printf
 var _ = fmt.Print
 
 type msglist struct {

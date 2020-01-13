@@ -10,6 +10,8 @@ package p2p
 import (
 	"fmt"
 	"math/rand"
+
+	"github.com/FactomProject/factomd/common/messages"
 )
 
 type ConnectionManager struct {
@@ -50,6 +52,12 @@ func (cm *ConnectionManager) ConnectedTo(address string) bool {
 
 // Add a new connection.
 func (cm *ConnectionManager) Add(connection *Connection) {
+	if connection.IsOutGoing() {
+		messages.LogPrintf("fnode0_peers.txt", "CM.Add(%s) Outgoing", connection.peer.Hash)
+	} else {
+		messages.LogPrintf("fnode0_peers.txt", "CM.Add(%s) Incomming", connection.peer.Hash)
+	}
+
 	if _, present := cm.connections[connection.peer.Hash]; present {
 		// we should be checking whether we are already connected to this peer,
 		// so something went wrong
@@ -60,12 +68,14 @@ func (cm *ConnectionManager) Add(connection *Connection) {
 	} else {
 		cm.incomingCount++
 	}
+
 	cm.connections[connection.peer.Hash] = connection
 	cm.addToConnectionsByAddress(connection)
 }
 
 // Remove an existing connection.
 func (cm *ConnectionManager) Remove(connection *Connection) {
+	messages.LogPrintf("fnode0_peers.txt", "CM.Remove(%s)", connection.peer.Hash)
 	if _, present := cm.connections[connection.peer.Hash]; !present {
 		return
 	}
@@ -107,11 +117,14 @@ func (cm *ConnectionManager) GetRandom() *Connection {
 	return onlineActive[rand.Intn(len(onlineActive))]
 }
 
-// Get connections for all online, active regular peers, but in random order.
-func (cm *ConnectionManager) GetAllRegular() []*Connection {
+// Get connections for all online who have not sent me a copy of the message I'm about to send,
+// active regular peers, but in random order.
+func (cm *ConnectionManager) GetAllRegular(msgHash [32]byte) []*Connection {
 
 	selection := cm.getMatching(func(c *Connection) bool {
-		return c.IsOnline() && !c.peer.IsSpecial() && c.metrics.BytesReceived > 0
+
+		b := c.IsOnline() && !c.peer.IsSpecial() && c.metrics.BytesReceived > 0 && !c.peer.PrevMsgs.Get(msgHash)
+		return b
 	})
 
 	shuffle(len(selection), func(i, j int) {
@@ -121,13 +134,13 @@ func (cm *ConnectionManager) GetAllRegular() []*Connection {
 	return selection
 }
 
-// Get a set of random connections from all the online, active regular peers we have.
-func (cm *ConnectionManager) GetRandomRegular(sampleSize int) []*Connection {
+// Get a set of random connections from all the online who have not sent me a copy of the message I'm about to send.
+func (cm *ConnectionManager) GetRandomRegular(sampleSize int, msgHash [32]byte) []*Connection {
 	if sampleSize <= 0 {
 		return make([]*Connection, 0)
 	}
 
-	selection := cm.GetAllRegular()
+	selection := cm.GetAllRegular(msgHash)
 	resultSize := min(sampleSize, len(selection))
 	return selection[:resultSize]
 }

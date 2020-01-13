@@ -8,7 +8,7 @@ import (
 
 /*
 This test is the part A of a Network/Follower A/B pair of tests used to test
-Just boots to test that follower can sync
+Just boots to test that Leader can sync over a network
 */
 func TestNetSyncA(t *testing.T) {
 
@@ -18,6 +18,7 @@ func TestNetSyncA(t *testing.T) {
 	params := map[string]string{
 		"--db":               "LDB",
 		"--network":          "LOCAL",
+		"--nodename":         "TestA",
 		"--net":              "alot+",
 		"--enablenet":        "true",
 		"--blktime":          "15",
@@ -28,8 +29,7 @@ func TestNetSyncA(t *testing.T) {
 		"--peers":            peers,
 	}
 
-	state0 := SetupSim("L", params, 7, 0, 0, t)
-
-	WaitForBlock(state0, 6)
+	state0 := SetupSim("L", params, 13, 0, 0, t)
+	WaitForBlock(state0, 13)
 	Halt(t)
 }

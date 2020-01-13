@@ -7,12 +7,12 @@ package state
 import (
 	"encoding/binary"
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,12 +31,7 @@ type FaultCore struct {
 }
 
 func (fc *FaultCore) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FaultCore.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FaultCore.GetHash") }()
 
 	data, err := fc.MarshalCore()
 	if err != nil {
@@ -49,6 +44,7 @@ func (fc *FaultCore) MarshalCore() (data []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error marshalling Server Fault Core: %v", r)
+			llog.LogPrintf("recovery", "Error marshalling Server Fault Core: %v", r)
 		}
 	}()
 

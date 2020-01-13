@@ -3,7 +3,6 @@ package adminBlock
 import (
 	"fmt"
 	"os"
-	"reflect"
 
 	"bytes"
 
@@ -166,12 +165,7 @@ func (e *ForwardCompatibleEntry) Interpret() string {
 }
 
 func (e *ForwardCompatibleEntry) Hash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ForwardCompatibleEntry.Hash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ForwardCompatibleEntry.Hash") }()
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

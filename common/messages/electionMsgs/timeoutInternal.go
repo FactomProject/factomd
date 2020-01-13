@@ -6,7 +6,8 @@ package electionMsgs
 
 import (
 	"fmt"
-	"reflect"
+
+	"github.com/FactomProject/factomd/activations"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -22,10 +23,9 @@ var _ = state.MakeMap
 //General acknowledge message
 type TimeoutInternal struct {
 	msgbase.MessageBase
-	Name        string
-	SigType     bool // True for EOM, false for DBSig
-	DBHeight    int
-	MessageHash interfaces.IHash
+	Name     string
+	SigType  bool // True for EOM, false for DBSig
+	DBHeight int
 }
 
 var _ interfaces.IMsg = (*TimeoutInternal)(nil)
@@ -51,12 +51,7 @@ func (m *TimeoutInternal) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *TimeoutInternal) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("TimeoutInternal.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "TimeoutInternal.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
@@ -148,11 +143,22 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			return
 		}
 
-		e.Electing = state.MakeMap(nfeds, uint32(m.DBHeight))[e.Minute][e.VMIndex]
+		electing := state.MakeMap(nfeds, uint32(m.DBHeight))[e.Minute][e.VMIndex]
 
 		elections.CheckAuthSetsMatch("TimeoutInternal.ElectionProcess", e, s)
+		fedID := e.Federated[electing].GetChainID()
 
-		e.FedID = e.Federated[e.Electing].GetChainID()
+		if !e.IsSafeToReplaceFed(fedID) {
+			if is.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+				e.LogPrintf("election", "TimeoutInternal.ElectionProcess(): cannot remove more than half of the block's starting feds")
+				return
+			} else {
+				e.LogPrintf("election", "TimeoutInternal.ElectionProcess() WARN: replacing more than half of the block's starting feds")
+			}
+		}
+
+		e.Electing = electing
+		e.FedID = fedID
 
 		// Reset this value when we start an election
 		for len(e.Round) <= e.Electing {
@@ -235,12 +241,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 }
 
 func (m *TimeoutInternal) GetServerID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("TimeoutInternal.GetServerID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "TimeoutInternal.GetServerID") }()
 
 	return nil
 }
@@ -250,26 +251,16 @@ func (m *TimeoutInternal) LogFields() log.Fields {
 }
 
 func (m *TimeoutInternal) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("TimeoutInternal.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "TimeoutInternal.GetRepeatHash") }()
 
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
 func (m *TimeoutInternal) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("TimeoutInternal.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "TimeoutInternal.GetHash") }()
 
-	return m.MessageHash
+	return m.GetMsgHash()
 }
 
 func (m *TimeoutInternal) GetTimestamp() interfaces.Timestamp {

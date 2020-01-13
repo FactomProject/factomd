@@ -10,7 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
+
+	"github.com/FactomProject/factomd/activations"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -86,6 +87,16 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 	e := elect.(*elections.Elections)
 
 	elections.CheckAuthSetsMatch("FedVoteLevelMsg.ElectionProcess()", e, e.State.(*state.State))
+
+	// TODO: determine if we need to check here too, or if checking before every election is fine
+	if !e.IsSafeToReplaceFed(e.FedID) {
+		if is.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+			e.LogPrintf("election", "FedVoteLevelMsg.ElectionProcess(): cannot remove more than half of the block's starting feds")
+			return
+		} else {
+			e.LogPrintf("election", "FedVoteLevelMsg.ElectionProcess() WARN: removing more than half of the block's starting feds")
+		}
+	}
 
 	/******  Election Adapter Control   ******/
 	/**	Controlling the inner election state**/
@@ -317,12 +328,7 @@ func (a *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
 }
 
 func (m *FedVoteLevelMsg) GetServerID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FedVoteLevelMsg.GetServerID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FedVoteLevelMsg.GetServerID") }()
 
 	return m.Signer
 }
@@ -332,12 +338,7 @@ func (m *FedVoteLevelMsg) LogFields() log.Fields {
 }
 
 func (m *FedVoteLevelMsg) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FedVoteLevelMsg.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FedVoteLevelMsg.GetRepeatHash") }()
 
 	return m.GetMsgHash()
 }
@@ -345,12 +346,7 @@ func (m *FedVoteLevelMsg) GetRepeatHash() (rval interfaces.IHash) {
 // We have to return the hash of the underlying message.
 
 func (m *FedVoteLevelMsg) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FedVoteLevelMsg.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FedVoteLevelMsg.GetHash") }()
 
 	return m.GetMsgHash()
 }
@@ -360,12 +356,7 @@ func (m *FedVoteLevelMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *FedVoteLevelMsg) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FedVoteLevelMsg.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FedVoteLevelMsg.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()

@@ -427,6 +427,39 @@ func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
 	//}
 }
 
+func (e *Elections) IsSafeToReplaceFed(chainID interfaces.IHash) bool {
+	s := e.State.(*state.State)
+	pl := s.ProcessLists.Get(uint32(e.DBHeight))
+	startingFeds := pl.StartingFedServers
+	currentFeds := pl.FedServers
+	currentAuds := pl.AuditServers
+
+	var containsServer func([]interfaces.IServer, interfaces.IHash) bool
+	containsServer = func(haystack []interfaces.IServer, needle interfaces.IHash) bool {
+		for _, hay := range haystack {
+			if needle.IsSameAs(hay.GetChainID()) {
+				return true
+			}
+		}
+		return false
+	}
+
+	// If they weren't a Fed at the start of the block, don't worry about replacing them
+	if !containsServer(startingFeds, chainID) {
+		return true
+	}
+
+	removedFeds := 0
+	for _, v := range startingFeds {
+		if !containsServer(currentFeds, v.GetChainID()) {
+			if containsServer(currentAuds, v.GetChainID()) {
+				removedFeds++
+			}
+		}
+	}
+	return len(startingFeds)-removedFeds-1 >= len(currentFeds)/2+1
+}
+
 // ProcessWaiting drains all waiting messages into the input
 func (e *Elections) ProcessWaiting() {
 	for {

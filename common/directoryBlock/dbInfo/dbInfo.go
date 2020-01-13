@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -95,13 +94,16 @@ func (c *DirBlockInfo) GetBTCConfirmed() bool {
 	return c.BTCConfirmed
 }
 
+func (c *DirBlockInfo) GetEthereumAnchorRecordEntryHash() interfaces.IHash {
+	return c.EthereumAnchorRecordEntryHash
+}
+
+func (c *DirBlockInfo) GetEthereumConfirmed() bool {
+	return c.EthereumConfirmed
+}
+
 func (c *DirBlockInfo) GetChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DirBlockInfo.GetChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DirBlockInfo.GetChainID") }()
 
 	id := make([]byte, 32)
 	copy(id, []byte("DirBlockInfo"))
@@ -109,51 +111,35 @@ func (c *DirBlockInfo) GetChainID() (rval interfaces.IHash) {
 }
 
 func (c *DirBlockInfo) DatabasePrimaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DirBlockInfo.DatabasePrimaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DirBlockInfo.DatabasePrimaryIndex") }()
 
 	c.Init()
 	return c.DBMerkleRoot
 }
 
 func (c *DirBlockInfo) DatabaseSecondaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DirBlockInfo.DatabaseSecondaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DirBlockInfo.DatabaseSecondaryIndex") }()
 
 	c.Init()
 	return c.DBHash
 }
 
 func (e *DirBlockInfo) GetDBMerkleRoot() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DirBlockInfo.GetDBMerkleRoot() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DirBlockInfo.GetDBMerkleRoot") }()
 
 	e.Init()
 	return e.DBMerkleRoot
 }
 
 func (e *DirBlockInfo) GetBTCTxHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DirBlockInfo.GetBTCTxHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DirBlockInfo.GetBTCTxHash") }()
 
 	e.Init()
 	return e.BTCTxHash
+}
+
+func (e *DirBlockInfo) GetBTCTxOffset() (rval int32) {
+	return e.BTCTxOffset
 }
 
 func (e *DirBlockInfo) GetTimestamp() interfaces.Timestamp {
@@ -162,6 +148,10 @@ func (e *DirBlockInfo) GetTimestamp() interfaces.Timestamp {
 
 func (e *DirBlockInfo) GetBTCBlockHeight() int32 {
 	return e.BTCBlockHeight
+}
+
+func (e *DirBlockInfo) GetBTCBlockHash() interfaces.IHash {
+	return e.BTCBlockHash
 }
 
 func (e *DirBlockInfo) MarshalBinary() (rval []byte, err error) {

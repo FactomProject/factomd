@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FactomProject/factomd/log"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/messages"
@@ -1409,7 +1411,7 @@ func TestDebugLocationParse(t *testing.T) {
 
 	for i := 0; i < len(stringsToCheck); i++ {
 		// Checks that the SplitUpDebugLogRegEx function works as expected
-		dirlocation, regex := messages.SplitUpDebugLogRegEx(stringsToCheck[i])
+		dirlocation, regex := log.SplitUpDebugLogRegEx(stringsToCheck[i])
 		if dirlocation != tempdir {
 			t.Fatalf("Error SplitUpDebugLogRegEx() did not return the correct directory location.")
 		}

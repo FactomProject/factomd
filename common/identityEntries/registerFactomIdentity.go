@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -234,12 +233,7 @@ func (rfi *RegisterFactomIdentityStructure) ToExternalIDs() [][]byte {
 }
 
 func (rfi *RegisterFactomIdentityStructure) GetChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("RegisterFactomIdentityStructure.GetChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "RegisterFactomIdentityStructure.GetChainID") }()
 
 	extIDs := rfi.ToExternalIDs()
 

@@ -5,6 +5,8 @@
 package interfaces
 
 import (
+	"time"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -44,6 +46,10 @@ type IMsg interface {
 
 	// Returns the timestamp for a message
 	GetTimestamp() Timestamp
+
+	// Timestamps of when we received the message locally
+	GetReceivedTime() time.Time
+	SetReceivedTime(time time.Time)
 
 	// This is the hash used to check for repeated messages.  Almost always this
 	// is the MsgHash, however for Chain Commits, Entry Commits, and Factoid Transactions,

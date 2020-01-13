@@ -56,3 +56,4 @@ _testmain.go
 # Vendoring
 vendor/
 .sim
+recovery

@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"reflect"
 
 	"errors"
 
@@ -93,12 +92,7 @@ func (b *ABlockHeader) SetBodySize(bodySize uint32) {
 }
 
 func (b *ABlockHeader) GetAdminChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ABlockHeader.GetAdminChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ABlockHeader.GetAdminChainID") }()
 	return primitives.NewHash(constants.ADMIN_CHAINID)
 }
 
@@ -115,12 +109,7 @@ func (b *ABlockHeader) GetHeaderExpansionSize() uint64 {
 }
 
 func (b *ABlockHeader) GetPrevBackRefHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("ABlockHeader.GetPrevBackRefHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "ABlockHeader.GetPrevBackRefHash") }()
 	b.Init()
 	return b.PrevBackRefHash
 }

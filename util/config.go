@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
+
+	llog "github.com/FactomProject/factomd/log"
 	gcfg "gopkg.in/gcfg.v1"
 )
 
@@ -107,6 +108,16 @@ type FactomdConfig struct {
 		FactomdLocation     string
 		WalletdLocation     string
 		WalletEncrypted     bool
+	}
+	LiveFeedAPI struct {
+		EnableLiveFeedAPI        bool
+		EventReceiverProtocol    string
+		EventReceiverHost        string
+		EventReceiverPort        int
+		EventFormat              string
+		EventReplayDuringStartup bool
+		EventSendStateChange     bool
+		EventBroadcastContent    string
 	}
 }
 
@@ -226,6 +237,19 @@ WalletdLocation                       = "localhost:8089"
 ; Enables wallet database encryption on factom-walletd. If this option is enabled, an unencrypted database
 ; cannot exist. If an unencrypted database exists, the wallet will exit.
 WalletEncrypted                       = false
+
+; ------------------------------------------------------------------------------
+; Configuration options for the live feed API
+; ------------------------------------------------------------------------------
+[LiveFeedAPI]
+EnableLiveFeedAPI                     = false
+EventReceiverProtocol                 = tcp
+EventReceiverHost                     = 127.0.0.1
+EventReceiverPort                     = 8040
+EventFormat                           = protobuf
+EventReplayDuringStartup              = false
+EventSendStateChange                  = false
+EventBroadcastContent                 = once 
 `
 
 func (s *FactomdConfig) String() string {
@@ -294,6 +318,16 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    WalletdLocation         %v", s.Walletd.WalletdLocation))
 	out.WriteString(fmt.Sprintf("\n    WalletEncryption        %v", s.Walletd.WalletEncrypted))
 
+	out.WriteString(fmt.Sprintf("\n  LiveFeedAPI"))
+	out.WriteString(fmt.Sprintf("\n    EnableLiveFeedAPI        %v", s.LiveFeedAPI.EnableLiveFeedAPI))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverProtocol    %v", s.LiveFeedAPI.EventReceiverProtocol))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverHost        %v", s.LiveFeedAPI.EventReceiverHost))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverPort        %v", s.LiveFeedAPI.EventReceiverPort))
+	out.WriteString(fmt.Sprintf("\n    EventFormat              %v", s.LiveFeedAPI.EventFormat))
+	out.WriteString(fmt.Sprintf("\n    EventBroadcastContent    %v", s.LiveFeedAPI.EventBroadcastContent))
+	out.WriteString(fmt.Sprintf("\n    EventSendStateChange     %v", s.LiveFeedAPI.EventSendStateChange))
+	out.WriteString(fmt.Sprintf("\n    EventReplayDuringStartup %v", s.LiveFeedAPI.EventReplayDuringStartup))
+
 	return out.String()
 }
 
@@ -309,6 +343,7 @@ func GetChangeAcksHeight(filename string) (change uint32, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error getting acks - %v\n", r)
+			llog.LogPrintf("recovery", "Error getting acks - %v", r)
 		}
 	}()
 
@@ -357,8 +392,8 @@ func ReadConfig(filename string) *FactomdConfig {
 	err = gcfg.FatalOnly(gcfg.ReadFileInto(cfg, filename))
 	if err != nil {
 		if reportedError[filename] != err.Error() {
-			log.Printfln("Reading from '%s'", filename)
-			log.Printfln("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
+			fmt.Printf("Reading from '%s'\n", filename)
+			fmt.Printf("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
 			// Remember the error reported for this filename
 			reportedError[filename] = err.Error()
 		}

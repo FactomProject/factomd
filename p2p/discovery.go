@@ -107,7 +107,7 @@ func (d *Discovery) LoadPeers() {
 		d.knownPeers[peer.Address] = peer
 	}
 	UpdateKnownPeers.Unlock()
-	d.logger.Debugf("LoadPeers() found %d peers in peers.josn", len(d.knownPeers))
+	d.logger.Debugf("LoadPeers() found %d peers in peers.json", len(d.knownPeers))
 	file.Close()
 }
 

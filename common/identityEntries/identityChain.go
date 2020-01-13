@@ -6,7 +6,6 @@ package identityEntries
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -98,12 +97,7 @@ func (ics *IdentityChainStructure) ToExternalIDs() [][]byte {
 }
 
 func (ics *IdentityChainStructure) GetChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("IdentityChainStructure.GetChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "IdentityChainStructure.GetChainID") }()
 
 	extIDs := ics.ToExternalIDs()
 

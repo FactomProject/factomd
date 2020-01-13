@@ -92,9 +92,11 @@ func GetMapHash(bmap map[[32]byte]int64) interfaces.IHash {
 // Compute either a Hash of the temporary balance hash map, or the Permanent Balance hash map
 func (fs *FactoidState) GetBalanceHash(TempBalanceHash bool) (rval interfaces.IHash) {
 	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
+		if rval == nil {
+			primitives.LogNilHashBug("FactoidState.GetBalanceHash() returned a nil for IHash")
+		} else if reflect.ValueOf(rval).IsNil() {
+			primitives.LogNilHashBug("FactoidState.GetBalanceHash() returned an interface  nil")
 			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FactoidState.GetBalanceHash() saw an interface that was nil")
 		}
 	}()
 

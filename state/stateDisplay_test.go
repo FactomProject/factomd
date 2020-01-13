@@ -10,12 +10,10 @@ import (
 	//"github.com/FactomProject/factomd/common/constants"
 	//"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 )
 
-var _ = log.Print
 var _ = util.ReadConfig
 
 func TestDisplay(t *testing.T) {

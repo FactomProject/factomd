@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"reflect"
 
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
@@ -318,12 +317,7 @@ func (e *Authority) UnmarshalBinary(p []byte) error {
 }
 
 func (e *Authority) GetAuthorityChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("Authority.GetAuthorityChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "Authority.GetAuthorityChainID") }()
 
 	return e.AuthorityChainID
 }

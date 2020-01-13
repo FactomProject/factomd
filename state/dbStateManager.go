@@ -13,26 +13,24 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/util/atomic"
-
-	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/util/atomic"
+
+	llog "github.com/FactomProject/factomd/log"
 )
 
 var _ = hex.EncodeToString
 var _ = fmt.Print
 var _ = time.Now()
-var _ = log.Print
 
 type DBState struct {
 	IsNew bool
@@ -210,6 +208,7 @@ func (dbs *DBState) MarshalBinary() (rval []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("DBState.MarshalBinary panic Error Marshalling a dbstate %v", r)
+			llog.LogPrintf("recovery", "DBState.MarshalBinary panic Error Marshalling a dbstate %v", r)
 		}
 	}()
 
@@ -558,8 +557,7 @@ func (dbsl *DBStateList) UnmarshalBinary(p []byte) error {
 // Return a -1 on failure.
 //
 func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
-	s := state
-	_ = s
+
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
 	// If we don't have the previous blocks processed yet, then let's wait on this one.
@@ -579,7 +577,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	}
 
 	// Check if we have already process a block for this height and do not replace it if we have.
-	dbstate := s.DBStates.Get(int(dbheight))
+	dbstate := state.DBStates.Get(int(dbheight))
 	if dbstate != nil && dbstate.Saved {
 		state.LogPrintf("dbstateprocess", "Invalid DBState because we have already saved a block at this height")
 		return -1
@@ -760,6 +758,16 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 func containsServer(haystack []interfaces.IServer, needle interfaces.IServer) bool {
 	for _, hay := range haystack {
 		if needle.GetChainID().IsSameAs(hay.GetChainID()) {
+			return true
+		}
+	}
+	return false
+}
+
+// does a set of servers contain a server with a given chain id
+func containsServerWithChainID(haystack []interfaces.IServer, needle interfaces.IHash) bool {
+	for _, hay := range haystack {
+		if needle.IsSameAs(hay.GetChainID()) {
 			return true
 		}
 	}
@@ -957,7 +965,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
 	s := list.State
-
+	s.LogPrintf("dbstateprocess", "ProcessBlock %d", d.DirectoryBlock.GetHeader().GetDBHeight())
 	// If we are locked, the block has already been processed.  If the block IsNew then it has not yet had
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
 	// at this height) then we simply return.
@@ -1667,6 +1675,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		p = list.SignDB(d)
 		progress = p || progress
 
+		wasSaved := d.Saved
 		p = list.SaveDBStateToDB(d)
 		progress = p || progress
 
@@ -1676,6 +1685,10 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		// remember the last saved block
 		if d.Saved {
 			saved = i
+		}
+
+		if progress && d.Saved && d.Signed && !wasSaved {
+			s.EventService.EmitDirectoryBlockCommitEvent(d)
 		}
 
 		// only process one block past the last saved block
@@ -1816,4 +1829,28 @@ func (list *DBStateList) NewDBState(isNew bool,
 
 	// Failed, so return nil
 	return nil
+}
+
+func (dbs *DBState) GetDirectoryBlock() interfaces.IDirectoryBlock {
+	return dbs.DirectoryBlock
+}
+
+func (dbs *DBState) GetAdminBlock() interfaces.IAdminBlock {
+	return dbs.AdminBlock
+}
+
+func (dbs *DBState) GetFactoidBlock() interfaces.IFBlock {
+	return dbs.FactoidBlock
+}
+
+func (dbs *DBState) GetEntryCreditBlock() interfaces.IEntryCreditBlock {
+	return dbs.EntryCreditBlock
+}
+
+func (dbs *DBState) GetEntryBlocks() []interfaces.IEntryBlock {
+	return dbs.EntryBlocks
+}
+
+func (dbs *DBState) GetEntries() []interfaces.IEBEntry {
+	return dbs.Entries
 }

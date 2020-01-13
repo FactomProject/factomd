@@ -13,23 +13,20 @@ add the filename to `ci_whitelist` file in this directory
 
 ## Naming Convention
 
-  Peer tests are expected to be named in A/B pairs
+Peer tests are expected to be named in A/B pairs
 
-  ```
-  *A_test.go
-  *B_test.go
+```
+*A_test.go
+*B_test.go
+```
 
-## Naming Convention
+The `B` test will run in the background while the `A` test executes in the foreground.
+see ./test.sh in the root of this repo for more details
 
-  Peer tests are expected to be named in Follower/Network pairs
+Ideally `B` test only contains followers (at least initially)
 
-  ```
-  * Follower_test.go
-  * Network_test.go
-  ```
-
-  The network test will run in the background while the follower test executes in the foreground.
-  see ./test.sh in the root of this repo for more details
+This allow for some forgivness in timing when triggering these two tests manually in order to leverage a debugger.
+ 
 
 ## BrainSwap
 

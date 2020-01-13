@@ -6,13 +6,13 @@ package messages
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -45,23 +45,13 @@ func (a *RequestBlock) IsSameAs(b *RequestBlock) bool {
 func (m *RequestBlock) Process(uint32, interfaces.IState) bool { return true }
 
 func (m *RequestBlock) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("RequestBlock.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "RequestBlock.GetRepeatHash") }()
 
 	return m.GetMsgHash()
 }
 
 func (m *RequestBlock) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("RequestBlock.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "RequestBlock.GetHash") }()
 
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()
@@ -74,12 +64,7 @@ func (m *RequestBlock) GetHash() (rval interfaces.IHash) {
 }
 
 func (m *RequestBlock) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("RequestBlock.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "RequestBlock.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
@@ -103,6 +88,7 @@ func (m *RequestBlock) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling RequestBlock: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling RequestBlock: %v", r)
 		}
 	}()
 	newData = data

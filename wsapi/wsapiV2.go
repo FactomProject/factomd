@@ -41,7 +41,7 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 	state, err := GetState(request)
 	if err != nil {
 		wsLog.Errorf("failed to extract port from request: %s", err)
-		writer.WriteHeader(http.StatusBadRequest)
+		writer.WriteHeader(http.StatusOK)
 		return
 	}
 
@@ -91,6 +91,8 @@ func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 	params := j.Params
 	wsLog.Infof("request %v", j.String())
 	switch j.Method {
+	case "replay-from-height":
+		resp, jsonError = HandleV2ReplayDBFromHeight(state, params)
 	case "anchors":
 		resp, jsonError = HandleV2Anchors(state, params)
 	case "chain-head":
@@ -183,6 +185,43 @@ func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 
 	wsLog.Infof("response %v", jsonResp.String())
 	return jsonResp, nil
+}
+
+func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallReplayDBFromHeight.Observe(float64(time.Since(n).Nanoseconds()))
+
+	replayRequest := new(ReplayRequest)
+	err := MapToObject(params, replayRequest)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	beginning := replayRequest.StartHeight
+	end := state.GetDBHeightComplete()
+
+	if replayRequest.EndHeight != 0 && replayRequest.EndHeight < end {
+		end = replayRequest.EndHeight
+	}
+
+	if beginning > end || beginning < 0 || end < 0 {
+		if beginning > end {
+			return nil, NewInvertedHeightError()
+		}
+		return nil, NewInvalidHeightError()
+	}
+
+	if (end - beginning) > 1000 {
+		end = beginning + 1000
+	}
+
+	state.EmitDirectoryBlockEventsFromHeight(beginning, end)
+
+	resp := new(SendReplayMessageResponse)
+	resp.Message = "Successfully initiated replay of blocks " + fmt.Sprint(beginning) + " through " + fmt.Sprint(end)
+	resp.Start = beginning
+	resp.End = end
+	return resp, nil
 }
 
 func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -481,7 +520,7 @@ func HandleV2Error(writer http.ResponseWriter, j *primitives.JSON2Request, jErr 
 	}
 	resp.Error = jErr
 
-	writer.WriteHeader(http.StatusBadRequest)
+	writer.WriteHeader(http.StatusOK)
 	_, err := writer.Write([]byte(resp.String()))
 	if err != nil {
 		wsLog.Errorf("failed to write error response: %v", err)
@@ -725,7 +764,6 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 func HandleV2Anchors(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
 	defer HandleV2APICallAnchors.Observe(float64(time.Since(n).Nanoseconds()))
-
 	request := new(HeightOrHashRequest)
 	err := MapToObject(params, request)
 	if err != nil {
@@ -907,6 +945,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 
 	d := new(DirectoryBlockResponse)
 	d.Header.PrevBlockKeyMR = block.GetHeader().GetPrevKeyMR().String()
+
 	d.Header.SequenceNumber = int64(block.GetHeader().GetDBHeight())
 	d.Header.Timestamp = block.GetHeader().GetTimestamp().GetTimeSeconds()
 	for _, v := range block.GetDBEntries() {
@@ -1585,7 +1624,16 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 			eInfo.VmIndex = &vm
 			eInfo.FedIndex = &electing
 			eInfo.FedID = e.GetFedID().String()
-			eInfo.Round = &e.GetRound()[electing]
+			// bugfix for https://github.com/FactomProject/factomd/issues/947
+			// the round slice is frequently truncated to zero-length and the default
+			// behavior is to zero-pad it on demand
+			round := e.GetRound()
+			if electing < len(round) {
+				eInfo.Round = &round[electing]
+			} else {
+				zero := 0 // backward compatibility for any consumer that relied on this being present
+				eInfo.Round = &zero
+			}
 		}
 	}
 	resp.ElectionInfo = eInfo
