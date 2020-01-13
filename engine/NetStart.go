@@ -332,6 +332,10 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 		initAnchors(node.State, p.ReparseAnchorChains)
 		echoConfig(node.State, p) // print the config only once
 		// Init settings
+		{ // Leader thread
+			l := leader.New(node.State)
+			l.Start(w) // KLUDGE: only running leader on state0
+		}
 	})
 
 	// TODO: Init any settings from the config
@@ -366,7 +370,6 @@ func startServer(w *worker.Thread, node *fnode.FactomNode) {
 	w.Run("DBStateCatchup", s.DBStates.Catchup)
 	w.Run("LoadDatabase", s.LoadDatabase)
 	w.Run("SyncEntries", s.GoSyncEntries)
-	w.Run("EOMTicker", func() { Timer(node.State) })
 	w.Run("MMResponseHandler", s.MissingMessageResponseHandler.Run)
 }
 

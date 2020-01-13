@@ -245,7 +245,7 @@ func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
 			ctx, cancel := context.WithCancel(context.Background())
 			// w.Name is my parent?
 			// Init my name object?
-			//w.Init(&parent.Name, "bmv")
+			//			w.Init(&parent.Name, "bmv")
 
 			// Run init conditions. Setup publishers
 			msgIn := bmv.NewBasicMessageValidator(fnode.State.GetFactomNodeName())
