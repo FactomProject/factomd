@@ -42,7 +42,6 @@ type Sub struct {
 	MovedToHeight  *pubsub.SubChannel
 	BalanceChanged *pubsub.SubChannel
 	DBlockCreated  *pubsub.SubChannel
-	EomTicker      *pubsub.SubChannel
 	LeaderConfig   *pubsub.SubChannel
 	AuthoritySet   *pubsub.SubChannel
 }
@@ -57,7 +56,6 @@ func (s *Sub) Init() {
 	s.MsgInput = s.mkChan()
 	s.BalanceChanged = s.mkChan()
 	s.DBlockCreated = s.mkChan()
-	s.EomTicker = s.mkChan()
 	s.LeaderConfig = s.mkChan()
 	s.AuthoritySet = s.mkChan()
 }
@@ -66,7 +64,15 @@ func (s *Sub) Init() {
 func (s *Sub) Start(nodeName string) {
 	s.LeaderConfig.Subscribe(pubsub.GetPath(nodeName, event.Path.LeaderConfig))
 	s.AuthoritySet.Subscribe(pubsub.GetPath(nodeName, event.Path.AuthoritySet))
-	s.SetLeaderMode(nodeName)
+	{ // TOGGLE both modes to trigger pubsub error if there is goig
+
+		// REVIEW: it should be possible to start in leaderMode
+		s.SetLeaderMode(nodeName) //  create initial subscriptions
+
+		// FIXME: toggling follower / leader again seems to breaks subscriptions
+		//s.SetFollowerMode() // unsubscribe while waiting for authority
+		//s.SetLeaderMode(nodeName)  //  create initial subscriptions
+	}
 }
 
 // start listening to subscriptions for leader duties
@@ -91,7 +97,6 @@ func (s *Sub) SetFollowerMode() {
 	s.MovedToHeight.Unsubscribe()
 	s.BalanceChanged.Unsubscribe()
 	s.DBlockCreated.Unsubscribe()
-	s.EomTicker.Unsubscribe()
 }
 
 type Events struct {
@@ -126,14 +131,6 @@ func (l *Leader) processMin() (ok bool) {
 
 	for {
 		select {
-		case v := <-l.Sub.LeaderConfig.Updates:
-			l.Config = v.(*event.LeaderConfig)
-			// TODO: check for change of identity
-			return false
-		case v := <-l.Sub.AuthoritySet.Updates:
-			l.Events.AuthoritySet = v.(*event.AuthoritySet)
-			// TODO: check for change of authority
-			return false
 		case v := <-l.MsgInput.Updates:
 			m := v.(interfaces.IMsg)
 			// TODO: if message cannot be ack'd send to Dependent Holding
@@ -150,7 +147,7 @@ func (l *Leader) processMin() (ok bool) {
 	}
 }
 
-func (l *Leader) waitForNextMinute() int {
+func (l *Leader) waitForNextMinute() (min int, ok bool) {
 	for {
 		select {
 		case v := <-l.MovedToHeight.Updates:
@@ -165,33 +162,42 @@ func (l *Leader) waitForNextMinute() int {
 			}
 
 			l.DBHT = evt
-			return l.DBHT.Minute
+			return l.DBHT.Minute, true
 		case <-l.exit:
-			return -1
+			return -1, false
 		}
 	}
 }
 
 // TODO: refactor to only get a single Directory event
-func (l *Leader) WaitForDBlockCreated() {
+func (l *Leader) WaitForDBlockCreated() (ok bool) {
 	for { // wait on a new (unique) directory event
-		v := <-l.Sub.DBlockCreated.Updates
-		evt := v.(*event.Directory)
-		if l.Directory != nil && evt.DBHeight == l.Directory.DBHeight {
-			log.LogPrintf(logfile, "DUP Directory: %v", v)
-			continue
-		} else {
-			log.LogPrintf(logfile, "Directory: %v", v)
+		select {
+		case v := <-l.Sub.DBlockCreated.Updates:
+			evt := v.(*event.Directory)
+			if l.Directory != nil && evt.DBHeight == l.Directory.DBHeight {
+				log.LogPrintf(logfile, "DUP Directory: %v", v)
+				continue
+			} else {
+				log.LogPrintf(logfile, "Directory: %v", v)
+			}
+			l.Directory = v.(*event.Directory)
+			return true
+		case <-l.exit:
+			return false
 		}
-		l.Directory = v.(*event.Directory)
-		return
 	}
 }
 
-func (l *Leader) WaitForBalanceChanged() {
-	v := <-l.Sub.BalanceChanged.Updates
-	l.Balance = v.(*event.Balance)
-	log.LogPrintf(logfile, "BalChange: %v", v)
+func (l *Leader) WaitForBalanceChanged() (ok bool) {
+	select {
+	case v := <-l.Sub.BalanceChanged.Updates:
+		l.Balance = v.(*event.Balance)
+		log.LogPrintf(logfile, "BalChange: %v", v)
+		return true
+	case <-l.exit:
+		return false
+	}
 }
 
 // get latest AuthoritySet event data
@@ -217,7 +223,9 @@ readLatestAuthSet:
 	return GetFedServerIndexHash(l.Events.AuthoritySet.FedServers, l.Config.IdentityChainID)
 }
 
+// wait to become leader (possibly forever for followers)
 func (l *Leader) WaitForAuthority() (isLeader bool) {
+	// REVIEW: do we need to check block ht?
 	log.LogPrintf(logfile, "WaitForAuthority %v ", l.Events.AuthoritySet.LeaderHeight)
 
 	defer func() {
@@ -227,18 +235,18 @@ func (l *Leader) WaitForAuthority() (isLeader bool) {
 		}
 	}()
 
-	for { // wait for AuthoritySetChange
+	for {
 		select {
 		case v := <-l.Sub.LeaderConfig.Updates:
 			l.Config = v.(*event.LeaderConfig)
 		case v := <-l.Sub.AuthoritySet.Updates:
 			l.Events.AuthoritySet = v.(*event.AuthoritySet)
-			if isAuthority, index := l.currentAuthority(); isAuthority {
-				l.VMIndex = index
-				return true
-			}
 		case <-l.exit:
 			return false
+		}
+		if isAuthority, index := l.currentAuthority(); isAuthority {
+			l.VMIndex = index
+			return true
 		}
 	}
 }
@@ -248,32 +256,29 @@ func (l *Leader) Run() {
 	// ignore these events during DB loading
 	l.waitForNextMinute()
 
+blockLoop:
 	for { //blockLoop
-
-		l.WaitForAuthority()
-		l.WaitForBalanceChanged()
-		l.WaitForDBlockCreated()
-		l.sendDBSig()
-
+		if !l.WaitForAuthority() || !l.WaitForBalanceChanged() || !l.WaitForDBlockCreated() {
+			break blockLoop
+		} else {
+			l.sendDBSig()
+		}
 		log.LogPrintf(logfile, "MinLoopStart: %v", true)
 	minLoop:
 		for { // could be counted 1..9 to account for min
-			select {
-			case <-l.exit:
-				return
-			default:
-				if !l.processMin() {
-					break minLoop
-				}
+			if !l.processMin() { // REVIEW: does this need a timeout?
+				break minLoop
+			} else {
 				l.sendEOM()
+			}
 
-				switch min := l.waitForNextMinute(); min {
-				case -1: // caught exit
-					return
+			if min, ok := l.waitForNextMinute(); !ok {
+				break blockLoop
+			} else {
+				switch min {
 				case 0:
 					break minLoop
 				default:
-					continue minLoop
 				}
 			}
 		}
