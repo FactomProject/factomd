@@ -8,12 +8,16 @@ import (
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/worker"
 )
 
 type Pub struct {
 	MsgOut pubsub.IPublisher
 }
+
+// isolate deps on state package - eventually functions will be relocated
+var GetFedServerIndexHash = state.GetFedServerIndexHash
 
 // create and start all publishers
 func (p *Pub) Init(nodeName string) {
@@ -25,7 +29,15 @@ func (p *Pub) Init(nodeName string) {
 	go p.MsgOut.Start()
 }
 
+const (
+	LEADER_ROLE = iota + 1
+	FOLLOWER_ROLE
+)
+
+type role = int
+
 type Sub struct {
+	role
 	MsgInput       *pubsub.SubChannel
 	MovedToHeight  *pubsub.SubChannel
 	BalanceChanged *pubsub.SubChannel
@@ -35,22 +47,11 @@ type Sub struct {
 	AuthoritySet   *pubsub.SubChannel
 }
 
-// start all subscriptions
-func (s *Sub) Start(nodeName string) {
-	// network inputs
-	s.MsgInput.Subscribe(pubsub.GetPath(nodeName, "bmv", "rest"))
-
-	// internal events
-	s.MovedToHeight.Subscribe(pubsub.GetPath(nodeName, event.Path.Seq))
-	s.DBlockCreated.Subscribe(pubsub.GetPath(nodeName, event.Path.Directory))
-	s.BalanceChanged.Subscribe(pubsub.GetPath(nodeName, event.Path.Bank))
-	s.AuthoritySet.Subscribe(pubsub.GetPath(nodeName, event.Path.AuthoritySet))
-}
-
 func (*Sub) mkChan() *pubsub.SubChannel {
 	return pubsub.SubFactory.Channel(1000) // FIXME: should calibrate channel depths
 }
 
+// Create all subscribers
 func (s *Sub) Init() {
 	s.MovedToHeight = s.mkChan()
 	s.MsgInput = s.mkChan()
@@ -61,13 +62,44 @@ func (s *Sub) Init() {
 	s.AuthoritySet = s.mkChan()
 }
 
+// start subscriptions
+func (s *Sub) Start(nodeName string) {
+	s.LeaderConfig.Subscribe(pubsub.GetPath(nodeName, event.Path.LeaderConfig))
+	s.AuthoritySet.Subscribe(pubsub.GetPath(nodeName, event.Path.AuthoritySet))
+	s.SetLeaderMode(nodeName)
+}
+
+// start listening to subscriptions for leader duties
+func (s *Sub) SetLeaderMode(nodeName string) {
+	if s.role == LEADER_ROLE {
+		return
+	}
+	s.role = LEADER_ROLE
+	s.MsgInput.Subscribe(pubsub.GetPath(nodeName, "bmv", "rest"))
+	s.MovedToHeight.Subscribe(pubsub.GetPath(nodeName, event.Path.Seq))
+	s.DBlockCreated.Subscribe(pubsub.GetPath(nodeName, event.Path.Directory))
+	s.BalanceChanged.Subscribe(pubsub.GetPath(nodeName, event.Path.Bank))
+}
+
+// stop subscribers that we do not need as a follower
+func (s *Sub) SetFollowerMode() {
+	if s.role == FOLLOWER_ROLE {
+		return
+	}
+	s.role = FOLLOWER_ROLE
+	s.MsgInput.Unsubscribe()
+	s.MovedToHeight.Unsubscribe()
+	s.BalanceChanged.Unsubscribe()
+	s.DBlockCreated.Unsubscribe()
+	s.EomTicker.Unsubscribe()
+}
+
 type Events struct {
 	Config              *event.LeaderConfig //
 	*event.DBHT                             // from move-to-ht
 	*event.Balance                          // REVIEW: does this relate to a specific VM
 	*event.Directory                        //
 	*event.Ack                              // record of last sent ack by leader
-	*event.LeaderConfig                     //
 	*event.AuthoritySet                     //
 }
 
@@ -86,7 +118,7 @@ func (l *Leader) Start(w *worker.Thread) {
 	})
 }
 
-func (l *Leader) processMin() {
+func (l *Leader) processMin() (ok bool) {
 	go func() {
 		time.Sleep(time.Second * time.Duration(l.Config.BlocktimeInSeconds/10))
 		l.ticker <- true
@@ -96,18 +128,24 @@ func (l *Leader) processMin() {
 		select {
 		case v := <-l.Sub.LeaderConfig.Updates:
 			l.Config = v.(*event.LeaderConfig)
+			// TODO: check for change of identity
+			return false
+		case v := <-l.Sub.AuthoritySet.Updates:
+			l.Events.AuthoritySet = v.(*event.AuthoritySet)
+			// TODO: check for change of authority
+			return false
 		case v := <-l.MsgInput.Updates:
 			m := v.(interfaces.IMsg)
-			// TODO: if message cannot be ack send to Dependent Holding
+			// TODO: if message cannot be ack'd send to Dependent Holding
 			if constants.NeedsAck(m.Type()) {
 				log.LogMessage(logfile, "msgIn ", m)
 				l.sendAck(m)
 			}
 		case <-l.ticker:
 			log.LogPrintf(logfile, "Ticker:")
-			return
+			return true
 		case <-l.exit:
-			return
+			return false
 		}
 	}
 }
@@ -176,39 +214,31 @@ readLatestAuthSet:
 		}
 	}
 
-	for idx, srv := range l.Events.AuthoritySet.FedServers {
-		if l.Config.IdentityChainID.IsSameAs(srv.GetChainID()) {
-			// became a leader via election or brainswap
-			return true, idx
-		}
-	}
-
-	return false, -1
+	return GetFedServerIndexHash(l.Events.AuthoritySet.FedServers, l.Config.IdentityChainID)
 }
 
-func (l *Leader) WaitForAuthority() (ok bool) {
+func (l *Leader) WaitForAuthority() (isLeader bool) {
 	log.LogPrintf(logfile, "WaitForAuthority %v ", l.Events.AuthoritySet.LeaderHeight)
-	defer func() { log.LogPrintf(logfile, "GotAuthority %v ", l.Events.AuthoritySet.LeaderHeight) }()
 
-	// FIXME: should also consume LeaderConfig events to detect brainswaps
-
-	// REVIEW: should we also perge event data from subscriptions while we are not a leader?
-	// or maybe register/unregister listener
+	defer func() {
+		if isLeader {
+			l.Sub.SetLeaderMode(l.Config.NodeName)
+			log.LogPrintf(logfile, "GotAuthority %v ", l.Events.AuthoritySet.LeaderHeight)
+		}
+	}()
 
 	for { // wait for AuthoritySetChange
 		select {
-		case <-l.exit:
-			{
-				return false
-			}
+		case v := <-l.Sub.LeaderConfig.Updates:
+			l.Config = v.(*event.LeaderConfig)
 		case v := <-l.Sub.AuthoritySet.Updates:
-			{
-				l.Events.AuthoritySet = v.(*event.AuthoritySet)
-				if ok, index := l.currentAuthority(); ok {
-					_ = index // FIXME set VM index
-					return true
-				}
+			l.Events.AuthoritySet = v.(*event.AuthoritySet)
+			if isAuthority, index := l.currentAuthority(); isAuthority {
+				l.VMIndex = index
+				return true
 			}
+		case <-l.exit:
+			return false
 		}
 	}
 }
@@ -232,7 +262,9 @@ func (l *Leader) Run() {
 			case <-l.exit:
 				return
 			default:
-				l.processMin()
+				if !l.processMin() {
+					break minLoop
+				}
 				l.sendEOM()
 
 				switch min := l.waitForNextMinute(); min {
