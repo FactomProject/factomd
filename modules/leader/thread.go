@@ -251,6 +251,14 @@ func (l *Leader) WaitForAuthority() (isLeader bool) {
 	}
 }
 
+func (l *Leader) waitForNewBlock() (stillWaiting bool) {
+	if min, ok := l.waitForNextMinute(); !ok {
+		return false
+	} else {
+		return min != 0
+	}
+}
+
 func (l *Leader) Run() {
 	// TODO: wait until after boot height
 	// ignore these events during DB loading
@@ -258,7 +266,12 @@ func (l *Leader) Run() {
 
 blockLoop:
 	for { //blockLoop
-		if !l.WaitForAuthority() || !l.WaitForBalanceChanged() || !l.WaitForDBlockCreated() {
+		ok := worker.RunSteps(
+			l.WaitForAuthority,
+			l.WaitForBalanceChanged,
+			l.WaitForDBlockCreated,
+		)
+		if !ok {
 			break blockLoop
 		} else {
 			l.sendDBSig()
@@ -266,20 +279,13 @@ blockLoop:
 		log.LogPrintf(logfile, "MinLoopStart: %v", true)
 	minLoop:
 		for { // could be counted 1..9 to account for min
-			if !l.processMin() { // REVIEW: does this need a timeout?
+			ok := worker.RunSteps(
+				l.processMin,
+				l.sendEOM,
+				l.waitForNewBlock,
+			)
+			if !ok {
 				break minLoop
-			} else {
-				l.sendEOM()
-			}
-
-			if min, ok := l.waitForNextMinute(); !ok {
-				break blockLoop
-			} else {
-				switch min {
-				case 0:
-					break minLoop
-				default:
-				}
 			}
 		}
 		log.LogPrintf(logfile, "MinLoopEnd: %v", true)
