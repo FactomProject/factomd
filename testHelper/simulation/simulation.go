@@ -1,8 +1,9 @@
-package testHelper
+package simulation
 
 import (
 	"flag"
 	"fmt"
+	"github.com/FactomProject/factomd/testHelper"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -573,7 +574,7 @@ func GetSimTestHome(t *testing.T) string {
 		t.Fatal(err)
 	}
 
-	return dir + "/.sim/" + GetTestName()
+	return dir + "/.sim/" + testHelper.GetTestName()
 }
 
 // re-use a common dir for longTest
@@ -604,7 +605,7 @@ func AddFNode() {
 }
 
 func WaitForEntry(s *state.State, hash interfaces.IHash) bool {
-	s.LogPrintf(logName, "WaitForEntry:  %s", hash.String())
+	s.LogPrintf(testHelper.logName, "WaitForEntry:  %s", hash.String())
 	//hash, _ := primitives.NewShaHashFromStr(entryhash)
 
 	for {

@@ -1,6 +1,7 @@
 package simtest
 
 import (
+	"github.com/FactomProject/factomd/testHelper/simulation"
 	"strings"
 	"testing"
 
@@ -11,23 +12,23 @@ import (
 
 func TestFilterAPIInput(t *testing.T) {
 
-	state0 := SetupSim("LLLAF", map[string]string{}, 25, 1, 1, t)
+	state0 := simulation.SetupSim("LLLAF", map[string]string{}, 25, 1, 1, t)
 
-	RunCmd("1")
-	RunCmd("w")
-	RunCmd("s")
+	simulation.RunCmd("1")
+	simulation.RunCmd("w")
+	simulation.RunCmd("s")
 
 	apiRegex := "EOM.*5/.*minute 1"
 	SetInputFilter(apiRegex)
 
-	WaitBlocks(state0, 5)
+	simulation.WaitBlocks(state0, 5)
 
 	// The message-filter call we did above should have caused an election and SO, Node01 should not be a leader anymore.
 	if fnode.Get(1).State.Leader {
 		t.Fatalf("Node01 should not be leader!")
 	}
 
-	CheckAuthoritySet(t)
+	simulation.CheckAuthoritySet(t)
 
 	// Check Node01 Network Input logs to make sure there are no enqueued including our Regex
 	out := SystemCall(`grep "enqueue" fnode01_networkinputs.txt | grep "` + apiRegex + `" | grep -v "EmbeddedMsg" | wc -l`)
@@ -43,5 +44,5 @@ func TestFilterAPIInput(t *testing.T) {
 		t.Fatalf("Filter missed let a message pass 2.")
 	}
 
-	ShutDownEverything(t)
+	simulation.ShutDownEverything(t)
 }

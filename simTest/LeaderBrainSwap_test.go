@@ -2,11 +2,10 @@ package simtest
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/testHelper/simulation"
 	"testing"
 
 	"github.com/FactomProject/factomd/fnode"
-
-	. "github.com/FactomProject/factomd/testHelper"
 )
 
 /*
@@ -16,17 +15,17 @@ This test is useful for catching a failure scenario where the timing between
 identity swap is off leading to a stall
 */
 func TestLeaderBrainSwap(t *testing.T) {
-	ResetSimHome(t)          // clear out old test home
-	for i := 0; i < 6; i++ { // build config files for the test
-		WriteConfigFile(i, i, "", t) // just write the minimal config
+	simulation.ResetSimHome(t) // clear out old test home
+	for i := 0; i < 6; i++ {   // build config files for the test
+		simulation.WriteConfigFile(i, i, "", t) // just write the minimal config
 	}
 
 	params := map[string]string{"--blktime": "10"}
-	state0 := SetupSim("LLLFFF", params, 30, 0, 0, t)
+	state0 := simulation.SetupSim("LLLFFF", params, 30, 0, 0, t)
 	state3 := fnode.Get(3).State // Get node 2
 
-	WaitForAllNodes(state0)
-	WaitForBlock(state0, 6)
+	simulation.WaitForAllNodes(state0)
+	simulation.WaitForBlock(state0, 6)
 
 	// FIXME https://factom.atlassian.net/browse/FD-950 - setting batch > 1 can occasionally cause failure
 	batches := 1 // use odd number to fulfill LFFFLL as end condition
@@ -38,26 +37,26 @@ func TestLeaderBrainSwap(t *testing.T) {
 		change := fmt.Sprintf("ChangeAcksHeight = %v\n", target)
 
 		if batch%2 == 0 {
-			WriteConfigFile(1, 5, change, t) // Setup A brain swap between L1 and F5
-			WriteConfigFile(5, 1, change, t)
+			simulation.WriteConfigFile(1, 5, change, t) // Setup A brain swap between L1 and F5
+			simulation.WriteConfigFile(5, 1, change, t)
 
-			WriteConfigFile(2, 4, change, t) // Setup A brain swap between L2 and F4
-			WriteConfigFile(4, 2, change, t)
+			simulation.WriteConfigFile(2, 4, change, t) // Setup A brain swap between L2 and F4
+			simulation.WriteConfigFile(4, 2, change, t)
 
 		} else {
-			WriteConfigFile(5, 5, change, t) // Un-Swap
-			WriteConfigFile(1, 1, change, t)
+			simulation.WriteConfigFile(5, 5, change, t) // Un-Swap
+			simulation.WriteConfigFile(1, 1, change, t)
 
-			WriteConfigFile(4, 4, change, t)
-			WriteConfigFile(2, 2, change, t)
+			simulation.WriteConfigFile(4, 4, change, t)
+			simulation.WriteConfigFile(2, 2, change, t)
 		}
 
-		WaitForBlock(state3, target)
-		WaitMinutes(state3, 1)
+		simulation.WaitForBlock(state3, target)
+		simulation.WaitMinutes(state3, 1)
 	}
 
-	WaitBlocks(state0, 1)
-	AssertAuthoritySet(t, "LFFFLL")
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitBlocks(state0, 1)
+	simulation.AssertAuthoritySet(t, "LFFFLL")
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/FactomProject/factomd/testHelper/simulation"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -22,118 +23,117 @@ import (
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/state"
-	. "github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 )
 
 func TestOne(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
 	state.MMR_enable = false // No MMR for you!
 
-	RanSimTest = true
+	simulation.RanSimTest = true
 
 	// use a tree so the messages get reordered
-	state0 := SetupSim("LF", map[string]string{"--fastsaverate": "5"}, 12, 0, 0, t)
+	state0 := simulation.SetupSim("LF", map[string]string{"--fastsaverate": "5"}, 12, 0, 0, t)
 
-	RunCmd("0")   // select 2
-	RunCmd("R30") // Feed load
-	WaitBlocks(state0, 5)
-	RunCmd("R0") // Stop load
-	WaitBlocks(state0, 2)
-	ShutDownEverything(t)
+	simulation.RunCmd("0")   // select 2
+	simulation.RunCmd("R30") // Feed load
+	simulation.WaitBlocks(state0, 5)
+	simulation.RunCmd("R0") // Stop load
+	simulation.WaitBlocks(state0, 2)
+	simulation.ShutDownEverything(t)
 } // testOne(){...}
 
 func TestDualElections(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
 	state.MMR_enable = false // No MMR for you!
 
-	RanSimTest = true
+	simulation.RanSimTest = true
 
 	// 							  01234567
-	state0 := SetupSim("LALLLALFFLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "20"}, 12, 0, 0, t)
+	state0 := simulation.SetupSim("LALLLALFFLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "20"}, 12, 0, 0, t)
 
-	WaitMinutes(state0, 8)
-	RunCmd("2")            // select 2
-	RunCmd("x")            // off the net
-	RunCmd("6")            // select 6
-	RunCmd("x")            // off the net
-	WaitMinutes(state0, 2) // wait for elections
-	RunCmd("2")            // select 2
-	RunCmd("x")            // on the net
-	RunCmd("6")            // select 6
-	RunCmd("x")            // on the net
-	WaitBlocks(state0, 2)  // wait till nodes should have updated by dbstate
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitMinutes(state0, 8)
+	simulation.RunCmd("2")            // select 2
+	simulation.RunCmd("x")            // off the net
+	simulation.RunCmd("6")            // select 6
+	simulation.RunCmd("x")            // off the net
+	simulation.WaitMinutes(state0, 2) // wait for elections
+	simulation.RunCmd("2")            // select 2
+	simulation.RunCmd("x")            // on the net
+	simulation.RunCmd("6")            // select 6
+	simulation.RunCmd("x")            // on the net
+	simulation.WaitBlocks(state0, 2)  // wait till nodes should have updated by dbstate
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 } // TestDualElections(){...}
 
 func TestLoad(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
 
-	RanSimTest = true
+	simulation.RanSimTest = true
 
 	// use a tree so the messages get reordered
-	state0 := SetupSim("LLLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "15"}, 15, 0, 0, t)
+	state0 := simulation.SetupSim("LLLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "15"}, 15, 0, 0, t)
 
-	RunCmd("2")    // select 2
-	RunCmd("w")    // feed load into follower
-	RunCmd("F200") // delay messages
-	RunCmd("R25")  // Feed load
-	WaitBlocks(state0, 1)
-	RunCmd("R0") // Stop load
+	simulation.RunCmd("2")    // select 2
+	simulation.RunCmd("w")    // feed load into follower
+	simulation.RunCmd("F200") // delay messages
+	simulation.RunCmd("R25")  // Feed load
+	simulation.WaitBlocks(state0, 1)
+	simulation.RunCmd("R0") // Stop load
 	for state0.Hold.GetSize() > 10 || len(state0.Holding) > 10 {
-		WaitBlocks(state0, 1)
+		simulation.WaitBlocks(state0, 1)
 	}
-	ShutDownEverything(t)
+	simulation.ShutDownEverything(t)
 } // testLoad(){...}
 
 // Test replicates a savestate restore bug when run twice. First run must complete 10 blocks.
 func TestErr(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
 
-	RanSimTest = true
-	state0 := SetupSim("LF", map[string]string{"--debuglog": ".", "--db": "LDB", "--controlpanelsetting": "readwrite",
+	simulation.RanSimTest = true
+	state0 := simulation.SetupSim("LF", map[string]string{"--debuglog": ".", "--db": "LDB", "--controlpanelsetting": "readwrite",
 		"--network": "LOCAL", "--fastsaverate": "4", "--checkheads": "false", "--net": "alot",
 		"--blktime": "15", "--faulttimeout": "120000", "--enablenet": "false", "--startdelay": "1"},
 		150, 0, 0, t)
 
-	RunCmd("2")    // select 2
-	RunCmd("w")    // feed load into follower
-	RunCmd("F200") // delay messages
-	RunCmd("R0")   // Feed load
-	WaitBlocks(state0, 5)
-	RunCmd("R0") // Stop load
-	WaitBlocks(state0, 5)
+	simulation.RunCmd("2")    // select 2
+	simulation.RunCmd("w")    // feed load into follower
+	simulation.RunCmd("F200") // delay messages
+	simulation.RunCmd("R0")   // Feed load
+	simulation.WaitBlocks(state0, 5)
+	simulation.RunCmd("R0") // Stop load
+	simulation.WaitBlocks(state0, 5)
 	// should check holding and queues cleared out
-	ShutDownEverything(t)
+	simulation.ShutDownEverything(t)
 } //TestErr(){...}
 func TestCatchup(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
 
-	RanSimTest = true
+	simulation.RanSimTest = true
 
 	// use a tree so the messages get reordered
-	state0 := SetupSim("LF", map[string]string{}, 15, 0, 0, t)
+	state0 := simulation.SetupSim("LF", map[string]string{}, 15, 0, 0, t)
 	state1 := fnode.Get(1).State
 
-	RunCmd("1") // select 1
-	RunCmd("x")
-	RunCmd("R5") // Feed load
-	WaitBlocks(state0, 5)
-	RunCmd("R0")          // Stop load
-	RunCmd("x")           // back online
-	WaitBlocks(state0, 3) // give him a few blocks to catch back up
+	simulation.RunCmd("1") // select 1
+	simulation.RunCmd("x")
+	simulation.RunCmd("R5") // Feed load
+	simulation.WaitBlocks(state0, 5)
+	simulation.RunCmd("R0")          // Stop load
+	simulation.RunCmd("x")           // back online
+	simulation.WaitBlocks(state0, 3) // give him a few blocks to catch back up
 	//todo: check that the node01 caught up and finished 2nd pass sync
 	dbht0 := state0.GetLLeaderHeight()
 	dbht1 := state1.GetLLeaderHeight()
@@ -142,59 +142,59 @@ func TestCatchup(t *testing.T) {
 		t.Fatalf("Node 0 was at dbheight %d which didn't match Node 1 at dbheight %d", dbht0, dbht1)
 	}
 
-	ShutDownEverything(t)
+	simulation.ShutDownEverything(t)
 } //TestCatchup(){...}
 
 // Test that we don't put invalid TX into a block.  This is done by creating transactions that are just outside
 // the time for the block, and we let the block catch up.  The code should validate against the block time of the
 // block to ensure that we don't record an invalid transaction in the block relative to the block time.
 func TestTXTimestampsAndBlocks(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 
-	go RunCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
-	state0 := SetupSim("LLLAAAFFF", map[string]string{}, 24, 0, 0, t)
-	StatusEveryMinute(state0)
+	go simulation.RunCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
+	state0 := simulation.SetupSim("LLLAAAFFF", map[string]string{}, 24, 0, 0, t)
+	simulation.StatusEveryMinute(state0)
 
-	RunCmd("7") // select node 7
-	RunCmd("x") // take out 7 from the network
-	WaitBlocks(state0, 1)
-	WaitForMinute(state0, 1)
-	RunCmd("Rt60") // Offset FCT transaction into the future by 60 minutes
-	RunCmd("R.5")  // turn down the load
-	WaitBlocks(state0, 2)
-	RunCmd("x")
-	RunCmd("R0") // turn off the load
+	simulation.RunCmd("7") // select node 7
+	simulation.RunCmd("x") // take out 7 from the network
+	simulation.WaitBlocks(state0, 1)
+	simulation.WaitForMinute(state0, 1)
+	simulation.RunCmd("Rt60") // Offset FCT transaction into the future by 60 minutes
+	simulation.RunCmd("R.5")  // turn down the load
+	simulation.WaitBlocks(state0, 2)
+	simulation.RunCmd("x")
+	simulation.RunCmd("R0") // turn off the load
 }
 func TestLoad2(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 
 	// use tree node setup so messages get reordered
-	go RunCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
-	state0 := SetupSim("LLLAF", map[string]string{"--blktime": "20", "--net": "tree"}, 24, 0, 0, t)
-	StatusEveryMinute(state0)
+	go simulation.RunCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
+	state0 := simulation.SetupSim("LLLAF", map[string]string{"--blktime": "20", "--net": "tree"}, 24, 0, 0, t)
+	simulation.StatusEveryMinute(state0)
 
-	RunCmd("4") // select node 4
-	RunCmd("x") // take out 4 from the network
-	WaitBlocks(state0, 1)
-	WaitForMinute(state0, 1)
+	simulation.RunCmd("4") // select node 4
+	simulation.RunCmd("x") // take out 4 from the network
+	simulation.WaitBlocks(state0, 1)
+	simulation.WaitForMinute(state0, 1)
 
-	RunCmd("R20") // Feed load
-	WaitBlocks(state0, 3)
-	RunCmd("Rt60")
-	RunCmd("T20")
-	RunCmd("R.5")
-	WaitBlocks(state0, 2)
-	RunCmd("x")
-	RunCmd("R0")
+	simulation.RunCmd("R20") // Feed load
+	simulation.WaitBlocks(state0, 3)
+	simulation.RunCmd("Rt60")
+	simulation.RunCmd("T20")
+	simulation.RunCmd("R.5")
+	simulation.WaitBlocks(state0, 2)
+	simulation.RunCmd("x")
+	simulation.RunCmd("R0")
 
-	WaitBlocks(state0, 3)
-	WaitMinutes(state0, 3)
+	simulation.WaitBlocks(state0, 3)
+	simulation.WaitMinutes(state0, 3)
 
 	ht1 := fnode.Get(1).State.GetLLeaderHeight()
 	ht4 := fnode.Get(4).State.GetLLeaderHeight()
@@ -202,14 +202,14 @@ func TestLoad2(t *testing.T) {
 	if ht1 != ht4 {
 		t.Fatalf("Node 1 was at dbheight %d which didn't match Node 4 at dbheight %d", ht1, ht4)
 	}
-	ShutDownEverything(t)
+	simulation.ShutDownEverything(t)
 } //TestLoad2(){...}
 // The intention of this test is to detect the EC overspend/duplicate commits (FD-566) bug.
 // the bug happened when the FCT transaction and the commits arrived in different orders on followers vs the leader.
 // Using a message delay, drop and tree network makes this likely
 //
 func TestLoadScrambled(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
 	defer func() {
@@ -218,67 +218,67 @@ func TestLoadScrambled(t *testing.T) {
 		}
 	}()
 
-	RanSimTest = true
+	simulation.RanSimTest = true
 
 	// use a tree so the messages get reordered
-	state0 := SetupSim("LLFFFFFF", map[string]string{"--net": "tree"}, 32, 0, 0, t)
+	state0 := simulation.SetupSim("LLFFFFFF", map[string]string{"--net": "tree"}, 32, 0, 0, t)
 	//TODO: Why does this run longer than expected?
 
-	RunCmd("2")     // select 2
-	RunCmd("F1000") // set the message delay
-	RunCmd("S10")   // delete 1% of the messages
-	RunCmd("r")     // rotate the load around the network
-	RunCmd("R3")    // Feed load
-	WaitBlocks(state0, 10)
-	RunCmd("R0") // Stop load
-	WaitBlocks(state0, 1)
+	simulation.RunCmd("2")     // select 2
+	simulation.RunCmd("F1000") // set the message delay
+	simulation.RunCmd("S10")   // delete 1% of the messages
+	simulation.RunCmd("r")     // rotate the load around the network
+	simulation.RunCmd("R3")    // Feed load
+	simulation.WaitBlocks(state0, 10)
+	simulation.RunCmd("R0") // Stop load
+	simulation.WaitBlocks(state0, 1)
 
-	ShutDownEverything(t)
+	simulation.ShutDownEverything(t)
 } //TestLoadScrambled(){...}
 
 func TestMinute9Election(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 
 	// use a tree so the messages get reordered
-	state0 := SetupSim("LLAL", map[string]string{"--net": "line"}, 10, 1, 1, t)
+	state0 := simulation.SetupSim("LLAL", map[string]string{"--net": "line"}, 10, 1, 1, t)
 	state3 := fnode.Get(3).State
 
-	WaitForMinute(state3, 9)
-	RunCmd("3")
-	RunCmd("x")
-	WaitMinutes(state0, 1)
-	RunCmd("x")
-	WaitBlocks(state0, 2)
-	WaitMinutes(state0, 1)
+	simulation.WaitForMinute(state3, 9)
+	simulation.RunCmd("3")
+	simulation.RunCmd("x")
+	simulation.WaitMinutes(state0, 1)
+	simulation.RunCmd("x")
+	simulation.WaitBlocks(state0, 2)
+	simulation.WaitMinutes(state0, 1)
 
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 } //TestMinute9Election(){...}
 
 func TestMakeALeader(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
 
-	RanSimTest = true
+	simulation.RanSimTest = true
 
-	state0 := SetupSim("LF", map[string]string{}, 5, 0, 0, t)
-	RunCmd("g1")
-	WaitBlocks(state0, 2)
-	WaitMinutes(state0, 1)
+	state0 := simulation.SetupSim("LF", map[string]string{}, 5, 0, 0, t)
+	simulation.RunCmd("g1")
+	simulation.WaitBlocks(state0, 2)
+	simulation.WaitMinutes(state0, 1)
 
-	RunCmd("1") // select node 1
-	RunCmd("l") // make him a leader
-	WaitBlocks(state0, 1)
-	WaitForMinute(state0, 1)
-	WaitForAllNodes(state0)
+	simulation.RunCmd("1") // select node 1
+	simulation.RunCmd("l") // make him a leader
+	simulation.WaitBlocks(state0, 1)
+	simulation.WaitForMinute(state0, 1)
+	simulation.WaitForAllNodes(state0)
 	// Adjust expectations
-	Leaders++
-	Followers--
-	ShutDownEverything(t)
+	simulation.Leaders++
+	simulation.Followers--
+	simulation.ShutDownEverything(t)
 }
 
 //func TestActivationHeightElection(t *testing.T) {
@@ -366,32 +366,32 @@ func TestMakeALeader(t *testing.T) {
 //}
 
 func TestAnElection(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
 
-	RanSimTest = true
+	simulation.RanSimTest = true
 
-	state0 := SetupSim("LLLAAF", map[string]string{"--blktime": "15"}, 9, 1, 1, t)
+	state0 := simulation.SetupSim("LLLAAF", map[string]string{"--blktime": "15"}, 9, 1, 1, t)
 
-	StatusEveryMinute(state0)
-	WaitMinutes(state0, 2)
+	simulation.StatusEveryMinute(state0)
+	simulation.WaitMinutes(state0, 2)
 
-	RunCmd("2")
-	RunCmd("w") // point the control panel at 2
+	simulation.RunCmd("2")
+	simulation.RunCmd("w") // point the control panel at 2
 
 	// remove the last leader
-	RunCmd("2")
-	RunCmd("x")
+	simulation.RunCmd("2")
+	simulation.RunCmd("x")
 	// wait for the election
-	WaitMinutes(state0, 2)
+	simulation.WaitMinutes(state0, 2)
 	//bring him back
-	RunCmd("x")
+	simulation.RunCmd("x")
 
 	// wait for him to update via dbstate and become an audit
-	WaitBlocks(state0, 2)
-	WaitMinutes(state0, 1)
-	WaitForAllNodes(state0)
+	simulation.WaitBlocks(state0, 2)
+	simulation.WaitMinutes(state0, 1)
+	simulation.WaitForAllNodes(state0)
 
 	// PrintOneStatus(0, 0)
 	if fnode.Get(2).State.Leader {
@@ -401,23 +401,23 @@ func TestAnElection(t *testing.T) {
 		t.Fatalf("Node 3 or 4  should be a leader")
 	}
 
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 
 }
 
 func TestDBsigEOMElection(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
 
-	RanSimTest = true
+	simulation.RanSimTest = true
 
-	state0 := SetupSim("LLLLLAAF", map[string]string{}, 9, 4, 4, t)
+	state0 := simulation.SetupSim("LLLLLAAF", map[string]string{}, 9, 4, 4, t)
 
 	// get status from FNode02 because he is not involved in the elections
 	state2 := fnode.Get(2).State
-	StatusEveryMinute(state2)
+	simulation.StatusEveryMinute(state2)
 
 	var wait sync.WaitGroup
 	wait.Add(2)
@@ -455,83 +455,83 @@ func TestDBsigEOMElection(t *testing.T) {
 	wait.Wait()
 	fmt.Println("Caused Elections")
 
-	WaitMinutes(state2, 1)
+	simulation.WaitMinutes(state2, 1)
 	// bring them back
-	RunCmd("0")
-	RunCmd("x")
-	RunCmd("1")
-	RunCmd("x")
+	simulation.RunCmd("0")
+	simulation.RunCmd("x")
+	simulation.RunCmd("1")
+	simulation.RunCmd("x")
 	// wait for him to update via dbstate and become an audit
-	WaitBlocks(state0, 2)
-	WaitMinutes(state0, 1)
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitBlocks(state0, 2)
+	simulation.WaitMinutes(state0, 1)
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 }
 
 func TestMultiple2Election(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
 
-	RanSimTest = true
+	simulation.RanSimTest = true
 
-	state0 := SetupSim("LLLLLAAF", map[string]string{}, 7, 2, 2, t)
+	state0 := simulation.SetupSim("LLLLLAAF", map[string]string{}, 7, 2, 2, t)
 
-	WaitForMinute(state0, 2)
+	simulation.WaitForMinute(state0, 2)
 
-	RunCmd("1")
-	RunCmd("x")
-	RunCmd("2")
-	RunCmd("x")
-	WaitForMinute(state0, 1)
-	RunCmd("1")
-	RunCmd("x")
-	RunCmd("2")
-	RunCmd("x")
+	simulation.RunCmd("1")
+	simulation.RunCmd("x")
+	simulation.RunCmd("2")
+	simulation.RunCmd("x")
+	simulation.WaitForMinute(state0, 1)
+	simulation.RunCmd("1")
+	simulation.RunCmd("x")
+	simulation.RunCmd("2")
+	simulation.RunCmd("x")
 
-	WaitBlocks(state0, 2)
-	WaitForMinute(state0, 1)
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitBlocks(state0, 2)
+	simulation.WaitForMinute(state0, 1)
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 
 }
 
 func TestMultiple3Election(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
 
-	RanSimTest = true
+	simulation.RanSimTest = true
 
-	state0 := SetupSim("LLLLLLLAAAAF", map[string]string{}, 9, 3, 3, t)
+	state0 := simulation.SetupSim("LLLLLLLAAAAF", map[string]string{}, 9, 3, 3, t)
 
-	RunCmd("1")
-	RunCmd("x")
-	RunCmd("2")
-	RunCmd("x")
-	RunCmd("3")
-	RunCmd("x")
-	RunCmd("0")
-	WaitMinutes(state0, 1)
-	RunCmd("3")
-	RunCmd("x")
-	RunCmd("1")
-	RunCmd("x")
-	RunCmd("2")
-	RunCmd("x")
+	simulation.RunCmd("1")
+	simulation.RunCmd("x")
+	simulation.RunCmd("2")
+	simulation.RunCmd("x")
+	simulation.RunCmd("3")
+	simulation.RunCmd("x")
+	simulation.RunCmd("0")
+	simulation.WaitMinutes(state0, 1)
+	simulation.RunCmd("3")
+	simulation.RunCmd("x")
+	simulation.RunCmd("1")
+	simulation.RunCmd("x")
+	simulation.RunCmd("2")
+	simulation.RunCmd("x")
 	// Wait till they should have updated by DBSTATE
-	WaitBlocks(state0, 3)
-	WaitForMinute(state0, 1)
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitBlocks(state0, 3)
+	simulation.WaitForMinute(state0, 1)
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 
 }
 
 func TestSimCtrl(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 
 	type walletcallHelper struct {
 		Status string `json:"status"`
@@ -569,14 +569,14 @@ func TestSimCtrl(t *testing.T) {
 		fmt.Println("resp2: ", resp2)
 	}
 
-	state0 := SetupSim("LLLLLAAF", map[string]string{}, 8, 2, 2, t)
+	state0 := simulation.SetupSim("LLLLLAAF", map[string]string{}, 8, 2, 2, t)
 
-	WaitForMinute(state0, 2)
+	simulation.WaitForMinute(state0, 2)
 	apiCall(state0, "1")
 	apiCall(state0, "x")
 	apiCall(state0, "2")
 	apiCall(state0, "x")
-	WaitForMinute(state0, 1)
+	simulation.WaitForMinute(state0, 1)
 	apiCall(state0, "1")
 	apiCall(state0, "x")
 	apiCall(state0, "2")
@@ -587,21 +587,21 @@ func TestSimCtrl(t *testing.T) {
 	apiCall(state0, "0")
 	apiCall(state0, "p")
 
-	WaitBlocks(state0, 2)
-	WaitForMinute(state0, 1)
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitBlocks(state0, 2)
+	simulation.WaitForMinute(state0, 1)
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 }
 
 func TestMultipleFTAccountsAPI(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 	// only have one leader because if you are not the leader responcible for the FCT transaction then
 	// you will return transACK before teh balance is updated which will make thsi test fail.
-	state0 := SetupSim("LAF", map[string]string{}, 6, 0, 0, t)
-	WaitForMinute(state0, 1)
+	state0 := simulation.SetupSim("LAF", map[string]string{}, 6, 0, 0, t)
+	simulation.WaitForMinute(state0, 1)
 
 	type walletcallHelper struct {
 		CurrentHeight   uint32        `json:"currentheight"`
@@ -709,7 +709,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 			t.Fatalf("Expected perm[%d] but got X[%d]<%f>", PermBalance, int64(x["saved"].(float64)), x["saved"].(float64))
 		}
 	}
-	TimeNow(state0)
+	simulation.TimeNow(state0)
 	ToTestPermAndTempBetweenBlocks := []string{"FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb", "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q"}
 	resp3 := apiCall(state0, ToTestPermAndTempBetweenBlocks)
 	x, ok := resp3.Result.Balances[1].(map[string]interface{})
@@ -723,9 +723,9 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		t.Fatalf("Expected  temp[%d] to match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
 
-	TimeNow(state0)
+	simulation.TimeNow(state0)
 
-	_, str := FundWallet(state0, uint64(200*5e7))
+	_, str := simulation.FundWallet(state0, uint64(200*5e7))
 
 	// a while loop to find when the transaction made FundWallet ^^Above^^ has been acknowledged
 	thisShouldNotBeUnknownAtSomePoint := "Unknown"
@@ -770,8 +770,8 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		t.Fatalf("Expected  temp[%d] to not match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
 
-	WaitBlocks(state0, 1)
-	WaitMinutes(state0, 1)
+	simulation.WaitBlocks(state0, 1)
+	simulation.WaitMinutes(state0, 1)
 
 	resp_6 := apiCall(state0, ToTestPermAndTempBetweenBlocks)
 	x, ok = resp_6.Result.Balances[1].(map[string]interface{})
@@ -781,19 +781,19 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 	if x["ack"] != x["saved"] {
 		t.Fatalf("Expected acknowledged and saved balances to be the same")
 	}
-	ShutDownEverything(t)
+	simulation.ShutDownEverything(t)
 }
 
 func TestMultipleECAccountsAPI(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 
 	// only have one leader because if you are not the leader responcible for the FCT transaction then
 	// you will return transACK before teh balance is updated which will make thsi test fail.
-	state0 := SetupSim("LAF", map[string]string{}, 6, 0, 0, t)
-	WaitForMinute(state0, 1)
+	state0 := simulation.SetupSim("LAF", map[string]string{}, 6, 0, 0, t)
+	simulation.WaitForMinute(state0, 1)
 
 	type walletcallHelper struct {
 		CurrentHeight   uint32        `json:"currentheight"`
@@ -921,7 +921,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 			t.Fatalf("Expected perm[%d] but got X[%d]<%f>", PermBalance, int64(x["saved"].(float64)), x["saved"].(float64))
 		}
 	}
-	TimeNow(state0)
+	simulation.TimeNow(state0)
 	ToTestPermAndTempBetweenBlocks := []string{"EC1zGzM78psHhs5xVdv6jgVGmswvUaN6R3VgmTquGsdyx9W67Cqy", "EC3Eh7yQKShgjkUSFrPbnQpboykCzf4kw9QHxi47GGz5P2k3dbab"}
 	resp3 := apiCall(state0, ToTestPermAndTempBetweenBlocks)
 	x, ok := resp3.Result.Balances[1].(map[string]interface{})
@@ -933,9 +933,9 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		t.Fatalf("Expected  temp[%d] to match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
 
-	TimeNow(state0)
+	simulation.TimeNow(state0)
 
-	_, str := FundWallet(state0, 20000000)
+	_, str := simulation.FundWallet(state0, 20000000)
 
 	// a while loop to find when the transaction made FundWallet ^^Above^^ has been acknowledged
 	for {
@@ -975,8 +975,8 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		t.Fatalf("Expected  temp[%d] to not match perm[%d]", int64(x["ack"].(float64)), int64(x["saved"].(float64)))
 	}
 
-	WaitBlocks(state0, 1)
-	WaitMinutes(state0, 1)
+	simulation.WaitBlocks(state0, 1)
+	simulation.WaitMinutes(state0, 1)
 
 	resp_6 := apiCall(state0, ToTestPermAndTempBetweenBlocks)
 	x, ok = resp_6.Result.Balances[1].(map[string]interface{})
@@ -986,128 +986,128 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 	if x["ack"] != x["saved"] {
 		t.Fatalf("Expected " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]) + " but got " + fmt.Sprint(x["ack"]) + ", " + fmt.Sprint(x["saved"]))
 	}
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 }
 
 func TestDBSigElection(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 
-	state0 := SetupSim("LLLAF", map[string]string{"--faulttimeout": "10"}, 8, 1, 1, t)
+	state0 := simulation.SetupSim("LLLAF", map[string]string{"--faulttimeout": "10"}, 8, 1, 1, t)
 
 	s := fnode.Get(2).State
 	if !s.IsLeader() {
 		panic("Can't kill a audit and cause an election")
 	}
-	WaitForMinute(s, 9) // wait till the victim is at minute 9
+	simulation.WaitForMinute(s, 9) // wait till the victim is at minute 9
 	// wait till minute flips
 	for s.CurrentMinute != 0 {
 		runtime.Gosched()
 	}
 	s.SetNetStateOff(true) // kill the victim
 	s.LogPrintf("faulting", "Stopped %s\n", s.FactomNodeName)
-	WaitForMinute(state0, 2) // Wait till FNode0 move ahead a minute (the election is over)
+	simulation.WaitForMinute(state0, 2) // Wait till FNode0 move ahead a minute (the election is over)
 	s.LogPrintf("faulting", "Start %s\n", s.FactomNodeName)
 	s.SetNetStateOff(false) // resurrect the victim
 
-	WaitBlocks(state0, 2)    // wait till the victim is back as the audit server
-	WaitForMinute(state0, 1) // Wait till ablock is loaded
-	WaitForAllNodes(state0)
+	simulation.WaitBlocks(state0, 2)    // wait till the victim is back as the audit server
+	simulation.WaitForMinute(state0, 1) // Wait till ablock is loaded
+	simulation.WaitForAllNodes(state0)
 
-	ShutDownEverything(t)
+	simulation.ShutDownEverything(t)
 }
 
 func TestCoinbaseCancel(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 
-	state0 := SetupSim("LFFFFF", map[string]string{"-blktime": "5"}, 30, 0, 0, t)
+	state0 := simulation.SetupSim("LFFFFF", map[string]string{"-blktime": "5"}, 30, 0, 0, t)
 	// Make it quicker
 	constants.COINBASE_PAYOUT_FREQUENCY = 2
 	constants.COINBASE_DECLARATION = constants.COINBASE_PAYOUT_FREQUENCY * 2
 
-	WaitMinutes(state0, 2)
-	RunCmd("g10") // Adds 10 identities to your identity pool.
-	WaitBlocks(state0, 2)
+	simulation.WaitMinutes(state0, 2)
+	simulation.RunCmd("g10") // Adds 10 identities to your identity pool.
+	simulation.WaitBlocks(state0, 2)
 	// Assign identities
-	RunCmd("1")
-	RunCmd("t")
-	RunCmd("2")
-	RunCmd("t")
-	RunCmd("3")
-	RunCmd("t")
-	RunCmd("4")
-	RunCmd("t")
-	RunCmd("5")
-	RunCmd("t")
+	simulation.RunCmd("1")
+	simulation.RunCmd("t")
+	simulation.RunCmd("2")
+	simulation.RunCmd("t")
+	simulation.RunCmd("3")
+	simulation.RunCmd("t")
+	simulation.RunCmd("4")
+	simulation.RunCmd("t")
+	simulation.RunCmd("5")
+	simulation.RunCmd("t")
 
-	WaitBlocks(state0, 2)
+	simulation.WaitBlocks(state0, 2)
 	// Promotions, create 3 feds and 3 audits
-	RunCmd("1")
-	RunCmd("l")
-	RunCmd("2")
-	RunCmd("l")
-	RunCmd("3")
-	RunCmd("o")
-	RunCmd("4")
-	RunCmd("o")
-	RunCmd("5")
-	RunCmd("o")
+	simulation.RunCmd("1")
+	simulation.RunCmd("l")
+	simulation.RunCmd("2")
+	simulation.RunCmd("l")
+	simulation.RunCmd("3")
+	simulation.RunCmd("o")
+	simulation.RunCmd("4")
+	simulation.RunCmd("o")
+	simulation.RunCmd("5")
+	simulation.RunCmd("o")
 
-	WaitForBlock(state0, 15)
-	WaitMinutes(state0, 1)
+	simulation.WaitForBlock(state0, 15)
+	simulation.WaitMinutes(state0, 1)
 	// Cancel coinbase of 18 (14+ delay of 4) with a majority of the authority set, should succeed
-	RunCmd("1")
-	RunCmd("L14.1")
-	RunCmd("2")
-	RunCmd("L14.1")
-	RunCmd("3")
-	RunCmd("L14.1")
-	RunCmd("4")
-	RunCmd("L14.1")
-	WaitForBlock(state0, 17)
-	WaitMinutes(state0, 1)
+	simulation.RunCmd("1")
+	simulation.RunCmd("L14.1")
+	simulation.RunCmd("2")
+	simulation.RunCmd("L14.1")
+	simulation.RunCmd("3")
+	simulation.RunCmd("L14.1")
+	simulation.RunCmd("4")
+	simulation.RunCmd("L14.1")
+	simulation.WaitForBlock(state0, 17)
+	simulation.WaitMinutes(state0, 1)
 
 	// attempt cancel coinbase of  20 (16+ delay of 4) without a majority of the authority set.  Should fail
 	// This tests 3 of 6 canceling, which is not a majority (but almost is)
 	// all feds
-	RunCmd("0")
-	RunCmd("L16.1")
-	RunCmd("1")
-	RunCmd("L16.1")
-	RunCmd("2")
-	RunCmd("L16.1")
-	WaitForBlock(state0, 21)
-	WaitForMinute(state0, 9)
+	simulation.RunCmd("0")
+	simulation.RunCmd("L16.1")
+	simulation.RunCmd("1")
+	simulation.RunCmd("L16.1")
+	simulation.RunCmd("2")
+	simulation.RunCmd("L16.1")
+	simulation.WaitForBlock(state0, 21)
+	simulation.WaitForMinute(state0, 9)
 
 	// attempt cancel coinbase of  22 (18+ delay of 4) without a majority of the authority set.  Should fail
 	// This tests 3 of 6 canceling, which is not a majority (but almost is)
 	// all audits
-	RunCmd("3")
-	RunCmd("L18.1")
-	RunCmd("4")
-	RunCmd("L18.1")
-	RunCmd("5")
-	RunCmd("L18.1")
-	WaitForBlock(state0, 23)
-	WaitForMinute(state0, 2)
+	simulation.RunCmd("3")
+	simulation.RunCmd("L18.1")
+	simulation.RunCmd("4")
+	simulation.RunCmd("L18.1")
+	simulation.RunCmd("5")
+	simulation.RunCmd("L18.1")
+	simulation.WaitForBlock(state0, 23)
+	simulation.WaitForMinute(state0, 2)
 
 	// attempt cancel coinbase of  24 (20+ delay of 4) without a majority of the authority set.  Should fail
 	// This tests 3 of 6 canceling, which is not a majority (but almost is)
 	// 2 audit 1 fed
-	RunCmd("2")
-	RunCmd("L20.1")
-	RunCmd("4")
-	RunCmd("L20.1")
-	RunCmd("5")
-	RunCmd("L20.1")
-	WaitForBlock(state0, 25)
-	WaitForMinute(state0, 2)
+	simulation.RunCmd("2")
+	simulation.RunCmd("L20.1")
+	simulation.RunCmd("4")
+	simulation.RunCmd("L20.1")
+	simulation.RunCmd("5")
+	simulation.RunCmd("L20.1")
+	simulation.WaitForBlock(state0, 25)
+	simulation.WaitForMinute(state0, 2)
 
 	// Check the coinbase blocks for correct number of outputs, indicating a successful (or correctly ignored) coinbase cancels
 
@@ -1160,45 +1160,45 @@ func TestCoinbaseCancel(t *testing.T) {
 }
 
 func TestElection9(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 
-	state0 := SetupSim("LLAL", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 8, 1, 1, t)
-	StatusEveryMinute(state0)
-	CheckAuthoritySet(t)
+	state0 := simulation.SetupSim("LLAL", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 8, 1, 1, t)
+	simulation.StatusEveryMinute(state0)
+	simulation.CheckAuthoritySet(t)
 
 	state3 := fnode.Get(3).State
 	if !state3.IsLeader() {
 		panic("Can't kill a audit and cause an election")
 	}
-	RunCmd("3")
-	WaitForMinute(state3, 9) // wait till the victim is at minute 9
-	RunCmd("x")
-	WaitMinutes(state0, 2) // Wait till fault completes
-	RunCmd("x")
+	simulation.RunCmd("3")
+	simulation.WaitForMinute(state3, 9) // wait till the victim is at minute 9
+	simulation.RunCmd("x")
+	simulation.WaitMinutes(state0, 2) // Wait till fault completes
+	simulation.RunCmd("x")
 
-	WaitBlocks(state0, 2)    // wait till the victim is back as the audit server
-	WaitForMinute(state0, 1) // Wait till ablock is loaded
-	WaitForAllNodes(state0)
-	WaitForMinute(state3, 1) // Wait till node 3 is following by minutes
+	simulation.WaitBlocks(state0, 2)    // wait till the victim is back as the audit server
+	simulation.WaitForMinute(state0, 1) // Wait till ablock is loaded
+	simulation.WaitForAllNodes(state0)
+	simulation.WaitForMinute(state3, 1) // Wait till node 3 is following by minutes
 
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 
 }
 
 func TestBadDBStateUnderflow(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
 
-	RanSimTest = true
-	state0 := SetupSim("LF", map[string]string{}, 6, 0, 0, t)
-	RunCmd("g1")
-	WaitBlocks(state0, 2)
-	WaitMinutes(state0, 1)
+	simulation.RanSimTest = true
+	state0 := simulation.SetupSim("LF", map[string]string{}, 6, 0, 0, t)
+	simulation.RunCmd("g1")
+	simulation.WaitBlocks(state0, 2)
+	simulation.WaitMinutes(state0, 1)
 
 	msg, err := state0.LoadDBState(state0.GetDBHeightComplete() - 1)
 	if err != nil {
@@ -1220,155 +1220,155 @@ func TestBadDBStateUnderflow(t *testing.T) {
 	s := hex.EncodeToString(m_dbs)
 	wsapi.HandleV2SendRawMessage(state0, map[string]string{"message": s})
 
-	WaitForMinute(state0, 1)
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitForMinute(state0, 1)
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 }
 func TestFactoidDBState(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 
-	state0 := SetupSim("LAF", map[string]string{"--faulttimeout": "10", "--blktime": "5"}, 120, 0, 0, t)
-	WaitBlocks(state0, 1)
+	state0 := simulation.SetupSim("LAF", map[string]string{"--faulttimeout": "10", "--blktime": "5"}, 120, 0, 0, t)
+	simulation.WaitBlocks(state0, 1)
 
 	go func() {
 		for i := 0; i <= 1000; i++ {
-			FundWallet(state0, 10000)
+			simulation.FundWallet(state0, 10000)
 			time.Sleep(time.Duration(random.RandIntBetween(250, 1250)) * time.Millisecond)
 		}
 	}()
 
-	RunCmd("2")
+	simulation.RunCmd("2")
 	for i := 0; i < 20; i++ {
-		WaitMinutes(state0, i)
-		RunCmd("x")
-		WaitMinutes(state0, 1+i)
-		RunCmd("x")
-		WaitBlocks(state0, 2)
+		simulation.WaitMinutes(state0, i)
+		simulation.RunCmd("x")
+		simulation.WaitMinutes(state0, 1+i)
+		simulation.RunCmd("x")
+		simulation.WaitBlocks(state0, 2)
 	}
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 }
 
 func TestNoMMR(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 
-	state0 := SetupSim("LLLAAFFFFF", map[string]string{}, 10, 0, 0, t)
+	state0 := simulation.SetupSim("LLLAAFFFFF", map[string]string{}, 10, 0, 0, t)
 	state.MMR_enable = false // turn off MMR processing
-	StatusEveryMinute(state0)
-	RunCmd("R10") // turn on some load
-	WaitBlocks(state0, 5)
-	RunCmd("R0") // turn off load
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.StatusEveryMinute(state0)
+	simulation.RunCmd("R10") // turn on some load
+	simulation.WaitBlocks(state0, 5)
+	simulation.RunCmd("R0") // turn off load
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 }
 
 func TestDBStateCatchup(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 
-	state0 := SetupSim("LFF", map[string]string{}, 100, 0, 0, t)
+	state0 := simulation.SetupSim("LFF", map[string]string{}, 100, 0, 0, t)
 	state.MMR_enable = false // turn off MMR processing
 	state1 := fnode.Get(1).State
-	StatusEveryMinute(state1)
+	simulation.StatusEveryMinute(state1)
 
-	WaitMinutes(state0, 2)
+	simulation.WaitMinutes(state0, 2)
 
-	RunCmd("1")
-	RunCmd("x") // knock the follower offline
+	simulation.RunCmd("1")
+	simulation.RunCmd("x") // knock the follower offline
 
-	RunCmd("R10") // turn on some load
+	simulation.RunCmd("R10") // turn on some load
 
-	WaitBlocks(state0, 5)
-	RunCmd("R0") // turn off load
-	WaitMinutes(state0, 2)
-	RunCmd("x") // bring the follower online
-	WaitBlocks(state0, 7)
+	simulation.WaitBlocks(state0, 5)
+	simulation.RunCmd("R0") // turn off load
+	simulation.WaitMinutes(state0, 2)
+	simulation.RunCmd("x") // bring the follower online
+	simulation.WaitBlocks(state0, 7)
 
-	WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
-	PrintOneStatus(0, 0)
-	ShutDownEverything(t)
+	simulation.WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
+	simulation.PrintOneStatus(0, 0)
+	simulation.ShutDownEverything(t)
 }
 
 func TestDBState(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 
-	state0 := SetupSim("LLLFFFF", map[string]string{"--net": "line"}, 100, 0, 0, t)
+	state0 := simulation.SetupSim("LLLFFFF", map[string]string{"--net": "line"}, 100, 0, 0, t)
 	state1 := fnode.Get(1).State
 	state6 := fnode.Get(6).State // Get node 6
-	StatusEveryMinute(state1)
+	simulation.StatusEveryMinute(state1)
 
-	WaitForMinute(state0, 8)
-	RunCmd("Re")
-	RunCmd("R4")
-	RunCmd("F100")
-	RunCmd("6")
-	WaitForMinute(state6, 0)
-	RunCmd("x")
-	RunCmd("F0")
-	WaitBlocks(state0, 5)
-	RunCmd("x")
-	WaitBlocks(state0, 5)
-	RunCmd("R0")
-	WaitBlocks(state0, 1)
+	simulation.WaitForMinute(state0, 8)
+	simulation.RunCmd("Re")
+	simulation.RunCmd("R4")
+	simulation.RunCmd("F100")
+	simulation.RunCmd("6")
+	simulation.WaitForMinute(state6, 0)
+	simulation.RunCmd("x")
+	simulation.RunCmd("F0")
+	simulation.WaitBlocks(state0, 5)
+	simulation.RunCmd("x")
+	simulation.WaitBlocks(state0, 5)
+	simulation.RunCmd("R0")
+	simulation.WaitBlocks(state0, 1)
 
-	WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
-	PrintOneStatus(0, 0)
-	ShutDownEverything(t)
+	simulation.WaitForAllNodes(state0) // if the follower isn't catching up this will timeout
+	simulation.PrintOneStatus(0, 0)
+	simulation.ShutDownEverything(t)
 }
 
 func TestCatchupEveryMinute(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
 
-	RanSimTest = true
+	simulation.RanSimTest = true
 	//							  01234567890
-	state0 := SetupSim("LFFFFFFFFFF", map[string]string{"--debuglog": ".", "--blktime": "6"}, 20, 1, 1, t)
+	state0 := simulation.SetupSim("LFFFFFFFFFF", map[string]string{"--debuglog": ".", "--blktime": "6"}, 20, 1, 1, t)
 
-	StatusEveryMinute(state0)
+	simulation.StatusEveryMinute(state0)
 
 	// knock followers off one per minute
 	for i := 0; i < 10; i++ {
 		s := fnode.Get(i + 1).State
-		RunCmd(fmt.Sprintf("%d", i+1))
-		WaitForMinute(s, i)
-		RunCmd("x")
+		simulation.RunCmd(fmt.Sprintf("%d", i+1))
+		simulation.WaitForMinute(s, i)
+		simulation.RunCmd("x")
 	}
 	state0.LogPrintf("test", "%s", atomic.WhereAmIString(0))
-	WaitBlocks(state0, 2) // wait till they cannot catch up by MMR
+	simulation.WaitBlocks(state0, 2) // wait till they cannot catch up by MMR
 	state0.LogPrintf("test", "%s", atomic.WhereAmIString(0))
-	WaitMinutes(state0, 1)
+	simulation.WaitMinutes(state0, 1)
 	state0.LogPrintf("test", "%s", atomic.WhereAmIString(0))
 
-	RunCmd("T25") // switch to 25 second blocks because dbstate catchup code fails at 6 second blocks
+	simulation.RunCmd("T25") // switch to 25 second blocks because dbstate catchup code fails at 6 second blocks
 	// bring them all back
 	for i := 0; i < 10; i++ {
 		state0.LogPrintf("test", "%s %d", atomic.WhereAmIString(0), i)
-		RunCmd(fmt.Sprintf("%d", i+1))
-		WaitMinutes(state0, 1)
-		RunCmd("x")
+		simulation.RunCmd(fmt.Sprintf("%d", i+1))
+		simulation.WaitMinutes(state0, 1)
+		simulation.RunCmd("x")
 	}
 
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 }
 
 func TestDebugLocation(t *testing.T) {
-	if RanSimTest {
+	if simulation.RanSimTest {
 		return
 	}
-	RanSimTest = true
+	simulation.RanSimTest = true
 
 	tempdir := os.TempDir() + string(os.PathSeparator) + "logs" + string(os.PathSeparator) // get os agnostic path to the temp directory
 
@@ -1385,9 +1385,9 @@ func TestDebugLocation(t *testing.T) {
 	}
 
 	// start a sim with a select set of logs
-	state0 := SetupSim("LF", map[string]string{"--debuglog": tempdir + "holding|networkinputs|ackqueue"}, 6, 0, 0, t)
-	WaitBlocks(state0, 1)
-	ShutDownEverything(t)
+	state0 := simulation.SetupSim("LF", map[string]string{"--debuglog": tempdir + "holding|networkinputs|ackqueue"}, 6, 0, 0, t)
+	simulation.WaitBlocks(state0, 1)
+	simulation.ShutDownEverything(t)
 
 	// check the logs exist where we wanted them
 	DoesFileExists(tempdir+"fnode0_holding.txt", t)
