@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	controlpanel "github.com/FactomProject/factomd/controlPanel"
 	"os"
 	"reflect"
 	"sync"
@@ -199,11 +200,9 @@ func startWebserver(w *worker.Thread) {
 	// Start prometheus on port
 	launchPrometheus(9876)
 
-	/*
-		w.Run(func() {
-			controlPanel.ServeControlPanel(state0.ControlPanelChannel, state0, connectionMetricsChannel, p2pNetwork, Build, state0.FactomNodeName)
-		})
-	*/
+	w.Run("controlpanel", func() {
+		controlpanel.New(state0.FactomNodeName)
+	})
 }
 
 func startNetwork(w *worker.Thread, p *globals.FactomParams) {
