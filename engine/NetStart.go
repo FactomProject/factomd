@@ -47,7 +47,7 @@ func init() {
 	primitives.General = messages.General
 
 	// Globally Enable/Disable Modules
-	state.EnableLeaderThread = true // use new threaded leader
+	state.EnableLeaderThread = false // use new threaded leader
 }
 
 func echo(s string, more ...interface{}) {
