@@ -46,13 +46,9 @@ func (p *PubThreaded) Unsubscribe(subscriber IPubSubscriber) bool {
 }
 
 func (p *PubThreaded) unsubscribe(subscriber IPubSubscriber) (ok bool) {
-	var newSlice []IPubSubscriber
-	p.Lock()
-	defer p.Unlock()
-
 	for i := range p.Subscribers {
 		if p.Subscribers[i] == subscriber {
-			newSlice = make([]IPubSubscriber, len(p.Subscribers)-1)
+			newSlice := make([]IPubSubscriber, len(p.Subscribers)-1)
 			copy(newSlice, p.Subscribers[:i])
 			copy(newSlice[i:], p.Subscribers[i+1:])
 			p.Subscribers = newSlice
