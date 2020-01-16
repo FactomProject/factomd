@@ -118,8 +118,8 @@ func (l *Leader) Start(w *worker.Thread) {
 			close(l.exit)
 			l.Pub.MsgOut.Close()
 		})
-		l.Sub.Init()
 		l.Pub.Init(l.Config.NodeName)
+		l.Sub.Init()
 	})
 }
 
