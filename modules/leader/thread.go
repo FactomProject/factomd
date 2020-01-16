@@ -103,6 +103,10 @@ type Events struct {
 }
 
 func (l *Leader) Start(w *worker.Thread) {
+	if !state.EnableLeaderThread {
+		panic("LeaderThreadDisabled")
+	}
+
 	w.Spawn("LeaderThread", func(w *worker.Thread) {
 		w.OnReady(func() {
 			l.Sub.Start(l.Config.NodeName)

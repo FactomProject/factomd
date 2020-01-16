@@ -45,6 +45,9 @@ var logPort string
 func init() {
 	messages.General = new(msgsupport.GeneralFactory)
 	primitives.General = messages.General
+
+	// Globally Enable/Disable Modules
+	state.EnableLeaderThread = true // use new threaded leader
 }
 
 func echo(s string, more ...interface{}) {
@@ -334,8 +337,10 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 		echoConfig(node.State, p) // print the config only once
 	})
 
-	l := leader.New(node.State)
-	l.Start(w)
+	if state.EnableLeaderThread {
+		l := leader.New(node.State)
+		l.Start(w)
+	}
 
 	// TODO: Init any settings from the config
 	debugsettings.NewNode(node.State.GetFactomNodeName())
@@ -369,6 +374,9 @@ func startServer(w *worker.Thread, node *fnode.FactomNode) {
 	w.Run("DBStateCatchup", s.DBStates.Catchup)
 	w.Run("LoadDatabase", s.LoadDatabase)
 	w.Run("SyncEntries", s.GoSyncEntries)
+	if !state.EnableLeaderThread {
+		w.Run("EOMTicker", func() { Timer(node.State) })
+	}
 	w.Run("MMResponseHandler", s.MissingMessageResponseHandler.Run)
 }
 

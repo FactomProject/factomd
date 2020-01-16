@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/messages"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -84,6 +85,11 @@ func (s *State) MsgExecute() {
 }
 
 func (s *State) MsgSort() {
+	CheckGrants()
+
+	// We should only generate 1 EOM for each height/minute/vmindex
+	lastHeight, lastMinute, lastVM := -1, -1, -1
+
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("A panic state occurred in ValidatorLoop.", r)
@@ -91,8 +97,10 @@ func (s *State) MsgSort() {
 			shutdown(s)
 		}
 	}()
+
 	leaderOut := pubsub.SubFactory.Channel(50)
-	if s.GetFactomNodeName() == "FNode0" {
+
+	if EnableLeaderThread {
 		leaderOut.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), event.Path.LeaderMsgOut))
 	}
 
@@ -105,6 +113,51 @@ func (s *State) MsgSort() {
 			shutdown(s)
 			time.Sleep(10 * time.Second) // wait till database close is complete
 			return
+			// TODO: REFACTOR/extract method to process ticker
+		case c := <-s.tickerQueue: // Look for pending inMessages, and get one if there is one.
+			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not ready to execute as a leader or are loading the DBState inMessages
+				continue
+			}
+			currentMinute := s.CurrentMinute
+			if currentMinute == 10 { // if we are between blocks
+				currentMinute = 9 // treat minute 10 as an extension of minute 9
+			}
+			if lastHeight == int(s.LLeaderHeight) && lastMinute == currentMinute && s.LeaderVMIndex == lastVM {
+				// This eom was already generated. We shouldn't generate it again.
+				// This does mean we missed an EOM boundary, and the next EOM won't occur for another
+				// "minute". This could cause some serious sliding, as minutes could be an addition 100%
+				// in length.
+				if c == -1 { // This means we received a normal eom cadence timer
+					c = 8 // Send 8 retries on a 1/10 of the normal minute period
+				}
+				if c > 0 {
+					go func() {
+						// We sleep for 1/10 of a minute, and try again
+						time.Sleep(s.GetMinuteDuration() / 10)
+						s.tickerQueue <- c - 1
+					}()
+				}
+				s.LogPrintf("timer", "retry %d", c)
+				s.LogPrintf("validator", "retry %d  %d-:-%d %d", c, s.LLeaderHeight, currentMinute, s.LeaderVMIndex)
+				continue // Already generated this eom
+			}
+
+			lastHeight, lastMinute, lastVM = int(s.LLeaderHeight), currentMinute, s.LeaderVMIndex
+
+			eom := new(messages.EOM)
+			eom.Timestamp = s.GetTimestamp()
+			eom.ChainID = s.GetIdentityChainID()
+			{
+				// best guess info... may be wrong -- just for debug
+				eom.DBHeight = s.LLeaderHeight
+				eom.VMIndex = s.LeaderVMIndex
+				eom.Minute = byte(currentMinute)
+			}
+
+			eom.Sign(s)
+			eom.SetLocal(true) // local EOMs are really just timeout indicators that we need to generate an EOM
+			msg = eom
+			s.LogMessage("validator", fmt.Sprintf("generated c:%d  %d-:-%d %d", c, s.LLeaderHeight, s.CurrentMinute, s.LeaderVMIndex), eom)
 		case msg = <-s.inMsgQueue.Channel:
 			s.LogMessage("InMsgQueue", "dequeue", msg)
 			s.inMsgQueue.Metric(msg).Dec()
