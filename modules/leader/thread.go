@@ -64,14 +64,8 @@ func (s *Sub) Init() {
 func (s *Sub) Start(nodeName string) {
 	s.LeaderConfig.Subscribe(pubsub.GetPath(nodeName, event.Path.LeaderConfig))
 	s.AuthoritySet.Subscribe(pubsub.GetPath(nodeName, event.Path.AuthoritySet))
-	{ // TOGGLE both modes to trigger pubsub error if there is goig
-
-		// REVIEW: it should be possible to start in leaderMode
+	{
 		s.SetLeaderMode(nodeName) //  create initial subscriptions
-
-		// FIXME: toggling follower / leader again seems to breaks subscriptions
-		//s.SetFollowerMode() // unsubscribe while waiting for authority
-		//s.SetLeaderMode(nodeName)  //  create initial subscriptions
 	}
 }
 
@@ -133,13 +127,12 @@ func (l *Leader) processMin() (ok bool) {
 		select {
 		case v := <-l.MsgInput.Updates:
 			m := v.(interfaces.IMsg)
-			// TODO: if message cannot be ack'd send to Dependent Holding
 			if constants.NeedsAck(m.Type()) {
-				log.LogMessage(logfile, "msgIn ", m)
+				log.LogMessage(l.logfile, "msgIn ", m)
 				l.sendAck(m)
 			}
 		case <-l.ticker:
-			log.LogPrintf(logfile, "Ticker:")
+			log.LogPrintf(l.logfile, "Ticker:")
 			return true
 		case <-l.exit:
 			return false
@@ -152,7 +145,7 @@ func (l *Leader) waitForNextMinute() (min int, ok bool) {
 		select {
 		case v := <-l.MovedToHeight.Updates:
 			evt := v.(*event.DBHT)
-			log.LogPrintf(logfile, "DBHT: %v", evt)
+			log.LogPrintf(l.logfile, "DBHT: %v", evt)
 
 			if evt.Minute == 10 {
 				continue
@@ -176,10 +169,10 @@ func (l *Leader) WaitForDBlockCreated() (ok bool) {
 		case v := <-l.Sub.DBlockCreated.Updates:
 			evt := v.(*event.Directory)
 			if l.Directory != nil && evt.DBHeight == l.Directory.DBHeight {
-				log.LogPrintf(logfile, "DUP Directory: %v", v)
+				log.LogPrintf(l.logfile, "DUP Directory: %v", v)
 				continue
 			} else {
-				log.LogPrintf(logfile, "Directory: %v", v)
+				log.LogPrintf(l.logfile, "Directory: %v", v)
 			}
 			l.Directory = v.(*event.Directory)
 			return true
@@ -193,7 +186,7 @@ func (l *Leader) WaitForBalanceChanged() (ok bool) {
 	select {
 	case v := <-l.Sub.BalanceChanged.Updates:
 		l.Balance = v.(*event.Balance)
-		log.LogPrintf(logfile, "BalChange: %v", v)
+		log.LogPrintf(l.logfile, "BalChange: %v", v)
 		return true
 	case <-l.exit:
 		return false
@@ -226,12 +219,12 @@ readLatestAuthSet:
 // wait to become leader (possibly forever for followers)
 func (l *Leader) WaitForAuthority() (isLeader bool) {
 	// REVIEW: do we need to check block ht?
-	log.LogPrintf(logfile, "WaitForAuthority %v ", l.Events.AuthoritySet.LeaderHeight)
+	log.LogPrintf(l.logfile, "WaitForAuthority %v ", l.Events.AuthoritySet.LeaderHeight)
 
 	defer func() {
 		if isLeader {
 			l.Sub.SetLeaderMode(l.Config.NodeName)
-			log.LogPrintf(logfile, "GotAuthority %v ", l.Events.AuthoritySet.LeaderHeight)
+			log.LogPrintf(l.logfile, "GotAuthority %v ", l.Events.AuthoritySet.LeaderHeight)
 		}
 	}()
 
@@ -276,7 +269,7 @@ blockLoop:
 		} else {
 			l.sendDBSig()
 		}
-		log.LogPrintf(logfile, "MinLoopStart: %v", true)
+		log.LogPrintf(l.logfile, "MinLoopStart: %v", true)
 	minLoop:
 		for { // could be counted 1..9 to account for min
 			ok := worker.RunSteps(
@@ -288,6 +281,6 @@ blockLoop:
 				break minLoop
 			}
 		}
-		log.LogPrintf(logfile, "MinLoopEnd: %v", true)
+		log.LogPrintf(l.logfile, "MinLoopEnd: %v", true)
 	}
 }

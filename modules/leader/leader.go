@@ -8,9 +8,8 @@ import (
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/state"
+	"strings"
 )
-
-var logfile = "fnode0_leader"
 
 type Leader struct {
 	Pub
@@ -19,12 +18,14 @@ type Leader struct {
 	VMIndex int // vm this leader is responsible fore
 	exit    chan interface{}
 	ticker  chan interface{}
+	logfile string
 }
 
 // initialize the leader event aggregate
 func New(s *state.State) *Leader {
 	l := new(Leader)
 	l.VMIndex = s.LeaderVMIndex
+	l.logfile = strings.ToLower(s.GetFactomNodeName()) + "_leader"
 	l.ticker = make(chan interface{})
 	l.exit = make(chan interface{})
 
@@ -58,7 +59,7 @@ func (l *Leader) Sign(b []byte) interfaces.IFullSignature {
 }
 
 func (l *Leader) sendOut(msg interfaces.IMsg) {
-	log.LogMessage(logfile, "sendout", msg)
+	log.LogMessage(l.logfile, "sendout", msg)
 	l.Pub.MsgOut.Write(msg)
 }
 
@@ -76,6 +77,7 @@ func (l *Leader) getSalt(ts interfaces.Timestamp) uint32 {
 }
 
 func (l *Leader) sendAck(m interfaces.IMsg) {
+	// TODO: if message cannot be ack'd send to Dependent Holding
 	ack := l.NewAck(m, l.BalanceHash).(*messages.Ack) // LeaderExecute
 	l.sendOut(ack)
 }
