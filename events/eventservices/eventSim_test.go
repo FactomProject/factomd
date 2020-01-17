@@ -41,6 +41,10 @@ var scanner *bufio.Scanner
 func init() {
 	log.Info("Event server simulator")
 	sim = &EventServerSim{}
+	if len(os.Args) < 8 {
+		return
+	}
+
 	flag.StringVar(&sim.Protocol, "protocol", "tcp", "Protocol")
 	flag.StringVar(&sim.Address, "address", "", "Binding adress")
 	flag.IntVar(&sim.ExpectedEvents, "expectedevents", 0, "Expected events")
@@ -70,10 +74,10 @@ func (sim *EventServerSim) StartExternal() error {
 func TestRunExternal(t *testing.T) {
 	defer func() { fmt.Println("exit") }()
 
-	sim.test = t
-	if sim.ExpectedEvents == 0 || len(sim.Address) == 0 {
+	if sim == nil || sim.ExpectedEvents == 0 || len(sim.Address) == 0 {
 		fmt.Println("commandline parameters not set, ignoring test")
 	} else {
+		sim.test = t
 		fmt.Println("Starting simulator on", sim.Address)
 		sim.Start()
 		fmt.Println("running")

@@ -5,12 +5,11 @@ package eventmessages
 
 import (
 	fmt "fmt"
+	types "github.com/gogo/protobuf/types"
+	proto "github.com/golang/protobuf/proto"
 	io "io"
 	math "math"
 	math_bits "math/bits"
-
-	types "github.com/gogo/protobuf/types"
-	proto "github.com/golang/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1878,6 +1877,7 @@ func (m *DirectoryBlockAnchor) Unmarshal(dAtA []byte) error {
 func skipDirectoryBlock(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -1909,10 +1909,8 @@ func skipDirectoryBlock(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -1933,55 +1931,30 @@ func skipDirectoryBlock(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthDirectoryBlock
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthDirectoryBlock
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowDirectoryBlock
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipDirectoryBlock(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthDirectoryBlock
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupDirectoryBlock
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthDirectoryBlock
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthDirectoryBlock = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowDirectoryBlock   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthDirectoryBlock        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowDirectoryBlock          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupDirectoryBlock = fmt.Errorf("proto: unexpected end of group")
 )
