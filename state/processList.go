@@ -353,15 +353,10 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 	return false, -1
 }
 
-// Returns true and the index of this server, or false and the insertion point for this server
-func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
-	if p == nil {
-		return false, 0
-	}
-
+func GetFedServerIndexHash(fedServers []interfaces.IServer, identityChainID interfaces.IHash) (bool, int) {
 	scid := identityChainID.Bytes()
 
-	for i, fs := range p.FedServers {
+	for i, fs := range fedServers {
 		// Find and remove
 		// Check first byte first.
 		chainID := fs.GetChainID().Bytes()
@@ -373,7 +368,16 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 		}
 	}
 
-	return false, len(p.FedServers)
+	return false, len(fedServers)
+}
+
+// Returns true and the index of this server, or false and the insertion point for this server
+func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
+	if p == nil {
+		return false, 0
+	}
+
+	return GetFedServerIndexHash(p.FedServers, identityChainID)
 }
 
 // Returns true and the index of this server, or false and the insertion point for this server

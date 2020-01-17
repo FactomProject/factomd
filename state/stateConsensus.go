@@ -34,6 +34,9 @@ import (
 var _ = fmt.Print
 var _ = (*hash.Hash32)(nil)
 
+// Disable leader thread until VM + Dependent holding modules are ready
+var EnableLeaderThread bool
+
 //***************************************************************
 // Process Loop for Consensus
 //
@@ -311,7 +314,9 @@ func (s *State) executeMsg(msg interfaces.IMsg) (ret bool) {
 			(local || vmi == s.LeaderVMIndex) && // if it's a local message or it a message for our VM
 			s.LeaderPL.DBHeight+1 >= hkb {
 			if vml == 0 { // if we have not generated a DBSig ...
-				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // ExecuteMsg()
+				if !EnableLeaderThread {
+					s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
+				}
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
 				s.LogMessage("executeMsg", "Missing DBSig use XReview", msg)
@@ -848,18 +853,28 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID) // MoveStateToHeight block
 
 		s.LogPrintf("executeMsg", "MoveStateToHeight set leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
+
+		if EnableLeaderThread {
+			// REVIEW: eventually Election Queue will be replaced completely w/ pubsub
+
+			s.Pub.AuthoritySet.Write(&event.AuthoritySet{
+				LeaderHeight: s.LLeaderHeight,
+				FedServers:   s.LeaderPL.FedServers,
+				AuditServers: s.LeaderPL.AuditServers,
+			})
+		}
+
 		// update the elections thread
 		authlistMsg := s.EFactory.NewAuthorityListInternal(s.LeaderPL.FedServers, s.LeaderPL.AuditServers, s.LLeaderHeight)
-
-		{ // REVIEW: eventually Election Queue will be replaced completely w/ pubsub
-			s.ElectionsQueue().Enqueue(authlistMsg)
-			s.Pub.AuthoritySet.Write(authlistMsg) // Publish Message
-		}
+		s.ElectionsQueue().Enqueue(authlistMsg)
 
 		// Do not send out dbsigs while loading from disk
 		if s.Leader && !s.LeaderPL.DBSigAlreadySent && s.LLeaderHeight > s.DBHeightAtBoot {
-			s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
-			{                                             // send a directory event
+			if !EnableLeaderThread {
+				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex) // MoveStateToHeight()
+			}
+
+			{
 				dbstate := s.DBStates.Get(int(dbheight - 1))
 
 				directory := event.Directory{
@@ -1466,7 +1481,20 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
 }
 
+// KLUDGE: hack to conntrol old/new behavior during rewrite
+func (s *State) SendToLeader(m interfaces.IMsg) bool {
+	if !EnableLeaderThread {
+		return false
+	}
+	s.FollowerExecuteMsg(m)
+	return true
+}
+
 func (s *State) LeaderExecute(m interfaces.IMsg) {
+	if s.SendToLeader(m) {
+		return
+	}
+
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
 	if len(vm.List) != vm.Height {
 		s.repost(m, 1) // Goes in the "do this really fast" queue so we are prompt about EOM's while syncing
@@ -1492,6 +1520,10 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
+	if s.SendToLeader(m) {
+		return
+	}
+
 	LeaderEOMExecutions.Inc()
 	if !m.IsLocal() {
 		s.FollowerExecuteEOM(m)
@@ -1567,6 +1599,9 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
+	if s.SendToLeader(m) {
+		return
+	}
 	LeaderExecutions.Inc()
 	dbs := m.(*messages.DirectoryBlockSignature)
 	pl := s.ProcessLists.Get(dbs.DBHeight)
@@ -1618,6 +1653,9 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
+	if s.SendToLeader(m) {
+		return
+	}
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
 	if len(vm.List) != vm.Height {
 		s.repost(m, 1)
@@ -1638,6 +1676,9 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
+	if s.SendToLeader(m) {
+		return
+	}
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
 	if len(vm.List) != vm.Height {
 		s.repost(m, 1)
@@ -1659,6 +1700,9 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
+	if s.SendToLeader(m) {
+		return
+	}
 	LeaderExecutions.Inc()
 	vm := s.LeaderPL.VMs[s.LeaderVMIndex]
 	if len(vm.List) != vm.Height {
@@ -2150,7 +2194,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed++
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d EOMProcessed++ (%2d)", s.FactomNodeName, e.VMIndex, s.EOMProcessed))
 		vm.Synced = true // ProcessEOM
-		//markNoFault(pl, msg.GetVMIndex())
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Process this SigType: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 		return false
 	}
@@ -2233,6 +2276,7 @@ func (s *State) CheckForIDChange() {
 		s.initServerKeys()
 		s.LogPrintf("AckChange", "ReloadIdentity new local_priv: %v ident_chain: %v, prev local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID, prev_LocalServerPrivKey, prev_ChainID)
 		s.Pub.LeaderConfig.Write(&event.LeaderConfig{
+			NodeName:           s.GetFactomNodeName(),
 			IdentityChainID:    s.IdentityChainID,
 			Salt:               s.Salt,
 			ServerPrivKey:      s.ServerPrivKey,
@@ -2371,12 +2415,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		dblk, err := s.DB.FetchDBlockByHeight(dbheight - 1)
-		if dblk != nil {
-			hashes := dblk.GetEntryHashes()
-			if hashes != nil {
-				//llog.LogPrintf("marshalsizes.txt", "DirectoryBlock unmarshaled entry count: %d", len(hashes))
-			}
-		}
 		if err != nil || dblk == nil {
 			dbstate := s.GetDBState(dbheight - 1)
 			if dbstate == nil || !(!dbstate.IsNew || dbstate.Locked || dbstate.Saved) {

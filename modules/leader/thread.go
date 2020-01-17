@@ -5,10 +5,10 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/worker"
 )
 
@@ -16,72 +16,112 @@ type Pub struct {
 	MsgOut pubsub.IPublisher
 }
 
+// isolate deps on state package - eventually functions will be relocated
+var GetFedServerIndexHash = state.GetFedServerIndexHash
+
+// create and start all publishers
+func (p *Pub) Init(nodeName string) {
+	// REVIEW: will need to spawn/stop leader thread
+	// based on federated set membership
+	p.MsgOut = pubsub.PubFactory.Threaded(100).Publish(
+		pubsub.GetPath(nodeName, event.Path.LeaderMsgOut),
+	)
+	go p.MsgOut.Start()
+}
+
+const (
+	LEADER_ROLE = iota + 1
+	FOLLOWER_ROLE
+)
+
+type role = int
+
 type Sub struct {
+	role
 	MsgInput       *pubsub.SubChannel
 	MovedToHeight  *pubsub.SubChannel
 	BalanceChanged *pubsub.SubChannel
 	DBlockCreated  *pubsub.SubChannel
-	EomTicker      *pubsub.SubChannel
 	LeaderConfig   *pubsub.SubChannel
-	// TODO: add InternalAuthoritySet listener - probably add an update auth set msg instead of listening to all
-	// Eventually also track swapping audits and leaders AddRemoveServer Messages (come in quads)
-	// currently sent to election process
-
+	AuthoritySet   *pubsub.SubChannel
 }
 
-// block level events
-type Events struct {
-	Config         *event.LeaderConfig //
-	*event.DBHT                        // from move-to-ht
-	*event.Balance                     // REVIEW: does this relate to a specific VM
-	*event.Directory
-	*event.Ack // record of last sent ack by leader
-	*event.LeaderConfig
-}
-
-func (*Leader) mkChan() *pubsub.SubChannel {
+func (*Sub) mkChan() *pubsub.SubChannel {
 	return pubsub.SubFactory.Channel(1000) // FIXME: should calibrate channel depths
 }
 
+// Create all subscribers
+func (s *Sub) Init() {
+	s.MovedToHeight = s.mkChan()
+	s.MsgInput = s.mkChan()
+	s.BalanceChanged = s.mkChan()
+	s.DBlockCreated = s.mkChan()
+	s.LeaderConfig = s.mkChan()
+	s.AuthoritySet = s.mkChan()
+}
+
+// start subscriptions
+func (s *Sub) Start(nodeName string) {
+	s.LeaderConfig.Subscribe(pubsub.GetPath(nodeName, event.Path.LeaderConfig))
+	s.AuthoritySet.Subscribe(pubsub.GetPath(nodeName, event.Path.AuthoritySet))
+	{
+		s.SetLeaderMode(nodeName) //  create initial subscriptions
+	}
+}
+
+// start listening to subscriptions for leader duties
+func (s *Sub) SetLeaderMode(nodeName string) {
+	if s.role == LEADER_ROLE {
+		return
+	}
+	s.role = LEADER_ROLE
+	s.MsgInput.Subscribe(pubsub.GetPath(nodeName, "bmv", "rest"))
+	s.MovedToHeight.Subscribe(pubsub.GetPath(nodeName, event.Path.Seq))
+	s.DBlockCreated.Subscribe(pubsub.GetPath(nodeName, event.Path.Directory))
+	s.BalanceChanged.Subscribe(pubsub.GetPath(nodeName, event.Path.Bank))
+}
+
+// stop subscribers that we do not need as a follower
+func (s *Sub) SetFollowerMode() {
+	if s.role == FOLLOWER_ROLE {
+		return
+	}
+	s.role = FOLLOWER_ROLE
+	s.MsgInput.Unsubscribe()
+	s.MovedToHeight.Unsubscribe()
+	s.BalanceChanged.Unsubscribe()
+	s.DBlockCreated.Unsubscribe()
+}
+
+type Events struct {
+	Config              *event.LeaderConfig //
+	*event.DBHT                             // from move-to-ht
+	*event.Balance                          // REVIEW: does this relate to a specific VM
+	*event.Directory                        //
+	*event.Ack                              // record of last sent ack by leader
+	*event.AuthoritySet                     //
+}
+
 func (l *Leader) Start(w *worker.Thread) {
+	if !state.EnableLeaderThread {
+		panic("LeaderThreadDisabled")
+	}
 
 	w.Spawn("LeaderThread", func(w *worker.Thread) {
-		w.OnReady(l.Ready)
+		w.OnReady(func() {
+			l.Sub.Start(l.Config.NodeName)
+		})
 		w.OnRun(l.Run)
-		w.OnExit(l.Exit)
-
-		l.Pub.MsgOut = pubsub.PubFactory.Threaded(100).Publish(
-			pubsub.GetPath("FNode0", event.Path.LeaderMsgOut),
-		)
-		go l.Pub.MsgOut.Start()
-
-		l.Sub.MovedToHeight = l.mkChan()
-		l.Sub.MsgInput = l.mkChan()
-		l.Sub.BalanceChanged = l.mkChan()
-		l.Sub.DBlockCreated = l.mkChan()
-		l.Sub.EomTicker = l.mkChan()
-		l.Sub.LeaderConfig = l.mkChan()
+		w.OnExit(func() {
+			close(l.exit)
+			l.Pub.MsgOut.Close()
+		})
+		l.Pub.Init(l.Config.NodeName)
+		l.Sub.Init()
 	})
 }
 
-func (l *Leader) Exit() {
-	close(l.exit)
-	l.Pub.MsgOut.Close()
-}
-
-func (l *Leader) Ready() {
-	node0 := fnode.Get(0).State.GetFactomNodeName() // get follower name
-
-	// network inputs
-	l.Sub.MsgInput.Subscribe(pubsub.GetPath(node0, "bmv", "rest"))
-
-	// internal events
-	l.Sub.MovedToHeight.Subscribe(pubsub.GetPath(node0, event.Path.Seq))
-	l.Sub.DBlockCreated.Subscribe(pubsub.GetPath(node0, event.Path.Directory))
-	l.Sub.BalanceChanged.Subscribe(pubsub.GetPath(node0, event.Path.Bank))
-}
-
-func (l *Leader) processMin() {
+func (l *Leader) processMin() (ok bool) {
 	go func() {
 		time.Sleep(time.Second * time.Duration(l.Config.BlocktimeInSeconds/10))
 		l.ticker <- true
@@ -89,30 +129,27 @@ func (l *Leader) processMin() {
 
 	for {
 		select {
-		case v := <-l.Sub.LeaderConfig.Updates:
-			l.Config = v.(*event.LeaderConfig)
 		case v := <-l.MsgInput.Updates:
 			m := v.(interfaces.IMsg)
-			// TODO: do leader work - actually validate the message by calling into Bank Service
 			if constants.NeedsAck(m.Type()) {
-				log.LogMessage(logfile, "msgIn ", m)
+				log.LogMessage(l.logfile, "msgIn ", m)
 				l.sendAck(m)
 			}
 		case <-l.ticker:
-			log.LogPrintf(logfile, "Ticker:")
-			return
+			log.LogPrintf(l.logfile, "Ticker:")
+			return true
 		case <-l.exit:
-			return
+			return false
 		}
 	}
 }
 
-func (l *Leader) waitForNextMinute() int {
+func (l *Leader) waitForNextMinute() (min int, ok bool) {
 	for {
 		select {
 		case v := <-l.MovedToHeight.Updates:
 			evt := v.(*event.DBHT)
-			log.LogPrintf(logfile, "DBHT: %v", evt)
+			log.LogPrintf(l.logfile, "DBHT: %v", evt)
 
 			if evt.Minute == 10 {
 				continue
@@ -122,34 +159,101 @@ func (l *Leader) waitForNextMinute() int {
 			}
 
 			l.DBHT = evt
-			return l.DBHT.Minute
+			return l.DBHT.Minute, true
 		case <-l.exit:
-			return -1
+			return -1, false
 		}
 	}
-
 }
 
 // TODO: refactor to only get a single Directory event
-func (l *Leader) WaitForDBlockCreated() {
+func (l *Leader) WaitForDBlockCreated() (ok bool) {
 	for { // wait on a new (unique) directory event
-		v := <-l.Sub.DBlockCreated.Updates
-		evt := v.(*event.Directory)
-		if l.Directory != nil && evt.DBHeight == l.Directory.DBHeight {
-			log.LogPrintf(logfile, "DUP Directory: %v", v)
-			continue
-		} else {
-			log.LogPrintf(logfile, "Directory: %v", v)
+		select {
+		case v := <-l.Sub.DBlockCreated.Updates:
+			evt := v.(*event.Directory)
+			if l.Directory != nil && evt.DBHeight == l.Directory.DBHeight {
+				log.LogPrintf(l.logfile, "DUP Directory: %v", v)
+				continue
+			} else {
+				log.LogPrintf(l.logfile, "Directory: %v", v)
+			}
+			l.Directory = v.(*event.Directory)
+			return true
+		case <-l.exit:
+			return false
 		}
-		l.Directory = v.(*event.Directory)
-		return
 	}
 }
 
-func (l *Leader) WaitForBalanceChanged() {
-	v := <-l.Sub.BalanceChanged.Updates
-	l.Balance = v.(*event.Balance)
-	log.LogPrintf(logfile, "BalChange: %v", v)
+func (l *Leader) WaitForBalanceChanged() (ok bool) {
+	select {
+	case v := <-l.Sub.BalanceChanged.Updates:
+		l.Balance = v.(*event.Balance)
+		log.LogPrintf(l.logfile, "BalChange: %v", v)
+		return true
+	case <-l.exit:
+		return false
+	}
+}
+
+// get latest AuthoritySet event data
+// and compare w/ leader config
+func (l *Leader) currentAuthority() (isLeader bool, index int) {
+	evt := l.Events.AuthoritySet
+
+readLatestAuthSet:
+	for {
+		select {
+		case v := <-l.Sub.AuthoritySet.Updates:
+			{
+				evt = v.(*event.AuthoritySet)
+			}
+		default:
+			{
+				l.Events.AuthoritySet = evt
+				break readLatestAuthSet
+			}
+		}
+	}
+
+	return GetFedServerIndexHash(l.Events.AuthoritySet.FedServers, l.Config.IdentityChainID)
+}
+
+// wait to become leader (possibly forever for followers)
+func (l *Leader) WaitForAuthority() (isLeader bool) {
+	// REVIEW: do we need to check block ht?
+	log.LogPrintf(l.logfile, "WaitForAuthority %v ", l.Events.AuthoritySet.LeaderHeight)
+
+	defer func() {
+		if isLeader {
+			l.Sub.SetLeaderMode(l.Config.NodeName)
+			log.LogPrintf(l.logfile, "GotAuthority %v ", l.Events.AuthoritySet.LeaderHeight)
+		}
+	}()
+
+	for {
+		select {
+		case v := <-l.Sub.LeaderConfig.Updates:
+			l.Config = v.(*event.LeaderConfig)
+		case v := <-l.Sub.AuthoritySet.Updates:
+			l.Events.AuthoritySet = v.(*event.AuthoritySet)
+		case <-l.exit:
+			return false
+		}
+		if isAuthority, index := l.currentAuthority(); isAuthority {
+			l.VMIndex = index
+			return true
+		}
+	}
+}
+
+func (l *Leader) waitForNewBlock() (stillWaiting bool) {
+	if min, ok := l.waitForNextMinute(); !ok {
+		return false
+	} else {
+		return min != 0
+	}
 }
 
 func (l *Leader) Run() {
@@ -158,40 +262,29 @@ func (l *Leader) Run() {
 	l.waitForNextMinute()
 
 blockLoop:
-	for {
-		if false { // TODO: deal w/ new auth set
-			//case v := <-l.NewAuthoritySet
-			// if got a new Auth & no longer leader - break the block look
-			l.VMIndex = 0 // KLUDGE hard coded for single leader
+	for { //blockLoop
+		ok := worker.RunSteps(
+			l.WaitForAuthority,
+			l.WaitForBalanceChanged,
+			l.WaitForDBlockCreated,
+		)
+		if !ok {
 			break blockLoop
+		} else {
+			l.sendDBSig()
 		}
-
-		l.WaitForBalanceChanged()
-		l.WaitForDBlockCreated()
-		l.sendDBSig()
-
-		log.LogPrintf(logfile, "MinLoopStart: %v", true)
+		log.LogPrintf(l.logfile, "MinLoopStart: %v", true)
 	minLoop:
 		for { // could be counted 1..9 to account for min
-			select {
-			case <-l.exit:
-				return
-			default:
-				l.processMin()
-				l.sendEOM()
-
-				switch min := l.waitForNextMinute(); min {
-				case -1: // caught exit
-					return
-				case 0:
-					break minLoop
-				default:
-					continue minLoop
-				}
+			ok := worker.RunSteps(
+				l.processMin,
+				l.sendEOM,
+				l.waitForNewBlock,
+			)
+			if !ok {
+				break minLoop
 			}
 		}
-		log.LogPrintf(logfile, "MinLoopEnd: %v", true)
+		log.LogPrintf(l.logfile, "MinLoopEnd: %v", true)
 	}
-
-	// FIXME: block on waiting for an event to become a leader again
 }

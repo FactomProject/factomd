@@ -1549,6 +1549,9 @@ func (s *State) GetPort() int {
 }
 
 func (s *State) TickerQueue() chan int {
+	if EnableLeaderThread {
+		panic("LeaderThreadEnabled")
+	}
 	return s.tickerQueue
 }
 
