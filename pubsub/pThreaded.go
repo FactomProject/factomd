@@ -11,9 +11,18 @@ type PubThreaded struct {
 	subChanges  chan subAction
 }
 
+type action = int
+
+const (
+	COUNT action = iota + 1
+	SUBSCRIBE
+	UNSUBSCRIBE
+)
+
 type subAction struct {
 	Subscriber IPubSubscriber
-	Subscribe  bool
+	Action     action
+	Reply      chan interface{}
 }
 
 func NewPubThreaded(buffer int) *PubThreaded {
@@ -32,6 +41,10 @@ func (p *PubThreaded) Close() error {
 	return nil
 }
 
+func (p *PubThreaded) WriteWithCallback(o interface{}, callback ...func()) {
+	p.inputs <- o
+}
+
 func (p *PubThreaded) Write(o interface{}) {
 	p.inputs <- o
 }
@@ -40,7 +53,7 @@ func (p *PubThreaded) Unsubscribe(subscriber IPubSubscriber) bool {
 	// Send the command to unsub
 	p.subChanges <- subAction{
 		Subscriber: subscriber,
-		Subscribe:  false,
+		Action:     UNSUBSCRIBE,
 	}
 	return true
 }
@@ -62,7 +75,7 @@ func (p *PubThreaded) Subscribe(subscriber IPubSubscriber) bool {
 	// Send the command to sub
 	p.subChanges <- subAction{
 		Subscriber: subscriber,
-		Subscribe:  true,
+		Action:     SUBSCRIBE,
 	}
 	return true
 }
@@ -91,10 +104,17 @@ ThreadedRunLoop:
 			}
 			p.handleWrite(in)
 		case action := <-p.subChanges:
-			if action.Subscribe {
-				p.subscribe(action.Subscriber)
-			} else {
+			switch action.Action {
+			case UNSUBSCRIBE:
 				p.unsubscribe(action.Subscriber)
+			case SUBSCRIBE:
+				p.subscribe(action.Subscriber)
+			case COUNT:
+			default:
+				panic("UnknownAction")
+			}
+			if action.Reply != nil {
+				action.Reply <- len(p.Subscribers)
 			}
 		}
 	}
@@ -109,4 +129,52 @@ func (p *PubThreaded) write(o interface{}) {
 
 func (p *PubThreaded) Publish(path string, wrappers ...IPublisherWrapper) IPublisher {
 	return globalPublishWith(path, p, wrappers...)
+}
+
+func (p *PubThreaded) CountSubscriberSync(replyChannel ...chan interface{}) {
+	var reply chan interface{}
+	if len(replyChannel) == 1 {
+		reply = replyChannel[0]
+	} else {
+		reply = make(chan interface{})
+	}
+
+	p.subChanges <- subAction{
+		Subscriber: nil,
+		Action:     COUNT,
+		Reply:      reply,
+	}
+}
+
+func (p *PubThreaded) UnsubscribeSync(subscriber IPubSubscriber, replyChannel ...chan interface{}) bool {
+
+	var reply chan interface{}
+
+	if len(replyChannel) == 1 {
+		reply = replyChannel[0]
+	}
+
+	// Send the command to unsub
+	p.subChanges <- subAction{
+		Subscriber: subscriber,
+		Action:     UNSUBSCRIBE,
+		Reply:      reply,
+	}
+	return true
+}
+
+func (p *PubThreaded) SubscribeSync(subscriber IPubSubscriber, replyChannel ...chan interface{}) bool {
+	var reply chan interface{}
+
+	if len(replyChannel) == 1 {
+		reply = replyChannel[0]
+	}
+
+	// Send the command to sub
+	p.subChanges <- subAction{
+		Subscriber: subscriber,
+		Action:     SUBSCRIBE,
+		Reply:      reply,
+	}
+	return true
 }
