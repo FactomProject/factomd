@@ -50,12 +50,7 @@ func (p *PubThreaded) Write(o interface{}) {
 }
 
 func (p *PubThreaded) Unsubscribe(subscriber IPubSubscriber) bool {
-	// Send the command to unsub
-	p.subChanges <- subAction{
-		Subscriber: subscriber,
-		Action:     UNSUBSCRIBE,
-	}
-	return true
+	return p.UnsubscribeSync(subscriber)
 }
 
 func (p *PubThreaded) unsubscribe(subscriber IPubSubscriber) (ok bool) {
@@ -72,12 +67,7 @@ func (p *PubThreaded) unsubscribe(subscriber IPubSubscriber) (ok bool) {
 }
 
 func (p *PubThreaded) Subscribe(subscriber IPubSubscriber) bool {
-	// Send the command to sub
-	p.subChanges <- subAction{
-		Subscriber: subscriber,
-		Action:     SUBSCRIBE,
-	}
-	return true
+	return p.SubscribeSync(subscriber)
 }
 
 func (p *PubThreaded) subscribe(subscriber IPubSubscriber) bool {
