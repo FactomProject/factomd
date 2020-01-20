@@ -18,6 +18,7 @@ EnableLiveFeedAPI                     = true
 EventReceiverProtocol                 = tcp
 EventReceiverHost                     = 127.0.0.1
 EventReceiverPort                     = 8040
+EventSenderPort                       = 8041
 EventFormat                           = protobuf
 EventSendStateChange                  = false
 EventBroadcastContent                 = OnRegistration 
@@ -32,6 +33,7 @@ Here is an overview of these options:
 |  EventReceiverProtocol            | The network protocol that is used to send event messages over the network.     | tcp &#124; udp |
 |  EventReceiverHost                | The receiver endpoint host.                                                | DNS name &#124; IP address |
 |  EventReceiverPort                | The receiver endpoint port.                                                  | port number |
+|  EventSenderPort                  | The client or sender port.                                                   | port number |
 |  EventFormat                      | The output format in which the event sent.                                      | protobuf &#124; json |
 |  EventSendStateChange             | It’s possible to choose whether the chain and entry commit registrations should only be sent once, followed by state change events vs resending them for every state change. The first option reduces overhead & network traffic, but requires the implementer to track which state changes belong to which chain or entry.| true &#124; false |
 |  EventBroadcastContent            | This option will determine whether the external ID’s and content will be included in the event stream. There are three level settings for this. Please note that the combination of EventSendStateChange = false and EventBroadcastContent=always, will resend all data on every state change. The maximum content size per entry is only 10KB, however with a large number of transactions per second this may add up to an undesirable amount of data. | always &#124; once &#124; never |

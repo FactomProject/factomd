@@ -2,11 +2,12 @@ package eventservices
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/util"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestEventServiceParameters_DefaultParameters(t *testing.T) {
@@ -41,6 +42,7 @@ func TestEventServiceParameters_OverrideParameters(t *testing.T) {
 		EventReceiverProtocol:    "udp",
 		EventReceiverHost:        "0.0.0.0",
 		EventReceiverPort:        8888,
+		EventSenderPort:          8889,
 		EventFormat:              "json",
 		EventReplayDuringStartup: true,
 		EventSendStateChange:     true,
@@ -121,6 +123,7 @@ func buildBaseConfig(enable bool, protocol string, address string, port int, for
 			EventReceiverProtocol    string
 			EventReceiverHost        string
 			EventReceiverPort        int
+			EventSenderPort          int
 			EventFormat              string
 			EventReplayDuringStartup bool
 			EventSendStateChange     bool
@@ -130,6 +133,7 @@ func buildBaseConfig(enable bool, protocol string, address string, port int, for
 			EventReceiverProtocol:    protocol,
 			EventReceiverHost:        address,
 			EventReceiverPort:        port,
+			EventSenderPort:          port,
 			EventFormat:              format,
 			EventReplayDuringStartup: replay,
 			EventSendStateChange:     stateChange,

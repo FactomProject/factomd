@@ -99,6 +99,7 @@ func init() {
 	flag.StringVar(&p.EventReceiverProtocol, "eventreceiverprotocol", "", "Transport protocol for the events receiver; default udp")
 	flag.StringVar(&p.EventReceiverHost, "eventreceiverhost", "", "Host address for the events receiver; default 127.0.0.1")
 	flag.IntVar(&p.EventReceiverPort, "eventreceiverport", 0, "Port for the events receiver; default 8040")
+	flag.IntVar(&p.EventSenderPort, "eventsenderport", 0, "Port for the events sender (client)")
 	flag.StringVar(&p.EventFormat, "eventformat", "", "Event output format for the events receiver, protobuf|json; default protobuf")
 	flag.BoolVar(&p.EventSendStateChange, "eventsendstatechange", false, "Send only StateChange events when the state of an entity changes instead of the full entity; default false")
 	flag.StringVar(&p.EventBroadcastContent, "eventbroadcastcontent", "", "Settings for including content in the event messages always|once|never; default once")
