@@ -29,12 +29,15 @@ func (p *Pub) Init(nodeName string) {
 	go p.MsgOut.Start()
 }
 
+type role = int
+
 const (
-	LEADER_ROLE = iota + 1
-	FOLLOWER_ROLE
+	FederatedRole role = iota + 1
+	AuditRole
+	FollowerRole
 )
 
-type role = int
+var _ = AuditRole // REVIEW: if Audit responsibilities are different from normal Fed then use this
 
 type Sub struct {
 	role
@@ -71,10 +74,10 @@ func (s *Sub) Start(nodeName string) {
 
 // start listening to subscriptions for leader duties
 func (s *Sub) SetLeaderMode(nodeName string) {
-	if s.role == LEADER_ROLE {
+	if s.role == FederatedRole {
 		return
 	}
-	s.role = LEADER_ROLE
+	s.role = FederatedRole
 	s.MsgInput.Subscribe(pubsub.GetPath(nodeName, "bmv", "rest"))
 	s.MovedToHeight.Subscribe(pubsub.GetPath(nodeName, event.Path.Seq))
 	s.DBlockCreated.Subscribe(pubsub.GetPath(nodeName, event.Path.Directory))
@@ -83,10 +86,10 @@ func (s *Sub) SetLeaderMode(nodeName string) {
 
 // stop subscribers that we do not need as a follower
 func (s *Sub) SetFollowerMode() {
-	if s.role == FOLLOWER_ROLE {
+	if s.role == FollowerRole {
 		return
 	}
-	s.role = FOLLOWER_ROLE
+	s.role = FollowerRole
 	s.MsgInput.Unsubscribe()
 	s.MovedToHeight.Unsubscribe()
 	s.BalanceChanged.Unsubscribe()

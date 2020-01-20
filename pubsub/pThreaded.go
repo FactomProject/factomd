@@ -41,10 +41,6 @@ func (p *PubThreaded) Close() error {
 	return nil
 }
 
-func (p *PubThreaded) WriteWithCallback(o interface{}, callback ...func()) {
-	p.inputs <- o
-}
-
 func (p *PubThreaded) Write(o interface{}) {
 	p.inputs <- o
 }
@@ -136,6 +132,7 @@ func (p *PubThreaded) CountSubscriberSync(replyChannel ...chan interface{}) {
 	}
 }
 
+// optional reply channl allow waiting on async calls to unsubscribe
 func (p *PubThreaded) UnsubscribeSync(subscriber IPubSubscriber, replyChannel ...chan interface{}) bool {
 
 	var reply chan interface{}
@@ -153,6 +150,7 @@ func (p *PubThreaded) UnsubscribeSync(subscriber IPubSubscriber, replyChannel ..
 	return true
 }
 
+// optional reply channl allow waiting on async calls to subscribe
 func (p *PubThreaded) SubscribeSync(subscriber IPubSubscriber, replyChannel ...chan interface{}) bool {
 	var reply chan interface{}
 
