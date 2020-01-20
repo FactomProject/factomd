@@ -63,11 +63,9 @@ func (p *PubBase) Subscribe(subscriber IPubSubscriber) bool {
 }
 
 func (p *PubBase) Write(o interface{}) {
-	p.RLock()
 	for i := range p.Subscribers {
 		p.Subscribers[i].write(o)
 	}
-	p.RUnlock()
 }
 
 func (PubBase) Start() {
