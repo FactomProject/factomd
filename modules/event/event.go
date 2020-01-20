@@ -13,6 +13,7 @@ type pubSubPaths struct {
 	LeaderConfig string
 	LeaderMsgIn  string
 	LeaderMsgOut string
+	AuthoritySet string
 }
 
 var Path = pubSubPaths{
@@ -23,6 +24,7 @@ var Path = pubSubPaths{
 	LeaderConfig: "leader-config",
 	LeaderMsgIn:  "leader-msg-in",
 	LeaderMsgOut: "leader-msg-out",
+	AuthoritySet: "authority-set",
 }
 
 type Balance struct {
@@ -42,13 +44,14 @@ type DBHT struct {
 	Minute   int
 }
 
-// event created when Ack is actually sent out
+// event created when Ack is crafted by the leader thread
 type Ack struct {
 	Height      uint32
 	MessageHash interfaces.IHash
 }
 
 type LeaderConfig struct {
+	NodeName           string
 	IdentityChainID    interfaces.IHash
 	Salt               interfaces.IHash // only change on boot
 	ServerPrivKey      *primitives.PrivateKey
@@ -57,4 +60,10 @@ type LeaderConfig struct {
 
 type EOM struct {
 	Timestamp interfaces.Timestamp
+}
+
+type AuthoritySet struct {
+	LeaderHeight uint32
+	FedServers   []interfaces.IServer
+	AuditServers []interfaces.IServer
 }

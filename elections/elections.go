@@ -2,12 +2,13 @@ package elections
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/modules/query"
+	"github.com/FactomProject/factomd/queue"
+	"github.com/FactomProject/factomd/worker"
 	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/worker"
-
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -64,6 +65,24 @@ type Elections struct {
 
 	// Messages that are not valid. They can be processed when an election finishes
 	Waiting chan interfaces.IElectionMsg
+	exit    chan interface{}
+}
+
+func New(is interfaces.IState) *Elections {
+	e := new(Elections)
+	s := is.(*state.State)
+	e.NameInit(s, s.GetFactomNodeName()+"Election", reflect.TypeOf(e).String())
+	query.Module(s.GetFactomNodeName()).Election = e
+	e.State = s
+	e.Electing = -1
+	e.Timeout = time.Duration(FaultTimeout) * time.Second
+	e.RoundTimeout = time.Duration(RoundTimeout) * time.Second
+	s.Elections = e // inject reference from state
+	e.Input = s.ElectionsQueue()
+	e.Waiting = make(chan interfaces.IElectionMsg, 500)
+	e.exit = make(chan interface{})
+
+	return e
 }
 
 func (e *Elections) GetFedID() interfaces.IHash {
@@ -432,42 +451,40 @@ func (e *Elections) ProcessWaiting() {
 
 // Runs the main loop for elections for this instance of factomd
 func Run(w *worker.Thread, s *state.State) {
-	e := new(Elections)
-	e.NameInit(s, s.FactomNodeName+"Election", reflect.TypeOf(e).String())
-	s.Elections = e
-	e.State = s
-	e.Input = s.ElectionsQueue()
-	e.Electing = -1
+	e := New(s)
 
-	e.Timeout = time.Duration(FaultTimeout) * time.Second
-	e.RoundTimeout = time.Duration(RoundTimeout) * time.Second
-	e.Waiting = make(chan interfaces.IElectionMsg, 500)
+	w.Spawn("Elections", func(w *worker.Thread) {
+		w.OnExit(func() {
+			close(e.exit)
+		})
+		w.OnRun(func() {
+			var msg interfaces.IElectionMsg
+			msgIn := e.Input.(*queue.MsgQueue).Channel
 
-	// Actually run the elections
-	w.Run("Elections", func() {
-		for {
-			msg := e.Input.Dequeue().(interfaces.IElectionMsg)
-			e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
-
-			valid := msg.ElectionValidate(e)
-			switch valid {
-			case -1:
-				// Do not process
-				continue
-			case 0:
-				// Drop the oldest message if at capacity
-				if len(e.Waiting) > 9*cap(e.Waiting)/10 {
-					<-e.Waiting
+			for {
+				select {
+				case <-e.exit:
+					return
+				case v := <-msgIn:
+					msg = v.(interfaces.IElectionMsg)
+					e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
 				}
-				// Waiting will get drained when a new election begins, or we move forward
-				e.Waiting <- msg
-				continue
-			}
-			msg.ElectionProcess(s, e)
 
-			//if msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set
-			//	CheckAuthSetsMatch("election.Run", e, s)
-			//}
-		}
+				switch valid := msg.ElectionValidate(e); valid {
+				case -1:
+					// Do not process
+					continue
+				case 0:
+					// Drop the oldest message if at capacity
+					if len(e.Waiting) > 9*cap(e.Waiting)/10 {
+						<-e.Waiting
+					}
+					e.Waiting <- msg // Waiting will get drained when a new election begins, or we move forward
+					continue
+				}
+				msg.ElectionProcess(s, e)
+			}
+		})
+
 	})
 }

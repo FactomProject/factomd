@@ -6,11 +6,13 @@ import (
 
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
 //  Currently just tests FCT/EC Commit/Reveal messages to make sure leader is working
 func TestLeaderModule(t *testing.T) {
+	state.EnableLeaderThread = true // enable threaded leader behavior for this test
 
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}

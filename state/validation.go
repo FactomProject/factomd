@@ -99,11 +99,10 @@ func (s *State) MsgSort() {
 		}
 	}()
 
-	if false { // KLUDGE DISABLE LEADER Publisher
-		leaderOut := pubsub.SubFactory.Channel(50)
-		if s.GetFactomNodeName() == "FNode0" {
-			leaderOut.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), event.Path.LeaderMsgOut))
-		}
+	leaderOut := pubsub.SubFactory.Channel(50)
+
+	if EnableLeaderThread {
+		leaderOut.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), event.Path.LeaderMsgOut))
 	}
 
 	// Look for pending inMessages, and get one if there is one.
@@ -115,6 +114,7 @@ func (s *State) MsgSort() {
 			shutdown(s)
 			time.Sleep(10 * time.Second) // wait till database close is complete
 			return
+			// TODO: REFACTOR/extract method to process ticker
 		case c := <-s.tickerQueue: // Look for pending inMessages, and get one if there is one.
 			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not ready to execute as a leader or are loading the DBState inMessages
 				continue
@@ -165,7 +165,9 @@ func (s *State) MsgSort() {
 		case msg = <-s.inMsgQueue2.Channel:
 			s.LogMessage("InMsgQueue2", "dequeue", msg)
 			s.inMsgQueue2.Metric(msg).Dec()
-			// TODO include leaderOut  queue
+		case v := <-leaderOut.Updates:
+			msg = v.(interfaces.IMsg)
+			s.LogMessage("leader", "out", msg)
 		}
 
 		if t := msg.Type(); t == constants.ACK_MSG {

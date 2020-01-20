@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/FactomProject/factomd/modules/query"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -1578,7 +1579,7 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 
 	// Elections information
 	eInfo := new(ElectionInfo)
-	if e := state.GetElections(); e != nil {
+	if e := query.Module(state.GetFactomNodeName()).Election; e != nil {
 		if electing := e.GetElecting(); electing != -1 {
 			eInfo.InProgress = true
 			vm := e.GetVMIndex()

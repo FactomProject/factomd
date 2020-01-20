@@ -8,15 +8,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/FactomProject/factomd/modules/leader"
 	"os"
 	"reflect"
 	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/modules/debugsettings"
-	"github.com/FactomProject/factomd/simulation"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/messages"
@@ -26,8 +24,10 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/modules/debugsettings"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/simulation"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/worker"
@@ -45,6 +45,9 @@ var logPort string
 func init() {
 	messages.General = new(msgsupport.GeneralFactory)
 	primitives.General = messages.General
+
+	// Globally Enable/Disable Modules
+	state.EnableLeaderThread = false // use new threaded leader
 }
 
 func echo(s string, more ...interface{}) {
@@ -331,8 +334,12 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 		initEntryHeight(node.State, p.Sync2)
 		initAnchors(node.State, p.ReparseAnchorChains)
 		echoConfig(node.State, p) // print the config only once
-		// Init settings
 	})
+
+	if state.EnableLeaderThread {
+		l := leader.New(node.State)
+		l.Start(w)
+	}
 
 	// TODO: Init any settings from the config
 	debugsettings.NewNode(node.State.GetFactomNodeName())
@@ -373,7 +380,9 @@ func startServer(w *worker.Thread, node *fnode.FactomNode) {
 	w.Run("DBStateCatchup", s.DBStates.Catchup)
 	w.Run("LoadDatabase", s.LoadDatabase)
 	w.Run("SyncEntries", s.GoSyncEntries)
-	w.Run("EOMTicker", func() { Timer(node.State) })
+	if !state.EnableLeaderThread {
+		w.Run("EOMTicker", func() { Timer(node.State) })
+	}
 	w.Run("MMResponseHandler", s.MissingMessageResponseHandler.Run)
 }
 
