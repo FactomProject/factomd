@@ -103,12 +103,20 @@ func (p *Peer) AddressPort() string {
 }
 
 func (p *Peer) PeerIdent() string {
-	return p.Hash[0:12] + "-" + p.Address + ":" + p.Port
+	h := p.Hash
+	if len(h) > 12 {
+		h = h[:12]
+	}
+	return h + "-" + p.Address + ":" + p.Port
 }
 
 func (p *Peer) PeerFixedIdent() string {
+	h := p.Hash
+	if len(h) > 12 {
+		h = h[:12]
+	}
 	address := fmt.Sprintf("%16s", p.Address)
-	return p.Hash[0:12] + "-" + address + ":" + p.Port
+	return h + "-" + address + ":" + p.Port
 }
 
 func (p *Peer) PeerLogFields() log.Fields {
