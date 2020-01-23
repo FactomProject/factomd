@@ -11,6 +11,22 @@ import (
 	"runtime"
 )
 
+type DirectoryBlockInfo struct {
+	KeyMerkleRoot                    string
+	BodyKeyMerkleRoot                string
+	Hash                             string
+	TimeStamp                        string
+	BlockHeight                      string
+	PreviousDirectoryBlockMerkleRoot string
+	PreviousDirectoryBlockHash       string
+}
+type Search struct {
+	Title          string
+	Content        string
+	Term           string
+	DirectoryBlock DirectoryBlockInfo
+}
+
 type WebHandler interface {
 	RegisterRoutes(router *mux.Router)
 }
@@ -43,6 +59,7 @@ func (handler *webHandler) RegisterRoutes(router *mux.Router) {
 
 	// register web endpoints
 	router.HandleFunc("/", handler.indexHandler)
+	router.HandleFunc("/search", handler.searchHandler).Queries("search", "{term}")
 }
 
 func (handler *webHandler) indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +80,36 @@ func (handler *webHandler) indexHandler(w http.ResponseWriter, r *http.Request) 
 	t.Execute(w, nil)
 }
 
+func (handler *webHandler) searchHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("handle %s '%s' from %s", r.Method, r.URL.Path, r.RemoteAddr)
+
+	resourceDirectory, err := resourceDirectory()
+	if err != nil {
+		fmt.Fprintf(w, handler.errorPage(err))
+		return
+	}
+
+	t, err := template.ParseFiles(filepath.Join(resourceDirectory, "views/search.html"))
+	if err != nil {
+		fmt.Fprintf(w, handler.errorPage(err))
+		return
+	}
+
+	params := mux.Vars(r)
+	term := params["term"]
+	log.Printf("%v", params)
+
+	page := Search{
+		Title: "Not Found",
+		Term:  term,
+	}
+
+	err = t.Execute(w, page)
+	if err != nil {
+		log.Printf("failed to render template correctly: %v", err)
+	}
+}
+
 func (handler *webHandler) notFound(w http.ResponseWriter, r *http.Request) {
 	log.Printf("page not found %s '%s' from %s", r.Method, r.URL.Path, r.RemoteAddr)
 	w.WriteHeader(http.StatusNotFound)
@@ -79,6 +126,5 @@ func resourceDirectory() (string, error) {
 		log.Println("no caller information to retrieve control panel resource directory")
 		return "", fmt.Errorf("failed to load control panel resource")
 	}
-	fmt.Printf("Filename : %q, Dir : %q\n", filename, path.Dir(filename))
 	return filepath.Join(path.Dir(filename), "resources"), nil
 }
