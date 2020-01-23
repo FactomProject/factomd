@@ -42,6 +42,7 @@ import:
   version: ^1.2.2
   subpackages:
   - assert
+- package: github.com/alexandrevicenzi/go-sse  
 testImport:
 - package: github.com/FactomProject/go-spew
   subpackages:
