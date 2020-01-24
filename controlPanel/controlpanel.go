@@ -15,12 +15,14 @@ import (
 )
 
 type controlPanel struct {
-	MsgInputSubscription       *pubsub.SubChannel
-	MsgOutputSubscription      *pubsub.SubChannel
-	MovedToHeightSubscription  *pubsub.SubChannel
-	BalanceChangedSubscription *pubsub.SubChannel
-	DBlockCreatedSubscription  *pubsub.SubChannel
-	EomTickerSubscription      *pubsub.SubChannel
+	MsgInputSubscription          *pubsub.SubChannel
+	MsgOutputSubscription         *pubsub.SubChannel
+	MovedToHeightSubscription     *pubsub.SubChannel
+	BalanceChangedSubscription    *pubsub.SubChannel
+	DBlockCreatedSubscription     *pubsub.SubChannel
+	EomTickerSubscription         *pubsub.SubChannel
+	ConnectionAddedSubscription   *pubsub.SubChannel
+	ConnectionRemovedSubscription *pubsub.SubChannel
 }
 
 // New Control Panel.
@@ -47,12 +49,14 @@ func New(config *Config) {
 		eventHandler.RegisterChannel("channel-1", func() *sse.Message { return sse.SimpleMessage(time.Now().String()) }, 3*time.Second)
 
 		controlPanel := controlPanel{
-			MsgInputSubscription:       pubsub.SubFactory.Channel(100),
-			MsgOutputSubscription:      pubsub.SubFactory.Channel(100),
-			MovedToHeightSubscription:  pubsub.SubFactory.Channel(100),
-			BalanceChangedSubscription: pubsub.SubFactory.Channel(100),
-			DBlockCreatedSubscription:  pubsub.SubFactory.Channel(100),
-			EomTickerSubscription:      pubsub.SubFactory.Channel(100),
+			MsgInputSubscription:          pubsub.SubFactory.Channel(100),
+			MsgOutputSubscription:         pubsub.SubFactory.Channel(100),
+			MovedToHeightSubscription:     pubsub.SubFactory.Channel(100),
+			BalanceChangedSubscription:    pubsub.SubFactory.Channel(100),
+			DBlockCreatedSubscription:     pubsub.SubFactory.Channel(100),
+			EomTickerSubscription:         pubsub.SubFactory.Channel(100),
+			ConnectionAddedSubscription:   pubsub.SubFactory.Channel(100),
+			ConnectionRemovedSubscription: pubsub.SubFactory.Channel(100),
 		}
 
 		// leader output
@@ -66,6 +70,8 @@ func New(config *Config) {
 		controlPanel.BalanceChangedSubscription.Subscribe(pubsub.GetPath(config.FactomNodeName, event.Path.Bank))
 		controlPanel.DBlockCreatedSubscription.Subscribe(pubsub.GetPath(config.FactomNodeName, event.Path.Directory))
 		//controlPanel.EomTickerSubscription.Subscribe(pubsub.GetPath(config.FactomNodeName, event.Path.EOM))
+		controlPanel.ConnectionAddedSubscription.Subscribe(pubsub.GetPath(event.Path.ConnectionAdded))
+		controlPanel.ConnectionRemovedSubscription.Subscribe(pubsub.GetPath(event.Path.ConnectionRemoved))
 
 		go controlPanel.pushEvents(server)
 
@@ -124,6 +130,22 @@ func (controlPanel *controlPanel) pushEvents(server *sse.Server) {
 		case v := <-controlPanel.EomTickerSubscription.Updates:
 			if dbHeight, ok := v.(*event.DBHT); ok {
 				data, err := json.Marshal(dbHeight)
+				if err != nil {
+					message := sse.SimpleMessage(string(data))
+					server.SendMessage(URL_PREFIX+"general-events", message)
+				}
+			}
+		case v := <-controlPanel.ConnectionAddedSubscription.Updates:
+			if connectionInfo, ok := v.(*event.ConnectionAdded); ok {
+				data, err := json.Marshal(connectionInfo)
+				if err != nil {
+					message := sse.SimpleMessage(string(data))
+					server.SendMessage(URL_PREFIX+"general-events", message)
+				}
+			}
+		case v := <-controlPanel.ConnectionRemovedSubscription.Updates:
+			if connectionInfo, ok := v.(*event.ConnectionRemoved); ok {
+				data, err := json.Marshal(connectionInfo)
 				if err != nil {
 					message := sse.SimpleMessage(string(data))
 					server.SendMessage(URL_PREFIX+"general-events", message)

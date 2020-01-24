@@ -6,23 +6,27 @@ import (
 )
 
 type pubSubPaths struct {
-	EOM          string
-	Seq          string
-	Directory    string
-	Bank         string
-	LeaderConfig string
-	LeaderMsgIn  string
-	LeaderMsgOut string
+	EOM               string
+	Seq               string
+	Directory         string
+	Bank              string
+	LeaderConfig      string
+	LeaderMsgIn       string
+	LeaderMsgOut      string
+	ConnectionAdded   string
+	ConnectionRemoved string
 }
 
 var Path = pubSubPaths{
-	EOM:          "EOM",
-	Seq:          "seq",
-	Directory:    "directory",
-	Bank:         "bank",
-	LeaderConfig: "leader-config",
-	LeaderMsgIn:  "leader-msg-in",
-	LeaderMsgOut: "leader-msg-out",
+	EOM:               "EOM",
+	Seq:               "seq",
+	Directory:         "directory",
+	Bank:              "bank",
+	LeaderConfig:      "leader-config",
+	LeaderMsgIn:       "leader-msg-in",
+	LeaderMsgOut:      "leader-msg-out",
+	ConnectionAdded:   "connection-added",
+	ConnectionRemoved: "connection-removed",
 }
 
 type Balance struct {
@@ -57,4 +61,21 @@ type LeaderConfig struct {
 
 type EOM struct {
 	Timestamp interfaces.Timestamp
+}
+
+type ConnectionChanged struct {
+	IP       string
+	Status   string
+	Duration string
+	Send     string
+	Received string
+	IsOnline bool
+	State    string
+}
+
+type ConnectionAdded struct {
+	ConnectionChanged
+}
+type ConnectionRemoved struct {
+	ConnectionChanged
 }
