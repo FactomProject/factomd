@@ -1,10 +1,11 @@
 package pubsub_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/pubsub"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestSubUnSub(t *testing.T) {

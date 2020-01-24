@@ -924,7 +924,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.LeaderPL.SortFedServers()
 
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(newMinute, s.IdentityChainID) // MoveStateToHeight minute
-	s.LogPrintf("executeMsg", "MoveStateToHeight new minute set leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
+	s.LogPrintf("executeMsg", "MoveStateToHeight leader=%v, vmIndex = %v", s.Leader, s.LeaderVMIndex)
 
 	{ // debug
 		vmSync := false

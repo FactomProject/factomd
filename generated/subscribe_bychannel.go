@@ -16,6 +16,56 @@ import (
 // Start subscribeBychannel generated go code
 
 // SubChannel subscriber has the basic necessary function implementations. All this does is add a wrapper with typing.
+type Subscribe_ByChannel_DBHT_type struct {
+	*SubChannel
+}
+
+// type the Read function
+func (s *Subscribe_ByChannel_DBHT_type) Read() DBHT {
+	return s.SubChannel.Read().(DBHT) // cast the return to the specific type
+}
+
+// type the ReadWithInfo function
+func (s *Subscribe_ByChannel_DBHT_type) ReadWithInfo() (DBHT, bool) {
+	v, ok := <-s.Updates
+	return v.(DBHT), ok
+}
+
+// Create a typed instance form a generic instance
+func Subscribe_ByChannel_DBHT(p *SubChannel) *Subscribe_ByChannel_DBHT_type {
+	return &Subscribe_ByChannel_DBHT_type{p}
+}
+
+// End subscribe_bychannel generated code
+//
+// Start subscribeBychannel generated go code
+
+// SubChannel subscriber has the basic necessary function implementations. All this does is add a wrapper with typing.
+type Subscribe_ByChannel_Hash_type struct {
+	*SubChannel
+}
+
+// type the Read function
+func (s *Subscribe_ByChannel_Hash_type) Read() Hash {
+	return s.SubChannel.Read().(Hash) // cast the return to the specific type
+}
+
+// type the ReadWithInfo function
+func (s *Subscribe_ByChannel_Hash_type) ReadWithInfo() (Hash, bool) {
+	v, ok := <-s.Updates
+	return v.(Hash), ok
+}
+
+// Create a typed instance form a generic instance
+func Subscribe_ByChannel_Hash(p *SubChannel) *Subscribe_ByChannel_Hash_type {
+	return &Subscribe_ByChannel_Hash_type{p}
+}
+
+// End subscribe_bychannel generated code
+//
+// Start subscribeBychannel generated go code
+
+// SubChannel subscriber has the basic necessary function implementations. All this does is add a wrapper with typing.
 type Subscribe_ByChannel_CommitRequest_type struct {
 	*SubChannel
 }
@@ -59,6 +109,31 @@ func (s *Subscribe_ByChannel_HoldRequest_type) ReadWithInfo() (HoldRequest, bool
 // Create a typed instance form a generic instance
 func Subscribe_ByChannel_HoldRequest(p *SubChannel) *Subscribe_ByChannel_HoldRequest_type {
 	return &Subscribe_ByChannel_HoldRequest_type{p}
+}
+
+// End subscribe_bychannel generated code
+//
+// Start subscribeBychannel generated go code
+
+// SubChannel subscriber has the basic necessary function implementations. All this does is add a wrapper with typing.
+type Subscribe_ByChannel_IMsg_type struct {
+	*SubChannel
+}
+
+// type the Read function
+func (s *Subscribe_ByChannel_IMsg_type) Read() IMsg {
+	return s.SubChannel.Read().(IMsg) // cast the return to the specific type
+}
+
+// type the ReadWithInfo function
+func (s *Subscribe_ByChannel_IMsg_type) ReadWithInfo() (IMsg, bool) {
+	v, ok := <-s.Updates
+	return v.(IMsg), ok
+}
+
+// Create a typed instance form a generic instance
+func Subscribe_ByChannel_IMsg(p *SubChannel) *Subscribe_ByChannel_IMsg_type {
+	return &Subscribe_ByChannel_IMsg_type{p}
 }
 
 // End subscribe_bychannel generated code

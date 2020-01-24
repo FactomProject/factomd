@@ -1,11 +1,12 @@
 package pubsub_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/pubsub"
-	"testing"
 )
 
 func TestSubMsgFilterWrap(t *testing.T) {

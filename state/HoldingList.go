@@ -27,11 +27,11 @@ type HoldingList struct {
 	dependents map[[32]byte]heldMessage // used to avoid duplicate entries & track position in holding
 
 	// New DependentHolding
-	outMessages        *generated.Publish_PubBase_IMsg_type
-	fctMessages        *generated.Publish_PubBase_IMsg_type
-	gossipMessages     *generated.Publish_PubBase_IMsg_type
-	inMessages         *generated.Subscribe_ByChannel_IMsg_type
-	heights            *generated.Subscribe_ByChannel_DBHT_type
+	outMessages    *generated.Publish_PubBase_IMsg_type
+	fctMessages    *generated.Publish_PubBase_IMsg_type
+	gossipMessages *generated.Publish_PubBase_IMsg_type
+	//inMessages         *generated.Subscribe_ByChannel_IMsg_type
+	//heights            *generated.Subscribe_ByChannel_DBHT_type
 	metDependencyHashs *generated.Subscribe_ByChannel_Hash_type
 	chainReveals       *pubsub.SubChannel
 	commits            *pubsub.SubChannel
@@ -41,6 +41,26 @@ func (l *HoldingList) doWork(w *worker.Thread) {
 }
 
 func (l *HoldingList) Run(w *worker.Thread) {
+}
+
+func (l *HoldingList) Publish() {
+	go l.outMessages.Start()
+	go l.fctMessages.Start()
+	go l.gossipMessages.Start()
+}
+
+func (l *HoldingList) Subscribe() {
+	//// TODO: Find actual paths
+	//inPath := pubsub.GetPath(l.GetParentName(), "leader", "toDependentHolding")
+	//l.inMessages.Subscribe(inPath)
+	//dbht := pubsub.GetPath(l.GetParentName(), "DBHT")
+	//l.heights.Subscribe(dbht)
+}
+
+func (l *HoldingList) ClosePublishing() {
+	l.outMessages.Close()
+	l.fctMessages.Close()
+	l.gossipMessages.Close()
 }
 
 // access gauge w/ proper labels
@@ -54,6 +74,11 @@ func NewHoldingList(s *State) *HoldingList {
 	l.holding = make(map[[32]byte][]interfaces.IMsg)
 	l.s = s
 	l.dependents = make(map[[32]byte]heldMessage)
+
+	//l.inMessages = generated.Subscribe_ByChannel_IMsg(pubsub.SubFactory.Channel(100)) //.Subscribe("path?")
+	//l.heights = generated.Subscribe_ByChannel_DBHT(pubsub.SubFactory.Channel(100))    //.Subscribe("path?")
+	l.metDependencyHashs = generated.Subscribe_ByChannel_Hash(pubsub.SubFactory.Channel(100))
+
 	return l
 }
 

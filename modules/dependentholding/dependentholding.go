@@ -29,7 +29,9 @@ type DependentHolding struct {
 	dependents map[[32]byte]heldMessage // used to avoid duplicate entries & track position in holding
 
 	// New DependentHolding
-	outMsgs       *generated.Publish_PubBase_IMsg_type            // outgoing messages to leader
+	outMsgs      *generated.Publish_PubBase_IMsg_type          // outgoing messages to leader
+	checkCommits *generated.Publish_PubBase_CommitRequest_type // Check if a commit has been made
+
 	inMsgs        *generated.Subscribe_ByChannel_HoldRequest_type // incoming messages from BMV
 	metDependency *generated.Subscribe_ByChannel_Hash_type        // hash of met dependencies
 }
@@ -41,11 +43,13 @@ func NewDependentHolding(parent *worker.Thread, instance int) *DependentHolding 
 
 	// publishers
 	outPath := pubsub.GetPath(b.Name.GetParentName(), "leader", "fromDependentHolding")
-	b.outMsgs = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Threaded(100).Publish(outPath))
+	b.outMsgs = generated.Publish_PubBase_IMsg(pubsub.PubFactory.Threaded(100).Publish(outPath, pubsub.PubMultiWrap()))
+	commitRequestPath := pubsub.GetPath(b.Name.GetParentName(), "commitMap")
+	b.checkCommits = generated.Publish_PubBase_CommitRequest(pubsub.PubFactory.Threaded(100).Publish(commitRequestPath, pubsub.PubMultiWrap()))
 
 	// subscribers
 	b.inMsgs = generated.Subscribe_ByChannel_HoldRequest(pubsub.SubFactory.Channel(100))
-	b.metDependency = generated.Subscribe_ByChannel_HoldRequest(pubsub.SubFactory.Channel(100))
+	b.metDependency = generated.Subscribe_ByChannel_Hash(pubsub.SubFactory.Channel(100))
 	return b
 }
 
@@ -60,9 +64,11 @@ func (b *DependentHolding) Publish() {
 
 func (b *DependentHolding) Subscribe() {
 	// TODO: Find actual paths
-	inPath := pubsub.GetPath(b.GetParentName(), "leader", "toDependentHolding")
+	//inPath := pubsub.GetPath(b.GetParentName(), "leader", "toDependentHolding")
+	inPath := "FNode0/leader/toDependentHolding"
 	b.inMsgs.Subscribe(inPath)
-	metPath := pubsub.GetPath(b.GetParentName(), "metDependency")
+	//	metPath := pubsub.GetPath(b.GetParentName(), "metDependency")
+	metPath := "FNode0/leader/metDependency"
 	b.metDependency.Subscribe(metPath)
 }
 

@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factom"
-	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
 )
@@ -30,14 +29,14 @@ func TestLeaderModule(t *testing.T) {
 
 	//println(a.String())
 
-	state0 := SetupSim("LF", nil, 10, 0, 0, t)
+	state0 := SetupSim("L", nil, 10, 0, 0, t)
 
 	//var entries []interfaces.IMsg
 	var oneFct uint64 = factom.FactoidToFactoshi("1")
 	var ecMargin = 100 // amount of ec to have left
 
 	WaitBlocks(state0, 1)
-	state1 := fnode.Get(1).State
+	//	state1 := fnode.Get(1).State
 
 	{ // fund entries & chain create
 		//WaitForZeroEC(state0, a.EcPub()) // assert we are starting from zero
@@ -72,7 +71,7 @@ func TestLeaderModule(t *testing.T) {
 	}
 
 	{ // KLUDGE debug
-		WaitForBlock(state1, 4)
+		//		WaitForBlock(state1, 4)
 		ShutDownEverything(t)
 	}
 

@@ -2,8 +2,9 @@ package electionMsgTesting
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/testHelper"
 	"reflect"
+
+	"github.com/FactomProject/factomd/testHelper"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"

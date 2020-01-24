@@ -1,19 +1,25 @@
 package leader
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/pubsubtypes"
+	"github.com/FactomProject/factomd/generated"
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/dependentholding"
 	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/worker"
+	"golang.org/x/net/context"
 )
 
 type Pub struct {
-	MsgOut pubsub.IPublisher
+	MsgOut             pubsub.IPublisher
+	toDependentHolding *generated.Publish_PubBase_HoldRequest_type
 }
 
 // isolate deps on state package - eventually functions will be relocated
@@ -26,7 +32,13 @@ func (p *Pub) Init(nodeName string) {
 	p.MsgOut = pubsub.PubFactory.Threaded(100).Publish(
 		pubsub.GetPath(nodeName, event.Path.LeaderMsgOut),
 	)
+
+	dependentHoldingPath := pubsub.GetPath(nodeName, "leader", "toDependentHolding")
+	p.toDependentHolding = generated.Publish_PubBase_HoldRequest(pubsub.PubFactory.Threaded(100).Publish(dependentHoldingPath))
+
 	go p.MsgOut.Start()
+	go p.toDependentHolding.Start()
+
 }
 
 type role = int
@@ -110,6 +122,7 @@ func (l *Leader) Start(w *worker.Thread) {
 		panic("LeaderThreadDisabled")
 	}
 
+	startDependentHolding(w)
 	w.Spawn("LeaderThread", func(w *worker.Thread) {
 		w.OnReady(func() {
 			l.Sub.Start(l.Config.NodeName)
@@ -134,6 +147,9 @@ func (l *Leader) processMin() (ok bool) {
 		select {
 		case v := <-l.MsgInput.Updates:
 			m := v.(interfaces.IMsg)
+			if !l.execute(m) {
+				continue
+			}
 			if constants.NeedsAck(m.Type()) {
 				log.LogMessage(l.logfile, "msgIn ", m)
 				l.sendAck(m)
@@ -289,5 +305,55 @@ blockLoop:
 			}
 		}
 		log.LogPrintf(l.logfile, "MinLoopEnd: %v", true)
+	}
+}
+
+// Execute a message or send it to dependent holding. Return true if it is ready to ack
+func (l *Leader) execute(msg interfaces.IMsg) bool {
+
+	switch msg.Type() {
+	case constants.REVEAL_ENTRY_MSG:
+		check := pubsubtypes.CommitRequest{
+			IMsg:    msg,
+			Channel: make(chan error),
+		}
+		if <-check.Channel != nil {
+			hold := pubsubtypes.HoldRequest{
+				Hash: msg.GetHash(),
+				Msg:  msg,
+			}
+			l.toDependentHolding.Write(hold)
+			return false
+		}
+	}
+	return true
+}
+
+func startDependentHolding(parent *worker.Thread) {
+	for i := 0; i < 2; i++ { // 2 Basic message validators
+		parent.Spawn(fmt.Sprintf("dependentholding%d", i), func(w *worker.Thread) {
+			ctx, cancel := context.WithCancel(context.Background())
+			// Run init conditions. Setup publishers
+			dependentHolding := dependentholding.NewDependentHolding(w, i)
+
+			w.OnReady(func() {
+				dependentHolding.Publish()
+				dependentHolding.Subscribe()
+			})
+
+			w.OnRun(func() {
+				// do work
+				dependentHolding.Run(ctx)
+				cancel() // If run is over, we can end the ctx
+			})
+
+			w.OnExit(func() {
+				cancel()
+			})
+
+			w.OnComplete(func() {
+				dependentHolding.ClosePublishing()
+			})
+		})
 	}
 }

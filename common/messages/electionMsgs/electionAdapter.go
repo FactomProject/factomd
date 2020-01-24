@@ -3,6 +3,7 @@ package electionMsgs
 import (
 	"crypto/sha256"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	primitives2 "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/modules/bmv"
-	"github.com/FactomProject/factomd/modules/dependentholding"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/state"
 
@@ -33,7 +32,6 @@ func NetworkProcessorNet(w *worker.Thread, fnode *fnode.FactomNode) {
 	stubs(w, fnode)
 
 	startBasicMessageValidation(w, fnode) // create instances of basic message validation
-	startDependentHolding(w, fnode)       // create instances of dependent holding
 
 	sort(w, fnode.State) // TODO: Replace this service entirely
 	w.Run("NetworkOutputs", func() { NetworkOutputs(fnode) })
@@ -49,7 +47,7 @@ func sort(parent *worker.Thread, s *state.State) {
 		sub := pubsub.SubFactory.Channel(50)
 
 		w.OnReady(func() {
-			path := pubsub.GetPath(s.GetFactomNodeName(), "dependentholding", "msgout")
+			path := pubsub.GetPath(s.GetFactomNodeName(), "msgs")
 			sub.Subscribe(path)
 		})
 
@@ -273,35 +271,6 @@ func startBasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode)
 
 			w.OnComplete(func() {
 				basicMessageValidator.ClosePublishing()
-			})
-		})
-	}
-}
-
-func startDependentHolding(parent *worker.Thread, fnode *fnode.FactomNode) {
-	for i := 0; i < 2; i++ { // 2 Basic message validators
-		parent.Spawn(fmt.Sprintf("dependentholding%d", i), func(w *worker.Thread) {
-			ctx, cancel := context.WithCancel(context.Background())
-			// Run init conditions. Setup publishers
-			dependentHolding := dependentholding.NewDependentHolding(w, i)
-
-			w.OnReady(func() {
-				dependentHolding.Publish()
-				dependentHolding.Subscribe()
-			})
-
-			w.OnRun(func() {
-				// do work
-				dependentHolding.Run(ctx)
-				cancel() // If run is over, we can end the ctx
-			})
-
-			w.OnExit(func() {
-				cancel()
-			})
-
-			w.OnComplete(func() {
-				dependentHolding.ClosePublishing()
 			})
 		})
 	}

@@ -3,13 +3,14 @@ package leader
 import (
 	"encoding/binary"
 
+	"strings"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/state"
-	"strings"
 )
 
 type Leader struct {

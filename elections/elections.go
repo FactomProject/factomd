@@ -2,11 +2,12 @@ package elections
 
 import (
 	"fmt"
+	"reflect"
+	"time"
+
 	"github.com/FactomProject/factomd/modules/query"
 	"github.com/FactomProject/factomd/queue"
 	"github.com/FactomProject/factomd/worker"
-	"reflect"
-	"time"
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/globals"

@@ -15,6 +15,78 @@ import (
 
 // Start publisher generated go code
 
+// Publish_PubBase_Timestamp publisher has the basic necessary function implementations.
+type Publish_PubBase_Timestamp_type struct {
+	IPublisher
+}
+
+// Read the object of type and call the generic so the compiler can check the passed in type
+func (p *Publish_PubBase_Timestamp_type) Write(o Timestamp) {
+	p.IPublisher.Write(o)
+}
+
+func Publish_PubBase_Timestamp(p IPublisher) *Publish_PubBase_Timestamp_type {
+	return &Publish_PubBase_Timestamp_type{p}
+}
+
+// End publisher generated go code
+//
+// Start publisher generated go code
+
+// Publish_PubBase_CommitRequest publisher has the basic necessary function implementations.
+type Publish_PubBase_CommitRequest_type struct {
+	IPublisher
+}
+
+// Read the object of type and call the generic so the compiler can check the passed in type
+func (p *Publish_PubBase_CommitRequest_type) Write(o CommitRequest) {
+	p.IPublisher.Write(o)
+}
+
+func Publish_PubBase_CommitRequest(p IPublisher) *Publish_PubBase_CommitRequest_type {
+	return &Publish_PubBase_CommitRequest_type{p}
+}
+
+// End publisher generated go code
+//
+// Start publisher generated go code
+
+// Publish_PubBase_Hash publisher has the basic necessary function implementations.
+type Publish_PubBase_Hash_type struct {
+	IPublisher
+}
+
+// Read the object of type and call the generic so the compiler can check the passed in type
+func (p *Publish_PubBase_Hash_type) Write(o Hash) {
+	p.IPublisher.Write(o)
+}
+
+func Publish_PubBase_Hash(p IPublisher) *Publish_PubBase_Hash_type {
+	return &Publish_PubBase_Hash_type{p}
+}
+
+// End publisher generated go code
+//
+// Start publisher generated go code
+
+// Publish_PubBase_HoldRequest publisher has the basic necessary function implementations.
+type Publish_PubBase_HoldRequest_type struct {
+	IPublisher
+}
+
+// Read the object of type and call the generic so the compiler can check the passed in type
+func (p *Publish_PubBase_HoldRequest_type) Write(o HoldRequest) {
+	p.IPublisher.Write(o)
+}
+
+func Publish_PubBase_HoldRequest(p IPublisher) *Publish_PubBase_HoldRequest_type {
+	return &Publish_PubBase_HoldRequest_type{p}
+}
+
+// End publisher generated go code
+//
+// Start publisher generated go code
+
 // Publish_PubBase_IMsg publisher has the basic necessary function implementations.
 type Publish_PubBase_IMsg_type struct {
 	IPublisher
