@@ -10,12 +10,13 @@ import (
 )
 
 // test for live testing
-func TestControlPanelLive(t *testing.T) {
+func testControlPanelLive(t *testing.T) {
 	// register the fnode so it can be retrieved
 	s := testHelper.CreateEmptyTestState()
 	fnode.New(s)
 
 	// register the publisher to start the control panel
+	_ = pubsub.PubFactory.Threaded(5).Publish(pubsub.GetPath(s.FactomNodeName, "bmv", "rest"))
 	p := pubsub.PubFactory.Threaded(5).Publish("test")
 	go p.Start()
 
@@ -28,7 +29,12 @@ func TestControlPanelLive(t *testing.T) {
 		}
 	}()
 
-	New(s.FactomNodeName)
+	config := &Config{
+		FactomNodeName: s.FactomNodeName,
+		Version:        s.FactomdVersion,
+		Port:           3000,
+	}
+	New(config)
 
 	select {}
 }

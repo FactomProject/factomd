@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/controlPanel/pages"
 	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/alexandrevicenzi/go-sse"
@@ -13,27 +14,28 @@ import (
 	"time"
 )
 
-var (
-	host       = ""
-	port       = 3001
-	tlsEnabled = false
-	keyFile    = ""
-	certFile   = ""
-)
-
 type controlPanel struct {
 	MsgInputSubscription       *pubsub.SubChannel
+	MsgOutputSubscription      *pubsub.SubChannel
 	MovedToHeightSubscription  *pubsub.SubChannel
 	BalanceChangedSubscription *pubsub.SubChannel
 	DBlockCreatedSubscription  *pubsub.SubChannel
 	EomTickerSubscription      *pubsub.SubChannel
 }
 
-func New(factomNodeName string) {
+// New Control Panel.
+// takes a follower name to subscribe on events from the pub sub
+func New(config *Config) {
 	go func() {
 		router := mux.NewRouter()
 
-		webHandler := NewWebHandler()
+		indexPage := pages.Index{
+			FactomNodeName: config.FactomNodeName,
+			BuildNumber:    config.BuildNumer,
+			Version:        config.Version,
+		}
+
+		webHandler := NewWebHandler(indexPage)
 		webHandler.RegisterRoutes(router)
 
 		server := sse.NewServer(nil)
@@ -46,20 +48,33 @@ func New(factomNodeName string) {
 
 		controlPanel := controlPanel{
 			MsgInputSubscription:       pubsub.SubFactory.Channel(100),
+			MsgOutputSubscription:      pubsub.SubFactory.Channel(100),
 			MovedToHeightSubscription:  pubsub.SubFactory.Channel(100),
 			BalanceChangedSubscription: pubsub.SubFactory.Channel(100),
 			DBlockCreatedSubscription:  pubsub.SubFactory.Channel(100),
 			EomTickerSubscription:      pubsub.SubFactory.Channel(100),
 		}
 
-		controlPanel.MovedToHeightSubscription.Subscribe(pubsub.GetPath(factomNodeName, event.Path.Seq))
+		// leader output
+		// controlPanel.MsgInputSubscription.Subscribe(pubsub.GetPath("FNode0", event.Path.LeaderMsgOut))
+
+		// network inputs
+		controlPanel.MsgInputSubscription.Subscribe(pubsub.GetPath(config.FactomNodeName, "bmv", "rest"))
+
+		// internal events
+		controlPanel.MovedToHeightSubscription.Subscribe(pubsub.GetPath(config.FactomNodeName, event.Path.Seq))
+		controlPanel.BalanceChangedSubscription.Subscribe(pubsub.GetPath(config.FactomNodeName, event.Path.Bank))
+		controlPanel.DBlockCreatedSubscription.Subscribe(pubsub.GetPath(config.FactomNodeName, event.Path.Directory))
+		//controlPanel.EomTickerSubscription.Subscribe(pubsub.GetPath(config.FactomNodeName, event.Path.EOM))
+
 		go controlPanel.pushEvents(server)
 
-		address := fmt.Sprintf("%s:%d", host, port)
+		address := fmt.Sprintf("%s:%d", config.Host, config.Port)
 		webserver := &http.Server{Addr: address, Handler: router}
 
-		if tlsEnabled {
-			if err := webserver.ListenAndServeTLS(certFile, keyFile); err != http.ErrServerClosed {
+		log.Printf("start control panel at: %s", address)
+		if config.TLSEnabled {
+			if err := webserver.ListenAndServeTLS(config.CertFile, config.KeyFile); err != http.ErrServerClosed {
 				log.Fatalf("control panel failed: %v", err)
 			}
 		} else {
@@ -75,8 +90,11 @@ func (controlPanel *controlPanel) pushEvents(server *sse.Server) {
 		select {
 		case v := <-controlPanel.MsgInputSubscription.Updates:
 			if msg, ok := v.(interfaces.IMsg); ok {
-				message := sse.SimpleMessage(fmt.Sprintf("%v", msg))
-				server.SendMessage(URL_PREFIX+"general-events", message)
+				data, err := json.Marshal(msg)
+				if err != nil {
+					message := sse.SimpleMessage(string(data))
+					server.SendMessage(URL_PREFIX+"general-events", message)
+				}
 			}
 		case v := <-controlPanel.MovedToHeightSubscription.Updates:
 			if dbHeight, ok := v.(*event.DBHT); ok {
@@ -88,19 +106,28 @@ func (controlPanel *controlPanel) pushEvents(server *sse.Server) {
 				server.SendMessage(URL_PREFIX+"move-to-height", message)
 			}
 		case v := <-controlPanel.BalanceChangedSubscription.Updates:
-			if event, ok := v.(*event.Balance); ok {
-				message := sse.SimpleMessage(fmt.Sprintf("%v", event))
-				server.SendMessage(URL_PREFIX+"general-events", message)
+			if balance, ok := v.(*event.Balance); ok {
+				data, err := json.Marshal(balance)
+				if err != nil {
+					message := sse.SimpleMessage(string(data))
+					server.SendMessage(URL_PREFIX+"general-events", message)
+				}
 			}
 		case v := <-controlPanel.DBlockCreatedSubscription.Updates:
-			if event, ok := v.(*event.Directory); ok {
-				message := sse.SimpleMessage(fmt.Sprintf("%v", event))
-				server.SendMessage(URL_PREFIX+"general-events", message)
+			if directory, ok := v.(*event.Directory); ok {
+				data, err := json.Marshal(directory)
+				if err != nil {
+					message := sse.SimpleMessage(string(data))
+					server.SendMessage(URL_PREFIX+"general-events", message)
+				}
 			}
 		case v := <-controlPanel.EomTickerSubscription.Updates:
-			if event, ok := v.(*event.DBHT); ok {
-				message := sse.SimpleMessage(fmt.Sprintf("%v", event))
-				server.SendMessage(URL_PREFIX+"general-events", message)
+			if dbHeight, ok := v.(*event.DBHT); ok {
+				data, err := json.Marshal(dbHeight)
+				if err != nil {
+					message := sse.SimpleMessage(string(data))
+					server.SendMessage(URL_PREFIX+"general-events", message)
+				}
 			}
 		}
 	}

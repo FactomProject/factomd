@@ -149,6 +149,7 @@ func NetStart(w *worker.Thread, p *globals.FactomParams, listenToStdin bool) {
 	startNetwork(w, p)
 	startFnodes(w)
 	startWebserver(w)
+	startControlPanel(w)
 	simulation.StartSimControl(w, p.ListenTo, listenToStdin)
 }
 
@@ -199,9 +200,22 @@ func startWebserver(w *worker.Thread) {
 
 	// Start prometheus on port
 	launchPrometheus(9876)
+}
 
+func startControlPanel(w *worker.Thread) {
+	state0 := fnode.Get(0).State
 	w.Run("controlpanel", func() {
-		controlpanel.New(state0.FactomNodeName)
+		controlPanelConfig := &controlpanel.Config{
+			Port:       state0.ControlPanelPort,
+			TLSEnabled: state0.FactomdTLSEnable,
+			CertFile:   state0.FactomdTLSCertFile,
+			KeyFile:    state0.FactomdTLSKeyFile,
+
+			FactomNodeName: state0.FactomNodeName,
+			BuildNumer:     Build,
+			Version:        FactomdVersion,
+		}
+		controlpanel.New(controlPanelConfig)
 	})
 }
 
