@@ -17,7 +17,9 @@ type WebHandler interface {
 }
 
 type webHandler struct {
-	IndexPage pages.Index
+	IndexPage      pages.Index
+	indexTemplate  *template.Template
+	searchTemplate *template.Template
 }
 
 func NewWebHandler(indexPage pages.Index) WebHandler {
@@ -31,7 +33,18 @@ func (handler *webHandler) RegisterRoutes(router *mux.Router) {
 
 	resourceDirectory, err := resourceDirectory()
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to get control panel resource directory: %v", err)
+	}
+
+	baseTemplateFile := path.Join(resourceDirectory, "index.html")
+	handler.indexTemplate, err = template.ParseFiles(baseTemplateFile, path.Join(resourceDirectory, "views/home.html"))
+	if err != nil {
+		log.Fatalf("failed to parse control panel index page: %v", err)
+	}
+
+	handler.searchTemplate, err = template.ParseFiles(baseTemplateFile, path.Join(resourceDirectory, "views/search.html"))
+	if err != nil {
+		log.Fatalf("failed to parse control panel search page: %v", err)
 	}
 
 	// handle static files
@@ -52,36 +65,11 @@ func (handler *webHandler) RegisterRoutes(router *mux.Router) {
 
 func (handler *webHandler) indexHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handle %s '%s' from %s", r.Method, r.URL.Path, r.RemoteAddr)
-
-	resourceDirectory, err := resourceDirectory()
-	if err != nil {
-		fmt.Fprintf(w, handler.errorPage(err))
-		return
-	}
-
-	t, err := template.ParseFiles(filepath.Join(resourceDirectory, "views/index.html"))
-	if err != nil {
-		fmt.Fprintf(w, handler.errorPage(err))
-		return
-	}
-
-	t.Execute(w, handler.IndexPage)
+	handler.indexTemplate.ExecuteTemplate(w, "site", handler.IndexPage)
 }
 
 func (handler *webHandler) searchHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handle %s '%s' from %s", r.Method, r.URL.Path, r.RemoteAddr)
-
-	resourceDirectory, err := resourceDirectory()
-	if err != nil {
-		fmt.Fprintf(w, handler.errorPage(err))
-		return
-	}
-
-	t, err := template.ParseFiles(filepath.Join(resourceDirectory, "views/search.html"))
-	if err != nil {
-		fmt.Fprintf(w, handler.errorPage(err))
-		return
-	}
 
 	params := mux.Vars(r)
 	term := params["term"]
@@ -92,7 +80,7 @@ func (handler *webHandler) searchHandler(w http.ResponseWriter, r *http.Request)
 		Term:  term,
 	}
 
-	err = t.Execute(w, page)
+	err := handler.searchTemplate.ExecuteTemplate(w, "site", page)
 	if err != nil {
 		log.Printf("failed to render template correctly: %v", err)
 	}
