@@ -2,6 +2,7 @@ package controlpanel
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/controlPanel/pages"
 	"github.com/gorilla/mux"
 	"html/template"
 	"log"
@@ -11,31 +12,18 @@ import (
 	"runtime"
 )
 
-type DirectoryBlockInfo struct {
-	KeyMerkleRoot                    string
-	BodyKeyMerkleRoot                string
-	Hash                             string
-	TimeStamp                        string
-	BlockHeight                      string
-	PreviousDirectoryBlockMerkleRoot string
-	PreviousDirectoryBlockHash       string
-}
-type Search struct {
-	Title          string
-	Content        string
-	Term           string
-	DirectoryBlock DirectoryBlockInfo
-}
-
 type WebHandler interface {
 	RegisterRoutes(router *mux.Router)
 }
 
 type webHandler struct {
+	IndexPage pages.Index
 }
 
-func NewWebHandler() WebHandler {
-	return &webHandler{}
+func NewWebHandler(indexPage pages.Index) WebHandler {
+	return &webHandler{
+		IndexPage: indexPage,
+	}
 }
 
 func (handler *webHandler) RegisterRoutes(router *mux.Router) {
@@ -77,7 +65,7 @@ func (handler *webHandler) indexHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	t.Execute(w, nil)
+	t.Execute(w, handler.IndexPage)
 }
 
 func (handler *webHandler) searchHandler(w http.ResponseWriter, r *http.Request) {
@@ -99,7 +87,7 @@ func (handler *webHandler) searchHandler(w http.ResponseWriter, r *http.Request)
 	term := params["term"]
 	log.Printf("%v", params)
 
-	page := Search{
+	page := pages.Search{
 		Title: "Not Found",
 		Term:  term,
 	}
