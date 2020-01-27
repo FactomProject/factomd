@@ -145,6 +145,11 @@ var (
 		Help: "Time it takes to compelete a tx",
 	})
 
+	HandleV2APICallReplayDBFromHeight = prometheus.NewSummary(prometheus.SummaryOpts{
+		Name: "factomd_wsapi_v2_api_call_replay_from_height",
+		Help: "Time it takes to replay DBStates from a specific height",
+	})
+
 	HandleV2APICallDBlockByHeight = prometheus.NewSummary(prometheus.SummaryOpts{
 		Name: "factomd_wsapi_v2_api_call_dblockbyheight_ns",
 		Help: "Time it takes to compelete a dblockbyheight",
@@ -221,6 +226,7 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(HandleV2APICallPendingTxs)
 	prometheus.MustRegister(HandleV2APICallSendRaw)
 	prometheus.MustRegister(HandleV2APICallTransaction)
+	prometheus.MustRegister(HandleV2APICallReplayDBFromHeight)
 	prometheus.MustRegister(HandleV2APICallDBlockByHeight)
 	prometheus.MustRegister(HandleV2APICallECBlockByHeight)
 	prometheus.MustRegister(HandleV2APICallECBlock)

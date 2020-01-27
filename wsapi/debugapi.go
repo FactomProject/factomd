@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/FactomProject/factomd/common/globals"
 
@@ -19,13 +20,17 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+type success struct {
+	Status string `json:"status"`
+}
+
 func HandleDebug(writer http.ResponseWriter, request *http.Request) {
 	_ = globals.Params
 
 	state, err := GetState(request)
 	if err != nil {
 		wsDebugLog.Errorf("failed to extract port from request: %s", err)
-		writer.WriteHeader(http.StatusBadRequest)
+		writer.WriteHeader(http.StatusOK)
 		return
 	}
 
@@ -108,13 +113,30 @@ func HandleDebugRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 	case "process-list":
 		resp, jsonError = HandleProcessList(state, params)
 		break
+	case "write-configuration":
+		resp, jsonError = HandleWriteConfig(state, params)
+		break
 	case "reload-configuration":
 		resp, jsonError = HandleReloadConfig(state, params)
 		break
 	case "sim-ctrl":
 		resp, jsonError = HandleSimControl(state, params)
+		break
+	case "wait-blocks":
+		resp, jsonError = HandleWaitBlocks(state, params)
+		break
+	case "wait-for-block":
+		resp, jsonError = HandleWaitForBlock(state, params)
+		break
+	case "wait-minutes":
+		resp, jsonError = HandleWaitMinutes(state, params)
+		break
+	case "wait-for-minute":
+		resp, jsonError = HandleWaitForMinute(state, params)
+		break
 	case "message-filter":
 		resp, jsonError = HandleMessageFilter(state, params)
+		break
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -256,11 +278,15 @@ func HandleMessages(state interfaces.IState, params interface{}) (interface{}, *
 
 func HandleNetworkInfo(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
+		NodeName      string
+		Role          string
 		NetworkNumber int
 		NetworkName   string
 		NetworkID     uint32
 	}
 	r := new(ret)
+	r.NodeName = state.GetFactomNodeName()
+	r.Role = getRole(state)
 	r.NetworkNumber = state.GetNetworkNumber()
 	r.NetworkName = state.GetNetworkName()
 	r.NetworkID = state.GetNetworkID()
@@ -302,9 +328,27 @@ func HandleReloadConfig(state interfaces.IState, params interface{}) (interface{
 	return state.GetCfg(), nil
 }
 
+func HandleWriteConfig(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	fmt.Sprintf("WRITE_CONFIG: %v", params)
+
+	type testCfg struct {
+		Config string
+	}
+
+	newCfg := new(testCfg)
+	MapToObject(params, newCfg)
+
+	cfgPath := state.GetConfigPath()
+	f, err := os.Create(cfgPath)
+	if err == nil {
+		f.WriteString(fmt.Sprintf("%s", newCfg.Config))
+	}
+
+	return new(success), nil
+}
+
 func runCmd(cmd string) {
-	//os.Stdout.WriteString("Executing: " + cmd + "\n")
-	os.Stderr.WriteString("Executing: " + cmd + "\n")
+	//os.Stderr.WriteString("Executing: " + cmd + "\n")
 	globals.InputChan <- cmd
 
 	return
@@ -321,11 +365,7 @@ func HandleSimControl(state interfaces.IState, params interface{}) (interface{},
 		runCmd(cmdStr)
 	}
 
-	type Success struct {
-		Status string `json:"status"`
-	}
-
-	r := new(Success)
+	r := new(success)
 	r.Status = "Success!"
 	return r, nil
 }
@@ -374,4 +414,101 @@ func HandleMessageFilter(state interfaces.IState, params interface{}) (interface
 	h.Params = "Success"
 
 	return h, nil
+}
+
+func getParamMap(params interface{}) (x map[string]interface{}, ok bool) {
+	x, ok = params.(map[string]interface{})
+	return x, ok
+}
+
+func HandleWaitMinutes(s interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	x, _ := getParamMap(params)
+	min := int(x["minutes"].(float64))
+	newTime := int(s.GetLLeaderHeight())*10 + s.GetCurrentMinute() + min
+	newBlock := newTime / 10
+	newMinute := newTime % 10
+	waitForQuiet(s, newBlock, newMinute)
+
+	r := new(success)
+	r.Status = "Success!"
+	return r, nil
+}
+
+func HandleWaitBlocks(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+
+	x, _ := getParamMap(params)
+	blks := int(x["blocks"].(float64))
+	waitForQuiet(state, blks+int(state.GetLLeaderHeight()), 0)
+
+	r := new(success)
+	r.Status = "Success!"
+	return r, nil
+}
+
+func HandleWaitForBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+
+	x, _ := getParamMap(params)
+	waitForQuiet(state, int(x["block"].(float64)), 0)
+
+	r := new(success)
+	r.Status = "Success!"
+	return r, nil
+}
+
+func HandleWaitForMinute(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+
+	x, _ := getParamMap(params)
+	newMinute := int(x["minute"].(float64))
+	if newMinute > 10 {
+		panic("invalid minute")
+	}
+	newBlock := int(state.GetLLeaderHeight())
+	if state.GetCurrentMinute() > newMinute {
+		newBlock++
+	}
+	waitForQuiet(state, newBlock, newMinute)
+
+	r := new(success)
+	r.Status = "Success!"
+	return r, nil
+}
+
+func waitForQuiet(s interfaces.IState, newBlock int, newMinute int) {
+	//	fmt.Printf("%s: %d-:-%d WaitFor(%d-:-%d)\n", s.FactomNodeName, s.LLeaderHeight, s.CurrentMinute, newBlock, newMinute)
+	sleepTime := time.Duration(globals.Params.BlkTime) * 1000 / 40 // Figure out how long to sleep in milliseconds
+	if newBlock*10+newMinute < int(s.GetLLeaderHeight())*10+s.GetCurrentMinute() {
+		panic("Wait for the past")
+	}
+
+	fmt.Printf("wait for quiet : %v", newBlock)
+
+	for int(s.GetLLeaderHeight()) < newBlock {
+		x := int(s.GetLLeaderHeight())
+		// wait for the next block
+		for int(s.GetLLeaderHeight()) == x {
+			time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+		}
+	}
+
+	// wait for the right minute
+	for s.GetCurrentMinute() != newMinute {
+		time.Sleep(sleepTime * time.Millisecond) // wake up and about 4 times per minute
+	}
+}
+
+func getRole(s interfaces.IState) string {
+	feds := s.GetFedServers(s.GetLLeaderHeight())
+	for _, fed := range feds {
+		if s.GetIdentityChainID().IsSameAs(fed.GetChainID()) {
+			return "Leader"
+		}
+	}
+
+	audits := s.GetAuditServers(s.GetLLeaderHeight())
+	for _, aud := range audits {
+		if s.GetIdentityChainID().IsSameAs(aud.GetChainID()) {
+			return "Audit"
+		}
+	}
+	return "Follower"
 }

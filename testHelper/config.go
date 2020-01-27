@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"testing"
-
 	"path/filepath"
+	"testing"
 
 	"github.com/FactomProject/factomd/util"
 )
@@ -125,4 +124,8 @@ func WriteConfigFile(identityNumber int, fnode int, extra string, t *testing.T) 
 		t.Fatal(err)
 	}
 	return
+}
+
+func GetConfig(identityNumber int, extra string) string {
+	return nodeIDs[identityNumber] + extra
 }

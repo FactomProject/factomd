@@ -7,17 +7,15 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
-
-var _ = log.Printf
 
 // eLogger is for EOM Messages and extends packageLogger
 var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
@@ -85,12 +83,7 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 
 // Fix EOM hash to match and not have the sig so duplicates are not generated.
 func (m *EOM) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EOM.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EOM.GetRepeatHash") }()
 
 	if m.RepeatHash == nil {
 		data, err := m.MarshalBinary()
@@ -103,23 +96,13 @@ func (m *EOM) GetRepeatHash() (rval interfaces.IHash) {
 }
 
 func (m *EOM) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EOM.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EOM.GetHash") }()
 
 	return m.GetMsgHash()
 }
 
 func (m *EOM) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EOM.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EOM.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()
@@ -231,6 +214,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling EOM message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling EOM message: %v", r)
 		}
 	}()
 	newData = data

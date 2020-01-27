@@ -112,7 +112,9 @@ func Goid() string {
 
 func WhereAmIString(depth int) string {
 	_, fn, line, _ := runtime.Caller(depth + 1)
-	fn = fn[prefix:]
+	if len(fn) > prefix {
+		fn = fn[prefix:] // Chop off the /home/user/go/src...factomd/ part of the path.
+	}
 	return fmt.Sprintf("%v-%s:%d", Goid(), fn, line)
 }
 

@@ -16,7 +16,8 @@ const (
 	_                       ActivationType = iota // 0 Don't use ZERO
 	TESTNET_COINBASE_PERIOD                = iota // 1 -- this is a passing activation and this ID may be reused once that height is passes and the references are removed
 	//
-	ACTIVATION_TYPE_COUNT = iota - 1 // Always Last
+	AUTHRORITY_SET_MAX_DELTA = iota
+	ACTIVATION_TYPE_COUNT    = iota - 1 // Always Last
 )
 
 type Activation struct {
@@ -42,6 +43,15 @@ func init() {
 				"MAIN":                      math.MaxInt32,
 				"LOCAL":                     25,
 				"CUSTOM:fct_community_test": 45335, //  Monday morning September 17
+			},
+		},
+		Activation{"AuthorityMaxDelta", AUTHRORITY_SET_MAX_DELTA,
+			"Ensures fewer than half of federated notes are replaced in a single election",
+			math.MaxInt32, // inactive unless overridden below
+			map[string]int{
+				"MAIN":                      222874,
+				"LOCAL":                     25,
+				"CUSTOM:fct_community_test": 109387,
 			},
 		},
 	}

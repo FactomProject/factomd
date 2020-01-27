@@ -8,8 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"reflect"
-	//"github.com/FactomProject/factomd/state"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -18,6 +16,8 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -176,12 +176,7 @@ func (a *FedVoteVolunteerMsg) IsSameAs(msg interfaces.IMsg) bool {
 }
 
 func (m *FedVoteVolunteerMsg) GetServerID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FedVoteVolunteerMsg.GetServerID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FedVoteVolunteerMsg.GetServerID") }()
 	return m.ServerID
 }
 
@@ -190,24 +185,14 @@ func (m *FedVoteVolunteerMsg) LogFields() log.Fields {
 }
 
 func (m *FedVoteVolunteerMsg) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FedVoteVolunteerMsg.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FedVoteVolunteerMsg.GetRepeatHash") }()
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
 
 func (m *FedVoteVolunteerMsg) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FedVoteVolunteerMsg.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FedVoteVolunteerMsg.GetHash") }()
 	return m.Missing.GetMsgHash()
 }
 
@@ -216,12 +201,7 @@ func (m *FedVoteVolunteerMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *FedVoteVolunteerMsg) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FedVoteVolunteerMsg.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FedVoteVolunteerMsg.GetMsgHash") }()
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -283,6 +263,7 @@ func (m *FedVoteVolunteerMsg) UnmarshalBinaryData(data []byte) (newData []byte, 
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 

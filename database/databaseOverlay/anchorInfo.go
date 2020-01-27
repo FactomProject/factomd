@@ -100,7 +100,6 @@ func (dbo *Overlay) SaveAnchorInfoFromEntry(entry interfaces.IEBEntry, multiBatc
 	var anchorRecord *anchor.AnchorRecord
 	var ok bool
 	var err error
-
 	switch entry.GetChainID().String() {
 	case BitcoinAnchorChainID:
 		// Bitcoin has mixed v1 and v2 AnchorRecords

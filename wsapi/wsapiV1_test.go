@@ -93,12 +93,12 @@ func TestHandleGetRaw(t *testing.T) {
 		url := fmt.Sprintf("/v1/get-raw-data/%s", v.Hash1)
 
 		rawDataResponse := new(RawDataResponse)
-		v1RequestGet(t, url, http.StatusOK, rawDataResponse)
+		v1RequestGet(t, url, false, rawDataResponse)
 
 		assert.True(t, strings.Contains(rawDataResponse.Data, v.Raw), "Looking for %v \nGetRaw %v/%v from Hash1 failed - %v", v.Hash1, i, len(toTest), rawDataResponse.Data)
 
 		url = fmt.Sprintf("/v1/get-raw-data/%s", v.Hash2)
-		v1RequestGet(t, url, http.StatusOK, rawDataResponse)
+		v1RequestGet(t, url, false, rawDataResponse)
 
 		assert.True(t, strings.Contains(rawDataResponse.Data, v.Raw), "Looking for %v \nGetRaw %v/%v from Hash2 failed - %v", v.Hash2, i, len(toTest), rawDataResponse.Data)
 	}
@@ -113,7 +113,7 @@ func TestHandleDirectoryBlock(t *testing.T) {
 	url := fmt.Sprintf("/v1/directory-block-by-keymr/%s", hash)
 
 	dBlock := new(DBlock)
-	v1RequestGet(t, url, http.StatusOK, dBlock)
+	v1RequestGet(t, url, false, dBlock)
 
 	result, err := dBlock.JSONString()
 
@@ -150,13 +150,13 @@ func TestHandleEntryBlock(t *testing.T) {
 
 		eBlock := new(EBlock)
 		url := fmt.Sprintf("/v1/entry-block-by-keymr/%s", hash)
-		v1RequestGet(t, url, http.StatusOK, eBlock)
+		v1RequestGet(t, url, false, eBlock)
 
 		assert.Equal(t, "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604", eBlock.Header.ChainID, "Wrong ChainID in eBlock - %v", eBlock)
 		assert.Equal(t, int64(b.(*entryBlock.EBlock).GetHeader().GetDBHeight()), eBlock.Header.DBHeight, "DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
 
 		url = fmt.Sprintf("/v1/entry-block-by-keymr/%s", hash2)
-		v1RequestGet(t, url, http.StatusOK, eBlock)
+		v1RequestGet(t, url, false, eBlock)
 
 		assert.Equal(t, "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604", eBlock.Header.ChainID, "Wrong ChainID in eBlock - %v", eBlock)
 		assert.Equal(t, int64(b.(*entryBlock.EBlock).GetHeader().GetDBHeight()), eBlock.Header.DBHeight, "DBHeight is wrong - %v vs %v", eBlock.Header.DBHeight, b.(*entryBlock.EBlock).GetHeader().GetDBHeight())
@@ -172,7 +172,7 @@ func TestHandleEntryBlockInvalidHash(t *testing.T) {
 
 	url := "/v1/entry-block-by-keymr/invalid-hash"
 
-	v1RequestGet(t, url, http.StatusBadRequest, nil)
+	v1RequestGet(t, url, true, nil)
 }
 
 func TestHandleGetFee(t *testing.T) {
@@ -183,7 +183,7 @@ func TestHandleGetFee(t *testing.T) {
 
 	type x struct{ Fee int64 }
 	fee := new(x)
-	v1RequestGet(t, url, http.StatusOK, fee)
+	v1RequestGet(t, url, false, fee)
 
 	if fee.Fee < 1 {
 		t.Errorf("%v", fee)
@@ -211,17 +211,17 @@ func TestDBlockList(t *testing.T) {
 	for _, l := range list {
 		url := fmt.Sprintf("/v1/directory-block-by-keymr/%s", l)
 		// expect a NewBlockNotFoundError
-		v1RequestGet(t, url, http.StatusBadRequest, dBlock)
+		v1RequestGet(t, url, true, dBlock)
 	}
 
 	hash := "000000000000000000000000000000000000000000000000000000000000000d"
 
 	head := new(CHead)
 	url := fmt.Sprintf("/v1/chain-head/%s", hash)
-	v1RequestGet(t, url, http.StatusOK, head)
+	v1RequestGet(t, url, false, head)
 
 	url = fmt.Sprintf("/v1/directory-block-by-keymr/%s", head.ChainHead)
-	v1RequestGet(t, url, http.StatusOK, dBlock)
+	v1RequestGet(t, url, false, dBlock)
 }
 
 func TestBlockIteration(t *testing.T) {
@@ -233,7 +233,7 @@ func TestBlockIteration(t *testing.T) {
 
 	head := new(CHead)
 	url := fmt.Sprintf("/v1/chain-head/%s", hash)
-	v1RequestGet(t, url, http.StatusOK, head)
+	v1RequestGet(t, url, false, head)
 
 	prev := head.ChainHead
 	fetched := 0
@@ -244,7 +244,7 @@ func TestBlockIteration(t *testing.T) {
 
 		block := new(DBlock)
 		url := fmt.Sprintf("/v1/directory-block-by-keymr/%s", prev)
-		v1RequestGet(t, url, http.StatusOK, block)
+		v1RequestGet(t, url, false, block)
 
 		prev = block.Header.PrevBlockKeyMR
 		fetched++
@@ -262,7 +262,7 @@ func TestHandleGetReceipt(t *testing.T) {
 
 	receipt := new(ReceiptResponse)
 	url := fmt.Sprintf("/v1/get-receipt/%s", hash)
-	v1RequestGet(t, url, http.StatusOK, receipt)
+	v1RequestGet(t, url, false, receipt)
 
 	assert.NotNil(t, receipt.Receipt, "Receipt not found!")
 
@@ -283,7 +283,7 @@ func TestHandleGetUnanchoredReceipt(t *testing.T) {
 
 	receipt := new(ReceiptResponse)
 	url := fmt.Sprintf("/v1/get-receipt/%s", hash)
-	v1RequestGet(t, url, http.StatusOK, receipt)
+	v1RequestGet(t, url, false, receipt)
 
 	err := receipt.Receipt.Validate()
 	assert.Nil(t, err, "failed to validate receipt - %v", receipt)
@@ -301,7 +301,7 @@ func TestHandleFactoidBalanceUnknownAddress(t *testing.T) {
 	factoidBalanceResponse := new(FactoidBalanceResponse)
 	url := "/v1/factoid-balance/f1ba8879fcf63b596b60ccc4c69c7f6848475ac037fc63b080ba2d9502fe66a4"
 
-	v1RequestGet(t, url, http.StatusOK, factoidBalanceResponse)
+	v1RequestGet(t, url, false, factoidBalanceResponse)
 
 	assert.Equal(t, int64(0), factoidBalanceResponse.Balance, "%v", factoidBalanceResponse)
 }
@@ -317,7 +317,7 @@ func TestHandleProperties(t *testing.T) {
 
 	properties := new(V1Properties)
 	url := "/v1/properties/"
-	v1RequestGet(t, url, http.StatusOK, properties)
+	v1RequestGet(t, url, false, properties)
 
 	assert.Equal(t, properties.Factomd_Version, state.GetFactomdVersion())
 	assert.Equal(t, "0.0.0.0", properties.Protocol_Version)
@@ -329,7 +329,7 @@ func TestHandleHeights(t *testing.T) {
 
 	heightsResponse := new(HeightsResponse)
 	url := "/v1/heights/"
-	v1RequestGet(t, url, http.StatusOK, heightsResponse)
+	v1RequestGet(t, url, false, heightsResponse)
 
 	assert.Equal(t, int64(state.GetTrueLeaderHeight()), heightsResponse.LeaderHeight)
 	assert.Equal(t, int64(state.GetHighestSavedBlk()), heightsResponse.DirectoryBlockHeight)
@@ -340,7 +340,7 @@ func TestHandleHeights(t *testing.T) {
 	assert.Equal(t, int64(state.GetEntryBlockDBHeightComplete()), heightsResponse.EntryBlockDBHeightComplete)
 }
 
-func v1RequestGet(t *testing.T, url string, expectedCode int, result interface{}) {
+func v1RequestGet(t *testing.T, url string, expectederror bool, result interface{}) {
 	response, err := http.Get(fmt.Sprintf("http://localhost:8088/%s", url))
 	assert.Nil(t, err, "response: %v", response)
 	defer response.Body.Close()
@@ -348,7 +348,10 @@ func v1RequestGet(t *testing.T, url string, expectedCode int, result interface{}
 	body, err := ioutil.ReadAll(response.Body)
 
 	assert.Nil(t, err, "body: \t%v", string(body))
-	assert.Equal(t, expectedCode, response.StatusCode, "body: \t%v", string(body))
+
+	if expectederror {
+		result = new(primitives.JSONError)
+	}
 
 	if len(body) != 0 {
 		err := json.Unmarshal(body, result)

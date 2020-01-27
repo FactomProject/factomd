@@ -7,7 +7,6 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -16,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -81,34 +81,19 @@ func (m *CommitChainMsg) Process(dbheight uint32, state interfaces.IState) bool 
 }
 
 func (m *CommitChainMsg) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("CommitChainMsg.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "CommitChainMsg.GetRepeatHash") }()
 
 	return m.CommitChain.GetSigHash()
 }
 
 func (m *CommitChainMsg) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("CommitChainMsg.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "CommitChainMsg.GetHash") }()
 
 	return m.CommitChain.EntryHash
 }
 
 func (m *CommitChainMsg) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("CommitChainMsg.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "CommitChainMsg.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		m.MsgHash = m.CommitChain.GetSigHash()
@@ -191,6 +176,7 @@ func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Commit Chain Message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Commit Chain Message: %v", r)
 		}
 	}()
 

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	llog "github.com/FactomProject/factomd/log"
 )
 
 type EncryptedMarshaler struct {
@@ -41,6 +42,7 @@ func (e *EncryptedMarshaler) UnmarshalBinaryData(cipherData []byte) (newData []b
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 

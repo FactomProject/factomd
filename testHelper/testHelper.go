@@ -5,9 +5,14 @@ package testHelper
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"runtime"
+	"time"
+
+	"github.com/FactomProject/factomd/events"
 
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -16,18 +21,11 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-
-	"time"
-
-	"fmt"
-	"os"
-
 	"github.com/FactomProject/factomd/state"
-
-	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 )
 
 var BlockCount int = 10
@@ -37,6 +35,7 @@ func CreateEmptyTestState() *state.State {
 	s := new(state.State)
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
+	s.EventService = events.NewEventService()
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.LoadConfig("", "")
 	s.Network = "LOCAL"
@@ -109,6 +108,7 @@ func CreateAndPopulateStaleHolding() *state.State {
 
 func CreateAndPopulateTestState() *state.State {
 	s := new(state.State)
+	s.EventService = events.NewEventService()
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
 	s.EFactory = new(electionMsgs.ElectionsFactory)
@@ -201,7 +201,7 @@ func ExecuteAllBlocksFromDatabases(s *state.State) {
 	}
 }
 
-func CreateTestDBStateList() []interfaces.IMsg {
+func CreateTestBlockCommitList() []interfaces.IMsg {
 	answer := make([]interfaces.IMsg, BlockCount)
 	var prev *BlockSet = nil
 
@@ -266,7 +266,7 @@ func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
 		}
 	}
 	/*
-		err = dbo.ReparseAnchorChains()
+		err = dbo.RebuildDirBlockInfo()
 		if err != nil {
 			panic(err)
 		}
