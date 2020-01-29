@@ -17,7 +17,6 @@ import (
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
-	"github.com/FactomProject/factomd/p2p"
 )
 
 func init() {
@@ -29,7 +28,7 @@ func init() {
 	flag.StringVar(&p.DebugLogRegEx, "debuglog", "", "regex to pick which logs to save")
 	flag.IntVar(&p.FaultTimeout, "faulttimeout", 120, "Seconds before considering Federated servers at-fault. Default is 120.")
 	flag.IntVar(&p.RoundTimeout, "roundtimeout", 30, "Seconds before audit servers will increment rounds and volunteer.")
-	flag.IntVar(&p2p.NumberPeersToBroadcast, "broadcastnum", 16, "Number of peers to broadcast to in the peer to peer networking")
+	//flag.IntVar(&p2p.NumberPeersToBroadcast, "broadcastnum", 16, "Number of peers to broadcast to in the peer to peer networking")
 	flag.IntVar(&p.P2PIncoming, "p2pIncoming", 0, "Override the maximum number of other peers dialing into this node that will be accepted; default 200")
 	flag.IntVar(&p.P2POutgoing, "p2pOutgoing", 0, "Override the maximum number of peers this node will attempt to dial into; default 32")
 	flag.StringVar(&p.ConfigPath, "config", "", "Override the config file location (factomd.conf)")
