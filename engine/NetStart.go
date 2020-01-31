@@ -211,9 +211,12 @@ func startControlPanel(w *worker.Thread) {
 			CertFile:   state0.FactomdTLSCertFile,
 			KeyFile:    state0.FactomdTLSKeyFile,
 
-			FactomNodeName: state0.FactomNodeName,
-			BuildNumer:     Build,
-			Version:        FactomdVersion,
+			NodeName:   state0.FactomNodeName,
+			BuildNumer: Build,
+			Version:    FactomdVersion,
+
+			CompleteHeight: state0.EntryDBHeightComplete,
+			LeaderHeight:   state0.LLeaderHeight,
 		}
 		controlpanel.New(controlPanelConfig)
 	})
@@ -295,6 +298,10 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
 
+	// start a worker that publishes the connection metrics
+	connectionMetricsPublisher := p2p.NewMetricPublisher(s.FactomNodeName, connectionMetricsChannel)
+	connectionMetricsPublisher.Start(w)
+
 	p2pNetwork = new(p2p.Controller).Initialize(ci)
 	s.NetworkController = p2pNetwork
 	p2pNetwork.NameInit(s, "p2pNetwork", reflect.TypeOf(p2pNetwork).String())
@@ -305,6 +312,7 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 	p2pProxy.StartProxy(w)
+
 }
 
 func printGraphData(filename string, period int) {

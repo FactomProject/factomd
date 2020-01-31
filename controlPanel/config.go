@@ -9,7 +9,11 @@ type Config struct {
 	CertFile   string
 
 	// page information config
-	FactomNodeName string
-	Version        string
-	BuildNumer     string
+	NodeName   string
+	Version    string
+	BuildNumer string
+
+	// Display state information
+	CompleteHeight uint32
+	LeaderHeight   uint32
 }

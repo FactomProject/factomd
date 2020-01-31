@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -21,93 +22,122 @@ type controlPanel struct {
 	BalanceChangedSubscription    *pubsub.SubChannel
 	DBlockCreatedSubscription     *pubsub.SubChannel
 	EomTickerSubscription         *pubsub.SubChannel
+	ConnectionMetricsSubscription *pubsub.SubChannel
 	ConnectionAddedSubscription   *pubsub.SubChannel
 	ConnectionRemovedSubscription *pubsub.SubChannel
+	DisplayState                  DisplayState
+}
+
+type DisplayState struct {
+	lock             sync.RWMutex
+	CurrentHeight    uint32
+	CurrentMinute    int
+	LeaderHeight     uint32
+	CompleteHeight   uint32
+	FederatedServers string
+	AuditServers     string
+	Connections      map[string]string
 }
 
 // New Control Panel.
 // takes a follower name to subscribe on events from the pub sub
 func New(config *Config) {
-	go func() {
-		router := mux.NewRouter()
+	router := mux.NewRouter()
 
-		indexPage := pages.Index{
-			FactomNodeName: config.FactomNodeName,
-			BuildNumber:    config.BuildNumer,
-			Version:        config.Version,
+	indexPage := pages.Index{
+		NodeName:    config.NodeName,
+		BuildNumber: config.BuildNumer,
+		Version:     config.Version,
+	}
+
+	webHandler := NewWebHandler(indexPage)
+	webHandler.RegisterRoutes(router)
+
+	server := sse.NewServer(nil)
+
+	eventHandler := &eventHandler{server: server}
+	defer eventHandler.Shutdown()
+
+	eventHandler.RegisterRoutes(router)
+	eventHandler.RegisterChannel("channel-1", func() *sse.Message { return sse.SimpleMessage(time.Now().String()) }, 3*time.Second)
+
+	controlPanel := controlPanel{
+		MsgInputSubscription:          pubsub.SubFactory.Channel(100),
+		MsgOutputSubscription:         pubsub.SubFactory.Channel(100),
+		MovedToHeightSubscription:     pubsub.SubFactory.Channel(100),
+		BalanceChangedSubscription:    pubsub.SubFactory.Channel(100),
+		DBlockCreatedSubscription:     pubsub.SubFactory.Channel(100),
+		EomTickerSubscription:         pubsub.SubFactory.Channel(100),
+		ConnectionMetricsSubscription: pubsub.SubFactory.Channel(100),
+		ConnectionAddedSubscription:   pubsub.SubFactory.Channel(100),
+		ConnectionRemovedSubscription: pubsub.SubFactory.Channel(100),
+
+		DisplayState: DisplayState{
+			CurrentHeight:  0,
+			CurrentMinute:  0,
+			LeaderHeight:   config.LeaderHeight,
+			CompleteHeight: config.CompleteHeight,
+		},
+	}
+
+	// leader output
+	// controlPanel.MsgInputSubscription.Subscribe(pubsub.GetPath("FNode0", event.Path.LeaderMsgOut))
+
+	// network inputs
+	controlPanel.MsgInputSubscription.Subscribe(pubsub.GetPath(config.NodeName, "bmv", "rest"))
+
+	// internal events
+	controlPanel.MovedToHeightSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.Seq))
+	controlPanel.BalanceChangedSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.Bank))
+	controlPanel.DBlockCreatedSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.Directory))
+	//controlPanel.EomTickerSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.EOM))
+	controlPanel.ConnectionMetricsSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.ConnectionMetrics))
+	controlPanel.ConnectionAddedSubscription.Subscribe(pubsub.GetPath(event.Path.ConnectionAdded))
+	controlPanel.ConnectionRemovedSubscription.Subscribe(pubsub.GetPath(event.Path.ConnectionRemoved))
+
+	go controlPanel.handleEvents(server)
+
+	address := fmt.Sprintf("%s:%d", config.Host, config.Port)
+	webserver := &http.Server{Addr: address, Handler: router}
+
+	log.Printf("start control panel at: %s", address)
+	if config.TLSEnabled {
+		if err := webserver.ListenAndServeTLS(config.CertFile, config.KeyFile); err != http.ErrServerClosed {
+			log.Fatalf("control panel failed: %v", err)
 		}
-
-		webHandler := NewWebHandler(indexPage)
-		webHandler.RegisterRoutes(router)
-
-		server := sse.NewServer(nil)
-
-		eventHandler := &eventHandler{server: server}
-		defer eventHandler.Shutdown()
-
-		eventHandler.RegisterRoutes(router)
-		eventHandler.RegisterChannel("channel-1", func() *sse.Message { return sse.SimpleMessage(time.Now().String()) }, 3*time.Second)
-
-		controlPanel := controlPanel{
-			MsgInputSubscription:          pubsub.SubFactory.Channel(100),
-			MsgOutputSubscription:         pubsub.SubFactory.Channel(100),
-			MovedToHeightSubscription:     pubsub.SubFactory.Channel(100),
-			BalanceChangedSubscription:    pubsub.SubFactory.Channel(100),
-			DBlockCreatedSubscription:     pubsub.SubFactory.Channel(100),
-			EomTickerSubscription:         pubsub.SubFactory.Channel(100),
-			ConnectionAddedSubscription:   pubsub.SubFactory.Channel(100),
-			ConnectionRemovedSubscription: pubsub.SubFactory.Channel(100),
+	} else {
+		if err := webserver.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("control panel failed: %v", err)
 		}
-
-		// leader output
-		// controlPanel.MsgInputSubscription.Subscribe(pubsub.GetPath("FNode0", event.Path.LeaderMsgOut))
-
-		// network inputs
-		controlPanel.MsgInputSubscription.Subscribe(pubsub.GetPath(config.FactomNodeName, "bmv", "rest"))
-
-		// internal events
-		controlPanel.MovedToHeightSubscription.Subscribe(pubsub.GetPath(config.FactomNodeName, event.Path.Seq))
-		controlPanel.BalanceChangedSubscription.Subscribe(pubsub.GetPath(config.FactomNodeName, event.Path.Bank))
-		controlPanel.DBlockCreatedSubscription.Subscribe(pubsub.GetPath(config.FactomNodeName, event.Path.Directory))
-		//controlPanel.EomTickerSubscription.Subscribe(pubsub.GetPath(config.FactomNodeName, event.Path.EOM))
-		controlPanel.ConnectionAddedSubscription.Subscribe(pubsub.GetPath(event.Path.ConnectionAdded))
-		controlPanel.ConnectionRemovedSubscription.Subscribe(pubsub.GetPath(event.Path.ConnectionRemoved))
-
-		go controlPanel.pushEvents(server)
-
-		address := fmt.Sprintf("%s:%d", config.Host, config.Port)
-		webserver := &http.Server{Addr: address, Handler: router}
-
-		log.Printf("start control panel at: %s", address)
-		if config.TLSEnabled {
-			if err := webserver.ListenAndServeTLS(config.CertFile, config.KeyFile); err != http.ErrServerClosed {
-				log.Fatalf("control panel failed: %v", err)
-			}
-		} else {
-			if err := webserver.ListenAndServe(); err != http.ErrServerClosed {
-				log.Fatalf("control panel failed: %v", err)
-			}
-		}
-	}()
+	}
 }
 
-func (controlPanel *controlPanel) pushEvents(server *sse.Server) {
+func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 	for {
 		select {
 		case v := <-controlPanel.MsgInputSubscription.Updates:
 			if msg, ok := v.(interfaces.IMsg); ok {
 				data, err := json.Marshal(msg)
 				if err != nil {
-					message := sse.SimpleMessage(string(data))
-					server.SendMessage(URL_PREFIX+"general-events", message)
+					log.Printf("failed to serialize push event: %v", err)
+					break
 				}
+
+				log.Printf("msg input: %s", data)
+				message := sse.SimpleMessage(string(data))
+				server.SendMessage(URL_PREFIX+"general-events", message)
 			}
 		case v := <-controlPanel.MovedToHeightSubscription.Updates:
 			if dbHeight, ok := v.(*event.DBHT); ok {
+				controlPanel.updateHeight(dbHeight.DBHeight, dbHeight.Minute)
+				controlPanel.pushUpdate(server)
+
 				data, err := json.Marshal(dbHeight)
 				if err != nil {
-					log.Println("failed to serialize push event: ", err)
+					log.Printf("failed to serialize push event: %v", err)
+					break
 				}
+
 				message := sse.SimpleMessage(string(data))
 				server.SendMessage(URL_PREFIX+"move-to-height", message)
 			}
@@ -115,42 +145,96 @@ func (controlPanel *controlPanel) pushEvents(server *sse.Server) {
 			if balance, ok := v.(*event.Balance); ok {
 				data, err := json.Marshal(balance)
 				if err != nil {
-					message := sse.SimpleMessage(string(data))
-					server.SendMessage(URL_PREFIX+"general-events", message)
+					log.Printf("failed to serialize push event: %v", err)
+					break
 				}
+
+				log.Printf("balance changed: %s", data)
+				message := sse.SimpleMessage(string(data))
+				server.SendMessage(URL_PREFIX+"general-events", message)
 			}
 		case v := <-controlPanel.DBlockCreatedSubscription.Updates:
 			if directory, ok := v.(*event.Directory); ok {
 				data, err := json.Marshal(directory)
 				if err != nil {
-					message := sse.SimpleMessage(string(data))
-					server.SendMessage(URL_PREFIX+"general-events", message)
+					log.Printf("failed to serialize push event: %v", err)
+					break
 				}
+
+				log.Printf("directory block created: %s", data)
+				message := sse.SimpleMessage(string(data))
+				server.SendMessage(URL_PREFIX+"general-events", message)
 			}
 		case v := <-controlPanel.EomTickerSubscription.Updates:
-			if dbHeight, ok := v.(*event.DBHT); ok {
-				data, err := json.Marshal(dbHeight)
+			if oem, ok := v.(*event.EOM); ok {
+				data, err := json.Marshal(oem)
 				if err != nil {
-					message := sse.SimpleMessage(string(data))
-					server.SendMessage(URL_PREFIX+"general-events", message)
+					log.Printf("failed to serialize push event: %v", err)
+					break
 				}
+
+				log.Printf("end of minute ticker: %s", data)
+				message := sse.SimpleMessage(string(data))
+				server.SendMessage(URL_PREFIX+"general-events", message)
 			}
+		case v := <-controlPanel.ConnectionMetricsSubscription.Updates:
+			data, err := json.Marshal(v)
+			if err != nil {
+				log.Printf("failed to serialize push event: %v", err)
+				break
+			}
+
+			log.Printf("connection metric: %s", data)
+			message := sse.SimpleMessage(string(data))
+			server.SendMessage(URL_PREFIX+"general-events", message)
 		case v := <-controlPanel.ConnectionAddedSubscription.Updates:
 			if connectionInfo, ok := v.(*event.ConnectionAdded); ok {
 				data, err := json.Marshal(connectionInfo)
 				if err != nil {
-					message := sse.SimpleMessage(string(data))
-					server.SendMessage(URL_PREFIX+"general-events", message)
+					log.Printf("failed to serialize push event: %v", err)
+					break
 				}
+
+				log.Printf("connection added: %s", data)
+				message := sse.SimpleMessage(string(data))
+				server.SendMessage(URL_PREFIX+"general-events", message)
 			}
 		case v := <-controlPanel.ConnectionRemovedSubscription.Updates:
 			if connectionInfo, ok := v.(*event.ConnectionRemoved); ok {
 				data, err := json.Marshal(connectionInfo)
 				if err != nil {
-					message := sse.SimpleMessage(string(data))
-					server.SendMessage(URL_PREFIX+"general-events", message)
+					log.Printf("failed to serialize push event: %v", err)
+					break
 				}
+				log.Printf("connection removed: %s", data)
+				message := sse.SimpleMessage(string(data))
+				server.SendMessage(URL_PREFIX+"general-events", message)
 			}
 		}
 	}
+}
+
+func (controlPanel *controlPanel) updateHeight(currentHeight uint32, currentMinute int) {
+	controlPanel.DisplayState.lock.Lock()
+	defer controlPanel.DisplayState.lock.Unlock()
+
+	controlPanel.DisplayState.CurrentHeight = currentHeight
+	controlPanel.DisplayState.CurrentMinute = currentMinute
+
+	if currentHeight > controlPanel.DisplayState.LeaderHeight {
+		// controlPanel.DisplayState.LeaderHeight = currentHeight
+	}
+}
+
+func (controlPanel *controlPanel) pushUpdate(server *sse.Server) {
+	controlPanel.DisplayState.lock.RLock()
+	defer controlPanel.DisplayState.lock.RUnlock()
+
+	data, err := json.Marshal(controlPanel.DisplayState)
+	if err != nil {
+		log.Println("failed to serialize push event: ", err)
+		return
+	}
+	message := sse.SimpleMessage(string(data))
+	server.SendMessage(URL_PREFIX+"update", message)
 }
