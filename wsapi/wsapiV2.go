@@ -41,7 +41,7 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 	state, err := GetState(request)
 	if err != nil {
 		wsLog.Errorf("failed to extract port from request: %s", err)
-		writer.WriteHeader(http.StatusOK)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -520,7 +520,7 @@ func HandleV2Error(writer http.ResponseWriter, j *primitives.JSON2Request, jErr 
 	}
 	resp.Error = jErr
 
-	writer.WriteHeader(http.StatusOK)
+	writer.WriteHeader(http.StatusBadRequest)
 	_, err := writer.Write([]byte(resp.String()))
 	if err != nil {
 		wsLog.Errorf("failed to write error response: %v", err)
