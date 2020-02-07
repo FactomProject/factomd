@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="/css/app.css">
 
     <script src="/js/vendor/jquery.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/foundation-sites@6.5.1/dist/js/foundation.min.js" integrity="sha256-WUKHnLrIrx8dew//IpSEmPN/NT3DGAEmIePQYIEJLLs= sha384-53StQWuVbn6figscdDC3xV00aYCPEz3srBdV/QGSXw3f19og3Tq2wTRe0vJqRTEO sha512-X9O+2f1ty1rzBJOC8AXBnuNUdyJg0m8xMKmbt9I3Vu/UOWmSg5zG+dtnje4wAZrKtkopz/PEDClHZ1LXx5IeOw==" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -38,13 +39,21 @@
         </div>
     </header>
 
-    {{template "yield" .}}
+    <section id="navigation">
+        <div class="row">
+            <ul class="tabs tabs-control-panel" data-tabs id="example-tabs">
+                <li class="tabs-title is-active" id="indexnav-main"><a aria-selected="true" href="/">Main Status Page</a></li>
+                <li class="tabs-title tab-control-panel" id="indexnav-more"><a href="/details">More Detailed Node Information</a></li>
+            </ul>
+        </div>
+    </section>
+
+    {{template "page" .}}
 
 </body>
 </html>
 {{end}}
 
-{{define "yield"}}
-    <h1>Filler header</h1>
-    <p>Filler paragraph</p>
+{{define "page"}}
+
 {{end}}

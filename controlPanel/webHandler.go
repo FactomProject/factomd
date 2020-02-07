@@ -17,15 +17,16 @@ type WebHandler interface {
 }
 
 type webHandler struct {
-	IndexPage      pages.Index
-	indexTemplate  *template.Template
-	searchTemplate *template.Template
+	IndexPageContent pages.IndexContent
+	indexTemplate    *template.Template
+	detailsTemplate  *template.Template
+	searchTemplate   *template.Template
 }
 
 // NewWebHandler creates a new web handler.
-func NewWebHandler(indexPage pages.Index) WebHandler {
+func NewWebHandler(indexPageContent pages.IndexContent) WebHandler {
 	return &webHandler{
-		IndexPage: indexPage,
+		IndexPageContent: indexPageContent,
 	}
 }
 
@@ -43,6 +44,11 @@ func (handler *webHandler) RegisterRoutes(router *mux.Router) {
 	handler.indexTemplate, err = template.ParseFiles(baseTemplateFile, path.Join(resourceDirectory, "views/home.html"))
 	if err != nil {
 		log.Fatalf("failed to parse control panel index page: %v", err)
+	}
+
+	handler.detailsTemplate, err = template.ParseFiles(baseTemplateFile, path.Join(resourceDirectory, "views/details.html"))
+	if err != nil {
+		log.Fatalf("failed to parse control panel details page: %v", err)
 	}
 
 	handler.searchTemplate, err = template.ParseFiles(baseTemplateFile, path.Join(resourceDirectory, "views/search.html"))
@@ -64,11 +70,17 @@ func (handler *webHandler) RegisterRoutes(router *mux.Router) {
 	// register web endpoints
 	router.HandleFunc("/", handler.indexHandler)
 	router.HandleFunc("/search", handler.searchHandler).Queries("search", "{term}")
+	router.HandleFunc("/details", handler.detailsHandler)
 }
 
 func (handler *webHandler) indexHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handle %s '%s' from %s", r.Method, r.URL.Path, r.RemoteAddr)
-	handler.indexTemplate.ExecuteTemplate(w, "site", handler.IndexPage)
+	handler.indexTemplate.ExecuteTemplate(w, "site", handler.IndexPageContent)
+}
+
+func (handler *webHandler) detailsHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("handle %s '%s' from %s", r.Method, r.URL.Path, r.RemoteAddr)
+	handler.detailsTemplate.ExecuteTemplate(w, "site", nil)
 }
 
 func (handler *webHandler) searchHandler(w http.ResponseWriter, r *http.Request) {

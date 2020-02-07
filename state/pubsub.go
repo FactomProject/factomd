@@ -9,11 +9,12 @@ import (
 // in the future it is likely we wouldn't want these accessible under fnode.State struct
 
 type Pub struct {
-	BlkSeq       pubsub.IPublisher
-	Bank         pubsub.IPublisher
-	Directory    pubsub.IPublisher
-	EOMTicker    pubsub.IPublisher
-	LeaderConfig pubsub.IPublisher
+	BlkSeq          pubsub.IPublisher
+	Bank            pubsub.IPublisher
+	Directory       pubsub.IPublisher
+	EOMTicker       pubsub.IPublisher
+	LeaderConfig    pubsub.IPublisher
+	ProcessListInfo pubsub.IPublisher
 }
 
 func (s *State) mkPath(name string) string {
@@ -32,4 +33,5 @@ func (s *State) BindPublishers() {
 	s.Pub.Bank = s.newPublisher(event.Path.Bank)
 	s.Pub.Directory = s.newPublisher(event.Path.Directory)
 	s.Pub.LeaderConfig = s.newPublisher(event.Path.LeaderConfig)
+	s.Pub.ProcessListInfo = s.newPublisher(event.Path.ProcessListInfo)
 }

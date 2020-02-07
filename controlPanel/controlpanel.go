@@ -16,6 +16,12 @@ import (
 )
 
 type controlPanel struct {
+	subscriptions
+	DisplayState DisplayState
+	DisplayDump  DisplayDump
+}
+
+type subscriptions struct {
 	MsgInputSubscription          *pubsub.SubChannel
 	MsgOutputSubscription         *pubsub.SubChannel
 	MovedToHeightSubscription     *pubsub.SubChannel
@@ -23,7 +29,7 @@ type controlPanel struct {
 	DBlockCreatedSubscription     *pubsub.SubChannel
 	EomTickerSubscription         *pubsub.SubChannel
 	ConnectionMetricsSubscription *pubsub.SubChannel
-	DisplayState                  DisplayState
+	ProcessListInfo               *pubsub.SubChannel
 }
 
 // DisplayState is the state which contain the information that changes in the UI.
@@ -39,12 +45,17 @@ type DisplayState struct {
 	Connections      map[string]string
 }
 
+type DisplayDump struct {
+	lock        sync.RWMutex
+	ProcessList string
+}
+
 // New Control Panel.
 // takes a follower name to subscribe on events from the pub sub
 func New(config *Config) {
 	router := mux.NewRouter()
 
-	indexPage := pages.Index{
+	indexPage := pages.IndexContent{
 		NodeName:    config.NodeName,
 		BuildNumber: config.BuildNumer,
 		Version:     config.Version,
@@ -62,14 +73,16 @@ func New(config *Config) {
 	eventHandler.RegisterChannel("channel-1", func() *sse.Message { return sse.SimpleMessage(time.Now().String()) }, 3*time.Second)
 
 	controlPanel := controlPanel{
-		MsgInputSubscription:          pubsub.SubFactory.Channel(100),
-		MsgOutputSubscription:         pubsub.SubFactory.Channel(100),
-		MovedToHeightSubscription:     pubsub.SubFactory.Channel(100),
-		BalanceChangedSubscription:    pubsub.SubFactory.Channel(100),
-		DBlockCreatedSubscription:     pubsub.SubFactory.Channel(100),
-		EomTickerSubscription:         pubsub.SubFactory.Channel(100),
-		ConnectionMetricsSubscription: pubsub.SubFactory.Channel(100),
-
+		subscriptions: subscriptions{
+			MsgInputSubscription:          pubsub.SubFactory.Channel(100),
+			MsgOutputSubscription:         pubsub.SubFactory.Channel(100),
+			MovedToHeightSubscription:     pubsub.SubFactory.Channel(100),
+			BalanceChangedSubscription:    pubsub.SubFactory.Channel(100),
+			DBlockCreatedSubscription:     pubsub.SubFactory.Channel(100),
+			EomTickerSubscription:         pubsub.SubFactory.Channel(100),
+			ConnectionMetricsSubscription: pubsub.SubFactory.Channel(100),
+			ProcessListInfo:               pubsub.SubFactory.Channel(100),
+		},
 		DisplayState: DisplayState{
 			CurrentHeight:  0,
 			CurrentMinute:  0,
@@ -90,6 +103,7 @@ func New(config *Config) {
 	controlPanel.DBlockCreatedSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.Directory))
 	//controlPanel.EomTickerSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.EOM))
 	controlPanel.ConnectionMetricsSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.ConnectionMetrics))
+	controlPanel.ProcessListInfo.Subscribe(pubsub.GetPath(config.NodeName, event.Path.ProcessListInfo))
 
 	go controlPanel.handleEvents(server)
 
@@ -186,6 +200,13 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 			log.Printf("connection metric: %s", data)
 			message := sse.SimpleMessage(string(data))
 			server.SendMessage(URL_PREFIX+"general-events", message)
+
+		case v := <-controlPanel.ProcessListInfo.Updates:
+			if processList, ok := v.(*event.ProcessListInfo); ok {
+				controlPanel.updateNodeTime(processList.ProcessTime)
+				controlPanel.updateProcessListDump(processList.Dump)
+				controlPanel.pushProcessList(server)
+			}
 		}
 	}
 }
@@ -197,10 +218,18 @@ func (controlPanel *controlPanel) updateHeight(currentHeight uint32, currentMinu
 
 	controlPanel.DisplayState.CurrentHeight = currentHeight
 	controlPanel.DisplayState.CurrentMinute = currentMinute
+}
 
-	if currentHeight > controlPanel.DisplayState.LeaderHeight {
-		// controlPanel.DisplayState.LeaderHeight = currentHeight
-	}
+func (controlPanel *controlPanel) updateNodeTime(timestamp interfaces.Timestamp) {
+	controlPanel.DisplayState.lock.Lock()
+	defer controlPanel.DisplayState.lock.Unlock()
+	controlPanel.DisplayState.NodeTime = timestamp.String()
+}
+
+func (controlPanel *controlPanel) updateProcessListDump(dump string) {
+	controlPanel.DisplayDump.lock.Lock()
+	defer controlPanel.DisplayDump.lock.Unlock()
+	controlPanel.DisplayDump.ProcessList = dump
 }
 
 // pushUpdate push an update of the state to all subscribed UI's
@@ -215,4 +244,12 @@ func (controlPanel *controlPanel) pushUpdate(server *sse.Server) {
 	}
 	message := sse.SimpleMessage(string(data))
 	server.SendMessage(URL_PREFIX+"update", message)
+}
+
+func (controlPanel *controlPanel) pushProcessList(server *sse.Server) {
+	controlPanel.DisplayDump.lock.RLock()
+	defer controlPanel.DisplayDump.lock.RUnlock()
+
+	message := sse.SimpleMessage(controlPanel.DisplayDump.ProcessList)
+	server.SendMessage(URL_PREFIX+"processlist", message)
 }

@@ -11,7 +11,7 @@ $(document).ready(function () {
     let events = [];
     let generalEvents = new EventSource('/events/general-events');
     generalEvents.onmessage = function (event) {
-        console.log("general events: ", event);
+        // console.log("general events: ", event);
         if (events.length >= MAX_EVENT_ITEMS) {
             events.pop();
         }
@@ -24,6 +24,7 @@ $(document).ready(function () {
         data = $.parseJSON(event.data)
         console.log("update: ", data);
 
+        $("#systemTime").val(data.NodeTime);
         $("#nodeHeight").val(data.CurrentHeight);
         $("#nodeMinute").val(data.CurrentMinute);
 

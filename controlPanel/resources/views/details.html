@@ -1,0 +1,55 @@
+{{define "page"}}
+    <script src="/js/details.js"></script>
+
+    <section id="dataDump">
+        <div class="row">
+            <h1>Terminal data import</h1>
+            <ul class="tabs" data-tabs id="tabs_example">
+                <li class="tabs-title is-active"><a href="#summary">Summary</a></li>
+                <li class="tabs-title"><a href= "#processlist">Process List</a></li>
+                <li class="tabs-title"><a href= "#printmap">Print Map</a></li>
+                <li class="tabs-title"><a href= "#servers">Servers</a></li>
+                <li class="tabs-title"><a href= "#elections">Elections</a></li>
+                <li class="tabs-title"><a href= "#connections">Connections</a></li>
+                <li class="tabs-title"><a href= "#logsettings">Log Settings</a></li>
+            </ul>
+
+            <div class="tabs-content" data-tabs-content="tabs_example">
+                <div class="tabs-panel is-active" id="summary">
+                    <textarea disabled spellcheck="false" class="tabs-panel is-active" id="summaryData"></textarea>
+                </div>
+
+                <div class="tabs-panel" id="processlist">
+                    <textarea disabled spellcheck="false" class="tabs-panel is-active" id="processlistData"></textarea>
+                </div>
+
+                <div class="tabs-panel" id="printmap">
+                    <p>Third Player</p>
+                    <p>Shane Warne</p>
+                </div>
+
+                <div class="tabs-panel" id="servers">
+                    <p>Fourth Player</p>
+                    <p>Shaun Pollock</p>
+                </div>
+
+                <div class="tabs-panel" id="elections">
+                    <p>Five Player</p>
+                    <p>Adam Gilchrist</p>
+                </div>
+
+                <div class="tabs-panel" id="connections">
+                    <p>Five Player</p>
+                    <p>Adam Gilchrist</p>
+                </div>
+
+                <div class="tabs-panel" id="logsettings">
+                    <p>Five Player</p>
+                    <p>Adam Gilchrist</p>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+{{end}}

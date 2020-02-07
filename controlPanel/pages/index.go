@@ -1,6 +1,6 @@
 package pages
 
-type Index struct {
+type IndexContent struct {
 	NodeName    string
 	BuildNumber string
 	Version     string
