@@ -22,15 +22,18 @@ type webHandler struct {
 	searchTemplate *template.Template
 }
 
+// NewWebHandler creates a new web handler.
 func NewWebHandler(indexPage pages.Index) WebHandler {
 	return &webHandler{
 		IndexPage: indexPage,
 	}
 }
 
+// RegisterRoutes initializes the endpoints of the control panel. It registers resources and assigns handlers to requests.
 func (handler *webHandler) RegisterRoutes(router *mux.Router) {
 	router.NotFoundHandler = http.HandlerFunc(handler.notFound)
 
+	// load templates
 	resourceDirectory, err := resourceDirectory()
 	if err != nil {
 		log.Fatalf("failed to get control panel resource directory: %v", err)

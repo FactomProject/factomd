@@ -28,6 +28,7 @@ type controlPanel struct {
 	DisplayState                  DisplayState
 }
 
+// DisplayState is the state which contain the information that changes in the UI.
 type DisplayState struct {
 	lock             sync.RWMutex
 	CurrentHeight    uint32
@@ -112,6 +113,9 @@ func New(config *Config) {
 	}
 }
 
+// handleEvents receives events from to which the control panel is subscribed on. It updates its
+// state and pushes the state to the UI.
+// TODO rewrite the function such that it handles all subscription events correctly.
 func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 	for {
 		select {
@@ -214,6 +218,7 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 	}
 }
 
+// updateHeight of the display state
 func (controlPanel *controlPanel) updateHeight(currentHeight uint32, currentMinute int) {
 	controlPanel.DisplayState.lock.Lock()
 	defer controlPanel.DisplayState.lock.Unlock()
@@ -226,6 +231,7 @@ func (controlPanel *controlPanel) updateHeight(currentHeight uint32, currentMinu
 	}
 }
 
+// pushUpdate push an update of the state to all subscribed UI's
 func (controlPanel *controlPanel) pushUpdate(server *sse.Server) {
 	controlPanel.DisplayState.lock.RLock()
 	defer controlPanel.DisplayState.lock.RUnlock()
