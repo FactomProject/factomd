@@ -23,14 +23,13 @@ type controlPanel struct {
 	DBlockCreatedSubscription     *pubsub.SubChannel
 	EomTickerSubscription         *pubsub.SubChannel
 	ConnectionMetricsSubscription *pubsub.SubChannel
-	ConnectionAddedSubscription   *pubsub.SubChannel
-	ConnectionRemovedSubscription *pubsub.SubChannel
 	DisplayState                  DisplayState
 }
 
 // DisplayState is the state which contain the information that changes in the UI.
 type DisplayState struct {
 	lock             sync.RWMutex
+	NodeTime         string
 	CurrentHeight    uint32
 	CurrentMinute    int
 	LeaderHeight     uint32
@@ -70,8 +69,6 @@ func New(config *Config) {
 		DBlockCreatedSubscription:     pubsub.SubFactory.Channel(100),
 		EomTickerSubscription:         pubsub.SubFactory.Channel(100),
 		ConnectionMetricsSubscription: pubsub.SubFactory.Channel(100),
-		ConnectionAddedSubscription:   pubsub.SubFactory.Channel(100),
-		ConnectionRemovedSubscription: pubsub.SubFactory.Channel(100),
 
 		DisplayState: DisplayState{
 			CurrentHeight:  0,
@@ -93,8 +90,6 @@ func New(config *Config) {
 	controlPanel.DBlockCreatedSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.Directory))
 	//controlPanel.EomTickerSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.EOM))
 	controlPanel.ConnectionMetricsSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.ConnectionMetrics))
-	controlPanel.ConnectionAddedSubscription.Subscribe(pubsub.GetPath(event.Path.ConnectionAdded))
-	controlPanel.ConnectionRemovedSubscription.Subscribe(pubsub.GetPath(event.Path.ConnectionRemoved))
 
 	go controlPanel.handleEvents(server)
 
@@ -191,29 +186,6 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 			log.Printf("connection metric: %s", data)
 			message := sse.SimpleMessage(string(data))
 			server.SendMessage(URL_PREFIX+"general-events", message)
-		case v := <-controlPanel.ConnectionAddedSubscription.Updates:
-			if connectionInfo, ok := v.(*event.ConnectionAdded); ok {
-				data, err := json.Marshal(connectionInfo)
-				if err != nil {
-					log.Printf("failed to serialize push event: %v", err)
-					break
-				}
-
-				log.Printf("connection added: %s", data)
-				message := sse.SimpleMessage(string(data))
-				server.SendMessage(URL_PREFIX+"general-events", message)
-			}
-		case v := <-controlPanel.ConnectionRemovedSubscription.Updates:
-			if connectionInfo, ok := v.(*event.ConnectionRemoved); ok {
-				data, err := json.Marshal(connectionInfo)
-				if err != nil {
-					log.Printf("failed to serialize push event: %v", err)
-					break
-				}
-				log.Printf("connection removed: %s", data)
-				message := sse.SimpleMessage(string(data))
-				server.SendMessage(URL_PREFIX+"general-events", message)
-			}
 		}
 	}
 }

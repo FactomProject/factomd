@@ -15,8 +15,6 @@ type pubSubPaths struct {
 	LeaderMsgIn       string
 	LeaderMsgOut      string
 	ConnectionMetrics string
-	ConnectionAdded   string
-	ConnectionRemoved string
 }
 
 var Path = pubSubPaths{
@@ -28,8 +26,6 @@ var Path = pubSubPaths{
 	LeaderMsgIn:       "leader-msg-in",
 	LeaderMsgOut:      "leader-msg-out",
 	ConnectionMetrics: path.Join("connection", "metrics"),
-	ConnectionAdded:   "connection-added",
-	ConnectionRemoved: "connection-removed",
 }
 
 type Balance struct {

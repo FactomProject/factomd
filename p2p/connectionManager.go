@@ -9,31 +9,20 @@ package p2p
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/pubsub"
 	"math/rand"
 )
 
 type ConnectionManager struct {
-	ConnectionPub
 	connections          map[string]*Connection     // connections indexed by peer hash
 	connectionsByAddress map[string]map[string]bool // peer hashes indexed by the address (we can have multiple connections to the same address)
 	outgoingCount        int
 	incomingCount        int
 }
 
-type ConnectionPub struct {
-	ConnectionAdded   pubsub.IPublisher
-	ConnectionRemoved pubsub.IPublisher
-}
-
 func (cm *ConnectionManager) Init() *ConnectionManager {
 	cm.connections = make(map[string]*Connection)
 	cm.connectionsByAddress = make(map[string]map[string]bool)
-
-	cm.ConnectionPub.ConnectionAdded = pubsub.PubFactory.Threaded(100).Publish(pubsub.GetPath(event.Path.ConnectionAdded))
-	cm.ConnectionPub.ConnectionRemoved = pubsub.PubFactory.Threaded(100).Publish(pubsub.GetPath(event.Path.ConnectionRemoved))
-
 	return cm
 }
 
@@ -79,18 +68,6 @@ func (cm *ConnectionManager) Add(connection *Connection) {
 	}
 	cm.connections[connection.peer.Hash] = connection
 	cm.addToConnectionsByAddress(connection)
-
-	cm.ConnectionPub.ConnectionAdded.Write(event.ConnectionAdded{
-		ConnectionChanged: event.ConnectionChanged{
-			IP:       connection.conn.RemoteAddr().String(),
-			Status:   connection.StatusString(),
-			IsOnline: connection.IsOnline(),
-			State:    connection.ConnectionState(),
-			Duration: connection.Notes(),
-			Send:     "",
-			Received: "",
-		},
-	})
 }
 
 // Remove an existing connection.
@@ -106,18 +83,6 @@ func (cm *ConnectionManager) Remove(connection *Connection) {
 
 	delete(cm.connections, connection.peer.Hash)
 	cm.removeFromConnectionsByAddress(connection)
-
-	cm.ConnectionPub.ConnectionRemoved.Write(event.ConnectionAdded{
-		ConnectionChanged: event.ConnectionChanged{
-			IP:       connection.conn.RemoteAddr().String(),
-			Status:   connection.StatusString(),
-			IsOnline: connection.IsOnline(),
-			State:    connection.ConnectionState(),
-			Duration: connection.Notes(),
-			Send:     "",
-			Received: "",
-		},
-	})
 }
 
 // Send a message to all the connections.
