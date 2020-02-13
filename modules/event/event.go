@@ -69,6 +69,7 @@ type EOM struct {
 type ProcessListInfo struct {
 	ProcessTime interfaces.Timestamp
 	Dump        string
+	PrintMap    string
 }
 
 type StateUpdate struct {

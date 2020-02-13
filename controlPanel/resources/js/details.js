@@ -17,12 +17,18 @@ $(document).ready(function () {
                 $('#summaryData').text(event.data);
             };
         }
-
         if($('#processlist:visible').length){
             eventSource.close();
             eventSource = new EventSource('/events/processlist');
             eventSource.onmessage = function (event) {
                 $('#processlistData').text(event.data);
+            };
+        }
+        if($('#printmap:visible').length){
+            eventSource.close();
+            eventSource = new EventSource('/events/printmap');
+            eventSource.onmessage = function (event) {
+                $('#printmapData').text(event.data);
             };
         }
     });

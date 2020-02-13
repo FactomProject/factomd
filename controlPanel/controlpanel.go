@@ -50,6 +50,7 @@ type DisplayDump struct {
 	lock        sync.RWMutex
 	Summary     string
 	ProcessList string
+	PrintMap    string
 }
 
 // New Control Panel.
@@ -216,7 +217,7 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 		case v := <-controlPanel.ProcessListInfo.Updates:
 			if processList, ok := v.(*event.ProcessListInfo); ok {
 				controlPanel.updateNodeTime(processList.ProcessTime)
-				controlPanel.updateProcessListDump(processList.Dump)
+				controlPanel.updateProcessList(processList.Dump, processList.PrintMap)
 				controlPanel.pushProcessList(server)
 			}
 		}
@@ -243,10 +244,11 @@ func (controlPanel *controlPanel) updateLeaderHeight(height uint32) {
 	controlPanel.DisplayState.LeaderHeight = height
 }
 
-func (controlPanel *controlPanel) updateProcessListDump(dump string) {
+func (controlPanel *controlPanel) updateProcessList(dump string, printMap string) {
 	controlPanel.DisplayDump.lock.Lock()
 	defer controlPanel.DisplayDump.lock.Unlock()
 	controlPanel.DisplayDump.ProcessList = dump
+	controlPanel.DisplayDump.PrintMap = printMap
 }
 
 func (controlPanel *controlPanel) updateSummary(summary string) {
@@ -281,6 +283,11 @@ func (controlPanel *controlPanel) pushProcessList(server *sse.Server) {
 	controlPanel.DisplayDump.lock.RLock()
 	defer controlPanel.DisplayDump.lock.RUnlock()
 
-	message := sse.SimpleMessage(controlPanel.DisplayDump.ProcessList)
-	server.SendMessage(URL_PREFIX+"processlist", message)
+	// push dump
+	processListMessage := sse.SimpleMessage(controlPanel.DisplayDump.ProcessList)
+	server.SendMessage(URL_PREFIX+"processlist", processListMessage)
+
+	// push dump
+	printMapMessage := sse.SimpleMessage(controlPanel.DisplayDump.PrintMap)
+	server.SendMessage(URL_PREFIX+"printmap", printMapMessage)
 }

@@ -936,7 +936,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 	}
 
 	// publish process list
-	info := &event.ProcessListInfo{ProcessTime: p.State.ProcessTime, Dump: p.String()}
+	info := &event.ProcessListInfo{ProcessTime: p.State.ProcessTime, Dump: p.String(), PrintMap: p.PrintMap()}
 	p.State.Pub.ProcessListInfo.Write(info)
 
 	return progress
