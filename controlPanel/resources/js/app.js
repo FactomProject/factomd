@@ -1,6 +1,9 @@
 const MAX_EVENT_ITEMS = 15;
 
 $(document).ready(function () {
+    $('#nav-main').addClass('is-active');
+    $('#nav-link-main').attr('aria-selected', true);
+
     let e1 = new EventSource('/events/channel-1');
     e1.onmessage = function (event) {
         console.log("channel-1", event);
