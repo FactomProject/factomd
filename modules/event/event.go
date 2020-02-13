@@ -73,7 +73,9 @@ type ProcessListInfo struct {
 }
 
 type StateUpdate struct {
-	NodeTime     interfaces.Timestamp
-	LeaderHeight uint32
-	Summary      string
+	NodeTime           interfaces.Timestamp
+	LeaderHeight       uint32
+	Summary            string
+	IdentitiesDetails  string
+	AuthoritiesDetails string
 }

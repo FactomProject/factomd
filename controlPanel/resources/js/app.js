@@ -24,8 +24,8 @@ $(document).ready(function () {
 
     let updateEvents = new EventSource('/events/update');
     updateEvents.onmessage = function (event) {
-        data = $.parseJSON(event.data)
-        console.log("update: ", data);
+        data = $.parseJSON(event.data);
+        // console.log("update: ", data);
 
         $("#systemTime").val(data.NodeTime);
         $("#nodeHeight").val(data.CurrentHeight);
@@ -63,10 +63,10 @@ function percentage(value, ratio) {
 
 function updateProgressBar(id, current, max) {
     if (max == 0) {
-        percent = (current / max) * 100
-        $(id).width("100%")
+        percent = (current / max) * 100;
+        $(id).width("100%");
     } else {
-        percent = (current / max) * 100
-        $(id).width(percent + "%")
+        percent = (current / max) * 100;
+        $(id).width(percent + "%");
     }
 }

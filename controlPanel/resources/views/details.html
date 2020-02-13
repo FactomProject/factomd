@@ -31,18 +31,27 @@
                 </div>
 
                 <div class="tabs-panel dump-container" id="servers">
-                    <p>Fourth Player</p>
-                    <p>Shaun Pollock</p>
+                    <ul class="tabs" data-tabs id="servers-tabs">
+                        <li class="tabs-title is-active"><a href="#serverAuthorities" aria-selected="true">Authorities</a></li>
+                        <li class="tabs-title"><a href="#serverIdentities">Identities</a></li>
+                        <li class="tabs-title"><a href="#serverNode">My Node</a></li>
+                    </ul>
+                    <div class="tabs-panel tabs-content dump-container" data-tabs-content="servers-tabs">
+                        <img id="fullscreen-option" class="absolute-fullscreen-option" src="img/fullscreen.svg"></img>
+                        <textarea disabled spellcheck="false" class="tabs-panel is-active" id="serverAuthorities"></textarea>
+                        <textarea disabled spellcheck="false" class="tabs-panel" id="serverIdentities"></textarea>
+                        <textarea disabled spellcheck="false" class="tabs-panel" id="serverNode"></textarea>
+                    </div>
                 </div>
 
                 <div class="tabs-panel" id="elections">
-                    <p>Five Player</p>
-                    <p>Adam Gilchrist</p>
+                    <img class="fullscreen-option absolute-fullscreen-option" src="img/fullscreen.svg"/>
+                    <textarea disabled spellcheck="false" class="tabs-panel is-active" id="electionsData"></textarea>
                 </div>
 
                 <div class="tabs-panel" id="connections">
-                    <p>Five Player</p>
-                    <p>Adam Gilchrist</p>
+                    <img class="fullscreen-option absolute-fullscreen-option" src="img/fullscreen.svg"/>
+                    <textarea disabled spellcheck="false" class="tabs-panel is-active" id="connectionsData"></textarea>
                 </div>
 
                 <div class="tabs-panel" id="logsettings">

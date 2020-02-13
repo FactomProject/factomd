@@ -3,7 +3,6 @@ $(document).ready(function () {
     $('#nav-more').addClass('is-active');
     $('#nav-link-more').attr('aria-selected', true);
 
-
     let eventSource = new EventSource('/events/summary');
     eventSource.onmessage = function (event) {
         $('#summaryData').text(event.data);
@@ -29,6 +28,17 @@ $(document).ready(function () {
             eventSource = new EventSource('/events/printmap');
             eventSource.onmessage = function (event) {
                 $('#printmapData').text(event.data);
+            };
+        }
+        if($('#servers:visible').length){
+            eventSource.close();
+            eventSource = new EventSource('/events/servers');
+            eventSource.onmessage = function (event) {
+                let data = $.parseJSON(event.data);
+                console.log("servers event: ", data);
+                $('#serversAuthorities').text(data.Authorities);
+                $('#serversIdentities').text(data.Identities);
+                $('#serversNode').text(data.Node);
             };
         }
     });

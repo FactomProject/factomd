@@ -17,8 +17,8 @@ import (
 
 type controlPanel struct {
 	subscriptions
-	DisplayState DisplayState
-	DisplayDump  DisplayDump
+	DisplayState displayState
+	DisplayDump  displayDump
 }
 
 type subscriptions struct {
@@ -33,24 +33,31 @@ type subscriptions struct {
 	StateUpdate                   *pubsub.SubChannel
 }
 
-// DisplayState is the state which contain the information that changes in the UI.
-type DisplayState struct {
+// displayState is the state which contain the information that changes in the UI.
+type displayState struct {
 	lock             sync.RWMutex
-	NodeTime         string
-	CurrentHeight    uint32
-	CurrentMinute    int
-	LeaderHeight     uint32
-	CompleteHeight   uint32
-	FederatedServers string
-	AuditServers     string
+	NodeTime         string `json:"NodeTime"`
+	CurrentHeight    uint32 `json:"CurrentHeight"`
+	CurrentMinute    int    `json:"CurrentMinute"`
+	LeaderHeight     uint32 `json:"LeaderHeight"`
+	CompleteHeight   uint32 `json:"CompleteHeight"`
+	FederatedServers string `json:"FederatedServers"`
+	AuditServers     string `json:"AuditServers"`
 	Connections      map[string]string
 }
 
-type DisplayDump struct {
+type displayDump struct {
 	lock        sync.RWMutex
 	Summary     string
 	ProcessList string
 	PrintMap    string
+	Servers     serverDump
+}
+
+type serverDump struct {
+	Authorities string `json:"Authorities"`
+	Identities  string `json:"Identities"`
+	Node        string `json:"Node"`
 }
 
 // New Control Panel.
@@ -87,7 +94,7 @@ func New(config *Config) {
 			ProcessListInfo:               pubsub.SubFactory.Channel(100),
 			StateUpdate:                   pubsub.SubFactory.Channel(100),
 		},
-		DisplayState: DisplayState{
+		DisplayState: displayState{
 			CurrentHeight:  0,
 			CurrentMinute:  0,
 			LeaderHeight:   config.LeaderHeight,
@@ -210,9 +217,9 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 
 		case v := <-controlPanel.StateUpdate.Updates:
 			if stateUpdate, ok := v.(*event.StateUpdate); ok {
-				controlPanel.updateSummary(stateUpdate.Summary)
+				controlPanel.updateState(stateUpdate.Summary, stateUpdate.AuthoritiesDetails, stateUpdate.IdentitiesDetails)
 				controlPanel.updateLeaderHeight(stateUpdate.LeaderHeight)
-				controlPanel.pushSummary(server)
+				controlPanel.pushStateUpdate(server)
 			}
 		case v := <-controlPanel.ProcessListInfo.Updates:
 			if processList, ok := v.(*event.ProcessListInfo); ok {
@@ -251,10 +258,12 @@ func (controlPanel *controlPanel) updateProcessList(dump string, printMap string
 	controlPanel.DisplayDump.PrintMap = printMap
 }
 
-func (controlPanel *controlPanel) updateSummary(summary string) {
+func (controlPanel *controlPanel) updateState(summary string, authorities string, identities string) {
 	controlPanel.DisplayDump.lock.Lock()
 	defer controlPanel.DisplayDump.lock.Unlock()
 	controlPanel.DisplayDump.Summary = summary
+	controlPanel.DisplayDump.Servers.Authorities = authorities
+	controlPanel.DisplayDump.Servers.Identities = identities
 }
 
 // pushUpdate push an update of the state to all subscribed UI's
@@ -271,23 +280,32 @@ func (controlPanel *controlPanel) pushUpdate(server *sse.Server) {
 	server.SendMessage(URL_PREFIX+"update", message)
 }
 
-func (controlPanel *controlPanel) pushSummary(server *sse.Server) {
+func (controlPanel *controlPanel) pushStateUpdate(server *sse.Server) {
 	controlPanel.DisplayDump.lock.RLock()
 	defer controlPanel.DisplayDump.lock.RUnlock()
 
-	message := sse.SimpleMessage(controlPanel.DisplayDump.Summary)
-	server.SendMessage(URL_PREFIX+"summary", message)
+	summaryMessage := sse.SimpleMessage(controlPanel.DisplayDump.Summary)
+	server.SendMessage(URL_PREFIX+"summary", summaryMessage)
+
+	data, err := json.Marshal(controlPanel.DisplayDump.Servers)
+	if err != nil {
+		log.Println("failed to serialize push event: ", err)
+		return
+	}
+
+	serversMessage := sse.SimpleMessage(string(data))
+	server.SendMessage(URL_PREFIX+"servers", serversMessage)
 }
 
 func (controlPanel *controlPanel) pushProcessList(server *sse.Server) {
 	controlPanel.DisplayDump.lock.RLock()
 	defer controlPanel.DisplayDump.lock.RUnlock()
 
-	// push dump
+	// push process list dump
 	processListMessage := sse.SimpleMessage(controlPanel.DisplayDump.ProcessList)
 	server.SendMessage(URL_PREFIX+"processlist", processListMessage)
 
-	// push dump
+	// push print map
 	printMapMessage := sse.SimpleMessage(controlPanel.DisplayDump.PrintMap)
 	server.SendMessage(URL_PREFIX+"printmap", printMapMessage)
 }
