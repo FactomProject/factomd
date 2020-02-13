@@ -252,6 +252,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 		Hash1 string
 		Hash2 string
 		Raw   string
+		Type  HashType
 	}
 
 	toTest := []RawData{}
@@ -268,6 +269,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 		panic(err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
+	raw.Type = HashTypeABlock
 	toTest = append(toTest, raw) //1
 
 	eBlock := blockSet.EBlock
@@ -279,6 +281,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 		panic(err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
+	raw.Type = HashTypeEBlock
 	toTest = append(toTest, raw) //2
 
 	ecBlock := blockSet.ECBlock
@@ -290,6 +293,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 		panic(err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
+	raw.Type = HashTypeECBlock
 	toTest = append(toTest, raw) //3
 
 	fBlock := blockSet.FBlock
@@ -301,6 +305,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 		panic(err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
+	raw.Type = HashTypeFBlock
 	toTest = append(toTest, raw) //4
 
 	dBlock := blockSet.DBlock
@@ -312,6 +317,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 		panic(err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
+	raw.Type = HashTypeDBlock
 	toTest = append(toTest, raw) //5
 
 	//initializing server
@@ -319,20 +325,24 @@ func TestHandleV2GetRaw(t *testing.T) {
 	Start(state)
 
 	for i, v := range toTest {
+		// Once without specifying type
 		data := new(HashRequest)
-		data.Hash = v.Hash1
-		req := primitives.NewJSON2Request("raw-data", 1, data)
+		for j := 0; j < 2; j++ {
+			data.Hash = v.Hash1
+			req := primitives.NewJSON2Request("raw-data", 1, data)
 
-		time.Sleep(time.Millisecond * 100)
-		resp, err := v2Request(req)
-		assert.Nil(t, err)
-		assert.True(t, strings.Contains(resp.String(), v.Raw), "Looking for %v but got %v \nGetRaw %v/%v from Hash1 failed - %v", v.Hash1, v.Raw, i, len(toTest), resp.String())
+			time.Sleep(time.Millisecond * 100)
+			resp, err := v2Request(req)
+			assert.Nil(t, err)
+			assert.True(t, strings.Contains(resp.String(), v.Raw), "Looking for %v but got %v \nGetRaw %v/%v from Hash1 failed - %v", v.Hash1, v.Raw, i, len(toTest), resp.String())
 
-		data.Hash = v.Hash2
-		req = primitives.NewJSON2Request("raw-data", 1, data)
-		resp, err = v2Request(req)
-		assert.Nil(t, err)
-		assert.True(t, strings.Contains(resp.String(), v.Raw), "Looking for %v \nGetRaw %v/%v from Hash2 failed - %v", v.Hash1, i, len(toTest), resp.String())
+			data.Hash = v.Hash2
+			req = primitives.NewJSON2Request("raw-data", 1, data)
+			resp, err = v2Request(req)
+			assert.Nil(t, err)
+			assert.True(t, strings.Contains(resp.String(), v.Raw), "Looking for %v \nGetRaw %v/%v from Hash2 failed - %v", v.Hash1, i, len(toTest), resp.String())
+		}
+		data.Type = v.Type // Once with Type
 	}
 }
 

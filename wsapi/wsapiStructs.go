@@ -294,7 +294,8 @@ type EntryRequest struct {
 }
 
 type HashRequest struct {
-	Hash string `json:"hash"`
+	Hash string   `json:"hash"`
+	Type HashType `json:"type,omitempty"`
 }
 
 type KeyMRRequest struct {

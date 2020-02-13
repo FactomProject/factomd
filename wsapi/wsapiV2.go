@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"reflect"
 	"strings"
 	"time"
 
@@ -713,7 +712,6 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 	hashkey := new(HashRequest)
 	err := MapToObject(params, hashkey)
 	if err != nil {
-		panic(reflect.TypeOf(params))
 		return nil, NewInvalidParamsError()
 	}
 
@@ -722,40 +720,55 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 		return nil, NewInvalidHashError()
 	}
 
+	dbase := state.GetDB()
 	var block interfaces.BinaryMarshallable
-	var b []byte
-
-	if block, _ = state.FetchECTransactionByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ = state.FetchFactoidTransactionByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ = state.FetchEntryByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	}
-
-	if b == nil {
-		dbase := state.GetDB()
-
-		// try to find the block data in db and return the first one found
-		if block, _ = dbase.FetchFBlock(h); block != nil {
-			b, _ = block.MarshalBinary()
-		} else if block, _ = dbase.FetchDBlock(h); block != nil {
-			b, _ = block.MarshalBinary()
-		} else if block, _ = dbase.FetchABlock(h); block != nil {
-			b, _ = block.MarshalBinary()
-		} else if block, _ = dbase.FetchEBlock(h); block != nil {
-			b, _ = block.MarshalBinary()
-		} else if block, _ = dbase.FetchECBlock(h); block != nil {
-			b, _ = block.MarshalBinary()
-		} else if block, _ = dbase.FetchFBlock(h); block != nil {
-			b, _ = block.MarshalBinary()
-		} else if block, _ = dbase.FetchEntry(h); block != nil {
-			b, _ = block.MarshalBinary()
-		} else {
-			return nil, NewObjectNotFoundError()
+	switch hashkey.Type {
+	case HashTypeFCTTx:
+		block, _ = state.FetchFactoidTransactionByHash(h)
+	case HashTypeECTx:
+		block, _ = state.FetchECTransactionByHash(h)
+	case HashTypeEntry:
+		block, _ = state.FetchEntryByHash(h)
+	case HashTypeEBlock:
+		block, _ = dbase.FetchEBlock(h)
+	case HashTypeECBlock:
+		block, _ = dbase.FetchECBlock(h)
+	case HashTypeFBlock:
+		block, _ = dbase.FetchFBlock(h)
+	case HashTypeABlock:
+		block, _ = dbase.FetchABlock(h)
+	case HashTypeDBlock:
+		block, _ = dbase.FetchDBlock(h)
+	default:
+		if block, _ = state.FetchFactoidTransactionByHash(h); block != nil {
+			break
 		}
+		if block, _ = state.FetchECTransactionByHash(h); block != nil {
+			break
+		}
+		if block, _ = state.FetchEntryByHash(h); block != nil {
+			break
+		}
+		if block, _ = dbase.FetchEBlock(h); block != nil {
+			break
+		}
+		if block, _ = dbase.FetchECBlock(h); block != nil {
+			break
+		}
+		if block, _ = dbase.FetchFBlock(h); block != nil {
+			break
+		}
+		if block, _ = dbase.FetchABlock(h); block != nil {
+			break
+		}
+		block, _ = dbase.FetchDBlock(h)
+	}
+	if block == nil {
+		return nil, NewObjectNotFoundError()
 	}
 
+	var b []byte
+	b, _ = block.MarshalBinary()
 	d := new(RawDataResponse)
 	d.Data = hex.EncodeToString(b)
 	return d, nil
