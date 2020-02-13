@@ -16,6 +16,7 @@ type pubSubPaths struct {
 	LeaderMsgOut      string
 	ConnectionMetrics string
 	ProcessListInfo   string
+	StateUpdate       string
 }
 
 var Path = pubSubPaths{
@@ -28,6 +29,7 @@ var Path = pubSubPaths{
 	LeaderMsgOut:      "leader-msg-out",
 	ConnectionMetrics: path.Join("connection", "metrics"),
 	ProcessListInfo:   "process-list",
+	StateUpdate:       "state-update",
 }
 
 type Balance struct {
@@ -67,4 +69,10 @@ type EOM struct {
 type ProcessListInfo struct {
 	ProcessTime interfaces.Timestamp
 	Dump        string
+}
+
+type StateUpdate struct {
+	NodeTime     interfaces.Timestamp
+	LeaderHeight uint32
+	Summary      string
 }

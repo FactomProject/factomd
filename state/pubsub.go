@@ -15,6 +15,7 @@ type Pub struct {
 	EOMTicker       pubsub.IPublisher
 	LeaderConfig    pubsub.IPublisher
 	ProcessListInfo pubsub.IPublisher
+	StateUpdate     pubsub.IPublisher
 }
 
 func (s *State) mkPath(name string) string {
@@ -34,4 +35,5 @@ func (s *State) BindPublishers() {
 	s.Pub.Directory = s.newPublisher(event.Path.Directory)
 	s.Pub.LeaderConfig = s.newPublisher(event.Path.LeaderConfig)
 	s.Pub.ProcessListInfo = s.newPublisher(event.Path.ProcessListInfo)
+	s.Pub.StateUpdate = s.newPublisher(event.Path.StateUpdate)
 }

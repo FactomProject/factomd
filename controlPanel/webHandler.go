@@ -59,12 +59,12 @@ func (handler *webHandler) RegisterRoutes(router *mux.Router) {
 	// handle static files
 	cssHandler := http.FileServer(http.Dir(filepath.Join(resourceDirectory, "css")))
 	jsHandler := http.FileServer(http.Dir(filepath.Join(resourceDirectory, "js")))
-	imgHandler := http.FileServer(http.Dir(filepath.Join(resourceDirectory, "images")))
+	imgHandler := http.FileServer(http.Dir(filepath.Join(resourceDirectory, "img")))
 	fontsHandler := http.FileServer(http.Dir(filepath.Join(resourceDirectory, "fonts")))
 
 	router.PathPrefix("/css/").Handler(http.StripPrefix("/css/", cssHandler))
 	router.PathPrefix("/js/").Handler(http.StripPrefix("/js/", jsHandler))
-	router.PathPrefix("/images/").Handler(http.StripPrefix("/images/", imgHandler))
+	router.PathPrefix("/img/").Handler(http.StripPrefix("/img/", imgHandler))
 	router.PathPrefix("/fonts/").Handler(http.StripPrefix("/fonts/", fontsHandler))
 
 	// register web endpoints
