@@ -176,7 +176,7 @@ section .metric .progress .progress-meter .progress-meter-text {
 section .metric table .button { margin: 0; }
 
 
-#dataDump textarea {
+.dump-data {
     min-height: 500px;
     background: #000;
     overflow-y: scroll;
