@@ -16,4 +16,8 @@ type Config struct {
 	// Display state information
 	CompleteHeight uint32
 	LeaderHeight   uint32
+
+	// details node information
+	IdentityChainID string
+	PublicKey       string
 }

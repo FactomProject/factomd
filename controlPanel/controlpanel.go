@@ -100,6 +100,11 @@ func New(config *Config) {
 			LeaderHeight:   config.LeaderHeight,
 			CompleteHeight: config.CompleteHeight,
 		},
+		DisplayDump: displayDump{
+			Servers: serverDump{
+				Node: nodeInfo(config.NodeName, config.IdentityChainID, config.PublicKey),
+			},
+		},
 	}
 
 	// leader output

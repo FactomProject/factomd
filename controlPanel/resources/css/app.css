@@ -152,7 +152,7 @@ header {
 header .search { padding-top: 12px; }
 
 section {
-    margin-bottom: 80px;
+    margin-bottom: 10px;
 }
 header > .row, body > section > .row { min-width: 1200px; }
 section h1 {

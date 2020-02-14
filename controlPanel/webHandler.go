@@ -12,6 +12,8 @@ import (
 	"runtime"
 )
 
+const HTML_DEBUG = true
+
 type WebHandler interface {
 	RegisterRoutes(router *mux.Router)
 }
@@ -80,6 +82,15 @@ func (handler *webHandler) indexHandler(w http.ResponseWriter, r *http.Request) 
 
 func (handler *webHandler) detailsHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handle %s '%s' from %s", r.Method, r.URL.Path, r.RemoteAddr)
+
+	// CODE only for debugging the html. This should be removed for production.
+	// The site doesn't need to load the html for every request!
+	if HTML_DEBUG {
+		resourceDirectory, _ := resourceDirectory()
+		baseTemplateFile := path.Join(resourceDirectory, "index.html")
+		handler.detailsTemplate, _ = template.ParseFiles(baseTemplateFile, path.Join(resourceDirectory, "views/details.html"))
+	}
+
 	handler.detailsTemplate.ExecuteTemplate(w, "site", nil)
 }
 
