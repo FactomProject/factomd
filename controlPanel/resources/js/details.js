@@ -36,19 +36,17 @@ $(document).ready(function () {
             eventSource.onmessage = function (event) {
                 let data = $.parseJSON(event.data);
                 console.log("servers event: ", data);
-                $('#serversAuthorities').text(data.Authorities);
-                $('#serversIdentities').text(data.Identities);
-                $('#serversNode').text(data.Node);
+                $('#authorities').text(data.Authorities);
+                $('#identities').text(data.Identities);
+                $('#node').text(data.Node);
             };
         }
     });
 
     $(".fullscreen-option").click( function(){
-        console.log("goto fullscreen");
         txtArea = $(this).siblings(".is-active");
         txtArea.toggleClass("fullscreen");
         $(this).toggleClass("absolute-fullscreen-option");
         $(this).toggleClass("fixed-fullscreen-option");
-    })
-
+    });
 });

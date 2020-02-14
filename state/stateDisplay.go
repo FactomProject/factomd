@@ -13,7 +13,7 @@ import (
 func (s *State) stateUpdate() *event.StateUpdate {
 	fnodes := []*State{s}
 	nodesSummary := nodesSummary(fnodes)
-	summary := fmt.Sprintf("===SummaryStart===\n%s \n%s\n===SummaryEnd===\n", s.ShortString(), nodesSummary)
+	summary := fmt.Sprintf("===SummaryStart===%s \n%s===SummaryEnd===\n", s.ShortString(), nodesSummary)
 
 	identitiesDetails := identitiesDetails(s.IdentityControl.GetSortedIdentities())
 	authoritiesDetails := authoritiesDetails(s.IdentityControl.GetSortedAuthorities())
