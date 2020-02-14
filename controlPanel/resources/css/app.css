@@ -67,7 +67,7 @@ label {
 .tabs-title>a:hover { background: #474747; color: #fff; }
 .tabs-title a { color: #aaa; }
 .tabs-content { background: none; border: none; }
-.tabs-panel { padding: 1rem 0 0; }
+.tabs-panel { padding: 0; }
 table thead {
     background-color: #28495f;
     border: none;
@@ -181,6 +181,10 @@ section .metric .progress .progress-meter .progress-meter-text {
 section .metric table .button { margin: 0; }
 
 .tabs-control-panel {padding-left:1rem; padding-bottom: 1rem; }
+
+.tabs-details {
+    padding: 1rem 0 0;
+}
 .dump-tab{    
     color: #aaa;
     float: left;
@@ -191,7 +195,7 @@ section .metric table .button { margin: 0; }
     margin: 0;
 }
 .dump-container {
-    position:relative
+    position:relative;
 }
 .fullscreen-option{
     z-index: 3;
@@ -204,7 +208,6 @@ section .metric table .button { margin: 0; }
 } 
 .absolute-fullscreen-option {
     position: absolute;
-    margin-top: 17px;
 }
 .fixed-fullscreen-option { position: fixed; }
 
