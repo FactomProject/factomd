@@ -137,12 +137,7 @@ header + .row { margin-bottom: 32px; }
 #panEntries thead th:nth-child(3), #panEntries tbody td:nth-child(3) { width: 99px; }
 #panDirectoryBlock thead th:first-child, #panDirectoryBlock tbody td:first-child { width: 350px; }
 #panDirectoryBlock thead th:nth-child(2), #panDirectoryBlock tbody td:nth-child(2) { width: 803px; }
-#dataDump textarea {
-	min-height: 500px;
-	background: #000;
-	overflow-y: scroll;
-	font-family: monospace;
-}
+
 #explorer table { table-layout: fixed; }
 #explorer table td { overflow: auto; }
 #explorer table td:first-child { width: 15%; }
@@ -180,8 +175,18 @@ section .metric .progress .progress-meter .progress-meter-text {
 }
 section .metric table .button { margin: 0; }
 
-.tabs-control-panel {padding-left:1rem; padding-bottom: 1rem; }
 
+#dataDump textarea {
+    min-height: 500px;
+    background: #000;
+    overflow-y: scroll;
+    font-family: monospace;
+    padding: 10px;
+}
+.tabs-control-panel {
+    padding-left:1rem;
+    padding-bottom: 1rem;
+}
 .tabs-details {
     padding: 1rem 0 0;
 }
