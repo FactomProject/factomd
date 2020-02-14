@@ -30,9 +30,9 @@ func testControlPanelLive(t *testing.T) {
 	}()
 
 	config := &Config{
-		FactomNodeName: s.FactomNodeName,
-		Version:        s.FactomdVersion,
-		Port:           3000,
+		NodeName: s.FactomNodeName,
+		Version:  s.FactomdVersion,
+		Port:     3000,
 	}
 	New(config)
 
