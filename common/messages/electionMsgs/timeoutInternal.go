@@ -241,7 +241,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 }
 
 func (m *TimeoutInternal) GetServerID() (rval interfaces.IHash) {
-	defer func() { rval = primitives.CheckNil(rval, "TimeoutInternal.GetServerID") }()
+	defer func() { rval = primitives.CheckNilInterface(rval, "TimeoutInternal.GetServerID") }()
 
 	return nil
 }

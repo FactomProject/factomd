@@ -79,14 +79,14 @@ func (e *ServerIndexNumber) GetHash() (rval interfaces.IHash) {
 
 // GetEntryHash always returns nil
 func (e *ServerIndexNumber) GetEntryHash() (rval interfaces.IHash) {
-	defer func() { rval = primitives.CheckNil(rval, "ServerIndexNumber.GetEntryHash") }()
+	defer func() { rval = primitives.CheckNilInterface(rval, "ServerIndexNumber.GetEntryHash") }()
 
 	return nil
 }
 
 // GetSigHash always returns nil
 func (e *ServerIndexNumber) GetSigHash() (rval interfaces.IHash) {
-	defer func() { rval = primitives.CheckNil(rval, "ServerIndexNumber.GetSigHash") }()
+	defer func() { rval = primitives.CheckNilInterface(rval, "ServerIndexNumber.GetSigHash") }()
 
 	return nil
 }

@@ -92,7 +92,7 @@ func NewIncreaseBalance() *IncreaseBalance {
 
 // GetEntryHash always returns nil
 func (e *IncreaseBalance) GetEntryHash() (rval interfaces.IHash) {
-	defer func() { rval = primitives.CheckNil(rval, "IncreaseBalance.GetEntryHash") }()
+	defer func() { rval = primitives.CheckNilInterface(rval, "IncreaseBalance.GetEntryHash") }()
 
 	return nil
 }
@@ -117,8 +117,6 @@ func (e *IncreaseBalance) GetHash() (rval interfaces.IHash) {
 
 // GetSigHash always returns nil
 func (e *IncreaseBalance) GetSigHash() (rval interfaces.IHash) {
-	defer func() { rval = primitives.CheckNil(rval, "IncreaseBalance.GetSigHash") }()
-
 	return nil
 }
 
