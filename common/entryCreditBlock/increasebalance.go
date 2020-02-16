@@ -117,6 +117,8 @@ func (e *IncreaseBalance) GetHash() (rval interfaces.IHash) {
 
 // GetSigHash always returns nil
 func (e *IncreaseBalance) GetSigHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNilInterface(rval, "IncreaseBalance.GetSigHash") }()
+
 	return nil
 }
 
