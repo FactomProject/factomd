@@ -1,13 +1,23 @@
 package controlpanel
 
 import (
+	"github.com/FactomProject/factomd/controlPanel/pages"
+	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
+var testWebHandler *webHandler
+
+func init() {
+	router := mux.NewRouter()
+	indexContent := pages.IndexContent{NodeName: "", BuildNumber: "", Version: ""}
+	testWebHandler = &webHandler{IndexPageContent: indexContent}
+	testWebHandler.RegisterRoutes(router)
+}
+
 func TestControlPanelIndexHandler(t *testing.T) {
-	webHandler := webHandler{}
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -15,7 +25,7 @@ func TestControlPanelIndexHandler(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	// e.g. func GetUsersHandler(ctx context.Context, w http.ResponseWriter, r *http.Request)
-	handler := http.HandlerFunc(webHandler.indexHandler)
+	handler := http.HandlerFunc(testWebHandler.indexHandler)
 
 	// Our handlers satisfy http.Handler, so we can call their ServeHTTP method
 	// directly and pass in our Request and ResponseRecorder.

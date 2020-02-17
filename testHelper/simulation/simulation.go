@@ -605,7 +605,7 @@ func AddFNode() {
 }
 
 func WaitForEntry(s *state.State, hash interfaces.IHash) bool {
-	s.LogPrintf(testHelper.logName, "WaitForEntry:  %s", hash.String())
+	s.LogPrintf(logName, "WaitForEntry:  %s", hash.String())
 	//hash, _ := primitives.NewShaHashFromStr(entryhash)
 
 	for {

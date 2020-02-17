@@ -280,6 +280,10 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 	p2p.NetworkDeadline = time.Duration(p.Deadline) * time.Millisecond
 	simulation.BuildNetTopology(p)
 
+	// start a worker that publishes the connection metrics
+	connectionMetricsPublisher := p2p.NewMetricPublisher(s.FactomNodeName, connectionMetricsChannel)
+	connectionMetricsPublisher.Start(w)
+
 	if !p.EnableNet {
 		return
 	}
@@ -301,10 +305,6 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
 
-	// start a worker that publishes the connection metrics
-	connectionMetricsPublisher := p2p.NewMetricPublisher(s.FactomNodeName, connectionMetricsChannel)
-	connectionMetricsPublisher.Start(w)
-
 	p2pNetwork = new(p2p.Controller).Initialize(ci)
 	s.NetworkController = p2pNetwork
 	p2pNetwork.NameInit(s, "p2pNetwork", reflect.TypeOf(p2pNetwork).String())
@@ -315,7 +315,6 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 	p2pProxy.StartProxy(w)
-
 }
 
 func printGraphData(filename string, period int) {

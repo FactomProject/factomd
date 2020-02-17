@@ -7,6 +7,7 @@ package state_test
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/testHelper/simulation"
 	"strings"
 	"testing"
 	"time"
@@ -111,7 +112,7 @@ func TestLoadHoldingMap(t *testing.T) {
 }
 
 func TestDependentHoldingReview(t *testing.T) {
-	state := testHelper.CreateAndPopulateStaleHolding()
+	state := simulation.CreateAndPopulateStaleHolding()
 
 	if state.Hold.GetSize() == 0 {
 		t.Errorf("Error with Holding Map Length")
