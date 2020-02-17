@@ -4,17 +4,10 @@ $(document).ready(function () {
     $('#nav-main').addClass('is-active');
     $('#nav-link-main').attr('aria-selected', true);
 
-    let e1 = new EventSource('/events/channel-1');
-    e1.onmessage = function (event) {
-        console.log("channel-1", event);
-        $('#channel-1').html(JSON.stringify(event.data));
-    };
-
-
     let events = [];
     let generalEvents = new EventSource('/events/general-events');
     generalEvents.onmessage = function (event) {
-        // console.log("general events: ", event);
+        // console.log("event: ", event);
         if (events.length >= MAX_EVENT_ITEMS) {
             events.pop();
         }

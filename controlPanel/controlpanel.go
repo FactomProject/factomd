@@ -12,7 +12,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-	"time"
 )
 
 type controlPanel struct {
@@ -80,7 +79,6 @@ func New(config *Config) {
 	defer eventHandler.Shutdown()
 
 	eventHandler.RegisterRoutes(router)
-	eventHandler.RegisterChannel("channel-1", func() *sse.Message { return sse.SimpleMessage(time.Now().String()) }, 3*time.Second)
 
 	controlPanel := controlPanel{
 		subscriptions: subscriptions{
