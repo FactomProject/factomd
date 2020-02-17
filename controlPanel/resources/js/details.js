@@ -5,7 +5,7 @@ $(document).ready(function () {
 
     let eventSource = new EventSource('/events/summary');
     eventSource.onmessage = function (event) {
-        $('#summaryData').text(event.data);
+        $('#summaryData').html(event.data);
     };
 
     $('#tabs_details').on('change.zf.tabs', function() {
@@ -13,21 +13,21 @@ $(document).ready(function () {
             eventSource.close();
             eventSource = new EventSource('/events/summary');
             eventSource.onmessage = function (event) {
-                $('#summaryData').text(event.data);
+                $('#summaryData').html(event.data);
             };
         }
         if($('#processlist:visible').length){
             eventSource.close();
             eventSource = new EventSource('/events/processlist');
             eventSource.onmessage = function (event) {
-                $('#processlistData').text(event.data);
+                $('#processlistData').html(event.data);
             };
         }
         if($('#printmap:visible').length){
             eventSource.close();
             eventSource = new EventSource('/events/printmap');
             eventSource.onmessage = function (event) {
-                $('#printmapData').text(event.data);
+                $('#printmapData').html(event.data);
             };
         }
         if($('#servers:visible').length){
@@ -36,9 +36,9 @@ $(document).ready(function () {
             eventSource.onmessage = function (event) {
                 let data = $.parseJSON(event.data);
                 console.log("servers event: ", data);
-                $('#authorities').text(data.Authorities);
-                $('#identities').text(data.Identities);
-                $('#node').text(data.Node);
+                $('#authorities').html(data.Authorities);
+                $('#identities').html(data.Identities);
+                $('#node').html(data.Node);
             };
         }
     });

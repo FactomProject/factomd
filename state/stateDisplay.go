@@ -80,7 +80,7 @@ func identitiesDetails(identities []*identity.Identity) string {
 		_, _ = fmt.Fprintf(&details, "Key 4: %s\n", i.Keys[3])
 		_, _ = fmt.Fprintf(&details, "Signing Key: %s\n", i.SigningKey)
 		_, _ = fmt.Fprintf(&details, "Coinbase Address: %s\n", i.GetCoinbaseHumanReadable())
-		_, _ = fmt.Fprintf(&details, "Efficiency: %s%%\n", primitives.EfficiencyToString(i.Efficiency))
+		_, _ = fmt.Fprintf(&details, "Efficiency: %s&#37;\n", primitives.EfficiencyToString(i.Efficiency))
 
 		for _, a := range i.AnchorKeys {
 			_, _ = fmt.Fprintf(&details, "Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey)
