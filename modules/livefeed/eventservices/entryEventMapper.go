@@ -127,7 +127,7 @@ func mapEntryBlockHeader(header interfaces.IEntryBlockHeader) *eventmessages.Ent
 	}
 }
 
-func mapEntryBlockEntries(entries []interfaces.IRevealEntry, shouldIncludeContent bool) []*eventmessages.EntryBlockEntry {
+func mapEntryBlockEntries(entries []interfaces.IEBEntry, shouldIncludeContent bool) []*eventmessages.EntryBlockEntry {
 	result := make([]*eventmessages.EntryBlockEntry, len(entries))
 	for i, entry := range entries {
 		result[i] = mapEntryBlockEntry(entry, shouldIncludeContent)
@@ -135,7 +135,7 @@ func mapEntryBlockEntries(entries []interfaces.IRevealEntry, shouldIncludeConten
 	return result
 }
 
-func mapEntryBlockEntry(entry interfaces.IRevealEntry, shouldIncludeContent bool) *eventmessages.EntryBlockEntry {
+func mapEntryBlockEntry(entry event.IRevealEntry, shouldIncludeContent bool) *eventmessages.EntryBlockEntry {
 	blockEntry := &eventmessages.EntryBlockEntry{
 		Hash:    entry.GetHash().Bytes(),
 		ChainID: entry.GetChainIDHash().Bytes(),

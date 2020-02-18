@@ -3,6 +3,7 @@ package state
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/FactomProject/factomd/modules/livefeed"
 	"os"
 	"path/filepath"
 	"strings"
@@ -339,6 +340,8 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	} else {
 		s.CloneDBType = p.Db
 	}
+
+	s.LiveFeedService = livefeed.NewLiveFeedService()
 
 	s.AddPrefix(p.Prefix)
 	s.SetOut(false)

@@ -70,10 +70,27 @@ imports:
   - utils
 - name: github.com/FactomProject/snappy-go
   version: f2f83b22c29e5abc60e3a95062ce1491d3b95371
+- name: google.golang.org/genproto
+  version: 94acd270e44e65579b9ee3cdab25034d33fed608
+  subpackages:
+  - googleapis/rpc/status
+- name: github.com/gogo/protobuf
+  version: 8a5ed79f688836cf007ca23aefe0299791e7bea5
+  subpackages:
+  - gogoproto
+  - jsonpb
+  - proto
+  - protoc-gen-gogo/descriptor
+  - sortkeys
+  - types
 - name: github.com/golang/protobuf
-  version: ddf22928ea3c56eb4292a0adbbf5001b1e8e7d0d
+  version: 6c65a5562fc06764971b7c5d05c76c75e84bdbf7
   subpackages:
   - proto
+  - ptypes
+  - ptypes/any
+  - ptypes/duration
+  - ptypes/timestamp
 - name: github.com/gorilla/mux
   version: e67b3c02c7195c052acff13261f0c9fd1ba53011
 - name: github.com/inconshreveable/mousetrap

@@ -16,12 +16,12 @@ import (
 
 func TestEventEmitter_Send(t *testing.T) {
 	testCases := map[string]struct {
-		Emitter   *eventHub
+		Emitter   *liveFeedService
 		Event     eventinput.EventInput
 		Assertion func(*testing.T, *mockEventSender, error)
 	}{
 		"queue-filled": {
-			Emitter: &eventHub{
+			Emitter: &liveFeedService{
 				parentState: StateMock{
 					IdentityChainID: primitives.NewZeroHash(),
 				},
@@ -38,7 +38,7 @@ func TestEventEmitter_Send(t *testing.T) {
 			},
 		},
 		"not-running": {
-			Emitter: &eventHub{
+			Emitter: &liveFeedService{
 				eventSender: &mockEventSender{
 					eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
 				},
@@ -53,7 +53,7 @@ func TestEventEmitter_Send(t *testing.T) {
 			},
 		},
 		"nil-event": {
-			Emitter: &eventHub{
+			Emitter: &liveFeedService{
 				eventSender: &mockEventSender{
 					eventsOutQueue:      make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
 					replayDuringStartup: true,
@@ -67,7 +67,7 @@ func TestEventEmitter_Send(t *testing.T) {
 			},
 		},
 		"mute-replay-starting": {
-			Emitter: &eventHub{
+			Emitter: &liveFeedService{
 				eventSender: &mockEventSender{
 					eventsOutQueue:      make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
 					replayDuringStartup: false,
@@ -99,7 +99,7 @@ func TestEventsService_SendFillupQueue(t *testing.T) {
 		eventsOutQueue:          make(chan *eventmessages.FactomEvent, n),
 		droppedFromQueueCounter: prometheus.NewCounter(prometheus.CounterOpts{}),
 	}
-	eventEmitter := &eventHub{
+	eventEmitter := &liveFeedService{
 		parentState: StateMock{
 			IdentityChainID: primitives.NewZeroHash(),
 		},
@@ -153,7 +153,7 @@ type StateMock struct {
 	IdentityChainID interfaces.IHash
 	RunState        runstate.RunState
 	RunLeader       bool
-	Service         EventService
+	Service         LiveFeedService
 }
 
 func (s StateMock) GetRunState() runstate.RunState {
@@ -168,6 +168,6 @@ func (s StateMock) IsRunLeader() bool {
 	return s.RunLeader
 }
 
-func (s StateMock) GetEventService() EventService {
+func (s StateMock) GetEventService() LiveFeedService {
 	return s.Service
 }

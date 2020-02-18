@@ -46,6 +46,10 @@ func EmitEventFromMessage(pubState pubsub.IPubState, msg interfaces.IMsg, reques
 	}
 }
 
+func EmitNodeMessageF(pubState pubsub.IPubState, messageCode NodeMessageCode, level Level, format string, values ...interface{}) {
+	EmitNodeMessage(pubState, messageCode, level, fmt.Sprintf(format, values...))
+}
+
 func EmitNodeMessage(pubState pubsub.IPubState, messageCode NodeMessageCode, level Level, message string) {
 	pubRegistry := pubState.GetPubRegistry()
 	nodeMessage := &NodeMessage{
@@ -54,8 +58,4 @@ func EmitNodeMessage(pubState pubsub.IPubState, messageCode NodeMessageCode, lev
 		MessageText: message,
 	}
 	pubRegistry.GetNodeMessage().Write(nodeMessage)
-}
-
-func EmitNodeMessageF(pubState pubsub.IPubState, messageCode NodeMessageCode, level Level, format string, values ...interface{}) {
-	EmitNodeMessage(pubState, messageCode, level, fmt.Sprintf(format, values...))
 }

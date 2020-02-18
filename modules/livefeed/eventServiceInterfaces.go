@@ -8,7 +8,7 @@ import (
 type StateEventServices interface {
 	GetRunState() runstate.RunState
 	GetIdentityChainID() interfaces.IHash
-	IsRunLeader() bool
-	GetEventService() EventService
+	GetRunLeader() bool
+	GetLiveFeedService() LiveFeedService
 	GetFactomNodeName() string
 }

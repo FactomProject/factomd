@@ -75,18 +75,19 @@ func NewEventSenderTo(params *EventServiceParams) EventSender {
 // TODO describe choice of dropping events.
 func (eventSender *eventSender) subscriberEventListener() {
 	eventSender.connect()
-
 	for {
-		payload, open := eventSender.eventsSubscriber.ReadWithInfo()
-		if !open {
-			log.Warn("The event pub/sub instance was closed, the eventSender is shutting down...")
-			eventSender.Shutdown()
-			return
-		}
-		event := payload.(*eventmessages.FactomEvent)
-		if eventSender.postponeSendingUntil.IsZero() || eventSender.postponeSendingUntil.Before(time.Now()) {
-			eventSender.sendEvent(event)
-			eventSender.eventsSentCounter.Inc()
+		select {
+		case payload, open := <-eventSender.eventsSubscriber.Updates:
+			if !open {
+				log.Warn("The event pub/sub instance was closed, the eventSender is shutting down...")
+				eventSender.Shutdown()
+				return
+			}
+			event := payload.(*eventmessages.FactomEvent)
+			if eventSender.postponeSendingUntil.IsZero() || eventSender.postponeSendingUntil.Before(time.Now()) {
+				eventSender.sendEvent(event)
+				eventSender.eventsSentCounter.Inc()
+			}
 		}
 	}
 }

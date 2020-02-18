@@ -57,16 +57,20 @@ func MapCommitDBAnchored(dbAnchoredEvent *event.DBAnchored, eventSource eventmes
 func MapDBHT(dbht *event.DBHT, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
 	factomEvent := &eventmessages.FactomEvent_ProcessListEvent{}
 	if dbht.Minute == 0 {
-		factomEvent.ProcessListEvent.ProcessListEvent = &eventmessages.ProcessListEvent_NewBlockEvent{
-			NewBlockEvent: &eventmessages.NewBlockEvent{
-				NewBlockHeight: dbht.DBHeight,
+		factomEvent.ProcessListEvent = &eventmessages.ProcessListEvent{
+			ProcessListEvent: &eventmessages.ProcessListEvent_NewBlockEvent{
+				NewBlockEvent: &eventmessages.NewBlockEvent{
+					NewBlockHeight: dbht.DBHeight,
+				},
 			},
 		}
 	} else {
-		factomEvent.ProcessListEvent.ProcessListEvent = &eventmessages.ProcessListEvent_NewMinuteEvent{
-			NewMinuteEvent: &eventmessages.NewMinuteEvent{
-				BlockHeight: dbht.DBHeight,
-				NewMinute:   uint32(dbht.Minute),
+		factomEvent.ProcessListEvent = &eventmessages.ProcessListEvent{
+			ProcessListEvent: &eventmessages.ProcessListEvent_NewMinuteEvent{
+				NewMinuteEvent: &eventmessages.NewMinuteEvent{
+					BlockHeight: dbht.DBHeight,
+					NewMinute:   uint32(dbht.Minute),
+				},
 			},
 		}
 	}

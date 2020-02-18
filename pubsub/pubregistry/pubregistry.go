@@ -96,5 +96,5 @@ func (p PubRegistry) GetDBAnchored() pubsub.IPublisher {
 }
 
 func (p PubRegistry) GetNodeMessage() pubsub.IPublisher {
-	return p.DBAnchored
+	return p.NodeMessage
 }

@@ -32,7 +32,7 @@ func TestUpdateState(t *testing.T) {
 	}
 
 	s := testHelper.CreateAndPopulateTestState()
-	s.EventService.ConfigSender(s, mockSender)
+	s.LiveFeedService.ConfigSender(s, mockSender)
 
 	eBlocks := []interfaces.IEntryBlock{}
 	entries := []interfaces.IEBEntry{}
@@ -75,7 +75,7 @@ func TestAddToAndDeleteFromHolding(t *testing.T) {
 	}
 
 	s := testHelper.CreateAndPopulateTestState()
-	s.EventService.ConfigSender(s, mockSender)
+	s.LiveFeedService.ConfigSender(s, mockSender)
 
 	msg := &messages.CommitChainMsg{CommitChain: entryCreditBlock.NewCommitChain()}
 	msg.CommitChain.MilliTime = createByteSlice6Timestamp(-2 * 1e3)
@@ -117,7 +117,7 @@ func TestAddToProcessList(t *testing.T) {
 	}
 
 	s := testHelper.CreateAndPopulateTestState()
-	s.EventService.ConfigSender(s, mockSender)
+	s.LiveFeedService.ConfigSender(s, mockSender)
 	s.SetLeaderTimestamp(primitives.NewTimestampNow())
 
 	msg := &messages.CommitChainMsg{CommitChain: entryCreditBlock.NewCommitChain()}
@@ -159,7 +159,7 @@ func TestEmitDirectoryBlockEventsFromHeightRange(t *testing.T) {
 	}
 
 	s := testHelper.CreateAndPopulateTestState()
-	s.EventService.ConfigSender(s, mockSender)
+	s.LiveFeedService.ConfigSender(s, mockSender)
 	s.RunLeader = true
 
 	s.EmitDirectoryBlockEventsFromHeight(0, 7)
@@ -192,7 +192,7 @@ func TestEmitDirectoryBlockStateEventsFromHeight(t *testing.T) {
 	}
 
 	s := testHelper.CreateAndPopulateTestState()
-	s.EventService.ConfigSender(s, mockSender)
+	s.LiveFeedService.ConfigSender(s, mockSender)
 	s.RunLeader = true
 
 	s.EmitDirectoryBlockEventsFromHeight(3, 100)
@@ -225,7 +225,7 @@ func TestEmitDirectoryBlockAnchorEvent(t *testing.T) {
 	}
 
 	s := testHelper.CreateAndPopulateTestState()
-	s.EventService.ConfigSender(s, mockSender)
+	s.LiveFeedService.ConfigSender(s, mockSender)
 
 	directoryBlockInfo := dbInfo.NewDirBlockInfo()
 
@@ -285,7 +285,7 @@ func TestExecuteMessage(t *testing.T) {
 				sendStateChange:     true,
 				broadcastContent:    eventconfig.BroadcastAlways,
 			}
-			s.EventService.ConfigSender(s, mockSender)
+			s.LiveFeedService.ConfigSender(s, mockSender)
 
 			// test
 			testCase.Message.FollowerExecute(s)
@@ -311,7 +311,7 @@ func TestEmitProcessListEvent(t *testing.T) {
 	}
 
 	s := testHelper.CreateAndPopulateTestState()
-	s.EventService.ConfigSender(s, mockSender)
+	s.LiveFeedService.ConfigSender(s, mockSender)
 
 	blockHeight := s.LLeaderHeight
 

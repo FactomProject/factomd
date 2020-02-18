@@ -195,6 +195,14 @@ func initAnchors(s *state.State, reparse bool) {
 	}
 }
 
+func startLiveFeed(w *worker.Thread, p *globals.FactomParams) {
+	state0 := fnode.Get(0).State
+	config := state0.Cfg.(*util.FactomdConfig)
+	if config.LiveFeedAPI.EnableLiveFeedAPI || p.EnableLiveFeedAPI {
+		state0.LiveFeedService.Start(state0, config, p)
+	}
+}
+
 func startWebserver(w *worker.Thread) {
 	state0 := fnode.Get(0).State
 	wsapi.Start(w, state0)
