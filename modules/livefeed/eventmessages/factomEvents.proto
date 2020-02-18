@@ -1,0 +1,164 @@
+syntax = "proto3";
+package eventmessages;
+option go_package = "eventmessages";
+option java_package = "com.factom.factomd.eventmessages";
+
+import "google/protobuf/timestamp.proto";
+import "eventmessages/adminBlock.proto";
+import "eventmessages/directoryBlock.proto";
+import "eventmessages/entryBlock.proto";
+import "eventmessages/factoidBlock.proto";
+
+// ====  ROOT EVENT =====
+message FactomEvent {
+    EventSource eventSource = 1;
+    string factomNodeName = 2;
+    bytes identityChainID = 3;
+    oneof event {
+        ChainCommit chainCommit = 4;
+        EntryCommit entryCommit = 5;
+        EntryReveal entryReveal = 6;
+        StateChange stateChange = 7;
+        DirectoryBlockCommit directoryBlockCommit = 8;
+        ProcessListEvent processListEvent = 9;
+        NodeMessage nodeMessage = 10;
+        DirectoryBlockAnchor directoryBlockAnchor = 11;
+    }
+}
+
+// ====  FACTOM EVENT VALUES =====
+message ChainCommit {
+    EntityState entityState = 1;
+    bytes chainIDHash = 2;
+    bytes entryHash = 3;
+    bytes weld = 4;
+    google.protobuf.Timestamp timestamp = 5;
+    uint32 credits = 6;
+    bytes entryCreditPublicKey = 7;
+    bytes signature = 8;
+    uint32 version = 9;
+}
+
+message EntryCommit {
+    EntityState entityState = 1;
+    bytes entryHash = 2;
+    google.protobuf.Timestamp timestamp = 3;
+    uint32 credits = 4;
+    bytes entryCreditPublicKey = 5;
+    bytes signature = 6;
+    uint32 version = 7;
+}
+
+message EntryReveal {
+    EntityState entityState = 1;
+    EntryBlockEntry entry = 2;
+    google.protobuf.Timestamp timestamp = 3;
+}
+
+message StateChange {
+    bytes entityHash = 1;
+    EntityState entityState = 2;
+    uint32 blockHeight = 3;
+}
+
+message DirectoryBlockCommit {
+    DirectoryBlock directoryBlock = 1;
+    AdminBlock adminBlock = 2;
+    FactoidBlock factoidBlock = 3;
+    EntryCreditBlock entryCreditBlock = 4;
+    repeated EntryBlock entryBlocks = 5;
+    repeated EntryBlockEntry entryBlockEntries = 6;
+}
+
+/* Although readability would increase when the entry credit block would have its own file. The oneof in
+ * EntryCreditBlockEntry prevents this. This is linked back to type that are defined in this file.
+ */
+// ====  ENTRY CREDIT BLOCK =====
+message EntryCreditBlock {
+    EntryCreditBlockHeader header = 1;
+    repeated EntryCreditBlockEntry entries = 2;
+}
+
+message EntryCreditBlockHeader {
+    bytes bodyHash = 1;
+    bytes previousHeaderHash = 2;
+    bytes previousFullHash = 3;
+    uint32 blockHeight = 4;
+    uint64 objectCount = 5;
+}
+
+message EntryCreditBlockEntry {
+    oneof entryCreditBlockEntry {
+        ChainCommit chainCommit = 1;
+        EntryCommit entryCommit = 2;
+        IncreaseBalance increaseBalance = 3;
+        MinuteNumber minuteNumber = 4;
+        ServerIndexNumber serverIndexNumber = 5;
+    }
+}
+
+message IncreaseBalance {
+    bytes entryCreditPublicKey = 1;
+    bytes transactionID = 2;
+    uint64 index = 3;
+    uint64 amount = 4;
+}
+
+message MinuteNumber {
+    uint32 minuteNumber = 1;
+}
+
+message ServerIndexNumber {
+    uint32 serverIndexNumber = 1;
+}
+
+// ====  MESSAGE EVENTS =====
+
+message NodeMessage {
+    NodeMessageCode messageCode = 1;
+    Level level = 2;
+    string messageText = 3;
+}
+
+// ====  PROCESS LIST EVENTS =====
+message ProcessListEvent {
+    oneof processListEvent {
+        NewBlockEvent newBlockEvent = 1;
+        NewMinuteEvent newMinuteEvent = 2;
+    }
+}
+
+message NewBlockEvent {
+    uint32 newBlockHeight = 1;
+}
+
+message NewMinuteEvent {
+    uint32 newMinute = 1;
+    uint32 blockHeight = 2;
+}
+
+// ====  ENUMS =====
+enum EventSource {
+    LIVE = 0;
+    REPLAY_BOOT = 1;
+}
+
+enum EntityState {
+    REQUESTED = 0;
+    ACCEPTED = 1;
+    REJECTED = 2;
+    COMMITTED_TO_DIRECTORY_BLOCK = 3;
+}
+
+enum Level {
+    INFO = 0;
+    WARNING = 1;
+    ERROR = 2;
+}
+
+enum NodeMessageCode {
+    GENERAL = 0;
+    STARTED = 1;
+    SYNCED = 2;
+    SHUTDOWN = 3;
+}

@@ -349,9 +349,10 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 	}
 
 	// Election factory was created and passed int to avoid import loop
+	//node.State.BindPublishers() // REVIEW: has this been fully refactored?
 	node.State.Initialize(w, new(electionMsgs.ElectionsFactory))
 	node.State.NameInit(node, node.State.GetFactomNodeName()+"STATE", reflect.TypeOf(node.State).String())
-	node.State.BindPublishers()
+	node.State.BuildPubRegistry()
 
 	state0Init.Do(func() {
 		logPort = p.LogPort

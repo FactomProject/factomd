@@ -7,41 +7,41 @@ import (
 )
 
 type pubSubPaths struct {
-	EOM           string
-	Seq           string
-	Directory     string
-	Bank          string
-	LeaderConfig  string
-	LeaderMsgIn   string
-	LeaderMsgOut  string
-	CommitChain   string
-	CommitEntry   string
-	RevealEntry   string
-	CommitDBState string
-	DBAnchored    string
-	NodeMessage   string
-	AuthoritySet string
+	EOM               string
+	Seq               string
+	Directory         string
+	Bank              string
+	LeaderConfig      string
+	LeaderMsgIn       string
+	LeaderMsgOut      string
+	CommitChain       string
+	CommitEntry       string
+	RevealEntry       string
+	CommitDBState     string
+	DBAnchored        string
+	NodeMessage       string
+	AuthoritySet      string
 	ConnectionMetrics string
 	ProcessListInfo   string
 	StateUpdate       string
 }
 
 var Path = pubSubPaths{
-	EOM:           "EOM",
-	Seq:           "seq",
-	Directory:     "directory",
-	Bank:          "bank",
-	LeaderConfig:  "leader-config",
-	LeaderMsgIn:   "leader-msg-in",
-	LeaderMsgOut:  "leader-msg-out",
-	CommitChain:   "commit-chain",
-	CommitEntry:   "commit-entry",
-	RevealEntry:   "reveal-entry",
-	CommitDBState: "commit-dbstate",
-	NodeMessage:   "node-message",
-	ConnectionMetrics: path.Join("connection", "metrics"), // REVIEW: pubsub has it's own path maybe should use that
+	EOM:               "EOM",
+	Seq:               "seq",
+	Directory:         "directory",
+	Bank:              "bank",
+	LeaderConfig:      "leader-config",
+	LeaderMsgIn:       "leader-msg-in",
+	LeaderMsgOut:      "leader-msg-out",
+	ConnectionMetrics: path.Join("connection", "metrics"),
 	ProcessListInfo:   "process-list",
 	StateUpdate:       "state-update",
+	CommitChain:       "commit-chain",
+	CommitEntry:       "commit-entry",
+	RevealEntry:       "reveal-entry",
+	CommitDBState:     "commit-dbstate",
+	NodeMessage:       "node-message",
 	AuthoritySet: "authority-set",
 }
 
@@ -128,4 +128,18 @@ type DBStateCommit struct {
 type DBAnchored struct {
 	DBHeight     uint32
 	DirBlockInfo interfaces.IDirBlockInfo
+}
+
+type ProcessListInfo struct {
+	ProcessTime interfaces.Timestamp
+	Dump        string
+	PrintMap    string
+}
+
+type StateUpdate struct {
+	NodeTime           interfaces.Timestamp
+	LeaderHeight       uint32
+	Summary            string
+	IdentitiesDetails  string
+	AuthoritiesDetails string
 }
