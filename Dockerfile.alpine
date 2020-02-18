@@ -1,19 +1,10 @@
-FROM golang:1.12-alpine  as builder
+FROM golang:1.13-alpine as builder
 
 # Get git
 RUN apk add --no-cache curl git
 
-# Get glide
-RUN go get github.com/Masterminds/glide
-
 # Where factomd sources will live
-WORKDIR $GOPATH/src/github.com/FactomProject/factomd
-
-# Get the dependencies
-COPY glide.yaml glide.lock ./
-
-# Install dependencies
-RUN glide install -v
+WORKDIR /opt/FactomProject/factomd
 
 # Populate the rest of the source
 COPY . .
