@@ -37,24 +37,24 @@ var _ interfaces.ShortInterpretable = (*CommitChain)(nil)
 var _ interfaces.IECBlockEntry = (*CommitChain)(nil)
 var _ interfaces.ISignable = (*CommitChain)(nil)
 
-func (e *CommitChain) Init() {
-	if e.MilliTime == nil {
-		e.MilliTime = new(primitives.ByteSlice6)
+func (c *CommitChain) Init() {
+	if c.MilliTime == nil {
+		c.MilliTime = new(primitives.ByteSlice6)
 	}
-	if e.ChainIDHash == nil {
-		e.ChainIDHash = primitives.NewZeroHash()
+	if c.ChainIDHash == nil {
+		c.ChainIDHash = primitives.NewZeroHash()
 	}
-	if e.Weld == nil {
-		e.Weld = primitives.NewZeroHash()
+	if c.Weld == nil {
+		c.Weld = primitives.NewZeroHash()
 	}
-	if e.EntryHash == nil {
-		e.EntryHash = primitives.NewZeroHash()
+	if c.EntryHash == nil {
+		c.EntryHash = primitives.NewZeroHash()
 	}
-	if e.ECPubKey == nil {
-		e.ECPubKey = new(primitives.ByteSlice32)
+	if c.ECPubKey == nil {
+		c.ECPubKey = new(primitives.ByteSlice32)
 	}
-	if e.Sig == nil {
-		e.Sig = new(primitives.ByteSlice64)
+	if c.Sig == nil {
+		c.Sig = new(primitives.ByteSlice64)
 	}
 }
 
@@ -62,14 +62,14 @@ func (e *CommitChain) Init() {
 // It does not catch if the private key holder has created a malleated version
 //which is functionally identical in come cases from the protocol perspective,
 //but would fail comparison here
-func (a *CommitChain) IsSameAs(b interfaces.IECBlockEntry) bool {
-	if a == nil || b == nil {
-		if a == nil && b == nil {
+func (c *CommitChain) IsSameAs(b interfaces.IECBlockEntry) bool {
+	if c == nil || b == nil {
+		if c == nil && b == nil {
 			return true
 		}
 		return false
 	}
-	if a.ECID() != b.ECID() {
+	if c.ECID() != b.ECID() {
 		return false
 	}
 
@@ -78,46 +78,46 @@ func (a *CommitChain) IsSameAs(b interfaces.IECBlockEntry) bool {
 		return false
 	}
 
-	if a.Version != bb.Version {
+	if c.Version != bb.Version {
 		return false
 	}
-	if a.MilliTime.IsSameAs(bb.MilliTime) == false {
+	if c.MilliTime.IsSameAs(bb.MilliTime) == false {
 		return false
 	}
-	if a.ChainIDHash.IsSameAs(bb.ChainIDHash) == false {
+	if c.ChainIDHash.IsSameAs(bb.ChainIDHash) == false {
 		return false
 	}
-	if a.Weld.IsSameAs(bb.Weld) == false {
+	if c.Weld.IsSameAs(bb.Weld) == false {
 		return false
 	}
-	if a.EntryHash.IsSameAs(bb.EntryHash) == false {
+	if c.EntryHash.IsSameAs(bb.EntryHash) == false {
 		return false
 	}
-	if a.Credits != bb.Credits {
+	if c.Credits != bb.Credits {
 		return false
 	}
-	if a.ECPubKey.IsSameAs(bb.ECPubKey) == false {
+	if c.ECPubKey.IsSameAs(bb.ECPubKey) == false {
 		return false
 	}
-	if a.Sig.IsSameAs(bb.Sig) == false {
+	if c.Sig.IsSameAs(bb.Sig) == false {
 		return false
 	}
 
 	return true
 }
 
-func (e *CommitChain) String() string {
-	e.Init()
+func (c *CommitChain) String() string {
+	c.Init()
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf(" %s\n", "CommitChain"))
-	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Version", e.Version))
-	out.WriteString(fmt.Sprintf("   %-20s %s\n", "MilliTime", e.MilliTime))
-	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ChainIDHash", e.ChainIDHash.Bytes()[:3]))
-	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Weld", e.Weld.Bytes()[:3]))
-	out.WriteString(fmt.Sprintf("   %-20s %x\n", "EntryHash", e.EntryHash.Bytes()[:3]))
-	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Credits", e.Credits))
-	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECPubKey", e.ECPubKey[:3]))
-	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Sig", e.Sig[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Version", c.Version))
+	out.WriteString(fmt.Sprintf("   %-20s %s\n", "MilliTime", c.MilliTime))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ChainIDHash", c.ChainIDHash.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Weld", c.Weld.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "EntryHash", c.EntryHash.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Credits", c.Credits))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECPubKey", c.ECPubKey[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Sig", c.Sig[:3]))
 
 	return (string)(out.DeepCopyBytes())
 }
@@ -135,7 +135,7 @@ func NewCommitChain() *CommitChain {
 	return c
 }
 
-func (a *CommitChain) GetEntryHash() (rval interfaces.IHash) {
+func (c *CommitChain) GetEntryHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface
@@ -143,10 +143,10 @@ func (a *CommitChain) GetEntryHash() (rval interfaces.IHash) {
 		}
 	}()
 
-	return a.EntryHash
+	return c.EntryHash
 }
 
-func (e *CommitChain) Hash() (rval interfaces.IHash) {
+func (c *CommitChain) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface
@@ -154,18 +154,18 @@ func (e *CommitChain) Hash() (rval interfaces.IHash) {
 		}
 	}()
 
-	bin, err := e.MarshalBinary()
+	bin, err := c.MarshalBinary()
 	if err != nil {
 		panic(err)
 	}
 	return primitives.Sha(bin)
 }
 
-func (b *CommitChain) IsInterpretable() bool {
+func (c *CommitChain) IsInterpretable() bool {
 	return false
 }
 
-func (b *CommitChain) Interpret() string {
+func (c *CommitChain) Interpret() string {
 	return ""
 }
 
@@ -436,10 +436,38 @@ func (c *CommitChain) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (e *CommitChain) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (c *CommitChain) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(c)
 }
 
-func (e *CommitChain) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (c *CommitChain) JSONString() (string, error) {
+	return primitives.EncodeJSONString(c)
+}
+
+func (c *CommitChain) GetVersion() uint8 {
+	return c.Version
+}
+
+func (c *CommitChain) GetMilliTime() *primitives.ByteSlice6 {
+	return c.MilliTime
+}
+
+func (c *CommitChain) GetChainIDHash() interfaces.IHash {
+	return c.ChainIDHash
+}
+
+func (c *CommitChain) GetWeld() interfaces.IHash {
+	return c.Weld
+}
+
+func (c *CommitChain) GetCredits() uint8 {
+	return c.Credits
+}
+
+func (c *CommitChain) GetECPubKey() *primitives.ByteSlice32 {
+	return c.ECPubKey
+}
+
+func (c *CommitChain) GetSig() *primitives.ByteSlice64 {
+	return c.Sig
 }

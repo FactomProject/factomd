@@ -12,6 +12,9 @@ func (subFactory) Counter() *SubCounter             { return NewSubCounter() }
 func (subFactory) Config(update func(o map[string]interface{})) *SubConfig {
 	return NewSubConfig(update)
 }
+func (subFactory) PrometheusCounter(name string, help ...string) *SubPrometheusCounter {
+	return NewSubPrometheusCounter(name, help...)
+}
 
 var PubFactory pubFactory
 

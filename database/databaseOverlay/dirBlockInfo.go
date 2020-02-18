@@ -1,6 +1,7 @@
 package databaseOverlay
 
 import (
+	"github.com/FactomProject/factomd/modules/event"
 	"sort"
 
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
@@ -9,28 +10,46 @@ import (
 )
 
 // ProcessDirBlockInfoBatch inserts the dirblock info block
-func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) error {
+func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) (err error) {
 	if block.GetBTCConfirmed() == true {
-		err := db.Delete(DIRBLOCKINFO_UNCONFIRMED, block.DatabasePrimaryIndex().Bytes())
+		err = db.Delete(DIRBLOCKINFO_UNCONFIRMED, block.DatabasePrimaryIndex().Bytes())
 		if err != nil {
 			return err
 		}
-		return db.ProcessBlockBatchWithoutHead(DIRBLOCKINFO, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
+		err = db.ProcessBlockBatchWithoutHead(DIRBLOCKINFO, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	} else {
-		return db.ProcessBlockBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
+		err = db.ProcessBlockBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
+
+	if err == nil && db.pubState != nil {
+		dbAnchoredEvent := &event.DBAnchored{
+			DBHeight:     block.GetDatabaseHeight(),
+			DirBlockInfo: block,
+		}
+		db.pubState.GetPubRegistry().GetDBAnchored().Write(dbAnchoredEvent)
+	}
+	return err
 }
 
-func (db *Overlay) ProcessDirBlockInfoMultiBatch(block interfaces.IDirBlockInfo) error {
+func (db *Overlay) ProcessDirBlockInfoMultiBatch(block interfaces.IDirBlockInfo) (err error) {
 	if block.GetBTCConfirmed() == true {
-		err := db.Delete(DIRBLOCKINFO_UNCONFIRMED, block.DatabasePrimaryIndex().Bytes())
+		err = db.Delete(DIRBLOCKINFO_UNCONFIRMED, block.DatabasePrimaryIndex().Bytes())
 		if err != nil {
 			return err
 		}
-		return db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
+		err = db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	} else {
-		return db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
+		err = db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
+
+	if err == nil && db.pubState != nil {
+		dbAnchoredEvent := &event.DBAnchored{
+			DBHeight:     block.GetDBHeight(),
+			DirBlockInfo: block,
+		}
+		db.pubState.GetPubRegistry().GetDBAnchored().Write(dbAnchoredEvent)
+	}
+	return err
 }
 
 // FetchDirBlockInfoByHash gets a dirblock info block by hash from the database.

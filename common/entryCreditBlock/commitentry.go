@@ -35,18 +35,18 @@ var _ interfaces.ShortInterpretable = (*CommitEntry)(nil)
 var _ interfaces.IECBlockEntry = (*CommitEntry)(nil)
 var _ interfaces.ISignable = (*CommitEntry)(nil)
 
-func (e *CommitEntry) Init() {
-	if e.MilliTime == nil {
-		e.MilliTime = new(primitives.ByteSlice6)
+func (c *CommitEntry) Init() {
+	if c.MilliTime == nil {
+		c.MilliTime = new(primitives.ByteSlice6)
 	}
-	if e.EntryHash == nil {
-		e.EntryHash = primitives.NewZeroHash()
+	if c.EntryHash == nil {
+		c.EntryHash = primitives.NewZeroHash()
 	}
-	if e.ECPubKey == nil {
-		e.ECPubKey = new(primitives.ByteSlice32)
+	if c.ECPubKey == nil {
+		c.ECPubKey = new(primitives.ByteSlice32)
 	}
-	if e.Sig == nil {
-		e.Sig = new(primitives.ByteSlice64)
+	if c.Sig == nil {
+		c.Sig = new(primitives.ByteSlice64)
 	}
 	/*
 		if e.SigHash == nil {
@@ -59,14 +59,14 @@ func (e *CommitEntry) Init() {
 // It does not catch if the private key holder has created a malleated version
 //which is functionally identical in come cases from the protocol perspective,
 //but would fail comparison here
-func (a *CommitEntry) IsSameAs(b interfaces.IECBlockEntry) bool {
-	if a == nil || b == nil {
-		if a == nil && b == nil {
+func (c *CommitEntry) IsSameAs(b interfaces.IECBlockEntry) bool {
+	if c == nil || b == nil {
+		if c == nil && b == nil {
 			return true
 		}
 		return false
 	}
-	if a.ECID() != b.ECID() {
+	if c.ECID() != b.ECID() {
 		return false
 	}
 
@@ -75,29 +75,29 @@ func (a *CommitEntry) IsSameAs(b interfaces.IECBlockEntry) bool {
 		return false
 	}
 
-	if a.Version != bb.Version {
+	if c.Version != bb.Version {
 		return false
 	}
-	if a.MilliTime.IsSameAs(bb.MilliTime) == false {
+	if c.MilliTime.IsSameAs(bb.MilliTime) == false {
 		return false
 	}
-	if a.EntryHash.IsSameAs(bb.EntryHash) == false {
+	if c.EntryHash.IsSameAs(bb.EntryHash) == false {
 		return false
 	}
-	if a.Credits != bb.Credits {
+	if c.Credits != bb.Credits {
 		return false
 	}
-	if a.ECPubKey.IsSameAs(bb.ECPubKey) == false {
+	if c.ECPubKey.IsSameAs(bb.ECPubKey) == false {
 		return false
 	}
-	if a.Sig.IsSameAs(bb.Sig) == false {
+	if c.Sig.IsSameAs(bb.Sig) == false {
 		return false
 	}
 
 	return true
 }
 
-func (e *CommitEntry) String() string {
+func (c *CommitEntry) String() string {
 	//var out primitives.Buffer
 	//out.WriteString(fmt.Sprintf(" %s\n", "CommitEntry"))
 	//out.WriteString(fmt.Sprintf("   %-20s %d\n", "Version", e.Version))
@@ -108,10 +108,10 @@ func (e *CommitEntry) String() string {
 	//out.WriteString(fmt.Sprintf("   %-20s %x\n", "Sig", e.Sig[:3]))
 	//
 	//return (string)(out.DeepCopyBytes())
-	return fmt.Sprintf("ehash[%x] Credits[%d] PublicKey[%x] Sig[%x]", e.EntryHash.Bytes()[:3], e.Credits, e.ECPubKey[:3], e.Sig[:3])
+	return fmt.Sprintf("ehash[%x] Credits[%d] PublicKey[%x] Sig[%x]", c.EntryHash.Bytes()[:3], c.Credits, c.ECPubKey[:3], c.Sig[:3])
 }
 
-func (a *CommitEntry) GetEntryHash() (rval interfaces.IHash) {
+func (c *CommitEntry) GetEntryHash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface
@@ -119,7 +119,7 @@ func (a *CommitEntry) GetEntryHash() (rval interfaces.IHash) {
 		}
 	}()
 
-	return a.EntryHash
+	return c.EntryHash
 }
 
 func NewCommitEntry() *CommitEntry {
@@ -133,7 +133,7 @@ func NewCommitEntry() *CommitEntry {
 	return c
 }
 
-func (e *CommitEntry) Hash() (rval interfaces.IHash) {
+func (c *CommitEntry) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface
@@ -141,18 +141,18 @@ func (e *CommitEntry) Hash() (rval interfaces.IHash) {
 		}
 	}()
 
-	bin, err := e.MarshalBinary()
+	bin, err := c.MarshalBinary()
 	if err != nil {
 		panic(err)
 	}
 	return primitives.Sha(bin)
 }
 
-func (b *CommitEntry) IsInterpretable() bool {
+func (c *CommitEntry) IsInterpretable() bool {
 	return false
 }
 
-func (b *CommitEntry) Interpret() string {
+func (c *CommitEntry) Interpret() string {
 	return ""
 }
 
@@ -378,10 +378,30 @@ func (c *CommitEntry) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (e *CommitEntry) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (c *CommitEntry) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(c)
 }
 
-func (e *CommitEntry) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (c *CommitEntry) JSONString() (string, error) {
+	return primitives.EncodeJSONString(c)
+}
+
+func (c *CommitEntry) GetVersion() uint8 {
+	return c.Version
+}
+
+func (c *CommitEntry) GetMilliTime() *primitives.ByteSlice6 {
+	return c.MilliTime
+}
+
+func (c *CommitEntry) GetCredits() uint8 {
+	return c.Credits
+}
+
+func (c *CommitEntry) GetECPubKey() *primitives.ByteSlice32 {
+	return c.ECPubKey
+}
+
+func (c *CommitEntry) GetSig() *primitives.ByteSlice64 {
+	return c.Sig
 }

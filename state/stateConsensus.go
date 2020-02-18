@@ -88,6 +88,7 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.Holding[hash] = msg
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
+		event.EmitEventFromMessage(s, msg, event.RequestState_HOLDING)
 	}
 }
 
@@ -97,6 +98,7 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		delete(s.Holding, hash)
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
+		event.EmitEventFromMessage(s, msg, event.RequestState_REJECTED)
 	}
 
 	s.Hold.RemoveDependentMsg(hash, reason)
@@ -405,6 +407,8 @@ func (s *State) Process() (progress bool) {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing
 					s.IgnoreDone = true
 				}
+				event.EmitNodeMessageF(s, event.NodeMessageCode_SYNCED, event.Level_INFO,
+					"Node %s has finished syncing up it's database", s.GetFactomNodeName())
 			}
 		}
 	} else if s.IgnoreMissing {

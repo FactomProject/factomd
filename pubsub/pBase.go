@@ -2,8 +2,6 @@ package pubsub
 
 import (
 	"sync"
-
-	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ IPublisher = (*PubBase)(nil)
@@ -15,17 +13,17 @@ type PubBase struct {
 
 	// path is set by registry
 	path string
-	Log  interfaces.Log
+	Log  Log
 }
 
 func (p *PubBase) Publish(path string, wrappers ...IPublisherWrapper) IPublisher {
 	return globalPublishWith(path, p, wrappers...)
 }
 
-func (p *PubBase) setPath(path string)          { p.path = path }
-func (p PubBase) Path() string                  { return p.path }
-func (p *PubBase) SetLogger(log interfaces.Log) { p.Log = log }
-func (p PubBase) Logger() interfaces.Log        { return p.Log }
+func (p *PubBase) setPath(path string) { p.path = path }
+func (p PubBase) Path() string         { return p.path }
+func (p *PubBase) SetLogger(log Log)   { p.Log = log }
+func (p PubBase) Logger() Log          { return p.Log }
 
 func (p *PubBase) Close() error {
 	p.Lock()

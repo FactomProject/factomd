@@ -11,6 +11,7 @@ package databaseOverlay
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/FactomProject/factomd/pubsub"
 	"os"
 	"sync"
 
@@ -122,6 +123,9 @@ type Overlay struct {
 
 	BitcoinAnchorRecordPublicKeys  []interfaces.Verifier
 	EthereumAnchorRecordPublicKeys []interfaces.Verifier
+
+	// We need access to the state to be able publish anchor events
+	pubState pubsub.IPubState
 }
 
 var _ interfaces.IDatabase = (*Overlay)(nil)

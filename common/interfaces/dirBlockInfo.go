@@ -8,9 +8,13 @@ type IDirBlockInfo interface {
 	Printable
 	DatabaseBatchable
 	GetDBHeight() uint32
-	GetBTCConfirmed() bool
 	GetDBMerkleRoot() IHash
+	GetBTCConfirmed() bool
 	GetBTCTxHash() IHash
+	GetBTCTxOffset() int32
 	GetTimestamp() Timestamp
 	GetBTCBlockHeight() int32
+	GetBTCBlockHash() IHash
+	GetEthereumAnchorRecordEntryHash() IHash
+	GetEthereumConfirmed() bool
 }

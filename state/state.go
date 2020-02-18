@@ -10,6 +10,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/pubsub/pubregistry"
 	"os"
 	"reflect"
 	"regexp"
@@ -104,7 +106,7 @@ type State struct {
 	common.Name
 	StateConfig
 	logging           *logging.LayerLogger
-	Pub               // Publisher hooks
+	Pub               *pubregistry.PubRegistry // Publisher hooks for this vm
 	RunState          runstate.RunState
 	NetworkController *p2p.Controller
 	Salt              interfaces.IHash
@@ -1353,11 +1355,6 @@ entryHashProcessing:
 			break entryHashProcessing
 		}
 	}
-
-	// publish new updated state
-	stateUpdate := s.stateUpdate()
-	s.Pub.StateUpdate.Write(stateUpdate)
-
 	return
 }
 
@@ -2393,4 +2390,12 @@ func (s *State) GetDBFinished() bool {
 
 func (s *State) GetRunLeader() bool {
 	return s.RunLeader
+}
+
+func (s *State) GetPubRegistry() pubsub.IPubRegistry {
+	return s.Pub
+}
+
+func (s *State) BuildPubRegistry() {
+	s.Pub = pubregistry.New(s.FactomNodeName)
 }

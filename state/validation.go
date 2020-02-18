@@ -23,6 +23,7 @@ var ValidationDebug bool = false
 // This is the tread with access to state. It does process and update state
 func (s *State) MsgExecute() {
 	s.validatorLoopThreadID = atomic.Goid()
+	event.EmitNodeMessageF(s, event.NodeMessageCode_STARTED, event.Level_INFO, "Node %s startup complete", s.GetFactomNodeName())
 	s.RunState = runstate.Running
 
 	slp := false
@@ -92,8 +93,14 @@ func (s *State) MsgSort() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("A panic state occurred in ValidatorLoop.", r)
+			fmt.Println("A panic state occurred in MsgSort.", r)
 			llog.LogPrintf("recovery", "A panic state occurred in ValidatorLoop. %v", r)
+			nodeMessageEvent := &event.NodeMessage{
+				MessageCode: event.NodeMessageCode_GENERAL,
+				Level:       event.Level_ERROR,
+				MessageText: fmt.Sprintf("A panic state occurred in ValidatorLoop.", r),
+			}
+			s.Pub.GetNodeMessage().Write(nodeMessageEvent)
 			shutdown(s)
 		}
 	}()
@@ -190,6 +197,9 @@ func shouldShutdown(state *State) bool {
 }
 
 func shutdown(state *State) {
+	event.EmitNodeMessageF(state, event.NodeMessageCode_SHUTDOWN, event.Level_INFO,
+		"Node %s is shutting down", state.GetFactomNodeName())
+
 	state.RunState = runstate.Stopping
 	fmt.Println("Closing the Database on", state.GetFactomNodeName())
 	state.StateSaverStruct.StopSaving()

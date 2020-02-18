@@ -1668,6 +1668,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		p = list.SignDB(d)
 		progress = p || progress
 
+		wasSavedBefore := d.Saved
 		p = list.SaveDBStateToDB(d)
 		progress = p || progress
 
@@ -1677,6 +1678,14 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		// remember the last saved block
 		if d.Saved {
 			saved = i
+		}
+
+		if progress && d.Saved && d.Signed && !wasSavedBefore {
+			dbStateCommitEvent := &event.DBStateCommit{
+				DBHeight: d.DirectoryBlock.GetDatabaseHeight(),
+				DBState:  d,
+			}
+			s.Pub.CommitDBState.Write(dbStateCommitEvent)
 		}
 
 		// only process one block past the last saved block
@@ -1817,4 +1826,28 @@ func (list *DBStateList) NewDBState(isNew bool,
 
 	// Failed, so return nil
 	return nil
+}
+
+func (dbs *DBState) GetDirectoryBlock() interfaces.IDirectoryBlock {
+	return dbs.DirectoryBlock
+}
+
+func (dbs *DBState) GetAdminBlock() interfaces.IAdminBlock {
+	return dbs.AdminBlock
+}
+
+func (dbs *DBState) GetFactoidBlock() interfaces.IFBlock {
+	return dbs.FactoidBlock
+}
+
+func (dbs *DBState) GetEntryCreditBlock() interfaces.IEntryCreditBlock {
+	return dbs.EntryCreditBlock
+}
+
+func (dbs *DBState) GetEntryBlocks() []interfaces.IEntryBlock {
+	return dbs.EntryBlocks
+}
+
+func (dbs *DBState) GetEntries() []interfaces.IEBEntry {
+	return dbs.Entries
 }

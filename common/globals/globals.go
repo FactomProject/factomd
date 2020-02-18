@@ -78,6 +78,16 @@ type FactomParams struct {
 	FullHashesLog            bool // Log all unique full hashes
 	DebugLogLocation         string
 	ReparseAnchorChains      bool
+
+	// LiveFeed API params
+	EnableLiveFeedAPI        bool
+	EventReceiverProtocol    string
+	EventReceiverHost        string
+	EventReceiverPort        int
+	EventFormat              string
+	EventSendStateChange     bool
+	EventBroadcastContent    string
+	EventReplayDuringStartup bool
 }
 
 /****************************************************************

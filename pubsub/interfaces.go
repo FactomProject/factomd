@@ -1,9 +1,5 @@
 package pubsub
 
-import (
-	"github.com/FactomProject/factomd/common/interfaces"
-)
-
 // IPublisher is a routine that handles all publishes for a given publisher.
 type IPublisher interface {
 	IReadOnlyPublisher
@@ -20,7 +16,7 @@ type IPublisher interface {
 	Unsubscribe(subscriber IPubSubscriber) bool
 
 	// Allow setting of the logger
-	SetLogger(log interfaces.Log)
+	SetLogger(log Log)
 
 	// Informational Methods
 	// only called by the registry
@@ -33,7 +29,7 @@ type IReadOnlyPublisher interface {
 	NumberOfSubscribers() int
 
 	Path() string
-	Logger() interfaces.Log
+	Logger() Log
 }
 
 // TODO: Should we have some Quality of Service common params?
@@ -75,4 +71,28 @@ type IPublisherWrapper interface {
 	Base() IPublisher
 	Wrap(subscriber IPublisher) IPublisherWrapper
 	Publish(path string) IPublisherWrapper
+}
+
+type IPubRegistry interface {
+	GetBlkSeq() IPublisher
+	GetBank() IPublisher
+	GetDirectory() IPublisher
+	GetEOMTicker() IPublisher
+	GetLeaderConfig() IPublisher
+	GetCommitChain() IPublisher
+	GetCommitEntry() IPublisher
+	GetRevealEntry() IPublisher
+	GetCommitDBState() IPublisher
+	GetDBAnchored() IPublisher
+	GetNodeMessage() IPublisher
+}
+
+type Log interface {
+	LogPrintf(name string, format string, more ...interface{})
+	StateLogPrintf(FactomNodeName string, DBHeight int, CurrentMinute int, logName string, format string, more ...interface{})
+}
+
+type IPubState interface {
+	GetPubRegistry() IPubRegistry
+	GetLeaderHeight() uint32
 }

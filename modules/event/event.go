@@ -7,13 +7,19 @@ import (
 )
 
 type pubSubPaths struct {
-	EOM          string
-	Seq          string
-	Directory    string
-	Bank         string
-	LeaderConfig string
-	LeaderMsgIn  string
-	LeaderMsgOut string
+	EOM           string
+	Seq           string
+	Directory     string
+	Bank          string
+	LeaderConfig  string
+	LeaderMsgIn   string
+	LeaderMsgOut  string
+	CommitChain   string
+	CommitEntry   string
+	RevealEntry   string
+	CommitDBState string
+	DBAnchored    string
+	NodeMessage   string
 	AuthoritySet string
 	ConnectionMetrics string
 	ProcessListInfo   string
@@ -21,13 +27,18 @@ type pubSubPaths struct {
 }
 
 var Path = pubSubPaths{
-	EOM:          "EOM",
-	Seq:          "seq",
-	Directory:    "directory",
-	Bank:         "bank",
-	LeaderConfig: "leader-config",
-	LeaderMsgIn:  "leader-msg-in",
-	LeaderMsgOut: "leader-msg-out",
+	EOM:           "EOM",
+	Seq:           "seq",
+	Directory:     "directory",
+	Bank:          "bank",
+	LeaderConfig:  "leader-config",
+	LeaderMsgIn:   "leader-msg-in",
+	LeaderMsgOut:  "leader-msg-out",
+	CommitChain:   "commit-chain",
+	CommitEntry:   "commit-entry",
+	RevealEntry:   "reveal-entry",
+	CommitDBState: "commit-dbstate",
+	NodeMessage:   "node-message",
 	ConnectionMetrics: path.Join("connection", "metrics"), // REVIEW: pubsub has it's own path maybe should use that
 	ProcessListInfo:   "process-list",
 	StateUpdate:       "state-update",
@@ -51,7 +62,7 @@ type DBHT struct {
 	Minute   int
 }
 
-// event created when Ack is crafted by the leader thread
+// event created when Ack is actually sent out
 type Ack struct {
 	Height      uint32
 	MessageHash interfaces.IHash
@@ -88,4 +99,33 @@ type StateUpdate struct {
 	Summary            string
 	IdentitiesDetails  string
 	AuthoritiesDetails string
+}
+
+type CommitChain struct {
+	RequestState RequestState
+	DBHeight     uint32
+	CommitChain  ICommitChain
+}
+
+type CommitEntry struct {
+	RequestState RequestState
+	DBHeight     uint32
+	CommitEntry  ICommitEntry
+}
+
+type RevealEntry struct {
+	RequestState RequestState
+	DBHeight     uint32
+	RevealEntry  IRevealEntry
+	MsgTimestamp interfaces.Timestamp
+}
+
+type DBStateCommit struct {
+	DBHeight uint32
+	DBState  IDBState
+}
+
+type DBAnchored struct {
+	DBHeight     uint32
+	DirBlockInfo interfaces.IDirBlockInfo
 }
