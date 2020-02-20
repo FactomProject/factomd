@@ -7,6 +7,7 @@ package directoryBlock
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -41,6 +42,18 @@ func (h *DBlockHeader) Init() {
 	if h.PrevFullHash == nil {
 		h.PrevFullHash = primitives.NewZeroHash()
 	}
+}
+
+func (b *DBlockHeader) GetHeaderHash() (interfaces.IHash, error) {
+
+	binaryEBHeader, err := b.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	h := primitives.Sha(binaryEBHeader)
+
+	return h, nil
 }
 
 func (a *DBlockHeader) IsSameAs(b interfaces.IDirectoryBlockHeader) bool {
@@ -102,7 +115,9 @@ func (h *DBlockHeader) SetNetworkID(networkID uint32) {
 	h.NetworkID = networkID
 }
 
-func (h *DBlockHeader) GetBodyMR() interfaces.IHash {
+func (h *DBlockHeader) GetBodyMR() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DBlockHeader.GetBodyMR") }()
+
 	return h.BodyMR
 }
 
@@ -110,7 +125,9 @@ func (h *DBlockHeader) SetBodyMR(bodyMR interfaces.IHash) {
 	h.BodyMR = bodyMR
 }
 
-func (h *DBlockHeader) GetPrevKeyMR() interfaces.IHash {
+func (h *DBlockHeader) GetPrevKeyMR() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DBlockHeader.GetPrevKeyMR") }()
+
 	return h.PrevKeyMR
 }
 
@@ -118,7 +135,9 @@ func (h *DBlockHeader) SetPrevKeyMR(prevKeyMR interfaces.IHash) {
 	h.PrevKeyMR = prevKeyMR
 }
 
-func (h *DBlockHeader) GetPrevFullHash() interfaces.IHash {
+func (h *DBlockHeader) GetPrevFullHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DBlockHeader.GetPrevFullHash") }()
+
 	return h.PrevFullHash
 }
 
@@ -163,9 +182,9 @@ func (e *DBlockHeader) String() string {
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("  version:         %v\n", e.Version))
 	out.WriteString(fmt.Sprintf("  networkid:       %x\n", e.NetworkID))
-	out.WriteString(fmt.Sprintf("  bodymr:          %s\n", e.BodyMR.String()))
-	out.WriteString(fmt.Sprintf("  prevkeymr:       %s\n", e.PrevKeyMR.String()))
-	out.WriteString(fmt.Sprintf("  prevfullhash:    %s\n", e.PrevFullHash.String()))
+	out.WriteString(fmt.Sprintf("  bodymr:          %s\n", e.BodyMR.String()[:6]))
+	out.WriteString(fmt.Sprintf("  prevkeymr:       %s\n", e.PrevKeyMR.String()[:6]))
+	out.WriteString(fmt.Sprintf("  prevfullhash:    %s\n", e.PrevFullHash.String()[:6]))
 	out.WriteString(fmt.Sprintf("  timestamp:       %d\n", e.Timestamp))
 	out.WriteString(fmt.Sprintf("  timestamp str:   %s\n", e.GetTimestamp().String()))
 	out.WriteString(fmt.Sprintf("  dbheight:        %d\n", e.DBHeight))
@@ -174,11 +193,16 @@ func (e *DBlockHeader) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
+func (b *DBlockHeader) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBlockHeader.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	b.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushByte(b.Version)
+	err = buf.PushByte(b.Version)
 	if err != nil {
 		return nil, err
 	}

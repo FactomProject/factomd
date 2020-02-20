@@ -9,6 +9,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"os"
+
+	"github.com/FactomProject/factomd/activations"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -19,16 +22,18 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
 // Communicate a Directory Block State
 
 type DBStateMsg struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 
-	//TODO: handle misformed DBStates!
+	//TODO: handle malformed DBStates!
 	DirectoryBlock   interfaces.IDirectoryBlock
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
@@ -43,6 +48,7 @@ type DBStateMsg struct {
 	IgnoreSigs bool
 	Sent       interfaces.Timestamp
 	IsInDB     bool
+	IsLast     bool // Flag from state.LoadDatabase() that this is the last saved block loaded at boot.
 }
 
 var _ interfaces.IMsg = (*DBStateMsg)(nil)
@@ -50,6 +56,7 @@ var _ interfaces.IMsg = (*DBStateMsg)(nil)
 func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 	defer func() {
 		if r := recover(); r != nil {
+			llog.LogPrintf("recovery", "DBState msg comparison failed %v", r)
 			return
 		}
 	}()
@@ -103,11 +110,15 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 	return true
 }
 
-func (m *DBStateMsg) GetRepeatHash() interfaces.IHash {
+func (m *DBStateMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DBStateMsg.GetRepeatHash") }()
+
 	return m.DirectoryBlock.GetHash()
 }
 
-func (m *DBStateMsg) GetHash() interfaces.IHash {
+func (m *DBStateMsg) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DBStateMsg.GetHash") }()
+
 	//	data, _ := m.MarshalBinary()
 	//	return primitives.Sha(data)
 
@@ -115,7 +126,9 @@ func (m *DBStateMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-func (m *DBStateMsg) GetMsgHash() interfaces.IHash {
+func (m *DBStateMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DBStateMsg.GetMsgHash") }()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -131,7 +144,7 @@ func (m *DBStateMsg) Type() byte {
 }
 
 func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -148,7 +161,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	}
 
 	if m.IsInDB {
-		return 1
+		return 1 // accept any DBState from our database
 	}
 
 	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
@@ -158,20 +171,20 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		return 1
 	}
 
+	if dbheight < state.GetDBHeightAtBoot() {
+		state.LogMessage("dbstatesloaded", "drop, below dbheight at boot", m)
+		return -1 // already have this one
+	}
+
+	if dbheight < state.GetHighestSavedBlk() {
+		state.LogMessage("dbstatesloaded", "drop, already in database", m)
+		return -1 // already have this one
+	}
+
 	if state.GetNetworkID() != m.DirectoryBlock.GetHeader().GetNetworkID() {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  ht: %d Expecting NetworkID %x and found %x",
 			dbheight, state.GetNetworkID(), m.DirectoryBlock.GetHeader().GetNetworkID()))
 		//Wrong network ID
-		return -1
-	}
-
-	// Difference of completed blocks, rather than just highest DBlock (might be missing entries)
-	diff := int(dbheight) - (int(state.GetEntryDBHeightComplete()))
-
-	// Look at saved heights if not too far from what we have saved.
-	if diff < -1 {
-		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbstate dbht: %d Highest Saved %d diff %d",
-			dbheight, state.GetEntryDBHeightComplete(), diff))
 		return -1
 	}
 
@@ -187,23 +200,85 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
+	startingFeds := state.GetFedServers(dbheight - 1)
+	startingFedsCount := len(startingFeds)
+	startingFedsRemaining := startingFedsCount
+	newFedsAdded := 0
+	var containsServerChainID func([]interfaces.IServer, interfaces.IHash) bool
+	containsServerChainID = func(haystack []interfaces.IServer, needle interfaces.IHash) bool {
+		for _, hay := range haystack {
+			if needle.IsSameAs(hay.GetChainID()) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, adminEntry := range m.AdminBlock.GetABEntries() {
+		switch adminEntry.Type() {
+		case constants.TYPE_ADD_FED_SERVER:
+			// Double check the entry is a real add fed server message
+			ad, ok := adminEntry.(*adminBlock.AddFederatedServer)
+			if !ok {
+				continue
+			}
+			if containsServerChainID(startingFeds, ad.IdentityChainID) {
+				startingFedsRemaining++
+			} else {
+				newFedsAdded++
+			}
+		case constants.TYPE_REMOVE_FED_SERVER:
+			// Double check the entry is a real remove fed server message
+			ad, ok := adminEntry.(*adminBlock.RemoveFederatedServer)
+			if !ok {
+				continue
+			}
+			// See if this was one of our starting leaders
+			if containsServerChainID(startingFeds, ad.IdentityChainID) {
+				startingFedsRemaining--
+			}
+		case constants.TYPE_ADD_AUDIT_SERVER:
+			// This could be a demotion, so we need to reduce the fedcount
+			ad, ok := adminEntry.(*adminBlock.AddAuditServer)
+			if !ok {
+				continue
+			}
+			// See if this was one of our starting leaders
+			if containsServerChainID(startingFeds, ad.IdentityChainID) {
+				startingFedsRemaining--
+			}
+		}
+	}
+
+	if startingFedsCount > 1 && startingFedsRemaining < (startingFedsRemaining+newFedsAdded)/2+1 {
+		if state.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+			state.AddStatus("DBStateMsg.Validate() FAIL: the block's starting feds no longer have a majority")
+			return -1
+		} else {
+			state.AddStatus("DBStateMsg.Validate() WARN: replaced more than half of all feds")
+		}
+	}
+
 	return 1
 }
 
 func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 	// Validate Signatures
+	if m.IsInDB {
+		return 1
+	}
 
 	// If this is the next block that we need, we can validate it by signatures. If it is a past block
 	// we can validate by prevKeyMr of the block that follows this one
 	if m.DirectoryBlock.GetDatabaseHeight() == state.GetHighestSavedBlk()+1 {
 		// Fed count of this height -1, as we may not have the height itself
-		fedCount := len(state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight()))
+		feds := state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight())
+		fedCount := len(feds)
 		tally := m.SigTally(state)
 		if tally >= (fedCount/2 + 1) {
 			// This has all the signatures it needs
 			goto ValidSignatures
 		} else {
-			// If we remove servers, there will not be as many signatures. We need to accomadate for this
+			// If we remove servers, there will not be as many signatures. We need to accommodate for this
 			// by reducing our needed. This will only get called if we fall short on signatures.
 			aes := m.AdminBlock.GetABEntries()
 			for _, adminEntry := range aes {
@@ -216,6 +291,20 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 					}
 					// Reduce our total fed servers
 					fedCount--
+				case constants.TYPE_ADD_AUDIT_SERVER:
+					// This could be a demotion, so we need to reduce the fedcount
+					ad, ok := adminEntry.(*adminBlock.AddAuditServer)
+					if !ok {
+						continue
+					}
+
+					// See if this was one of our leaders
+					for _, f := range feds {
+						if f.GetChainID().IsSameAs(ad.IdentityChainID) {
+							fedCount--
+							break
+						}
+					}
 				}
 			}
 			if tally >= (fedCount/2 + 1) {
@@ -340,10 +429,17 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 	// If there is a repeat signature, we do not count it twice
 	sigmap := make(map[string]bool)
 	for _, sig := range m.SignatureList.List {
+		// check expected signature
 		if sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] {
 			continue // Toss duplicate signatures
 		}
 		sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] = true
+		check, err := state.FastVerifyAuthoritySignature(data, sig, dbheight)
+		if err == nil && check >= 0 {
+			validSigCount++
+			continue
+		}
+		// it was not the expected signature check the boot strap
 		//Check signature against the Skeleton key
 		authoritativeKey := state.GetNetworkBootStrapKey()
 		if authoritativeKey != nil {
@@ -355,11 +451,7 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 			}
 		}
 
-		check, err := state.VerifyAuthoritySignature(data, sig.GetSignature(), dbheight)
-		if err == nil && check >= 0 {
-			validSigCount++
-			continue
-		}
+		// save the unverified sig so we can check for leadership changes later on
 
 		if sig.Verify(data) {
 			remainingSig = append(remainingSig, sig)
@@ -501,7 +593,7 @@ func (m *DBStateMsg) FollowerExecute(state interfaces.IState) {
 	state.FollowerExecuteDBState(m)
 }
 
-// Acknowledgements do not go into the process list.
+// DBState messages do not go into the process list.
 func (e *DBStateMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("DBStatemsg should never have its Process() method called")
 }
@@ -518,6 +610,7 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
+			llog.LogPrintf("recovery", "DBState msg comparison failed %v", r)
 		}
 	}()
 
@@ -596,7 +689,12 @@ func (m *DBStateMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
+func (m *DBStateMsg) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBStateMsg.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
@@ -665,14 +763,16 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 
 func (m *DBStateMsg) String() string {
 	data, _ := m.MarshalBinary()
-	return fmt.Sprintf("DBState: dbht:%3d [size: %11s] dblock %6x admin %6x fb %6x ec %6x hash %6x",
+	return fmt.Sprintf("DBState: dbht:%3d [size: %11s] dblock %6x admin %6x fb %6x ec %6x hash %6x ts:%s InDB %v IsLast %v Sigs %d",
+
 		m.DirectoryBlock.GetHeader().GetDBHeight(),
 		primitives.AddCommas(int64(len(data))),
 		m.DirectoryBlock.GetKeyMR().Bytes()[:3],
 		m.AdminBlock.GetHash().Bytes()[:3],
 		m.FactoidBlock.GetHash().Bytes()[:3],
 		m.EntryCreditBlock.GetHash().Bytes()[:3],
-		m.GetHash().Bytes()[:3])
+		m.GetHash().Bytes()[:3], m.DirectoryBlock.GetTimestamp().String(), m.IsInDB, m.IsLast, m.SignatureList.Length)
+
 }
 
 func (m *DBStateMsg) LogFields() log.Fields {
@@ -715,4 +815,47 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	msg.SignatureList = *sl
 
 	return msg
+}
+
+type SigList struct {
+	Length uint32
+	List   []interfaces.IFullSignature
+}
+
+func (sl *SigList) MarshalBinary() (data []byte, err error) {
+	var buf primitives.Buffer
+
+	binary.Write(&buf, binary.BigEndian, uint32(sl.Length))
+
+	for _, individualSig := range sl.List {
+		if d, err := individualSig.MarshalBinary(); err != nil {
+			return nil, err
+		} else {
+			buf.Write(d)
+		}
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling SigList in Full Server Fault: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling SigList in Full Server Fault: %v", r)
+		}
+	}()
+
+	newData = data
+	sl.Length, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	for i := sl.Length; i > 0; i-- {
+		tempSig := new(primitives.Signature)
+		newData, err = tempSig.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+		sl.List = append(sl.List, tempSig)
+	}
+	return newData, nil
 }

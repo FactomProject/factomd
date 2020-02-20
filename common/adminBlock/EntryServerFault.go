@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -124,11 +125,16 @@ func (e *ServerFault) UpdateState(state interfaces.IState) error {
 	return nil
 }
 
-func (m *ServerFault) MarshalCore() ([]byte, error) {
+func (m *ServerFault) MarshalCore() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ServerFault.MarshalCore err:%v", *pe)
+		}
+	}(&err)
 	m.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushBinaryMarshallable(m.ServerID)
+	err = buf.PushBinaryMarshallable(m.ServerID)
 	if err != nil {
 		return nil, err
 	}
@@ -154,11 +160,16 @@ func (m *ServerFault) MarshalCore() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *ServerFault) MarshalBinary() ([]byte, error) {
+func (m *ServerFault) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ServerFault.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	m.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushByte(m.Type())
+	err = buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +275,9 @@ func (e *ServerFault) Interpret() string {
 	return ""
 }
 
-func (e *ServerFault) Hash() interfaces.IHash {
+func (e *ServerFault) Hash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "ServerFault.Hash") }()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -274,11 +287,11 @@ func (e *ServerFault) Hash() interfaces.IHash {
 
 func (e *ServerFault) String() string {
 	e.Init()
-	str := fmt.Sprintf("    E: %35s -- DBheight %ds ServerID %8x AuditServer %8x, #sigs %d, VMIndex %d",
+	str := fmt.Sprintf("    E: %35s -- DBheight %ds FedID %8x AuditServer %8x, #sigs %d, VMIndex %d",
 		"EntryServerFault",
 		e.DBHeight,
-		e.ServerID.Bytes()[3:5],
-		e.AuditServerID.Bytes()[3:5],
+		e.ServerID.Bytes()[3:6],
+		e.AuditServerID.Bytes()[3:6],
 		len(e.SignatureList.List), e.VMIndex)
 	return str
 }

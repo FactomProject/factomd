@@ -4,6 +4,7 @@ package testHelper
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -190,7 +191,12 @@ func CreateTestAnchorEnry(dBlock *directoryBlock.DirectoryBlock) *entryBlock.Ent
 
 	height := dBlock.GetHeader().GetDBHeight()
 
-	ar := anchor.CreateAnchorRecordFromDBlock(dBlock)
+	ar := new(anchor.AnchorRecord)
+	ar.AnchorRecordVer = 1
+	ar.DBHeight = height
+	ar.KeyMR = dBlock.DatabasePrimaryIndex().String()
+	ar.RecordHeight = ar.DBHeight
+
 	ar.Bitcoin = new(anchor.BitcoinStruct)
 	ar.Bitcoin.Address = "1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1"
 	ar.Bitcoin.TXID = fmt.Sprintf("%x", IntToByteSlice(int(height)))

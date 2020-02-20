@@ -8,18 +8,21 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
 // Communicate a Directory Block State
 
 type RemoveServerMsg struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp     interfaces.Timestamp // Message Timestamp
 	ServerChainID interfaces.IHash     // ChainID of new server
 	ServerType    int                  // 0 = Federated, 1 = Audit
@@ -28,17 +31,23 @@ type RemoveServerMsg struct {
 }
 
 var _ interfaces.IMsg = (*RemoveServerMsg)(nil)
-var _ Signable = (*RemoveServerMsg)(nil)
+var _ interfaces.Signable = (*RemoveServerMsg)(nil)
 
-func (m *RemoveServerMsg) GetRepeatHash() interfaces.IHash {
+func (m *RemoveServerMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "RemoveServerMsg.GetRepeatHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *RemoveServerMsg) GetHash() interfaces.IHash {
+func (m *RemoveServerMsg) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "RemoveServerMsg.GetHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *RemoveServerMsg) GetMsgHash() interfaces.IHash {
+func (m *RemoveServerMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "RemoveServerMsg.GetMsgHash") }()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -54,7 +63,7 @@ func (m *RemoveServerMsg) Type() byte {
 }
 
 func (m *RemoveServerMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *RemoveServerMsg) Validate(state interfaces.IState) int {
@@ -111,7 +120,7 @@ func (e *RemoveServerMsg) JSONString() (string, error) {
 }
 
 func (m *RemoveServerMsg) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -124,15 +133,16 @@ func (m *RemoveServerMsg) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *RemoveServerMsg) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *RemoveServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
-		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Add Server Message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Add Server Message: %v", r)
 		}
+		return
 	}()
 	newData = data
 	if newData[0] != m.Type() {
@@ -170,7 +180,12 @@ func (m *RemoveServerMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *RemoveServerMsg) MarshalForSignature() ([]byte, error) {
+func (m *RemoveServerMsg) MarshalForSignature() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "RemoveServerMsg.MarshalForSignature err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
@@ -193,7 +208,12 @@ func (m *RemoveServerMsg) MarshalForSignature() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *RemoveServerMsg) MarshalBinary() ([]byte, error) {
+func (m *RemoveServerMsg) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "RemoveServerMsg.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	data, err := m.MarshalForSignature()
@@ -230,9 +250,9 @@ func (m *RemoveServerMsg) String() string {
 
 func (m *RemoveServerMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "removeserver",
-		"server":     m.ServerChainID.String(),
+		"server":     m.ServerChainID.String()[4:10],
 		"servertype": m.ServerType,
-		"hash":       m.GetMsgHash().String()}
+		"hash":       m.GetMsgHash().String()[:6]}
 }
 
 func (m *RemoveServerMsg) IsSameAs(b *RemoveServerMsg) bool {

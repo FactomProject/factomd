@@ -10,11 +10,12 @@ import (
 	"strings"
 	"sync"
 
+	"strconv"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"github.com/FactomProject/goleveldb/leveldb/util"
-	"strconv"
 )
 
 type LevelDB struct {

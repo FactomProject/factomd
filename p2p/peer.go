@@ -7,12 +7,39 @@ package p2p
 import (
 	"fmt"
 	"math/rand"
-	"strconv"
-	"strings"
+	"net"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
+var peerLogger = packageLogger.WithField("subpack", "peer")
+
 // Data structures and functions related to peers (eg other nodes in the network)
+
+// Keep a short history of messages
+type Last100 struct {
+	Msgs     map[[32]byte]bool // Look up messages by hash
+	MsgOrder [100][32]byte     // keep a list of the order they were added
+	N        int
+}
+
+func (l *Last100) Add(hash [32]byte) {
+	if l.Msgs == nil {
+		l.Msgs = make(map[[32]byte]bool, 0)
+	}
+	previous := l.MsgOrder[l.N] // get the oldest message
+	delete(l.Msgs, previous)    // Delete it for the map
+	l.MsgOrder[l.N] = hash      // replace it with the new message
+	l.Msgs[hash] = true         // Add new the message to the map
+	l.N = (l.N + 1) % 100       // move and wrap the index
+}
+
+//Check if we have a message in the short history
+func (l *Last100) Get(hash [32]byte) bool {
+	_, exists := l.Msgs[hash]
+	return exists
+}
 
 type Peer struct {
 	QualityScore int32     // 0 is neutral quality, negative is a bad peer.
@@ -26,14 +53,36 @@ type Peer struct {
 	Connections  int                  // Number of successful connections.
 	LastContact  time.Time            // Keep track of how long ago we talked to the peer.
 	Source       map[string]time.Time // source where we heard from the peer.
+
+	// logging
+	logger *log.Entry
+
+	PrevMsgs Last100 `json:"-"`
 }
 
-const ( // iota is reset to 0
-	RegularPeer uint8 = iota
-	SpecialPeer
+const (
+	RegularPeer        uint8 = iota
+	SpecialPeerConfig        // special peer defined in the config file
+	SpecialPeerCmdLine       // special peer defined via the cmd line params
 )
 
 func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) *Peer {
+
+	p.logger = peerLogger.WithFields(log.Fields{
+		"address":  address,
+		"port":     port,
+		"peerType": peerType,
+	})
+	if net.ParseIP(address) == nil {
+		ipAddress, err := net.LookupHost(address)
+		if err != nil {
+			p.logger.Errorf("Init: LookupHost(%v) failed. %v ", address, err)
+			// is there a way to abandon this peer at this point? -- clay
+		} else {
+			address = ipAddress[0]
+		}
+	}
+
 	p.Address = address
 	p.Port = port
 	p.QualityScore = quality
@@ -62,6 +111,28 @@ func (p *Peer) PeerFixedIdent() string {
 	return p.Hash[0:12] + "-" + address + ":" + p.Port
 }
 
+func (p *Peer) PeerLogFields() log.Fields {
+	return log.Fields{
+		"address":   p.Address,
+		"port":      p.Port,
+		"peer_type": p.PeerTypeString(),
+	}
+}
+
+// gets the last source where this peer was seen
+func (p *Peer) LastSource() (result string) {
+	var maxTime time.Time
+
+	for source, lastSeen := range p.Source {
+		if lastSeen.After(maxTime) {
+			maxTime = lastSeen
+			result = source
+		}
+	}
+
+	return
+}
+
 // TODO Hadn't considered IPV6 address support.
 // TODO Need to audit all the net code to check IPv6 addresses
 // Here's an IPv6 conversion:
@@ -71,28 +142,42 @@ func (p *Peer) PeerFixedIdent() string {
 //     IPv6Int.SetBytes(IPv6Addr)
 //     return IPv6Int
 // }
-// Problem is we're working wiht string addresses, may never have made a connection.
+// Problem is we're working with string addresses, may never have made a connection.
 // TODO - we might have a DNS address, not iP address and need to resolve it!
 // locationFromAddress converts the peers address into a uint32 "location" numeric
 func (p *Peer) LocationFromAddress() (location uint32) {
 	location = 0
 	// Split the IPv4 octets
-	octets := strings.Split(p.Address, ".")
-	if 4 == len(octets) {
-		// Turn into uint32
-		b0, _ := strconv.Atoi(octets[0])
-		b1, _ := strconv.Atoi(octets[1])
-		b2, _ := strconv.Atoi(octets[2])
-		b3, _ := strconv.Atoi(octets[3])
-		location += uint32(b0) << 24
-		location += uint32(b1) << 16
-		location += uint32(b2) << 8
-		location += uint32(b3)
-		verbose("peer", "Peer: %s with octets: %+v has Location: %d", p.Hash, octets, location)
-	} else {
-		silence("peer", "len(octets) != 4 \n Invalid Peer Address: %v", octets)
+	ip := net.ParseIP(p.Address)
+	if ip == nil {
+		ipAddress, err := net.LookupHost(p.Address)
+		if err != nil {
+			p.logger.Debugf("LocationFromAddress(%v) failed. %v ", p.Address, err)
+			p.logger.Debugf("Invalid Peer Address: %v", p.Address)
+			p.logger.Debugf("Peer: %s has Location: %d", p.Hash, location)
+			return 0 // We use location on 0 to say invalid
+		}
+		p.Address = ipAddress[0]
+		ip = net.ParseIP(p.Address)
 	}
+	if len(ip) == 16 { // If we got back an IP6 (16 byte) address, use the last 4 byte
+		ip = ip[12:]
+	}
+	// Turn into uint32
+	location += uint32(ip[0]) << 24
+	location += uint32(ip[1]) << 16
+	location += uint32(ip[2]) << 8
+	location += uint32(ip[3])
+	p.logger.Debugf("Peer: %s has Location: %d", p.Hash, location)
 	return location
+}
+
+func (p *Peer) IsSamePeerAs(netAddress net.Addr) bool {
+	address, _, err := net.SplitHostPort(netAddress.String())
+	if err != nil {
+		return false
+	}
+	return address == p.Address
 }
 
 // merit increases a peers reputation
@@ -106,6 +191,23 @@ func (p *Peer) merit() {
 func (p *Peer) demerit() {
 	if -2147483000 < p.QualityScore {
 		//p.QualityScore--
+	}
+}
+
+func (p *Peer) IsSpecial() bool {
+	return p.Type == SpecialPeerConfig || p.Type == SpecialPeerCmdLine
+}
+
+func (p *Peer) PeerTypeString() string {
+	switch p.Type {
+	case RegularPeer:
+		return "regular"
+	case SpecialPeerConfig:
+		return "special_config"
+	case SpecialPeerCmdLine:
+		return "special_cmdline"
+	default:
+		return "unknown"
 	}
 }
 

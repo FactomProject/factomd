@@ -12,7 +12,7 @@ import (
 )
 
 func TestGenerateGenesisBlocks(t *testing.T) {
-	d, a, f, ec := GenerateGenesisBlocks(constants.MAIN_NETWORK_ID)
+	d, a, f, ec := GenerateGenesisBlocks(constants.MAIN_NETWORK_ID, nil)
 
 	if a.DatabasePrimaryIndex().String() != "4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e" {
 		t.Errorf("Invalid ABlock")

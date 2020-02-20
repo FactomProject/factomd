@@ -5,6 +5,8 @@
 package interfaces
 
 import (
+	"time"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,15 +20,20 @@ type IMsg interface {
 	Printable
 	BinaryMarshallable
 
-	GetAck() IMsg
-	PutAck(IMsg)
-
 	// Returns a byte indicating the type of message.
 	Type() byte
 
 	// A local message is never broadcast to the greater network.
 	IsLocal() bool
 	SetLocal(bool)
+
+	// A local message is never broadcast to the greater network.
+	IsNetwork() bool
+	SetNetwork(bool)
+
+	// FullBroadcast means send to every node
+	IsFullBroadcast() bool
+	SetFullBroadcast(bool)
 
 	// Returns the origin of this message; used to track
 	// where a message came from. If int == -1, then this
@@ -39,6 +46,10 @@ type IMsg interface {
 
 	// Returns the timestamp for a message
 	GetTimestamp() Timestamp
+
+	// Timestamps of when we received the message locally
+	GetReceivedTime() time.Time
+	SetReceivedTime(time time.Time)
 
 	// This is the hash used to check for repeated messages.  Almost always this
 	// is the MsgHash, however for Chain Commits, Entry Commits, and Factoid Transactions,
@@ -89,13 +100,14 @@ type IMsg interface {
 	// We won't resend them or pass them on.
 	GetNoResend() bool
 	SetNoResend(bool)
+	GetResendCnt() int
 
 	// Process.  When we get a sequence of acknowledgements that we trust, we process.
 	// A message will only be processed once, and in order, guaranteed.
 	// Returns true if able to process, false if process is waiting on something.
 	Process(dbheight uint32, state IState) bool
 
-	// Some Messages need to be processed on certain VMs.  We set this and querry
+	// Some Messages need to be processed on certain VMs.  We set this and query
 	// the indexes of these machines here.
 	GetVMIndex() int
 	SetVMIndex(int)
@@ -110,9 +122,19 @@ type IMsg interface {
 
 	IsStalled() bool
 	SetStall(bool)
-	Resend(IState) bool
 	Expire(IState) bool
 
 	// Equivalent to String() for logging
 	LogFields() log.Fields
+}
+
+// Internal Messaging supporting Elections
+type IMsgInternal interface {
+	IMsg
+	ProcessElections(IState, IElectionMsg)
+}
+
+type IMsgAck interface {
+	IMsg
+	GetDBHeight() uint32
 }

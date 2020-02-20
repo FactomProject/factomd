@@ -118,7 +118,9 @@ func (rsm *RegisterServerManagementStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
-func (rsm *RegisterServerManagementStructure) GetChainID() interfaces.IHash {
+func (rsm *RegisterServerManagementStructure) GetChainID() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "RegisterServerManagementStructure.GetChainID") }()
+
 	extIDs := rsm.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)

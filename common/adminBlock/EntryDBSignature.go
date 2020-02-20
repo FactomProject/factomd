@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -59,11 +60,16 @@ func (e *DBSignatureEntry) Type() byte {
 	return constants.TYPE_DB_SIGNATURE
 }
 
-func (e *DBSignatureEntry) MarshalBinary() ([]byte, error) {
+func (e *DBSignatureEntry) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBSignatureEntry.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushByte(e.Type())
+	err = buf.PushByte(e.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +124,7 @@ func (e *DBSignatureEntry) String() string {
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("    E: %20s -- %17s %8x %12s %8s %12s %8x",
 		"DB Signature",
-		"IdentityChainID", e.IdentityAdminChainID.Bytes()[3:5],
+		"IdentityChainID", e.IdentityAdminChainID.Bytes()[3:6],
 		"PubKey", e.PrevDBSig.Pub.String()[:8],
 		"Signature", e.PrevDBSig.Sig.String()[:8]))
 	return (string)(out.DeepCopyBytes())
@@ -132,7 +138,9 @@ func (e *DBSignatureEntry) Interpret() string {
 	return ""
 }
 
-func (e *DBSignatureEntry) Hash() interfaces.IHash {
+func (e *DBSignatureEntry) Hash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DBSignatureEntry.Hash") }()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

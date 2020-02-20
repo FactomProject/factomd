@@ -66,6 +66,26 @@ func TestRCD2MarshalUnmarshal(t *testing.T) {
 	}
 }
 
+func TestUnmarshalBadRCD2(t *testing.T) {
+	rcd := nextAuth2_rcd2()
+
+	p, err := rcd.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	// wright bad signature count to rcd2
+	p[3] = 0xff
+
+	rcd2 := new(RCD_2)
+	_, err = rcd2.UnmarshalBinaryData(p)
+	if err == nil {
+		t.Error("RCD2 should have errored on unmarshal", rcd2)
+	} else {
+		t.Log(err)
+	}
+}
+
 func TestRCD2Clone(t *testing.T) {
 	rcd := nextAuth2_rcd2()
 

@@ -8,8 +8,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"errors"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -69,7 +71,7 @@ func (e *ABlockHeader) String() string {
 	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "HeaderExpansionSize", e.HeaderExpansionSize))
 	out.WriteString(fmt.Sprintf("    %20s: %x\n", "HeaderExpansionArea", e.HeaderExpansionArea))
 	out.WriteString(fmt.Sprintf("    %20s: %x\n", "MessageCount", e.MessageCount))
-	out.WriteString(fmt.Sprintf("    %20s: %x\n", "MessageCount", e.BodySize))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "BodySize", e.BodySize))
 	return (string)(out.DeepCopyBytes())
 }
 
@@ -89,7 +91,8 @@ func (b *ABlockHeader) SetBodySize(bodySize uint32) {
 	b.BodySize = bodySize
 }
 
-func (b *ABlockHeader) GetAdminChainID() interfaces.IHash {
+func (b *ABlockHeader) GetAdminChainID() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "ABlockHeader.GetAdminChainID") }()
 	return primitives.NewHash(constants.ADMIN_CHAINID)
 }
 
@@ -105,7 +108,8 @@ func (b *ABlockHeader) GetHeaderExpansionSize() uint64 {
 	return b.HeaderExpansionSize
 }
 
-func (b *ABlockHeader) GetPrevBackRefHash() interfaces.IHash {
+func (b *ABlockHeader) GetPrevBackRefHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "ABlockHeader.GetPrevBackRefHash") }()
 	b.Init()
 	return b.PrevBackRefHash
 }
@@ -124,11 +128,16 @@ func (b *ABlockHeader) SetPrevBackRefHash(BackRefHash interfaces.IHash) {
 }
 
 // Write out the ABlockHeader to binary.
-func (b *ABlockHeader) MarshalBinary() ([]byte, error) {
+func (b *ABlockHeader) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ABlockHeader.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	b.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushBinaryMarshallable(b.GetAdminChainID())
+	err = buf.PushBinaryMarshallable(b.GetAdminChainID())
 	if err != nil {
 		return nil, err
 	}

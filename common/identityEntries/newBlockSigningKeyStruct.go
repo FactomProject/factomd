@@ -124,7 +124,9 @@ func (nbsk *NewBlockSigningKeyStruct) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
-func (nbsk *NewBlockSigningKeyStruct) GetChainID() interfaces.IHash {
+func (nbsk *NewBlockSigningKeyStruct) GetChainID() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "NewBlockSigningKeyStruct.GetChainID") }()
+
 	extIDs := nbsk.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)

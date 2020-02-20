@@ -82,6 +82,24 @@ func TestMarshalUnmarshalDirectoryBlock(t *testing.T) {
 	}
 }
 
+func TestMarshalUnmarshalBadDirectoryBlock(t *testing.T) {
+	dblock := createTestDirectoryBlock()
+	p, err := dblock.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	// set a bad Block Count in the dblock header
+	p[111] = 0xff
+
+	dblock2 := new(DirectoryBlock)
+	if err := dblock2.UnmarshalBinary(p); err == nil {
+		t.Error("DirectoryBlock should have errored on unmarshal", dblock2)
+	} else {
+		t.Log(err)
+	}
+}
+
 var WeDidPanic bool
 
 func CatchPanic() {
@@ -218,7 +236,7 @@ func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 	}
 	t.Logf("Min count - %v, max count - %v", min, max)
 	if min != 1 {
-		t.Errorf("Invalid number of BlockCount occurances")
+		t.Errorf("Invalid number of BlockCount occurrences")
 	}
 }
 
@@ -419,14 +437,40 @@ func TestBuildBlock(t *testing.T) {
 	}
 
 	printout := db.String()
+	/*
+		              keymr: eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc
+		             bodymr: 01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
+		           fullhash: 857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9
+		  version:         0
+		  networkid:       0
+		  bodymr:          01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
+		  prevkeymr:       0000000000000000000000000000000000000000000000000000000000000000
+		  prevfullhash:    0000000000000000000000000000000000000000000000000000000000000000
+		  timestamp:       0
+		  timestamp str:   1969-12-31 18:00:00
+		  dbheight:        0
+		  blockcount:      5
+		entries:
+		    0 chainid: 000000000000000000000000000000000000000000000000000000000000000a
+		      keymr:   4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e
+		    1 chainid: 000000000000000000000000000000000000000000000000000000000000000c
+		      keymr:   a566023a9d7b824e4a12121ee38bc4d3c4987988f04eb8cfecc63570936d7c56
+		    2 chainid: 000000000000000000000000000000000000000000000000000000000000000f
+		      keymr:   c9ab808e3d1d5eb2b7d3fa946dca27c2d250d782dab05a729fe99e9aaf656330
+		    3 chainid: 3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71
+		      keymr:   9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e
+		    4 chainid: df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604
+		      keymr:   b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898
+
+	*/
 	expectedString1 := fmt.Sprintf(`              keymr: %s
              bodymr: 01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
            fullhash: 857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9
   version:         0
   networkid:       0
-  bodymr:          01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
-  prevkeymr:       0000000000000000000000000000000000000000000000000000000000000000
-  prevfullhash:    0000000000000000000000000000000000000000000000000000000000000000
+  bodymr:          01004a
+  prevkeymr:       000000
+  prevfullhash:    000000
   timestamp:       0
   timestamp str:   `, k.String()) // Use KeyMR from above
 	epoch := time.Unix(0, 0)
@@ -435,7 +479,7 @@ func TestBuildBlock(t *testing.T) {
 	expectedString3 := `
   dbheight:        0
   blockcount:      5
-entries: 
+entries:
     0 chainid: 000000000000000000000000000000000000000000000000000000000000000a
       keymr:   4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e
     1 chainid: 000000000000000000000000000000000000000000000000000000000000000c
@@ -450,6 +494,28 @@ entries:
 	expectedString := expectedString1 + expectedString2 + expectedString3
 	if printout != expectedString {
 		t.Errorf("Invalid printout:\n%v\n%v", printout, expectedString)
+		limit := len(expectedString)
+		if limit < len(printout) {
+			limit = len(printout)
+		}
+		printout = strings.Replace(printout, "\n", " ", -1)
+		expectedString = strings.Replace(expectedString, "\n", " ", -1)
+
+		for i := 0; i < limit; i++ {
+			if i > len(printout) {
+				t.Errorf("Ran out of output at %d", i)
+				break
+			}
+			if i > len(expectedString) {
+				t.Errorf("Ran out of expectedString at %d", i)
+				break
+			}
+			if expectedString[i] != printout[i] {
+				t.Errorf("Mismatch at %d ", i)
+				t.Errorf(fmt.Sprintf("[%%s]\n[%%s]\n %%%ds^\n", i), expectedString, printout, "")
+				break
+			}
+		}
 	}
 
 	m := db.GetDatabaseHeight()
@@ -480,8 +546,8 @@ entries:
 
 	returnVal, _ := db.JSONString()
 	//fmt.Println(returnVal)
-
-	expectedString = `{"dbhash":"857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9","keymr":"eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc","header":{"version":0,"networkid":0,"bodymr":"01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3","prevkeymr":"0000000000000000000000000000000000000000000000000000000000000000","prevfullhash":"0000000000000000000000000000000000000000000000000000000000000000","timestamp":0,"dbheight":0,"blockcount":5,"chainid":"000000000000000000000000000000000000000000000000000000000000000d"},"dbentries":[{"chainid":"000000000000000000000000000000000000000000000000000000000000000a","keymr":"4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e"},{"chainid":"000000000000000000000000000000000000000000000000000000000000000c","keymr":"a566023a9d7b824e4a12121ee38bc4d3c4987988f04eb8cfecc63570936d7c56"},{"chainid":"000000000000000000000000000000000000000000000000000000000000000f","keymr":"c9ab808e3d1d5eb2b7d3fa946dca27c2d250d782dab05a729fe99e9aaf656330"},{"chainid":"3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71","keymr":"9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e"},{"chainid":"df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604","keymr":"b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898"}]}`
+	fmt.Println(expectedString)
+	expectedString = `{"dbhash":"857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9","keymr":"eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc","headerhash":"cda94f341dfc8b921608b3cc56ec6ae73d7a3c54511526a04c0556156c2b7c6e","header":{"version":0,"networkid":0,"bodymr":"01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3","prevkeymr":"0000000000000000000000000000000000000000000000000000000000000000","prevfullhash":"0000000000000000000000000000000000000000000000000000000000000000","timestamp":0,"dbheight":0,"blockcount":5,"chainid":"000000000000000000000000000000000000000000000000000000000000000d"},"dbentries":[{"chainid":"000000000000000000000000000000000000000000000000000000000000000a","keymr":"4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e"},{"chainid":"000000000000000000000000000000000000000000000000000000000000000c","keymr":"a566023a9d7b824e4a12121ee38bc4d3c4987988f04eb8cfecc63570936d7c56"},{"chainid":"000000000000000000000000000000000000000000000000000000000000000f","keymr":"c9ab808e3d1d5eb2b7d3fa946dca27c2d250d782dab05a729fe99e9aaf656330"},{"chainid":"3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71","keymr":"9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e"},{"chainid":"df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604","keymr":"b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898"}]}`
 	if returnVal != expectedString {
 		t.Errorf("Invalid returnVal:\n%v\n%v", returnVal, expectedString)
 	}
@@ -572,7 +638,7 @@ func TestMerkleTree(t *testing.T) {
 	//fmt.Println(db1.GetEntryHashes())
 	mr, err := db1.BuildBodyMR()
 	if err != nil {
-		t.Errorf("tree building function failed", err)
+		t.Errorf("tree building function failed %v", err)
 	}
 
 	//fmt.Println(mr)

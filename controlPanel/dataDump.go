@@ -4,15 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/globals"
 	dd "github.com/FactomProject/factomd/controlPanel/dataDumpFormatting"
 )
 
 type DataDump struct {
 	DataDump1 struct { // State Summary
-		ShortDump string
-		RawDump   string
+		ShortDump   string
+		RawDump     string
+		SyncingDump string
 	}
 	DataDump2 struct {
+		NextDump string
 		RawDump  string
 		PrevDump string
 	}
@@ -28,6 +31,13 @@ type DataDump struct {
 		RawDump    string
 		SortedDump string
 	}
+	ElectionDataDump struct {
+		Elections         string
+		SimulatedElection string
+	}
+	LogSettingsDump struct {
+		CurrentLogSettings string
+	}
 }
 
 func GetDataDumps() []byte {
@@ -38,7 +48,9 @@ func GetDataDumps() []byte {
 
 	holder.DataDump1.ShortDump = "Currently disabled"
 	holder.DataDump1.RawDump = DsCopy.RawSummary
+	holder.DataDump1.SyncingDump = dd.SyncingState(DsCopy)
 
+	holder.DataDump2.NextDump = DsCopy.ProcessList0
 	holder.DataDump2.RawDump = DsCopy.ProcessList
 	holder.DataDump2.PrevDump = DsCopy.ProcessList2
 
@@ -50,6 +62,11 @@ func GetDataDumps() []byte {
 
 	holder.DataDump5.RawDump = AllConnectionsString()
 	holder.DataDump5.SortedDump = SortedConnectionString()
+
+	holder.ElectionDataDump.Elections = DsCopy.Election
+	holder.ElectionDataDump.SimulatedElection = DsCopy.SimElection
+
+	holder.LogSettingsDump.CurrentLogSettings = globals.LastDebugLogRegEx
 
 	ret, err := json.Marshal(holder)
 	if err != nil {

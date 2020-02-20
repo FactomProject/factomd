@@ -4,8 +4,6 @@
 
 package entryCreditBlock_test
 
-import (
 //"testing"
 
 //. "github.com/FactomProject/factomd/common/entryCreditBlock"
-)

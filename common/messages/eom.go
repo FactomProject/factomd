@@ -10,18 +10,18 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
-
-var _ = log.Printf
 
 // eLogger is for EOM Messages and extends packageLogger
 var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
 
 type EOM struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 	Minute    byte
 
@@ -39,7 +39,7 @@ type EOM struct {
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
-var _ Signable = (*EOM)(nil)
+var _ interfaces.Signable = (*EOM)(nil)
 var _ interfaces.IMsg = (*EOM)(nil)
 
 func (a *EOM) IsSameAs(b *EOM) bool {
@@ -81,7 +81,10 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 	return state.ProcessEOM(dbheight, e)
 }
 
-func (m *EOM) GetRepeatHash() interfaces.IHash {
+// Fix EOM hash to match and not have the sig so duplicates are not generated.
+func (m *EOM) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "EOM.GetRepeatHash") }()
+
 	if m.RepeatHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -92,11 +95,15 @@ func (m *EOM) GetRepeatHash() interfaces.IHash {
 	return m.RepeatHash
 }
 
-func (m *EOM) GetHash() interfaces.IHash {
+func (m *EOM) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "EOM.GetHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *EOM) GetMsgHash() interfaces.IHash {
+func (m *EOM) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "EOM.GetMsgHash") }()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -111,7 +118,7 @@ func (m *EOM) GetTimestamp() interfaces.Timestamp {
 	if m.Timestamp == nil {
 		m.Timestamp = new(primitives.Timestamp)
 	}
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *EOM) Type() byte {
@@ -128,13 +135,18 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	}
 
 	// Ignore old EOM
-	if m.DBHeight <= state.GetHighestSavedBlk() {
+	if uint32(m.DBHeight)*10+uint32(m.Minute) < state.GetLLeaderHeight()*10+uint32(state.GetCurrentMinute()) {
 		return -1
 	}
 
+	if uint32(m.DBHeight)*10+uint32(m.Minute) > state.GetLLeaderHeight()*10+uint32(state.GetCurrentMinute()) {
+		// msg from future may be a valid server when we get to this block
+		return state.HoldForHeight(m.DBHeight, int(m.Minute), m)
+	}
+
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
-	if !found { // Only EOM from federated servers are valid.
-		return -1
+	if !found {
+		return -1 // Only EOM from federated servers are valid.
 	}
 
 	// Check signature
@@ -182,7 +194,7 @@ func (e *EOM) JSONString() (string, error) {
 }
 
 func (m *EOM) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -195,13 +207,14 @@ func (m *EOM) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *EOM) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling EOM message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling EOM message: %v", r)
 		}
 	}()
 	newData = data
@@ -239,7 +252,8 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	m.SysHash = primitives.NewHash(constants.ZERO_HASH)
 	newData, err = m.SysHash.UnmarshalBinaryData(newData)
 
-	if len(newData) > 0 {
+	b, newData := newData[0], newData[1:]
+	if b > 0 {
 		sig := new(primitives.Signature)
 		newData, err = sig.UnmarshalBinaryData(newData)
 		if err != nil {
@@ -248,7 +262,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		m.Signature = sig
 	}
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return
 }
@@ -310,11 +324,14 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 
 	sig := m.GetSignature()
 	if sig != nil {
+		buf.WriteByte(1)
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
 		buf.Write(sigBytes)
+	} else {
+		buf.WriteByte(0)
 	}
 	return buf.DeepCopyBytes(), nil
 }
@@ -328,15 +345,15 @@ func (m *EOM) String() string {
 	if m.FactoidVM {
 		f = "F"
 	}
-	return fmt.Sprintf("%6s-VM%3d: Min:%4d DBHt:%5d FF %2d -%1s-Leader[%x] hash[%x] %s",
+	return fmt.Sprintf("%6s-%30s FF %2d %1s-Leader[%x] hash[%x] ts %d %s %s",
 		"EOM",
-		m.VMIndex,
-		m.Minute,
-		m.DBHeight,
+		fmt.Sprintf("DBh/VMh/h %d/%02d/-- minute %2d", m.DBHeight, m.VMIndex, m.Minute),
 		m.SysHeight,
 		f,
-		m.ChainID.Bytes()[:4],
+		m.ChainID.Bytes()[3:6],
 		m.GetMsgHash().Bytes()[:3],
+		m.Timestamp.GetTimeMilli(),
+		m.Timestamp.String(),
 		local)
 }
 

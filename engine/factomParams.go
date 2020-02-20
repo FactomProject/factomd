@@ -1,239 +1,375 @@
 package engine
 
 import (
+	"bufio"
 	"flag"
+	"fmt"
+	"io"
+	"net"
 	"os"
+	"os/exec"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 
+	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/p2p"
 )
 
-type FactomParams struct {
-	AckbalanceHash           bool
-	EnableNet                bool
-	WaitEntries              bool
-	ListenTo                 int
-	Cnt                      int
-	Net                      string
-	Fnet                     string
-	DropRate                 int
-	Journal                  string
-	Journaling               bool
-	Follower                 bool
-	Leader                   bool
-	Db                       string
-	CloneDB                  string
-	PortOverride             int
-	Peers                    string
-	NetworkName              string
-	NetworkPortOverride      int
-	ControlPanelPortOverride int
-	LogPort                  string
-	BlkTime                  int
-	FaultTimeout             int
-	RuntimeLog               bool
-	Netdebug                 int
-	Exclusive                bool
-	prefix                   string
-	rotate                   bool
-	timeOffset               int
-	keepMismatch             bool
-	StartDelay               int64
-	deadline                 int
-	customNet                []byte
-	rpcUser                  string
-	rpcPassword              string
-	factomdTLS               bool
-	factomdLocations         string
-	memProfileRate           int
-	fast                     bool
-	fastLocation             string
-	loglvl                   string
-	logjson                  bool
-	svm                      bool
-	pluginPath               string
-	torManage                bool
-	torUpload                bool
-	Sim_Stdin                bool
-	exposeProfiling          bool
-	useLogstash              bool
-	logstashURL              string
-	Sync2                    int
-}
+func init() {
+	p := &Params // Global copy of decoded Params global.Params
 
-func (f *FactomParams) Init() {
-	f.AckbalanceHash = true
-	f.EnableNet = true
-	f.WaitEntries = false
-	f.ListenTo = 0
-	f.Cnt = 1
-	f.Net = "tree"
-	f.Fnet = ""
-	f.DropRate = 0
-	f.Journal = ""
-	f.Journaling = false
-	f.Follower = false
-	f.Leader = true
-	f.Db = ""
-	f.CloneDB = ""
-	f.PortOverride = 0
-	f.Peers = ""
-	f.NetworkName = ""
-	f.NetworkPortOverride = 0
-	f.ControlPanelPortOverride = 0
-	f.LogPort = "6060"
-	f.BlkTime = 0
-	f.FaultTimeout = 60
-	f.RuntimeLog = false
-	f.Netdebug = 0
-	f.Exclusive = false
-	f.prefix = ""
-	f.rotate = false
-	f.timeOffset = 0
-	f.keepMismatch = false
-	f.StartDelay = 10
-	f.deadline = 1000
-	f.customNet = primitives.Sha([]byte("")).Bytes()[:4]
-	f.rpcUser = ""
-	f.rpcPassword = ""
-	f.factomdTLS = false
-	f.factomdLocations = ""
-	f.memProfileRate = 512 * 1024
-	f.fast = true
-	f.fastLocation = ""
-	f.loglvl = "node"
-	f.logjson = false
-	f.svm = false
-	f.pluginPath = ""
-	f.torManage = false
-	f.torUpload = false
-	f.Sim_Stdin = true
-	f.exposeProfiling = false
-	f.Sync2 = -1
+	flag.StringVar(&p.DebugConsole, "debugconsole", "", "Enable DebugConsole on port. localhost:8093 open 8093 and spawns a telnet console, remotehost:8093 open 8093")
+	flag.StringVar(&p.StdoutLog, "stdoutlog", "", "Log stdout to a file")
+	flag.StringVar(&p.StderrLog, "stderrlog", "", "Log stderr to a file, optionally the same file as stdout")
+	flag.StringVar(&p.DebugLogRegEx, "debuglog", "", "regex to pick which logs to save")
+	flag.IntVar(&p.FaultTimeout, "faulttimeout", 120, "Seconds before considering Federated servers at-fault. Default is 120.")
+	flag.IntVar(&p.RoundTimeout, "roundtimeout", 30, "Seconds before audit servers will increment rounds and volunteer.")
+	flag.IntVar(&p2p.NumberPeersToBroadcast, "broadcastnum", 16, "Number of peers to broadcast to in the peer to peer networking")
+	flag.IntVar(&p.P2PIncoming, "p2pIncoming", 0, "Override the maximum number of other peers dialing into this node that will be accepted; default 200")
+	flag.IntVar(&p.P2POutgoing, "p2pOutgoing", 0, "Override the maximum number of peers this node will attempt to dial into; default 32")
+	flag.StringVar(&p.ConfigPath, "config", "", "Override the config file location (factomd.conf)")
+	flag.BoolVar(&p.CheckChainHeads, "checkheads", true, "Enables checking chain heads on boot")
+	flag.BoolVar(&p.FixChainHeads, "fixheads", true, "If --checkheads is enabled, then this will also correct any errors reported")
+	flag.BoolVar(&p.AckbalanceHash, "balancehash", true, "If false, then don't pass around balance hashes")
+	flag.BoolVar(&p.EnableNet, "enablenet", true, "Enable or disable networking")
+	flag.BoolVar(&p.WaitEntries, "waitentries", false, "Wait for Entries to be validated prior to execution of messages")
+	flag.IntVar(&p.ListenTo, "node", 0, "Node Number the simulator will set as the focus")
+	flag.IntVar(&p.Cnt, "count", 1, "The number of nodes to generate")
+	flag.StringVar(&p.Net, "net", "alot+", "The default algorithm to build the network connections")
+	flag.StringVar(&p.Fnet, "fnet", "", "Read the given file to build the network connections")
+	flag.IntVar(&p.DropRate, "drop", 0, "Number of messages to drop out of every thousand")
+	flag.StringVar(&p.Journal, "journal", "", "Rerun a Journal of messages")
+	flag.BoolVar(&p.Journaling, "journaling", false, "Write a journal of all messages received. Default is off.")
+	flag.BoolVar(&p.Follower, "follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
+	flag.BoolVar(&p.Leader, "leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
+	flag.StringVar(&p.Db, "db", "", "Override the Database in the Config file and use this Database implementation. Options Map, LDB, or Bolt")
+	flag.StringVar(&p.CloneDB, "clonedb", "", "Override the main node and use this database for the clones in a Network.")
+	flag.StringVar(&p.NetworkName, "network", "", "Network to join: MAIN, TEST or LOCAL")
+	flag.StringVar(&p.Peers, "peers", "", "Array of peer addresses. ")
+	flag.IntVar(&p.BlkTime, "blktime", 0, "Seconds per block.  Production is 600.")
+	flag.BoolVar(&p.RuntimeLog, "runtimeLog", false, "If true, maintain runtime logs of messages passed.")
+	flag.BoolVar(&p.Exclusive, "exclusive", false, "If true, we only dial out to special/trusted peers.")
+	flag.BoolVar(&p.ExclusiveIn, "exclusive_in", false, "If true, we only dial out to special/trusted peers and no incoming connections are accepted.")
+	flag.StringVar(&p.Prefix, "prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
+	flag.BoolVar(&p.Rotate, "rotate", false, "If true, responsibility is owned by one leader, and Rotated over the leaders.")
+	flag.IntVar(&p.TimeOffset, "timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
+	flag.BoolVar(&p.KeepMismatch, "keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
+	flag.Int64Var(&p.StartDelay, "startdelay", 10, "Delay to start processing messages, in seconds")
+	flag.IntVar(&p.Deadline, "deadline", 300000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
+	flag.StringVar(&p.RpcUser, "rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
+	flag.StringVar(&p.RpcPassword, "rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
+	flag.BoolVar(&p.FactomdTLS, "tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
+	flag.StringVar(&p.FactomdLocations, "selfaddr", "", "comma separated IPAddresses and DNS names of this factomd to use when creating a cert file")
+	flag.IntVar(&p.MemProfileRate, "mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
+	flag.BoolVar(&p.ExposeProfiling, "exposeprofiler", false, "Setting this exposes the profiling port to outside localhost.")
+	flag.StringVar(&p.LogPort, "logPort", "6060", "Port for pprof logging")
+	flag.IntVar(&p.PortOverride, "port", 0, "Port where we serve WSAPI;  default 8088")
+	flag.IntVar(&p.ControlPanelPortOverride, "controlpanelport", 0, "Port for control panel webserver;  Default 8090")
+	flag.IntVar(&p.NetworkPortOverride, "networkport", 0, "Port for p2p network; default 8110")
+	flag.BoolVar(&p.Fast, "fast", true, "If true, Factomd will fast-boot from a file.")
+	flag.IntVar(&p.FastSaveRate, "fastsaverate", 1000, "Save a fastboot file every so many blocks. Should be > 1000 for live systems.")
+	flag.StringVar(&p.FastLocation, "fastlocation", "", "Directory to put the Fast-boot file in.")
+	flag.StringVar(&p.Loglvl, "loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
+	flag.BoolVar(&p.Logjson, "logjson", false, "Use to set logging to use a json formatting")
+	flag.BoolVar(&p.Sim_Stdin, "sim_stdin", true, "If true, sim control reads from stdin.")
+	// Plugins
+	flag.StringVar(&p.PluginPath, "plugin", "", "Input the path to any plugin binaries")
+	// 	Torrent Plugin
+	flag.BoolVar(&p.TorManage, "tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
+	flag.BoolVar(&p.TorUpload, "torupload", false, "Be a torrent uploader")
+	// Logstash connection (if used)
+	flag.BoolVar(&p.UseLogstash, "logstash", false, "If true, use Logstash")
+	flag.StringVar(&p.LogstashURL, "logurl", "localhost:8345", "Endpoint URL for Logstash")
+	flag.IntVar(&p.Sync2, "sync2", -1, "Set the initial blockheight for the second Sync pass. Used to force a total sync, or skip unnecessary syncing of entries.")
+	flag.BoolVar(&p.WriteProcessedDBStates, "wrproc", true, "Write processed blocks to temporary debug file")
+	flag.StringVar(&p.CustomNetName, "customnet", "", "This string specifies a custom blockchain network ID.")
+	flag.StringVar(&p.FactomHome, "factomhome", "", "Set the Factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
+	flag.StringVar(&p.NodeName, "nodename", "", "Assign a name to the node")
+	flag.StringVar(&p.ControlPanelSetting, "controlpanelsetting", "", "Can set to 'disabled', 'readonly', or 'readwrite' to overwrite config file")
+	flag.BoolVar(&p.FullHashesLog, "fullhasheslog", false, "true create a log of all unique hashes seen during processing")
+	flag.BoolVar(&p.ReparseAnchorChains, "reparseanchorchains", false, "If true, reparse bitcoin and ethereum anchor chains in the database")
+
+	// Live feed API params
+	flag.BoolVar(&p.EnableLiveFeedAPI, "enablelivefeedapi", false, "Enable life feed events service; default false")
+	flag.StringVar(&p.EventReceiverProtocol, "eventreceiverprotocol", "", "Transport protocol for the events receiver; default udp")
+	flag.StringVar(&p.EventReceiverHost, "eventreceiverhost", "", "Host address for the events receiver; default 127.0.0.1")
+	flag.IntVar(&p.EventReceiverPort, "eventreceiverport", 0, "Port for the events receiver; default 8040")
+	flag.StringVar(&p.EventFormat, "eventformat", "", "Event output format for the events receiver, protobuf|json; default protobuf")
+	flag.BoolVar(&p.EventSendStateChange, "eventsendstatechange", false, "Send only StateChange events when the state of an entity changes instead of the full entity; default false")
+	flag.StringVar(&p.EventBroadcastContent, "eventbroadcastcontent", "", "Settings for including content in the event messages always|once|never; default once")
+	flag.BoolVar(&p.EventReplayDuringStartup, "eventreplayduringstartup", false, "Replay events since the last save state during startup; default false")
+
 }
 
 func ParseCmdLine(args []string) *FactomParams {
-	p := new(FactomParams)
-
-	ackBalanceHashPtr := flag.Bool("balancehash", true, "If false, then don't pass around balance hashes")
-	enablenetPtr := flag.Bool("enablenet", true, "Enable or disable networking")
-	waitEntriesPtr := flag.Bool("waitentries", false, "Wait for Entries to be validated prior to execution of messages")
-	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
-	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
-	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
-	fnetPtr := flag.String("fnet", "", "Read the given file to build the network connections")
-	dropPtr := flag.Int("drop", 0, "Number of messages to drop out of every thousand")
-	journalPtr := flag.String("journal", "", "Rerun a Journal of messages")
-	journalingPtr := flag.Bool("journaling", false, "Write a journal of all messages recieved. Default is off.")
-	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
-	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
-	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation. Options Map, LDB, or Bolt")
-	cloneDBPtr := flag.String("clonedb", "", "Override the main node and use this database for the clones in a Network.")
-	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
-	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
-	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
-	faultTimeoutPtr := flag.Int("faulttimeout", 60, "Seconds before considering Federated servers at-fault. Default is 60.")
-	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
-	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
-	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
-	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
-	rotatePtr := flag.Bool("rotate", false, "If true, responsiblity is owned by one leader, and rotated over the leaders.")
-	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
-	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
-	startDelayPtr := flag.Int("startdelay", 10, "Delay to start processing messages, in seconds")
-	deadlinePtr := flag.Int("deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
-	customNetPtr := flag.String("customnet", "", "This string specifies a custom blockchain network ID.")
-	rpcUserflag := flag.String("rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
-	rpcPasswordflag := flag.String("rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
-	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
-	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
-	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
-	exposeProfilePtr := flag.Bool("exposeprofiler", false, "Setting this exposes the profiling port to outside localhost.")
-	factomHomePtr := flag.String("factomhome", "", "Set the factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
-
-	logportPtr := flag.String("logPort", "6060", "Port for pprof logging")
-	portOverridePtr := flag.Int("port", 0, "Port where we serve WSAPI;  default 8088")
-	ControlPanelPortOverridePtr := flag.Int("ControlPanelPort", 0, "Port for control panel webserver;  Default 8090")
-	networkPortOverridePtr := flag.Int("networkPort", 0, "Port for p2p network; default 8110")
-
-	fastPtr := flag.Bool("fast", true, "If true, factomd will fast-boot from a file.")
-	fastLocationPtr := flag.String("fastlocation", "", "Directory to put the fast-boot file in.")
-
-	logLvlPtr := flag.String("loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
-	logJsonPtr := flag.Bool("logjson", false, "Use to set logging to use a json formatting")
-
-	sim_stdinPtr := flag.Bool("sim_stdin", true, "If true, sim control reads from stdin.")
-
-	// Plugins
-	pluginPath := flag.String("plugin", "", "Input the path to any plugin binaries")
-
-	// 	Torrent Plugin
-	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
-	torUploader := flag.Bool("torupload", false, "Be a torrent uploader")
-
-	// Logstash connection (if used)
-	logstash := flag.Bool("logstash", false, "If true, use Logstash")
-	logstashURL := flag.String("logurl", "localhost:8345", "Endpoint URL for Logstash")
-
-	sync2Ptr := flag.Int("sync2", -1, "Set the initial blockheight for the second Sync pass. Used to force a total sync, or skip unnecessary syncing of entries.")
+	p := &Params // Global copy of decoded Params global.Params
 
 	flag.CommandLine.Parse(args)
 
-	p.AckbalanceHash = *ackBalanceHashPtr
-	p.EnableNet = *enablenetPtr
-	p.WaitEntries = *waitEntriesPtr
-	p.ListenTo = *listenToPtr
-	p.Cnt = *cntPtr
-	p.Net = *netPtr
-	p.Fnet = *fnetPtr
-	p.DropRate = *dropPtr
-	p.Journal = *journalPtr
-	p.Journaling = *journalingPtr
-	p.Follower = *followerPtr
-	p.Leader = *leaderPtr
-	p.Db = *dbPtr
-	p.CloneDB = *cloneDBPtr
-	p.PortOverride = *portOverridePtr
-	p.Peers = *peersPtr
-	p.NetworkName = *networkNamePtr
-	p.NetworkPortOverride = *networkPortOverridePtr
-	p.ControlPanelPortOverride = *ControlPanelPortOverridePtr
-	p.LogPort = *logportPtr
-	p.BlkTime = *blkTimePtr
-	p.FaultTimeout = *faultTimeoutPtr
-	p.RuntimeLog = *runtimeLogPtr
-	p.Netdebug = *netdebugPtr
-	p.Exclusive = *exclusivePtr
-	p.prefix = *prefixNodePtr
-	p.rotate = *rotatePtr
-	p.timeOffset = *timeOffsetPtr
-	p.keepMismatch = *keepMismatchPtr
-	p.StartDelay = int64(*startDelayPtr)
-	p.deadline = *deadlinePtr
-	p.customNet = primitives.Sha([]byte(*customNetPtr)).Bytes()[:4]
-	p.rpcUser = *rpcUserflag
-	p.rpcPassword = *rpcPasswordflag
-	p.factomdTLS = *factomdTLSflag
-	p.factomdLocations = *factomdLocationsflag
-	p.memProfileRate = *memProfileRate
-	p.fast = *fastPtr
-	p.fastLocation = *fastLocationPtr
-	p.loglvl = *logLvlPtr
-	p.logjson = *logJsonPtr
-	p.Sim_Stdin = *sim_stdinPtr
-	p.exposeProfiling = *exposeProfilePtr
+	// Handle the global (not Factom server specific parameters
+	if p.StdoutLog != "" || p.StderrLog != "" {
+		handleLogfiles(p.StdoutLog, p.StderrLog)
+	}
 
-	p.pluginPath = *pluginPath
-	p.torManage = *tormanager
-	p.torUpload = *torUploader
+	fmt.Print("//////////////////////// Copyright 2017 Factom Foundation\n")
+	fmt.Print("//////////////////////// Use of this source code is governed by the MIT\n")
+	fmt.Print("//////////////////////// license that can be found in the LICENSE file.\n")
 
-	p.useLogstash = *logstash
-	p.logstashURL = *logstashURL
+	elections.FaultTimeout = p.FaultTimeout
+	elections.RoundTimeout = p.RoundTimeout
 
-	p.Sync2 = *sync2Ptr
+	p.CustomNet = primitives.Sha([]byte(p.CustomNetName)).Bytes()[:4]
 
-	if *factomHomePtr != "" {
-		os.Setenv("FACTOM_HOME", *factomHomePtr)
+	s, set := os.LookupEnv("FACTOM_HOME")
+	if p.FactomHome != "" {
+		os.Setenv("FACTOM_HOME", p.FactomHome)
+		if set {
+			fmt.Fprintf(os.Stderr, "Overriding environment variable %s to be \"%s\"\n", "FACTOM_HOME", p.FactomHome)
+		}
+	} else {
+		if set {
+			p.FactomHome = s
+		}
+
+	}
+	if !isCompilerVersionOK() {
+		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
+		time.Sleep(3 * time.Second)
+		os.Exit(1)
+	}
+
+	// launch debug console if requested
+	if p.DebugConsole != "" {
+		launchDebugServer(p.DebugConsole)
 	}
 
 	return p
+}
+
+func isCompilerVersionOK() bool {
+	goodenough := false
+
+	if strings.Contains(runtime.Version(), "1.7") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.8") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.9") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.10") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.11") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.12") {
+		goodenough = true
+	}
+
+	if strings.Contains(runtime.Version(), "1.13") {
+		goodenough = true
+	}
+	return goodenough
+}
+
+var handleLogfilesOnce sync.Once
+
+func handleLogfiles(stdoutlog string, stderrlog string) {
+
+	handleLogfilesOnce.Do(func() {
+
+		var outfile *os.File
+		var err error
+		var wait sync.WaitGroup
+
+		if stdoutlog != "" {
+			// start a go routine to tee stdout to out.txt
+			outfile, err = os.Create(stdoutlog)
+			if err != nil {
+				panic(err)
+			}
+
+			wait.Add(1)
+			go func(outfile *os.File) {
+				defer outfile.Close()
+				defer os.Stdout.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
+				defer time.Sleep(100 * time.Millisecond) // Let the output all complete
+				r, w, _ := os.Pipe()                     // Can't use the writer directly as os.Stdout so make a pipe
+				oldStdout := os.Stdout
+				os.Stdout = w
+				wait.Done()
+				// tee stdout to out.txt
+				if _, err := io.Copy(io.MultiWriter(outfile, oldStdout), r); err != nil { // copy till EOF
+					panic(err)
+				}
+			}(outfile) // stdout redirect func
+		}
+
+		if stderrlog != "" {
+			if stderrlog != stdoutlog {
+				outfile, err = os.Create(stderrlog)
+				if err != nil {
+					panic(err)
+				}
+			}
+
+			wait.Add(1)
+			go func(outfile *os.File) {
+				if stderrlog != stdoutlog {
+					defer outfile.Close()
+				}
+				defer os.Stderr.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
+				defer time.Sleep(100 * time.Millisecond) // Let the output all complete
+
+				r, w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
+				oldStderr := os.Stderr
+				os.Stderr = w
+				wait.Done()
+				if _, err := io.Copy(io.MultiWriter(outfile, oldStderr), r); err != nil { // copy till EOF
+					panic(err)
+				}
+			}(outfile) // stderr redirect func
+		}
+
+		wait.Wait()                           // wait for the redirects to be active
+		os.Stdout.WriteString("STDOUT Log\n") // Write any file header you want here e.g. node name and date and ...
+		os.Stderr.WriteString("STDERR Log\n") // Write any file header you want here e.g. node name and date and ...
+	})
+}
+
+var launchDebugServerOnce sync.Once
+
+func launchDebugServer(service string) {
+
+	launchDebugServerOnce.Do(func() {
+
+		// start a go routine to tee stderr to the debug console
+		debugConsole_r, debugConsole_w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
+		var wait sync.WaitGroup
+		wait.Add(1)
+		go func() {
+
+			r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
+			oldStderr := os.Stderr
+			os.Stderr = w
+			defer oldStderr.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
+			defer time.Sleep(100 * time.Millisecond) // let the output all complete
+			wait.Done()
+			if _, err := io.Copy(io.MultiWriter(oldStderr, debugConsole_w), r); err != nil { // copy till EOF
+				panic(err)
+			}
+		}() // stderr redirect func
+
+		//		wait.Add(1)
+		//go func() {
+		//
+		//	r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
+		//	oldStdout := os.Stdout
+		//	os.Stdout = w
+		//	defer oldStdout.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
+		//	defer time.Sleep(100 * time.Millisecond) // let the output all complete
+		//	wait.Done()
+		//	if _, err := io.Copy(io.MultiWriter(oldStdout, debugConsole_w), r); err != nil { // copy till EOF
+		//		panic(err)
+		//	}
+		//}() // stdout redirect func
+
+		wait.Wait() // Let the redirection become active ...
+
+		host, port := "localhost", "8093" // defaults
+		if service != "" {
+			parts := strings.Split(service, ":")
+			if len(parts) == 1 { // No port
+				parts = append(parts, port) // use default
+			}
+			if parts[0] == "" { //no
+				parts[0] = host // use default
+			}
+			host, port = parts[0], parts[1]
+
+			_, badPort := strconv.Atoi(port)
+			if (host != "localhost" && host != "remotehost") || badPort != nil {
+				panic("Malformed --debugconsole option. Should be localhost:[port] or remotehost:[port] where [port] is a port number")
+			}
+		}
+
+		// Start a listener port to connect to the debug server
+		ln, err := net.Listen("tcp", ":"+port)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("Debug Server listening for %v on port %v\n", host, port)
+
+		newStdInR, newStdInW, _ := os.Pipe() // Can't use the reader directly as os.Stdin so make a pipe
+
+		// Accept connections (one at a time)
+		go func() {
+			for {
+				fmt.Printf("Debug server waiting for connection.\n") // Does not accept a reconnect not sure why ... revist
+				connection, err := ln.Accept()
+				if err != nil {
+					panic(err)
+				}
+				fmt.Printf("Debug server accepted a connection.\n")
+
+				writer := bufio.NewWriter(connection) // if we want to send something back to the telnet
+				reader := bufio.NewReader(connection)
+
+				writer.WriteString("Hello from Factom Debug Console\n")
+				writer.Flush()
+				// copy stderr to debug console
+				go func() {
+					if _, err := io.Copy(writer, debugConsole_r); err != nil { // copy till EOF
+						fmt.Printf("Error copying stderr to debug consol: %v\n", err)
+					}
+				}()
+
+				// copy input from debug console to stdin
+				if false { // not sure why this doesn't work -- revist down the road
+					if _, err = io.Copy(newStdInW, reader); err != nil {
+						panic(err)
+					}
+				} else {
+					for { // copy input from debug console to stdin until eof
+						writer.WriteString(">") // print a prompt
+						writer.Flush()
+						if buf, err := reader.ReadString('\n'); err != nil {
+							if err == io.EOF {
+								break
+							} // This connection is closed
+							if err != nil {
+								panic(err)
+							} // This listen has an error
+						} else {
+							newStdInW.WriteString(string(buf))
+						}
+					}
+				}
+				fmt.Printf("Client disconnected.\n")
+			}
+		}() // the accept routine
+
+		if host == "localhost" {
+			cmd := exec.Command("/usr/bin/gnome-terminal", "-x", "telnet", "localhost", port)
+			err = cmd.Start()
+			if err != nil {
+				panic(err)
+			}
+			fmt.Printf("Debug terminal pid %v\n", cmd.Process.Pid)
+		}
+		os.Stdin = newStdInR               // start using the pipe as input
+		time.Sleep(100 * time.Millisecond) // Let the redirection become active ...
+	})
 }

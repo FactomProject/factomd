@@ -6,12 +6,11 @@ package engine
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/log"
 	"sync"
+
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-var _ = log.Printf
 var _ = fmt.Print
 
 type msglist struct {
@@ -52,6 +51,9 @@ func (m *MsgLog) Init(enable bool, nodecnt int) {
 }
 
 func (m *MsgLog) Add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
+	if !m.Enable {
+		return
+	}
 	m.sem.Lock()
 	defer m.sem.Unlock()
 	now := fnode.State.GetTimestamp()
@@ -97,6 +99,10 @@ func (m *MsgLog) Add2(fnode *FactomNode, out bool, peer string, where string, va
 }
 
 func (m *MsgLog) PrtMsgs(state interfaces.IState) {
+	if !m.Enable {
+		fmt.Println("Message log is not enabled. Run factomd with runtime log enabled.")
+		return
+	}
 	m.sem.Lock()
 	defer m.sem.Unlock()
 

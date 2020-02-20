@@ -5,7 +5,6 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
-	//"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -16,19 +15,22 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel/files"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
+
+	llog "github.com/FactomProject/factomd/log"
 )
 
 // Initiates control panel variables and controls the http requests
 
-//Sends gitbuild and version to frontend
-type GitBuildAndVersion struct {
+type IndexTemplateData struct {
 	GitBuild string
 	Version  string
+	NodeName string
 }
 
 var (
@@ -41,10 +43,10 @@ var (
 	mux   *http.ServeMux
 	index int = 0
 
-	DisplayState state.DisplayState
-	StatePointer *state.State
-	Controller   *p2p.Controller // Used for Disconnect
-	GitAndVer    *GitBuildAndVersion
+	DisplayState      state.DisplayState
+	StatePointer      *state.State
+	Controller        *p2p.Controller // Used for Disconnect
+	indexTemplateData *IndexTemplateData
 
 	LastRequest     time.Time
 	TimeRequestHold float64 = 3 // Amount of time in seconds before can request data again
@@ -54,6 +56,9 @@ var (
 	// Sync Mutex
 	TemplateMutex     sync.Mutex
 	DisplayStateMutex sync.RWMutex
+
+	// This is the cached dblock for the getRecentTransactions thread
+	getRecentTransactionsDBlock interfaces.IDirectoryBlock
 )
 
 func directoryExists(path string) bool {
@@ -72,7 +77,12 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 		select {
 		case ds := <-channel:
 			DisplayStateMutex.Lock()
+			// Keep our block if there is not a new dblock
+			dblock := DisplayState.LastDirectoryBlock
 			DisplayState = ds
+			if ds.LastDirectoryBlock == nil {
+				DisplayState.LastDirectoryBlock = dblock
+			}
 			DisplayStateMutex.Unlock()
 		default:
 			RequestData()
@@ -89,21 +99,21 @@ func InitTemplates() {
 }
 
 // Main function. This intiates appropriate variables and starts the control panel serving
-func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
+func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string, nodeName string) {
 	defer func() {
 		if r := recover(); r != nil {
 			// The following recover string indicates an overwrite of existing http.ListenAndServe goroutine
 			if r != "http: multiple registrations for /" {
 				fmt.Println("Control Panel has encountered a panic in ServeControlPanel.\n", r)
 			}
+			llog.LogPrintf("recovery", "Control Panel has encountered a panic in ServeControlPanel. %v", r)
 		}
 	}()
+
 	StatePointer = statePointer
 	StatePointer.ControlPanelDataRequest = true // Request initial State
 	// Wait for initial State
-	select {
-	case DisplayState = <-displayStateChannel:
-	}
+	DisplayState = <-displayStateChannel
 
 	DisplayStateMutex.RLock()
 	controlPanelSetting := DisplayState.ControlPanelSetting
@@ -111,20 +121,21 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	DisplayStateMutex.RUnlock()
 
 	if controlPanelSetting == 0 { // 0 = Disabled
-		fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is recommended for any public server, if you wish to renable it, check your config file.")
+		fmt.Println("Control Panel has been disabled within the config file and will not be served. This is recommended for any public server, if you wish to renable it, check your config file.")
 		return
 	}
 
 	go DisplayStateDrain(displayStateChannel)
 
-	GitAndVer = new(GitBuildAndVersion)
-	GitAndVer.GitBuild = gitBuild
-	GitAndVer.Version = statePointer.GetFactomdVersion()
+	indexTemplateData = new(IndexTemplateData)
+	indexTemplateData.GitBuild = gitBuild
+	indexTemplateData.NodeName = nodeName
+	indexTemplateData.Version = statePointer.GetFactomdVersion()
 	portStr := ":" + strconv.Itoa(port)
 	Controller = controller
 	InitTemplates()
 
-	// Updated Globals. A seperate GoRoutine updates these, we just initialize
+	// Updated Globals. A separate GoRoutine updates these, we just initialize
 	RecentTransactions = new(LastDirectoryBlockTransactions)
 	AllConnections = NewConnectionsMap()
 
@@ -135,11 +146,12 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	go doEvery(10*time.Second, getRecentTransactions)
 	go manageConnections(connections)
 
-	http.HandleFunc("/", static(indexHandler))
-	http.HandleFunc("/search", searchHandler)
-	http.HandleFunc("/post", postHandler)
-	http.HandleFunc("/factomd", factomdHandler)
-	http.HandleFunc("/factomdBatch", factomdBatchHandler)
+	controlPanelMux := http.NewServeMux()
+	controlPanelMux.HandleFunc("/", static(indexHandler))
+	controlPanelMux.HandleFunc("/search", searchHandler)
+	controlPanelMux.HandleFunc("/post", postHandler)
+	controlPanelMux.HandleFunc("/factomd", factomdHandler)
+	controlPanelMux.HandleFunc("/factomdBatch", factomdBatchHandler)
 
 	tlsIsEnabled, tlsPrivate, tlsPublic := StatePointer.GetTlsInfo()
 	if tlsIsEnabled {
@@ -155,10 +167,10 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 			time.Sleep(100 * time.Millisecond)
 		}
 		fmt.Println("Starting encrypted Control Panel on https://localhost" + portStr + "/  Please note the HTTPS in the browser.")
-		http.ListenAndServeTLS(portStr, tlsPublic, tlsPrivate, nil)
+		http.ListenAndServeTLS(portStr, tlsPublic, tlsPrivate, controlPanelMux)
 	} else {
 		fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
-		http.ListenAndServe(portStr, nil)
+		http.ListenAndServe(portStr, controlPanelMux)
 	}
 }
 
@@ -186,6 +198,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic in IndexHandler.\n", r)
+			llog.LogPrintf("recovery", "Control Panel has encountered a panic in IndexHandler. %v", r)
 		}
 	}()
 	TemplateMutex.Lock()
@@ -195,10 +208,11 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	//templates.ParseGlob(FILES_PATH + "templates/index/*.html")
 	files.CustomParseGlob(templates, "templates/index/*.html")
-	if len(GitAndVer.GitBuild) == 0 {
-		GitAndVer.GitBuild = "Unknown (Must install with script)"
+	if len(indexTemplateData.GitBuild) == 0 {
+		indexTemplateData.GitBuild = "Unknown (Must install with script)"
 	}
-	err := templates.ExecuteTemplate(w, "indexPage", GitAndVer)
+
+	err := templates.ExecuteTemplate(w, "indexPage", indexTemplateData)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -210,6 +224,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic in PostHandler.\n", r)
+			llog.LogPrintf("recovery", "Control Panel has encountered a panic in PostHandler. %v", r)
 		}
 	}()
 	if false == checkControlPanelPassword(w, r) {
@@ -232,6 +247,16 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+	case "changelogs":
+		// >= 2 means we have write access
+		if StatePointer.ControlPanelSetting == 2 {
+			newRegex := r.FormValue("logsetting")
+			fmt.Printf("Changing log regex to: '%s'\n", newRegex)
+			globals.Params.DebugLogRegEx = newRegex
+		} else {
+			w.Write([]byte(`{"Error": "Access denied"}`))
+			return
+		}
 	}
 	w.Write([]byte(`{"Type": "None"}`))
 }
@@ -247,6 +272,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic in SearchHandler.\n", r)
+			llog.LogPrintf("recovery", "Control Panel has encountered a panic in SearchHandler. %v", r)
 		}
 	}()
 	if false == checkControlPanelPassword(w, r) {
@@ -292,6 +318,7 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic in FactomdHandler.\n", r)
+			llog.LogPrintf("recovery", "Control Panel has encountered a panic in FactomdHandler. %v", r)
 		}
 	}()
 	if false == checkControlPanelPassword(w, r) {
@@ -332,6 +359,16 @@ func factomdQuery(item string, value string, batchQueried bool) []byte {
 		RequestData()
 	}
 	switch item {
+	case "ignoreDone":
+		DisplayStateMutex.RLock()
+		flag := DisplayState.IgnoreDone
+		DisplayStateMutex.RUnlock()
+
+		if flag {
+			return []byte(`{"IgnoreDone": true}`)
+		} else {
+			return []byte(`{"IgnoreDone": false}`)
+		}
 	case "myHeight":
 		DisplayStateMutex.RLock()
 		h := DisplayState.CurrentNodeHeight
@@ -498,7 +535,7 @@ func toggleDCT() {
 	}
 }
 
-// Gets all the recent transctions. Will only keep the most recent 100.
+// Gets all the recent transitions. Will only keep the most recent 100.
 func getRecentTransactions(time.Time) {
 	/*defer func() {
 		if r := recover(); r != nil {
@@ -516,24 +553,31 @@ func getRecentTransactions(time.Time) {
 		return
 	}
 
+	var last interfaces.IDirectoryBlock
+	// Need to copy the dblock as this runs on it's own thread. Only copy if it is new
 	DisplayStateMutex.RLock()
 	if DisplayState.LastDirectoryBlock == nil {
 		DisplayStateMutex.RUnlock()
 		return
 	}
-	data, err := DisplayState.LastDirectoryBlock.MarshalBinary()
-	if err != nil {
+
+	// If our cached dblock is the same as the new one, don't make another copy
+	if getRecentTransactionsDBlock == nil || DisplayState.LastDirectoryBlock.GetDatabaseHeight() != getRecentTransactionsDBlock.GetDatabaseHeight() {
+		data, err := DisplayState.LastDirectoryBlock.MarshalBinary()
 		DisplayStateMutex.RUnlock()
-		return
-	}
-	last, err := directoryBlock.UnmarshalDBlock(data)
-	err = last.UnmarshalBinary(data)
-	if err != nil {
+		if err != nil {
+			return
+		}
+
+		last, err = directoryBlock.UnmarshalDBlock(data)
+		if err != nil {
+			return
+		}
+		getRecentTransactionsDBlock = last
+	} else {
 		DisplayStateMutex.RUnlock()
-		return
+		last = getRecentTransactionsDBlock
 	}
-	//last := DisplayState.LastDirectoryBlock
-	DisplayStateMutex.RUnlock()
 
 	if last == nil {
 		return
@@ -558,16 +602,19 @@ func getRecentTransactions(time.Time) {
 	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetTimestamp().String(), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
 	// Process list items
 	DisplayStateMutex.RLock()
-	for _, entry := range DisplayState.PLEntry {
+	for i, entry := range DisplayState.PLEntry {
 		e := new(EntryHolder)
 		e.Hash = entry.EntryHash
 		e.ChainID = "Processing"
 		if !RecentTransactions.ContainsEntry(e.Hash) {
 			RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
 		}
+		if i > 100 {
+			break // We only care about top 100
+		}
 	}
 
-	for _, fTrans := range DisplayState.PLFactoid {
+	for i, fTrans := range DisplayState.PLFactoid {
 		if fTrans.TotalInputs == 0 {
 			continue
 		}
@@ -581,6 +628,9 @@ func getRecentTransactions(time.Time) {
 				TotalOutputs int
 			}{fTrans.TxID, fTrans.Hash, fTrans.TotalInput, "Processing", fTrans.TotalInputs, fTrans.TotalOutputs})
 		}
+		if i > 100 {
+			break // We only care about top 100
+		}
 	}
 	DisplayStateMutex.RUnlock()
 
@@ -591,9 +641,9 @@ func getRecentTransactions(time.Time) {
 		}
 		if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
 			mr := entry.GetKeyMR()
-			dbase := StatePointer.GetAndLockDB()
+			dbase := StatePointer.GetDB()
 			fblock, err := dbase.FetchFBlock(mr)
-			StatePointer.UnlockDB()
+
 			if err != nil || fblock == nil {
 				continue
 			}
@@ -621,9 +671,9 @@ func getRecentTransactions(time.Time) {
 		} else if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
 			mr := entry.GetKeyMR()
 
-			dbase := StatePointer.GetAndLockDB()
+			dbase := StatePointer.GetDB()
 			ecblock, err := dbase.FetchECBlock(mr)
-			StatePointer.UnlockDB()
+
 			if err != nil || ecblock == nil {
 				continue
 			}
@@ -699,9 +749,9 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 		if next.IsSameAs(zero) {
 			break
 		}
-		dbase := StatePointer.GetAndLockDB()
+		dbase := StatePointer.GetDB()
 		dblk, err := dbase.FetchDBlock(next)
-		StatePointer.UnlockDB()
+
 		if err != nil || dblk == nil {
 			break
 		}
@@ -709,9 +759,9 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 		ents := dblk.GetDBEntries()
 		if len(ents) > 3 && eNeeded > 0 {
 			for _, eblock := range ents[3:] {
-				dbase := StatePointer.GetAndLockDB()
+				dbase := StatePointer.GetDB()
 				eblk, err := dbase.FetchEBlock(eblock.GetKeyMR())
-				StatePointer.UnlockDB()
+
 				if err != nil || eblk == nil {
 					break
 				}
@@ -732,9 +782,9 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 			fChain := primitives.NewHash(constants.FACTOID_CHAINID)
 			for _, entry := range ents {
 				if entry.GetChainID().IsSameAs(fChain) {
-					dbase := StatePointer.GetAndLockDB()
+					dbase := StatePointer.GetDB()
 					fblk, err := dbase.FetchFBlock(entry.GetKeyMR())
-					StatePointer.UnlockDB()
+
 					if err != nil || fblk == nil {
 						break
 					}

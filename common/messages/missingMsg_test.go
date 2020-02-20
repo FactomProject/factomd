@@ -9,6 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
+	. "github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
 )
@@ -87,6 +88,7 @@ func TestValidateMissingMsg(t *testing.T) {
 	}
 
 	msg.Asking = primitives.RandomHash()
+	msg.DBHeight = s.GetLLeaderHeight()
 	v = msg.Validate(s)
 	if v != 1 {
 		t.Errorf("Should be 1, found %d", v)

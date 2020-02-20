@@ -1,3 +1,5 @@
+# Special build files
+engine/overrideversion.go
 # Executable
 factomd
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
@@ -19,6 +21,7 @@ peers.json
 *.csv
 *.gz
 *.swp
+out
 
 # Folders
 _obj
@@ -52,3 +55,5 @@ _testmain.go
 
 # Vendoring
 vendor/
+.sim
+recovery

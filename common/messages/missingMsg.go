@@ -7,17 +7,21 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
 //Structure to request missing messages in a node's process list
 type MissingMsg struct {
-	MessageBase
+	msgbase.MessageBase
 
 	Timestamp         interfaces.Timestamp
 	Asking            interfaces.IHash
@@ -65,11 +69,15 @@ func (m *MissingMsg) Process(uint32, interfaces.IState) bool {
 	panic("MissingMsg should not have its Process() method called")
 }
 
-func (m *MissingMsg) GetRepeatHash() interfaces.IHash {
+func (m *MissingMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "MissingMsg.GetRepeatHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *MissingMsg) GetHash() interfaces.IHash {
+func (m *MissingMsg) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "MissingMsg.GetHash") }()
+
 	if m.hash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -80,7 +88,9 @@ func (m *MissingMsg) GetHash() interfaces.IHash {
 	return m.hash
 }
 
-func (m *MissingMsg) GetMsgHash() interfaces.IHash {
+func (m *MissingMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "MissingMsg.GetMsgHash") }()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -92,7 +102,7 @@ func (m *MissingMsg) GetMsgHash() interfaces.IHash {
 }
 
 func (m *MissingMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *MissingMsg) Type() byte {
@@ -103,6 +113,8 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
+
 		}
 	}()
 	newData = data
@@ -145,7 +157,12 @@ func (m *MissingMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *MissingMsg) MarshalBinary() ([]byte, error) {
+func (m *MissingMsg) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "MissingMsg.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
@@ -183,15 +200,13 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 func (m *MissingMsg) String() string {
 	str := ""
 	for _, n := range m.ProcessListHeight {
-		str = fmt.Sprintf("%s%d,", str, n)
+		str += fmt.Sprintf("%d/%d/%d, ", m.DBHeight, m.VMIndex, n)
 	}
-	return fmt.Sprintf("MissingMsg --> Asking %x DBHeight:%3d vm=%3d Hts::[%s] Sys: %d msgHash[%x]",
-		m.Asking.Bytes()[:8],
-		m.DBHeight,
-		m.VMIndex,
+	return fmt.Sprintf("MissingMsg --> %x asking for DBh/VMh/h[%s] Sys: %d msgHash[%x] from peer-%d %s",
+		m.Asking.Bytes()[3:6],
 		str,
 		m.SystemHeight,
-		m.GetMsgHash().Bytes()[:3])
+		m.GetMsgHash().Bytes()[:3], m.GetOrigin(), m.GetNetworkOrigin())
 }
 
 func (m *MissingMsg) LogFields() log.Fields {
@@ -219,7 +234,13 @@ func (m *MissingMsg) Validate(state interfaces.IState) int {
 	if m.Asking == nil {
 		return -1
 	}
-	if m.Asking.IsZero() {
+	// can't answer about the future
+	if m.DBHeight > state.GetLLeaderHeight() {
+		return -1
+	}
+	// can't answer about the past before our earliest pl
+	// use int so at height near 0 we can go negative
+	if int(m.DBHeight) < int(state.GetLLeaderHeight())-2 {
 		return -1
 	}
 	return 1
@@ -246,6 +267,12 @@ func (e *MissingMsg) JSONString() (string, error) {
 
 // AddHeight: Add a Missing Message Height to the request
 func (e *MissingMsg) AddHeight(h uint32) {
+	// search to see if the height is already there.
+	for _, ht := range e.ProcessListHeight {
+		if ht == h {
+			return // if it's already there just return
+		}
+	}
 	e.ProcessListHeight = append(e.ProcessListHeight, h)
 }
 

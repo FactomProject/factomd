@@ -54,10 +54,10 @@ func MakeFEREntryWithHeightFromContent(passedResidentHeight uint32, passedTarget
 		return nil
 	}
 
-	// Create the factom entry with the signing private key
+	// Create the Factom entry with the signing private key
 	signingSignature := ed.Sign(&signingPrivateKey, entryJson)
 
-	// Make a new factom entry and populate it
+	// Make a new Factom entry and populate it
 	anEntry := new(factom.Entry)
 	anEntry.ChainID = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
 	anEntry.ExtIDs = append(anEntry.ExtIDs, signingSignature[:])
@@ -161,7 +161,7 @@ func CreateAndPopulateTestDatabaseOverlayForFER(testEntries []FEREntryWithHeight
 		}
 	}
 
-	err = dbo.RebuildDirBlockInfo()
+	err = dbo.ReparseAnchorChains()
 	if err != nil {
 		panic(err)
 	}

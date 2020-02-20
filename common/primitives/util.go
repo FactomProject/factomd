@@ -12,9 +12,28 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/btcsuitereleases/btcutil/base58"
 )
+
+func CalculateCoinbasePayout(efficiency uint16) uint64 {
+	// Keep is the percentage of the coinbase kept for the authority
+	//		(Percentage * 100)
+	keep := 10000 - uint64(efficiency)
+
+	// The amount of factoshis in the payout
+	payout := keep * constants.COINBASE_PAYOUT_AMOUNT
+
+	// Put the percentage back into the correct scale
+	// 		(10000 == 100%, so divide by 10000)
+	payout = payout / 10000
+	return payout
+}
+
+func EfficiencyToString(eff uint16) string {
+	return fmt.Sprintf("%d.%02d", eff/100, eff%100)
+}
 
 /*********************************
  * Print helpers
@@ -133,7 +152,7 @@ func ConvertDecimalToString(v uint64) string {
 	return fmt.Sprintf("%.8f", f)
 }
 
-// Take fixed point data and produce a nice decimial point
+// Take fixed point data and produce a nice decimal point
 // sort of output that users can handle.
 func ConvertDecimalToPaddedString(v uint64) string {
 	tv := v / 100000000
@@ -202,7 +221,8 @@ func ConvertFixedPoint(amt string) (string, error) {
 //  Creates the binary form.  Just needs the conversion to base58
 //  for display.
 func ConvertAddressToUser(prefix []byte, addr interfaces.IAddress) []byte {
-	dat := prefix
+	dat := make([]byte, 0, 64)
+	dat = append(dat, prefix...)
 	dat = append(dat, addr.Bytes()...)
 	sha256d := Sha(Sha(dat).Bytes()).Bytes()
 	userd := prefix

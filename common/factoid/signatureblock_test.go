@@ -6,10 +6,11 @@ package factoid_test
 
 import (
 	"encoding/hex"
+	"testing"
+
 	"github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/testHelper"
-	"testing"
 )
 
 func TestUnmarshalNilSignatureBlock(t *testing.T) {

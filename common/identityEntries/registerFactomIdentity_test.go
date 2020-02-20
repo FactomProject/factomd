@@ -8,6 +8,11 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"math/rand"
+	"time"
+
+	"bytes"
+
 	. "github.com/FactomProject/factomd/common/identityEntries"
 )
 
@@ -39,5 +44,39 @@ func TestRegisterFactomIdentityStructure(t *testing.T) {
 	err = rfi.VerifySignature(nil)
 	if err != nil {
 		t.Errorf("%v", err)
+	}
+}
+
+func TestRegisterFactomIdentityStructureMarshal(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		rand.Seed(time.Now().UnixNano())
+		r := RandomRegisterFactomIdentityStructure()
+		data, err := r.MarshalBinary()
+		if err != nil {
+			t.Error(err)
+		}
+
+		r2 := new(RegisterFactomIdentityStructure)
+		nd, err := r2.UnmarshalBinaryData(data)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if len(nd) != 0 {
+			t.Errorf("left over %d bytes", len(nd))
+		}
+
+		if !r.IsSameAs(r2) {
+			t.Errorf("Not same")
+		}
+
+		data2, err := r2.MarshalBinary()
+		if err != nil {
+			t.Error(err)
+		}
+
+		if bytes.Compare(data, data2) != 0 {
+			t.Errorf("Bytes different")
+		}
 	}
 }

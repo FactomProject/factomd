@@ -30,25 +30,23 @@ func (lists *ProcessLists) LastList() *ProcessList {
 // is always the block above the HighestRecordedBlock, but we only care about messages that
 // are at the highest known block, as long as that is above the highest recorded block.
 func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
-
 	// Look and see if we need to toss some previous blocks under construction.
 	diff := int(dbheight) - int(lists.DBHeightBase)
+	//TODO: Maybe the test about len(lists.list) is pointless
 	if diff > 1 && len(lists.Lists) > 1 {
 		diff = diff - 1
 		progress = true
 		lists.DBHeightBase += uint32(diff)
-		var newlist []*ProcessList
-		for i := 0; i < diff; i++ {
-			lists.Lists[i].Clear()
-		}
-		newlist = append(newlist, lists.Lists[diff:]...)
+
+		newlist := append([]*ProcessList{}, lists.Lists[diff:]...)
 		lists.Lists = newlist
 	}
 	dbstate := lists.State.DBStates.Get(int(dbheight))
-	pl := lists.Get(dbheight)
-	for pl.Complete() || (dbstate != nil && (dbstate.Signed || dbstate.Saved)) {
+	pl := lists.Get(lists.State.LLeaderHeight)
+	for pl.Complete() || (dbstate != nil && dbstate.Locked && dbstate.Signed) {
 		dbheight++
 		pl = lists.Get(dbheight)
+		lists.State.MoveStateToHeight(dbheight, 0)
 		dbstate = lists.State.DBStates.Get(int(dbheight))
 	}
 	if pl == nil {
@@ -57,19 +55,11 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 	if dbheight > lists.State.LLeaderHeight {
 		s := lists.State
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s ProcessListManager: !s.EOM(%v)", s.FactomNodeName, s.EOM))
-		s.LLeaderHeight = dbheight
-		s.CurrentMinute = 0
-		s.EOMProcessed = 0
-		s.DBSigProcessed = 0
-		s.Syncing = false
-		s.EOM = false
-		s.DBSig = false
-		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-	}
-	//lists.State.AddStatus(fmt.Sprintf("UpdateState: ProcessList Height %d", pl.DBHeight))
-	return pl.Process(lists.State)
 
+		s.MoveStateToHeight(dbheight, 0)
+	}
+	lists.State.AddStatus(fmt.Sprintf("UpdateState: ProcessList Height %d", pl.DBHeight))
+	return pl.Process(lists.State)
 }
 
 // Only gets an existing process list
@@ -93,44 +83,40 @@ func (lists *ProcessLists) GetSafe(dbheight uint32) (pl *ProcessList) {
 	return nil
 }
 
-func (lists *ProcessLists) Get(dbheight uint32) (pl *ProcessList) {
-	var i int
-
-	getindex := func() bool {
-		i = int(dbheight) - int(lists.DBHeightBase)
-
-		if i < 0 {
-			return false
-		}
-		for len(lists.Lists) <= i {
-			lists.Lists = append(lists.Lists, nil)
-		}
-		return true
+func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
+	if dbheight < lists.DBHeightBase {
+		return nil
 	}
 
-	if !getindex() {
-		return
+	i := int(dbheight) - int(lists.DBHeightBase)
+
+	s := lists.State
+	_ = s
+
+	// Only allocate a pl I have a hope of using. If too high, ignore.
+	highestCompletedBlk := lists.State.GetHighestCompletedBlk()
+	if dbheight >= highestCompletedBlk+200 {
+		return nil
 	}
-	pl = lists.Lists[i]
+	//TODO: Actually allocate the PL here !!!
+	for len(lists.Lists) <= i {
+		lists.Lists = append(lists.Lists, nil)
+	}
+
+	pl := lists.Lists[i]
 
 	var prev *ProcessList
 
-	if dbheight > 0 {
-		prev = lists.Get(dbheight - 1)
-		if !getindex() {
-			return
+	if pl == nil {
+		if dbheight == 0 {
+			prev = nil
+		} else {
+			prev = lists.Get(dbheight - 1)
 		}
-		pl = lists.Lists[i]
-	}
-	// Only allocate a pl I have a hope of using.  If too high, ignore.
-	if pl == nil && dbheight < lists.State.GetHighestCompletedBlk()+200 {
 		pl = NewProcessList(lists.State, prev, dbheight)
-		if !getindex() {
-			pl = nil
-			return
-		}
 		lists.Lists[i] = pl
 	}
+
 	return pl
 }
 
@@ -158,7 +144,7 @@ func NewProcessLists(state interfaces.IState) *ProcessLists {
 
 	s, ok := state.(*State)
 	if !ok {
-		panic("Failed to initalize Process Lists because the wrong state object was used")
+		panic("Failed to initialize Process Lists because the wrong state object was used")
 	}
 	pls.State = s
 	pls.DBHeightBase = 0

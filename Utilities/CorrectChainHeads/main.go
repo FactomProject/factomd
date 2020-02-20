@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"os"
@@ -9,12 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/FactomProject/factom"
-	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/Utilities/tools"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/hybridDB"
 )
 
 var CheckFloating bool
@@ -53,10 +48,10 @@ func main() {
 		UsingAPI = true
 	}
 
-	var reader Fetcher
+	var reader tools.Fetcher
 
 	if UsingAPI {
-		reader = NewAPIReader(flag.Args()[1])
+		reader = tools.NewAPIReader(flag.Args()[1])
 	} else {
 		levelBolt := flag.Args()[0]
 
@@ -65,7 +60,7 @@ func main() {
 			os.Exit(1)
 		}
 		path := flag.Args()[1]
-		reader = NewDBReader(levelBolt, path)
+		reader = tools.NewDBReader(levelBolt, path)
 	}
 
 	// dblock, err := reader.FetchDBlockHead()
@@ -73,7 +68,7 @@ func main() {
 	FindHeads(reader)
 }
 
-func FindHeads(f Fetcher) {
+func FindHeads(f tools.Fetcher) {
 	chainHeads := make(map[string]interfaces.IHash)
 
 	var allEblockLock sync.Mutex
@@ -185,7 +180,7 @@ func FindHeads(f Fetcher) {
 		if height%500 == 0 {
 			d := atomic.LoadInt32(done)
 			ps := float64(top-height) / time.Since(start).Seconds()
-			fmt.Printf("Currently on %d out of %d at %.3fp/s. %d Eblocks, %d done. %d ChainHeads so far. %d Are bad\n", height, top, ps, total, d, len(chainHeads), errCount)
+			fmt.Printf("Currently on %d out of %d at %.3fp/s. %d EblocksPerHeight, %d done. %d ChainHeads so far. %d Are bad\n", height, top, ps, total, d, len(chainHeads), errCount)
 		}
 
 		var _ = dblock
@@ -218,95 +213,4 @@ func FindHeads(f Fetcher) {
 	}
 	fmt.Printf("%d Errors found checking for bad links\n", errCount)
 
-}
-
-type Fetcher interface {
-	FetchDBlockHead() (interfaces.IDirectoryBlock, error)
-	FetchDBlockByHeight(dBlockHeight uint32) (interfaces.IDirectoryBlock, error)
-	//FetchDBlock(hash interfaces.IHash) (interfaces.IDirectoryBlock, error)
-	FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces.IHash, error)
-	FetchEBlock(hash interfaces.IHash) (interfaces.IEntryBlock, error)
-	SetChainHeads(primaryIndexes, chainIDs []interfaces.IHash) error
-}
-
-func NewDBReader(levelBolt string, path string) *databaseOverlay.Overlay {
-	var dbase *hybridDB.HybridDB
-	var err error
-	if levelBolt == bolt {
-		dbase = hybridDB.NewBoltMapHybridDB(nil, path)
-	} else {
-		dbase, err = hybridDB.NewLevelMapHybridDB(path, false)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	dbo := databaseOverlay.NewOverlay(dbase)
-	return dbo
-}
-
-type APIReader struct {
-	location string
-}
-
-func NewAPIReader(loc string) *APIReader {
-	a := new(APIReader)
-	a.location = loc
-	factom.SetFactomdServer(loc)
-
-	return a
-}
-
-func (a *APIReader) SetChainHeads(primaryIndexes, chainIDs []interfaces.IHash) error {
-	return nil
-}
-
-func (a *APIReader) FetchEBlock(hash interfaces.IHash) (interfaces.IEntryBlock, error) {
-	return nil, fmt.Errorf("Not implemented for api")
-}
-
-func (a *APIReader) FetchDBlockHead() (interfaces.IDirectoryBlock, error) {
-	head, err := factom.GetDBlockHead()
-	if err != nil {
-		return nil, err
-	}
-	raw, err := factom.GetRaw(head)
-	if err != nil {
-		return nil, err
-	}
-	return rawBytesToblock(raw)
-}
-
-func (a *APIReader) FetchDBlockByHeight(dBlockHeight uint32) (interfaces.IDirectoryBlock, error) {
-	raw, err := factom.GetBlockByHeightRaw("d", int64(dBlockHeight))
-	if err != nil {
-		return nil, err
-	}
-
-	return rawRespToBlock(raw.RawData)
-}
-
-func (a *APIReader) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces.IHash, error) {
-	resp, err := factom.GetChainHead(chainID.String())
-	if err != nil {
-		return nil, err
-	}
-	return primitives.HexToHash(resp)
-}
-
-func rawBytesToblock(raw []byte) (interfaces.IDirectoryBlock, error) {
-	dblock := directoryBlock.NewDirectoryBlock(nil)
-	err := dblock.UnmarshalBinary(raw)
-	if err != nil {
-		return nil, err
-	}
-	return dblock, nil
-}
-
-func rawRespToBlock(raw string) (interfaces.IDirectoryBlock, error) {
-	by, err := hex.DecodeString(raw)
-	if err != nil {
-		return nil, err
-	}
-	return rawBytesToblock(by)
 }

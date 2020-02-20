@@ -91,8 +91,12 @@ function updataDataDumps() {
     obj = JSON.parse(resp)
     $("#dump1 #dumpShort").text(obj.DataDump1.ShortDump)
     $("#dump1 #dumpRaw").text(obj.DataDump1.RawDump)
+    $("#dump1 #dumpSyncing").text(obj.DataDump1.SyncingDump)
 
-    $("#dump2 #dumpRaw").text(obj.DataDump2.RawDump)
+    $("#dump2 #dumpRawProc").text(obj.DataDump2.RawDump)
+    $("#dump2 #dumpNext").text(obj.DataDump2.NextDump)
+    $("#dump2 #dumpPrev").text(obj.DataDump2.PrevDump)
+
 
     $("#dump3 #dumpRaw").text(obj.DataDump3.RawDump)
 
@@ -102,6 +106,13 @@ function updataDataDumps() {
 
     $("#dump5 #dumpConRaw").text(obj.DataDump5.RawDump)
     $("#dump5 #dumpSort").text(obj.DataDump5.SortedDump)
+
+    $("#dump6 #dumpElections").text(obj.ElectionDataDump.Elections)
+    $("#dump6 #dumpSimulatedElections").text(obj.ElectionDataDump.SimulatedElection)
+    if(obj.LogSettingsDump.CurrentLogSettings == "") {
+        obj.LogSettingsDump.CurrentLogSettings = " "
+    }
+    $("#dump7 #current-log-value").text(obj.LogSettingsDump.CurrentLogSettings)
   })
 }
 
@@ -223,6 +234,23 @@ function updateProgressBar(id, current, max) {
   }
 }
 
+function updatePeerIcon(element, connection) {
+    switch (connection.PeerType) {
+        case "special_config":
+            element.removeClass("hidden");
+            element.prop("title", "Special Peer (configuration file)");
+            break;
+        case "special_cmdline":
+            element.removeClass("hidden");
+            element.prop("title", "Special Peer (command line)");
+            break;
+        case "regular":
+        default:
+            element.addClass("hidden");
+            element.prop("title", "");
+    }
+}
+
 var peerHashes = [""]
 
 // 2 Queries in Batch
@@ -259,7 +287,8 @@ function updateAllPeers() {
       peer = resp[index]
       peerHashes.push(peer.PeerHash)
       if($("#" + peer.Hash).length > 0) {
-        con = peer.Connection
+        con = peer.Connection;
+        updatePeerIcon($("#" + peer.Hash).find("#ip i"), con);
         if ($("#" + peer.Hash).find("#ip").val() != peer.PeerHash) {
           $("#" + peer.Hash).find("#ip span").text(con.PeerAddress)
           $("#" + peer.Hash).find("#ip").val(peer.PeerHash) // Value
@@ -307,7 +336,9 @@ function updateAllPeers() {
             if(PeerAddFromTopToggle == false) {
               $("#peerList > tbody").prepend("\
               <tr id='" + peer.Hash + "'>\
-                  <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
+                  <td id='ip'>\
+                      <i class='fa fa-link hidden'></i>\
+                      <span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
                   <td id='connected'></td>\
                   <td id='peerquality'></td>\
                   <td id='momentconnected'></td>\
@@ -318,7 +349,9 @@ function updateAllPeers() {
             } else {
               $("#peerList > tbody").append("\
               <tr id='" + peer.Hash + "'>\
-                  <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
+                  <td id='ip'>\
+                      <i class='fa fa-link hidden'></i>\
+                      <span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
                   <td id='connected'></td>\
                   <td id='peerquality'></td>\
                   <td id='momentconnected'></td>\

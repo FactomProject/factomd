@@ -65,10 +65,10 @@ func TestControlPanel(t *testing.T) {
 	if LongTest {
 		var i uint32
 		connections := make(chan interface{})
-		emptyState := CreateAndPopulateTestState()
+		emptyState := CreateAndPopulateTestStateAndStartValidator()
 
 		gitBuild := "Test Is Running"
-		go ServeControlPanel(emptyState.ControlPanelChannel, emptyState, connections, nil, gitBuild)
+		go ServeControlPanel(emptyState.ControlPanelChannel, emptyState, connections, nil, gitBuild, "Fnode0")
 		emptyState.CopyStateToControlPanel()
 		for count := 0; count < 1000; count++ {
 			for i = 0; i < 5; i++ {
@@ -83,7 +83,8 @@ func TestControlPanel(t *testing.T) {
 }
 
 func TestDataDump(t *testing.T) {
-	s := CreateAndPopulateTestState()
+	AllConnections = NewConnectionsMap()
+	s := CreateAndPopulateTestStateAndStartValidator()
 	ds, err := state.DeepStateDisplayCopy(s)
 	if err != nil {
 		t.Error(err)
@@ -99,7 +100,7 @@ func TestDataDump(t *testing.T) {
 func TestSearching(t *testing.T) {
 	var err error
 	InitTemplates()
-	s := CreateAndPopulateTestState()
+	s := CreateAndPopulateTestStateAndStartValidator()
 	StatePointer = s
 
 	c := new(SearchedStruct)

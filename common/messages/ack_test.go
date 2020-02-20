@@ -11,6 +11,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -44,7 +45,7 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 			t.Error(err)
 		}
 
-		ack2, err := UnmarshalMessage(hex)
+		ack2, err := msgsupport.UnmarshalMessage(hex)
 		if err != nil {
 			t.Error(err)
 		}
@@ -63,16 +64,16 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 			fmt.Println(ack2.String())
 		}
 	}
-	ack := newSignedAck()
+	ack := NewSignedAck()
 	test(ack, "1")
-	ack2 := newSignedAck()
+	ack2 := NewSignedAck()
 	ack2.BalanceHash = primitives.Sha([]byte("balanceHash"))
 	fmt.Println("ack2", ack2.BalanceHash.String())
 	test(ack2, "2")
 }
 
 func TestSignAndVerifyAck(t *testing.T) {
-	ack := newSignedAck()
+	ack := NewSignedAck()
 
 	hex, err := ack.MarshalBinary()
 	if err != nil {
@@ -93,7 +94,7 @@ func TestSignAndVerifyAck(t *testing.T) {
 		t.Error("Signature is not valid")
 	}
 
-	ack2, err := UnmarshalMessage(hex)
+	ack2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
@@ -112,7 +113,7 @@ func TestSignAndVerifyAck(t *testing.T) {
 	}
 }
 
-func newAck() *Ack {
+func NewAck() *Ack {
 	ack := new(Ack)
 	ack.Timestamp = primitives.NewTimestampNow()
 	hash, err := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
@@ -145,8 +146,8 @@ func newAck() *Ack {
 	return ack
 }
 
-func newSignedAck() *Ack {
-	ack := newAck()
+func NewSignedAck() *Ack {
+	ack := NewAck()
 
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {

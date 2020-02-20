@@ -5,19 +5,23 @@
 package messages
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"strings"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
 type Heartbeat struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp       interfaces.Timestamp
 	SecretNumber    uint32
 	DBHeight        uint32
@@ -33,7 +37,7 @@ type Heartbeat struct {
 }
 
 var _ interfaces.IMsg = (*Heartbeat)(nil)
-var _ Signable = (*Heartbeat)(nil)
+var _ interfaces.Signable = (*Heartbeat)(nil)
 
 func (a *Heartbeat) IsSameAs(b *Heartbeat) bool {
 	if b == nil {
@@ -77,11 +81,15 @@ func (m *Heartbeat) Process(uint32, interfaces.IState) bool {
 	return true
 }
 
-func (m *Heartbeat) GetRepeatHash() interfaces.IHash {
+func (m *Heartbeat) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "Heartbeat.GetRepeatHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *Heartbeat) GetHash() interfaces.IHash {
+func (m *Heartbeat) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "Heartbeat.GetHash") }()
+
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -92,7 +100,9 @@ func (m *Heartbeat) GetHash() interfaces.IHash {
 	return m.hash
 }
 
-func (m *Heartbeat) GetMsgHash() interfaces.IHash {
+func (m *Heartbeat) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "Heartbeat.GetMsgHash") }()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -104,7 +114,7 @@ func (m *Heartbeat) GetMsgHash() interfaces.IHash {
 }
 
 func (m *Heartbeat) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *Heartbeat) Type() byte {
@@ -115,6 +125,7 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling HeartBeat: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling HeartBeat: %v", r)
 		}
 	}()
 
@@ -157,7 +168,7 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 		m.Signature = sig
 	}
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return nil, nil
 }
@@ -220,7 +231,7 @@ func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Heartbeat) String() string {
-	return fmt.Sprintf("HeartBeat ID[%x] dbht %d ts %d", m.IdentityChainID.Bytes()[3:5], m.DBHeight, m.Timestamp.GetTimeSeconds())
+	return fmt.Sprintf("HeartBeat ID[%x] dbht %d-:-%d ts %d", m.IdentityChainID.Bytes()[3:6], m.DBHeight, m.Minute, m.Timestamp.GetTimeSeconds())
 }
 
 func (m *Heartbeat) LogFields() log.Fields {
@@ -247,8 +258,8 @@ func (m *Heartbeat) SerialHash() []byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *Heartbeat) Validate(state interfaces.IState) int {
-	now := state.GetTimestamp()
+func (m *Heartbeat) Validate(is interfaces.IState) int {
+	now := is.GetTimestamp()
 
 	if now.GetTimeSeconds()-m.Timestamp.GetTimeSeconds() > 60 {
 		return -1
@@ -260,11 +271,20 @@ func (m *Heartbeat) Validate(state interfaces.IState) int {
 	}
 
 	// Ignore old heartbeats
-	if m.DBHeight <= state.GetHighestSavedBlk() {
+	if m.DBHeight <= is.GetHighestSavedBlk() {
 		return -1
 	}
 
 	if !m.sigvalid {
+		auth := is.GetAuthorityInterface(m.IdentityChainID)
+		if auth == nil {
+			return -1
+		}
+
+		if bytes.Compare(m.Signature.GetKey(), auth.GetSigningKey()) != 0 {
+			return -1
+		}
+
 		isVer, err := m.VerifySignature()
 		if err != nil || !isVer {
 			// if there is an error during signature verification
@@ -288,17 +308,27 @@ func (m *Heartbeat) LeaderExecute(state interfaces.IState) {
 	m.FollowerExecute(state)
 }
 
-func (m *Heartbeat) FollowerExecute(state interfaces.IState) {
-	for _, auditServer := range state.GetAuditServers(state.GetLeaderHeight()) {
+func (m *Heartbeat) FollowerExecute(is interfaces.IState) {
+	for _, auditServer := range is.GetAuditServers(is.GetLeaderHeight()) {
 		if auditServer.GetChainID().IsSameAs(m.IdentityChainID) {
-			if m.IdentityChainID.IsSameAs(state.GetIdentityChainID()) {
-				if m.SecretNumber != state.GetSalt(m.Timestamp) {
-					panic("We have seen a heartbeat using our Identity that isn't ours")
+			if m.IdentityChainID.IsSameAs(is.GetIdentityChainID()) {
+				if m.SecretNumber != is.GetSalt(m.Timestamp) {
+					lLeaderHeight := is.GetLLeaderHeight()
+					if m.DBHeight == lLeaderHeight {
+						var b strings.Builder
+						b.WriteString("We have seen a heartbeat using our Identity that isn't ours.")
+						b.WriteString(fmt.Sprintf("\n    Node: %s", is.GetFactomNodeName()))
+						b.WriteString(fmt.Sprintf("\n    LLeaderHeight: %d", lLeaderHeight))
+						b.WriteString(fmt.Sprintf("\n    Message dbHeight: %d", m.DBHeight))
+						panic(b.String())
+					}
 				}
 			}
 			auditServer.SetOnline(true)
+			is.GotHeartbeat(m.Timestamp, m.DBHeight)
 		}
 	}
+
 }
 
 func (e *Heartbeat) JSONByte() ([]byte, error) {
@@ -310,7 +340,7 @@ func (e *Heartbeat) JSONString() (string, error) {
 }
 
 func (m *Heartbeat) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -323,5 +353,5 @@ func (m *Heartbeat) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *Heartbeat) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }

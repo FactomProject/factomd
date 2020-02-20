@@ -5,30 +5,61 @@
 package identity
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"math/rand"
+	"os"
 
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
-type Authority struct {
-	AuthorityChainID  interfaces.IHash
-	ManagementChainID interfaces.IHash
-	MatryoshkaHash    interfaces.IHash
-	SigningKey        primitives.PublicKey
-	Status            uint8
-	AnchorKeys        []AnchorSigningKey
+// sort.Sort interface implementation
+type AuthoritySort []interfaces.IAuthority
 
-	KeyHistory []HistoricKey
+func (p AuthoritySort) Len() int {
+	return len(p)
+}
+func (p AuthoritySort) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p AuthoritySort) Less(i, j int) bool {
+	return bytes.Compare(p[i].GetAuthorityChainID().Bytes(), p[j].GetAuthorityChainID().Bytes()) < 0
+}
+
+type Authority struct {
+	AuthorityChainID  interfaces.IHash     `json:"chainid"`
+	ManagementChainID interfaces.IHash     `json:"manageid"`
+	MatryoshkaHash    interfaces.IHash     `json:"matroyshka"`
+	SigningKey        primitives.PublicKey `json:"signingkey"`
+	Status            uint8                `json:"status"`
+	AnchorKeys        []AnchorSigningKey   `json:"anchorkeys"`
+
+	KeyHistory      []HistoricKey       `json:"-"`
+	Efficiency      uint16              `json:"efficiency"`
+	CoinbaseAddress interfaces.IAddress `json:"coinbaseaddress"`
+}
+
+func NewAuthority() *Authority {
+	a := new(Authority)
+	a.AuthorityChainID = primitives.NewZeroHash()
+	a.ManagementChainID = primitives.NewZeroHash()
+	a.MatryoshkaHash = primitives.NewZeroHash()
+	a.CoinbaseAddress = primitives.NewZeroHash()
+	a.Efficiency = 10000
+
+	return a
 }
 
 var _ interfaces.BinaryMarshallable = (*Authority)(nil)
 
 func RandomAuthority() *Authority {
-	a := new(Authority)
+	a := NewAuthority()
 
 	a.AuthorityChainID = primitives.RandomHash()
 	a.ManagementChainID = primitives.RandomHash()
@@ -47,7 +78,43 @@ func RandomAuthority() *Authority {
 		a.KeyHistory = append(a.KeyHistory, *RandomHistoricKey())
 	}
 
+	a.CoinbaseAddress = primitives.RandomHash()
+	a.Efficiency = uint16(rand.Intn(10000))
+
 	return a
+}
+
+func (a *Authority) GetCoinbaseHumanReadable() string {
+	if a.CoinbaseAddress.IsZero() {
+		return "No Address"
+	}
+	add := factoid.NewAddress(a.CoinbaseAddress.Bytes())
+	//primitives.ConvertFctAddressToUserStr(add)
+	return primitives.ConvertFctAddressToUserStr(add)
+}
+
+func (a *Authority) Clone() *Authority {
+	b := NewAuthority()
+	b.AuthorityChainID.SetBytes(a.AuthorityChainID.Bytes())
+	b.ManagementChainID.SetBytes(a.ManagementChainID.Bytes())
+	b.MatryoshkaHash.SetBytes(a.MatryoshkaHash.Bytes())
+	b.SigningKey = a.SigningKey
+	b.Status = a.Status
+
+	b.AnchorKeys = make([]AnchorSigningKey, len(a.AnchorKeys))
+	for i := range a.AnchorKeys {
+		b.AnchorKeys[i] = a.AnchorKeys[i]
+	}
+
+	b.KeyHistory = make([]HistoricKey, len(a.KeyHistory))
+	for i := range a.KeyHistory {
+		b.KeyHistory[i] = a.KeyHistory[i]
+	}
+
+	b.Efficiency = a.Efficiency
+	b.CoinbaseAddress = a.CoinbaseAddress
+
+	return b
 }
 
 func (e *Authority) IsSameAs(b *Authority) bool {
@@ -84,6 +151,14 @@ func (e *Authority) IsSameAs(b *Authority) bool {
 		}
 	}
 
+	if e.Efficiency != b.Efficiency {
+		return false
+	}
+
+	if !e.CoinbaseAddress.IsSameAs(b.CoinbaseAddress) {
+		return false
+	}
+
 	return true
 }
 
@@ -97,13 +172,21 @@ func (e *Authority) Init() {
 	if e.MatryoshkaHash == nil {
 		e.MatryoshkaHash = primitives.NewZeroHash()
 	}
+	if e.CoinbaseAddress == nil {
+		e.CoinbaseAddress = primitives.NewZeroHash()
+	}
 }
 
-func (e *Authority) MarshalBinary() ([]byte, error) {
+func (e *Authority) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Authority.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushBinaryMarshallable(e.AuthorityChainID)
+	err = buf.PushBinaryMarshallable(e.AuthorityChainID)
 	if err != nil {
 		return nil, err
 	}
@@ -146,6 +229,16 @@ func (e *Authority) MarshalBinary() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	err = buf.PushUInt16(e.Efficiency)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushIHash(e.CoinbaseAddress)
+	if err != nil {
+		return nil, err
 	}
 
 	return buf.DeepCopyBytes(), nil
@@ -204,6 +297,16 @@ func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		e.KeyHistory = append(e.KeyHistory, hk)
 	}
 
+	e.Efficiency, err = buf.PopUInt16()
+	if err != nil {
+		return nil, err
+	}
+
+	e.CoinbaseAddress, err = buf.PopIHash()
+	if err != nil {
+		return nil, err
+	}
+
 	newData = buf.DeepCopyBytes()
 	return
 }
@@ -211,6 +314,12 @@ func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 func (e *Authority) UnmarshalBinary(p []byte) error {
 	_, err := e.UnmarshalBinaryData(p)
 	return err
+}
+
+func (e *Authority) GetAuthorityChainID() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "Authority.GetAuthorityChainID") }()
+
+	return e.AuthorityChainID
 }
 
 // 1 if fed, 0 if audit, -1 if neither
@@ -221,6 +330,13 @@ func (auth *Authority) Type() int {
 		return 0
 	}
 	return -1
+}
+
+func (auth *Authority) GetSigningKey() []byte {
+	if auth == nil {
+		return constants.ZERO_HASH // probably bad we got here but worse to let it cause a panic
+	}
+	return auth.SigningKey[:]
 }
 
 func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
@@ -250,7 +366,12 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 	return false, nil
 }
 
-func (auth *Authority) MarshalJSON() ([]byte, error) {
+func (auth *Authority) MarshalJSON() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Authority.MarshalJSON err:%v", *pe)
+		}
+	}(&err)
 	return json.Marshal(struct {
 		AuthorityChainID  interfaces.IHash   `json:"chainid"`
 		ManagementChainID interfaces.IHash   `json:"manageid"`
@@ -258,6 +379,8 @@ func (auth *Authority) MarshalJSON() ([]byte, error) {
 		SigningKey        string             `json:"signingkey"`
 		Status            string             `json:"status"`
 		AnchorKeys        []AnchorSigningKey `json:"anchorkeys"`
+		Efficiency        int                `json:"efficiency"`
+		CoinbaseAddress   string             `json:"coinbaseaddress"`
 	}{
 		AuthorityChainID:  auth.AuthorityChainID,
 		ManagementChainID: auth.ManagementChainID,
@@ -265,6 +388,8 @@ func (auth *Authority) MarshalJSON() ([]byte, error) {
 		SigningKey:        auth.SigningKey.String(),
 		Status:            statusToJSONString(auth.Status),
 		AnchorKeys:        auth.AnchorKeys,
+		Efficiency:        int(auth.Efficiency),
+		CoinbaseAddress:   primitives.ConvertFctAddressToUserStr(auth.CoinbaseAddress),
 	})
 }
 

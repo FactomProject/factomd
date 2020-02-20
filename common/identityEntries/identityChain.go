@@ -96,7 +96,9 @@ func (ics *IdentityChainStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
-func (ics *IdentityChainStructure) GetChainID() interfaces.IHash {
+func (ics *IdentityChainStructure) GetChainID() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "IdentityChainStructure.GetChainID") }()
+
 	extIDs := ics.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)

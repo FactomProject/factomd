@@ -5,10 +5,6 @@
 package interfaces
 
 type IFactoidState interface {
-	// Get the wallet used to help manage the Factoid State in
-	// some applications.
-	GetWallet() ISCWallet
-	SetWallet(ISCWallet)
 
 	// Get the current transaction block
 	GetCurrentBlock() IFBlock
@@ -26,7 +22,7 @@ type IFactoidState interface {
 
 	// Validate transaction
 	// Return zero len string if the balance of an address covers each input
-	Validate(int, ITransaction) error
+	Validate(int, ITransaction) (err error, holdAddr [32]byte)
 
 	// Check the transaction timestamp for to ensure it can be included
 	// in the current   Transactions that are too old, or dated to
@@ -51,4 +47,11 @@ type IFactoidState interface {
 	// Set the End of Period.  Currently, each block in Factom is broken
 	// into ten, one minute periods.
 	EndOfPeriod(period int)
+
+	//GetFactiodAccounts(interface{}) (uint32, []string)
+
+	//GetMultipleFactoidBalances([][32]byte) (uint32, [][]string)
+	GetMultipleFactoidBalances([32]byte) (uint32, uint32, int64, int64, string)
+
+	GetMultipleECBalances([32]byte) (uint32, uint32, int64, int64, string)
 }

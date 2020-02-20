@@ -128,7 +128,9 @@ func (nmh *NewMatryoshkaHashStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
-func (nmh *NewMatryoshkaHashStructure) GetChainID() interfaces.IHash {
+func (nmh *NewMatryoshkaHashStructure) GetChainID() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "NewMatryoshkaHashStructure.GetChainID") }()
+
 	extIDs := nmh.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)

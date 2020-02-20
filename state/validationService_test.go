@@ -4,11 +4,9 @@
 
 package state_test
 
-import (
 /*
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/state"
 	"testing"
 */
-)

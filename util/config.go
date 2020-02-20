@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"regexp"
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
 
-	"gopkg.in/gcfg.v1"
+	llog "github.com/FactomProject/factomd/log"
+	gcfg "gopkg.in/gcfg.v1"
 )
 
 var _ = fmt.Print
@@ -40,6 +41,8 @@ type FactomdConfig struct {
 		ExchangeRateAuthorityPublicKeyMainNet  string
 		ExchangeRateAuthorityPublicKeyTestNet  string
 		ExchangeRateAuthorityPublicKeyLocalNet string
+		BitcoinAnchorRecordPublicKeys          []string
+		EthereumAnchorRecordPublicKeys         []string
 
 		// Network Configuration
 		Network                 string
@@ -53,13 +56,23 @@ type FactomdConfig struct {
 		LocalNetworkPort        string
 		LocalSeedURL            string
 		LocalSpecialPeers       string
+		CustomNetworkPort       string
+		CustomSeedURL           string
+		CustomSpecialPeers      string
 		CustomBootstrapIdentity string
 		CustomBootstrapKey      string
+		P2PIncoming             int
+		P2POutgoing             int
 		FactomdTlsEnabled       bool
 		FactomdTlsPrivateKey    string
 		FactomdTlsPublicCert    string
 		FactomdRpcUser          string
 		FactomdRpcPass          string
+		// Timout and Limit for outstanding missing DBState requests
+		RequestTimeout int // timeout in seconds
+		RequestLimit   int
+
+		CorsDomains string
 
 		ChangeAcksHeight uint32
 	}
@@ -94,6 +107,17 @@ type FactomdConfig struct {
 		WalletTlsPublicCert string
 		FactomdLocation     string
 		WalletdLocation     string
+		WalletEncrypted     bool
+	}
+	LiveFeedAPI struct {
+		EnableLiveFeedAPI        bool
+		EventReceiverProtocol    string
+		EventReceiverHost        string
+		EventReceiverPort        int
+		EventFormat              string
+		EventReplayDuringStartup bool
+		EventSendStateChange     bool
+		EventBroadcastContent    string
 	}
 }
 
@@ -130,8 +154,15 @@ TestSpecialPeers     = ""
 LocalNetworkPort     = 8110
 LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
 LocalSpecialPeers    = ""
+CustomNetworkPort    = 8110
+CustomSeedURL        = ""
+CustomSpecialPeers   = ""
 CustomBootstrapIdentity     = 38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9
 CustomBootstrapKey          = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
+; The maximum number of other peers dialing into this node that will be accepted
+P2PIncoming	= 200
+; The maximum number of peers this node will attempt to dial into
+P2POutgoing	= 32
 ; --------------- NodeMode: FULL | SERVER ----------------
 NodeMode                                = FULL
 LocalServerPrivKey                      = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
@@ -153,6 +184,19 @@ FactomdTlsPublicCert                  = "/full/path/to/factomdAPIpub.cert"
 ; This file is also used by factom-cli and factom-walletd to determine what login to use
 FactomdRpcUser                        = ""
 FactomdRpcPass                        = ""
+
+; RequestTimeout is the amount of time in seconds before a pending request for a
+; missing DBState is considered too old and the state is put back into the
+; missing states list. 
+RequestTimeout						= 30
+; RequestLimit is the maximum number of pending requests for missing states.
+; factomd will stop making DBStateMissing requests until current requests are
+; moved out of the waiting list
+RequestLimit						= 200
+
+; This paramater allows Cross-Origin Resource Sharing (CORS) so web browsers will use data returned from the API when called from the listed URLs
+; Example paramaters are "http://www.example.com, http://anotherexample.com, *"
+CorsDomains                           = ""
 
 ; Specifying when to change ACKs for switching leader servers
 ChangeAcksHeight                      = 0
@@ -189,6 +233,23 @@ FactomdLocation                       = "localhost:8088"
 ; This is where factom-cli will find factom-walletd to create Factoid and Entry Credit transactions
 ; This value can also be updated to authorize an external ip or domain name when factom-walletd creates a TLS cert
 WalletdLocation                       = "localhost:8089"
+
+; Enables wallet database encryption on factom-walletd. If this option is enabled, an unencrypted database
+; cannot exist. If an unencrypted database exists, the wallet will exit.
+WalletEncrypted                       = false
+
+; ------------------------------------------------------------------------------
+; Configuration options for the live feed API
+; ------------------------------------------------------------------------------
+[LiveFeedAPI]
+EnableLiveFeedAPI                     = false
+EventReceiverProtocol                 = tcp
+EventReceiverHost                     = 127.0.0.1
+EventReceiverPort                     = 8040
+EventFormat                           = protobuf
+EventReplayDuringStartup              = false
+EventSendStateChange                  = false
+EventBroadcastContent                 = once 
 `
 
 func (s *FactomdConfig) String() string {
@@ -219,8 +280,13 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    LocalNetworkPort        %v", s.App.LocalNetworkPort))
 	out.WriteString(fmt.Sprintf("\n    LocalSeedURL            %v", s.App.LocalSeedURL))
 	out.WriteString(fmt.Sprintf("\n    LocalSpecialPeers       %v", s.App.LocalSpecialPeers))
+	out.WriteString(fmt.Sprintf("\n    CustomNetworkPort       %v", s.App.CustomNetworkPort))
+	out.WriteString(fmt.Sprintf("\n    CustomSeedURL           %v", s.App.CustomSeedURL))
+	out.WriteString(fmt.Sprintf("\n    CustomSpecialPeers      %v", s.App.CustomSpecialPeers))
 	out.WriteString(fmt.Sprintf("\n    CustomBootstrapIdentity %v", s.App.CustomBootstrapIdentity))
 	out.WriteString(fmt.Sprintf("\n    CustomBootstrapKey      %v", s.App.CustomBootstrapKey))
+	out.WriteString(fmt.Sprintf("\n    P2PIncoming             %v", s.App.P2PIncoming))
+	out.WriteString(fmt.Sprintf("\n    P2POutgoing             %v", s.App.P2POutgoing))
 	out.WriteString(fmt.Sprintf("\n    NodeMode                %v", s.App.NodeMode))
 	out.WriteString(fmt.Sprintf("\n    IdentityChainID         %v", s.App.IdentityChainID))
 	out.WriteString(fmt.Sprintf("\n    LocalServerPrivKey      %v", s.App.LocalServerPrivKey))
@@ -234,6 +300,8 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          	%v", s.App.FactomdRpcUser))
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          	%v", s.App.FactomdRpcPass))
 	out.WriteString(fmt.Sprintf("\n    ChangeAcksHeight         %v", s.App.ChangeAcksHeight))
+	out.WriteString(fmt.Sprintf("\n    BitcoinAnchorRecordPublicKeys    %v", s.App.BitcoinAnchorRecordPublicKeys))
+	out.WriteString(fmt.Sprintf("\n    EthereumAnchorRecordPublicKeys    %v", s.App.EthereumAnchorRecordPublicKeys))
 
 	out.WriteString(fmt.Sprintf("\n  Log"))
 	out.WriteString(fmt.Sprintf("\n    LogPath                 %v", s.Log.LogPath))
@@ -248,6 +316,17 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    WalletTlsPublicCert     %v", s.Walletd.WalletTlsPublicCert))
 	out.WriteString(fmt.Sprintf("\n    FactomdLocation         %v", s.Walletd.FactomdLocation))
 	out.WriteString(fmt.Sprintf("\n    WalletdLocation         %v", s.Walletd.WalletdLocation))
+	out.WriteString(fmt.Sprintf("\n    WalletEncryption        %v", s.Walletd.WalletEncrypted))
+
+	out.WriteString(fmt.Sprintf("\n  LiveFeedAPI"))
+	out.WriteString(fmt.Sprintf("\n    EnableLiveFeedAPI        %v", s.LiveFeedAPI.EnableLiveFeedAPI))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverProtocol    %v", s.LiveFeedAPI.EventReceiverProtocol))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverHost        %v", s.LiveFeedAPI.EventReceiverHost))
+	out.WriteString(fmt.Sprintf("\n    EventReceiverPort        %v", s.LiveFeedAPI.EventReceiverPort))
+	out.WriteString(fmt.Sprintf("\n    EventFormat              %v", s.LiveFeedAPI.EventFormat))
+	out.WriteString(fmt.Sprintf("\n    EventBroadcastContent    %v", s.LiveFeedAPI.EventBroadcastContent))
+	out.WriteString(fmt.Sprintf("\n    EventSendStateChange     %v", s.LiveFeedAPI.EventSendStateChange))
+	out.WriteString(fmt.Sprintf("\n    EventReplayDuringStartup %v", s.LiveFeedAPI.EventReplayDuringStartup))
 
 	return out.String()
 }
@@ -264,6 +343,7 @@ func GetChangeAcksHeight(filename string) (change uint32, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error getting acks - %v\n", r)
+			llog.LogPrintf("recovery", "Error getting acks - %v", r)
 		}
 	}()
 
@@ -272,10 +352,36 @@ func GetChangeAcksHeight(filename string) (change uint32, err error) {
 	return config.App.ChangeAcksHeight, nil
 }
 
+// Check for absolute path on Windows or linux or Darwin(Mac)
+var pathPresent *regexp.Regexp
+
+func CheckConfigFileName(filename string) string {
+	// compile the regex if this is the first time.
+	if pathPresent == nil {
+		var err error
+		// paths may look like C: or c: or ~/ or ./ or ../ or / or \ at the start of a filename
+		pathPresent, err = regexp.Compile(`^([A-Za-z]:)|(~?(\.\.?)?[/\\])`)
+		if err != nil {
+			panic(err)
+		}
+	}
+	// Check for absolute path on Windows or linux or Darwin(Mac)
+	// if path is relative prepend the Factom Home path
+	if !pathPresent.MatchString(filename) {
+		filename = GetHomeDir() + "/.factom/m2/" + filename
+	}
+	return filename
+}
+
+// Track a filename-error pair so we don't report the same error repeatedly
+var reportedError map[string]string = make(map[string]string)
+
 func ReadConfig(filename string) *FactomdConfig {
 	if filename == "" {
 		filename = ConfigFilename()
 	}
+	filename = CheckConfigFileName(filename)
+
 	cfg := new(FactomdConfig)
 
 	err := gcfg.ReadStringInto(cfg, defaultConfig)
@@ -285,12 +391,20 @@ func ReadConfig(filename string) *FactomdConfig {
 
 	err = gcfg.FatalOnly(gcfg.ReadFileInto(cfg, filename))
 	if err != nil {
-		log.Printfln("Reading from '%s'", filename)
-		log.Printfln("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
+		if reportedError[filename] != err.Error() {
+			fmt.Printf("Reading from '%s'\n", filename)
+			fmt.Printf("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
+			// Remember the error reported for this filename
+			reportedError[filename] = err.Error()
+		}
+
 		err = gcfg.ReadStringInto(cfg, defaultConfig)
 		if err != nil {
 			panic(err)
 		}
+	} else {
+		// Remember that there was no error reported for this filename
+		delete(reportedError, filename)
 	}
 
 	// Default to home directory if not set
@@ -314,6 +428,18 @@ func ReadConfig(filename string) *FactomdConfig {
 	case "LOCAL":
 		cfg.App.ExchangeRateAuthorityPublicKey = cfg.App.ExchangeRateAuthorityPublicKeyLocalNet
 		break
+	}
+
+	if len(cfg.App.BitcoinAnchorRecordPublicKeys) == 0 {
+		cfg.App.BitcoinAnchorRecordPublicKeys = []string{
+			"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a", // m1 key
+			"d569419348ed7056ec2ba54f0ecd9eea02648b260b26e0474f8c07fe9ac6bf83", // m2 key
+		}
+	}
+	if len(cfg.App.EthereumAnchorRecordPublicKeys) == 0 {
+		cfg.App.EthereumAnchorRecordPublicKeys = []string{
+			"a4a7905ab2226f267c6b44e1d5db2c97638b7bbba72fd1823d053ccff2892455",
+		}
 	}
 
 	return cfg

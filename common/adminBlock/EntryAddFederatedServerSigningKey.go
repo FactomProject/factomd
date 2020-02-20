@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -33,12 +34,18 @@ func (c *AddFederatedServerSigningKey) UpdateState(state interfaces.IState) erro
 	return nil
 }
 
+func (e *AddFederatedServerSigningKey) SortedIdentity() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "AddFederatedServerSigningKey.SortedIdentity") }()
+
+	return e.IdentityChainID
+}
+
 func (e *AddFederatedServerSigningKey) String() string {
 	e.Init()
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8x %12s %8s %12s %d",
 		"AddFederatedServerSigningKey",
-		"IdentityChainID", e.IdentityChainID.Bytes()[3:5],
+		"IdentityChainID", e.IdentityChainID.Bytes()[3:6],
 		"KeyPriority", e.KeyPriority,
 		"PublicKey", e.PublicKey.String()[:8],
 		"DBHeight", e.DBHeight))
@@ -59,11 +66,16 @@ func (e *AddFederatedServerSigningKey) Type() byte {
 	return constants.TYPE_ADD_FED_SERVER_KEY
 }
 
-func (e *AddFederatedServerSigningKey) MarshalBinary() ([]byte, error) {
+func (e *AddFederatedServerSigningKey) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AddFederatedServerSigningKey.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushByte(e.Type())
+	err = buf.PushByte(e.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +147,9 @@ func (e *AddFederatedServerSigningKey) Interpret() string {
 	return ""
 }
 
-func (e *AddFederatedServerSigningKey) Hash() interfaces.IHash {
+func (e *AddFederatedServerSigningKey) Hash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "AddFederatedServerSigningKey.Hash") }()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

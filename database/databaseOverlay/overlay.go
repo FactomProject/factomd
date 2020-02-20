@@ -11,7 +11,10 @@ package databaseOverlay
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 	"sync"
+
+	"github.com/FactomProject/factomd/events"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -120,6 +123,12 @@ type Overlay struct {
 	BatchSemaphore sync.Mutex
 	MultiBatch     []interfaces.Record
 	BlockExtractor blockExtractor.BlockExtractor
+
+	BitcoinAnchorRecordPublicKeys  []interfaces.Verifier
+	EthereumAnchorRecordPublicKeys []interfaces.Verifier
+
+	// We need access to the state to be able emit anchor events
+	parentState events.StateEventServices
 }
 
 var _ interfaces.IDatabase = (*Overlay)(nil)
@@ -198,6 +207,12 @@ func NewOverlay(db interfaces.IDatabase) *Overlay {
 	return answer
 }
 
+func NewOverlayWithState(db interfaces.IDatabase, parentState events.StateEventServices) *Overlay {
+	answer := NewOverlay(db)
+	answer.parentState = parentState
+	return answer
+}
+
 func (db *Overlay) FetchBlockByHeight(heightBucket []byte, blockBucket []byte, blockHeight uint32, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
 	index, err := db.FetchBlockIndexByHeight(heightBucket, blockHeight)
 	if err != nil {
@@ -246,6 +261,10 @@ func (db *Overlay) FetchBlockBySecondaryIndex(secondaryIndexBucket, blockBucket 
 }
 
 func (db *Overlay) FetchBlock(bucket []byte, key interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
+	if key == nil {
+		return nil, nil
+	}
+
 	block, err := db.Get(bucket, key.Bytes(), dst)
 	if err != nil {
 		return nil, err
@@ -271,9 +290,15 @@ func (db *Overlay) FetchAllBlockKeysFromBucket(bucket []byte) ([]interfaces.IHas
 	}
 	answer := make([]interfaces.IHash, len(entries))
 	for i := range entries {
-		answer[i], err = primitives.NewShaHash(entries[i])
+		h, err := primitives.NewShaHash(entries[i])
 		if err != nil {
 			return nil, err
+		}
+		// be careful to not assign a nil hash to an IHash
+		if h != nil { // should always happen
+			answer[i] = h
+		} else {
+			fmt.Fprintf(os.Stderr, "Overlay.FetchAllBlockKeysFromBucket() unexpected nil")
 		}
 	}
 	return answer, nil

@@ -1,11 +1,12 @@
 package databaseOverlay
 
 import (
+	"sort"
+
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
-	"sort"
 )
 
 // ProcessECBlockBatch inserts the ECBlock and update all it's cbentries in DB
@@ -116,7 +117,7 @@ func toECBlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfa
 	for i, v := range source {
 		answer[i] = v.(interfaces.IEntryCreditBlock)
 	}
-	sort.Sort(util.ByECBlockIDAccending(answer))
+	sort.Sort(util.ByECBlockIDAscending(answer))
 	return answer
 }
 

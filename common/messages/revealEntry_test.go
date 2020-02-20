@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
+	. "github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/state"
@@ -94,10 +95,10 @@ func newRevealEntry() *RevealEntryMsg {
 }
 
 func TestValidRevealMsg(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
-	if v := testValid(1, 0, s); v != 0 {
-		t.Error("Should be 0, found ", v)
+	if v := testValid(1, 0, s); v != -2 {
+		t.Error("Should be -2 found ", v)
 	}
 
 	if v := testValid(15, 12000, s); v != -1 {
@@ -162,7 +163,7 @@ func newMaliciousRevealEntry() *RevealEntryMsg {
 }
 
 func TestRevealMaliciousFirstEntryReveal(t *testing.T) {
-	testState := testHelper.CreateAndPopulateTestState()
+	testState := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
 	m := newMaliciousRevealEntry()
 	goodEntry := newSignedCommitChain()

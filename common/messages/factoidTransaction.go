@@ -12,12 +12,15 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
 type FactoidTransaction struct {
-	MessageBase
+	msgbase.MessageBase
 	Transaction interfaces.ITransaction
 
 	//No signature!
@@ -43,11 +46,15 @@ func (a *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
 	return true
 }
 
-func (m *FactoidTransaction) GetRepeatHash() interfaces.IHash {
+func (m *FactoidTransaction) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "FactoidTransaction.GetRepeatHash") }()
+
 	return m.Transaction.GetSigHash()
 }
 
-func (m *FactoidTransaction) GetHash() interfaces.IHash {
+func (m *FactoidTransaction) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "FactoidTransaction.GetHash") }()
+
 	if m.hash == nil {
 		m.SetFullMsgHash(m.Transaction.GetFullHash())
 
@@ -61,7 +68,9 @@ func (m *FactoidTransaction) GetHash() interfaces.IHash {
 	return m.hash
 }
 
-func (m *FactoidTransaction) GetMsgHash() interfaces.IHash {
+func (m *FactoidTransaction) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "FactoidTransaction.GetMsgHash") }()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -73,7 +82,7 @@ func (m *FactoidTransaction) GetMsgHash() interfaces.IHash {
 }
 
 func (m *FactoidTransaction) GetTimestamp() interfaces.Timestamp {
-	return m.Transaction.GetTimestamp()
+	return m.Transaction.GetTimestamp().Clone()
 }
 
 func (m *FactoidTransaction) GetTransaction() interfaces.ITransaction {
@@ -106,10 +115,26 @@ func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	}
 
 	// Is the transaction valid at this point in time?
-	err = state.GetFactoidState().Validate(1, m.Transaction)
+	holdAddr := [32]byte{}
+	err, holdAddr = state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
-		return 0 // Well, mumble.  Might be out of order.
+		if holdAddr != [32]byte{} { // hold for an address that is short
+			state.Add(holdAddr, m)
+		} else {
+			return -1 // message was invalid for another reason
+		}
 	}
+
+	// First check all inputs are good.
+	for _, input := range m.Transaction.GetInputs() {
+		adr := input.GetAddress().Fixed()
+		oldv := state.GetFactoidState().GetFactoidBalance(adr)
+		v := oldv - int64(input.GetAmount())
+		if v < 0 {
+			return 0
+		}
+	}
+
 	return 1
 }
 
@@ -133,7 +158,6 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 	m.processed = true
 	err := state.GetFactoidState().AddTransaction(1, m.Transaction)
 	if err != nil {
-		fmt.Println(err)
 		return false
 	}
 
@@ -149,6 +173,7 @@ func (m *FactoidTransaction) UnmarshalTransData(datax []byte) (newData []byte, e
 		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Transaction Factoid: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Transaction Factoid: %v", r)
 		}
 	}()
 
@@ -164,6 +189,7 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Factoid: %v", r)
 		}
 	}()
 
@@ -175,7 +201,7 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 	m.Transaction = new(factoid.Transaction)
 	newData, err = m.Transaction.UnmarshalBinaryData(newData)
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return newData, err
 }
@@ -203,11 +229,52 @@ func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+func transToString(fct bool, label string, ta interfaces.ITransAddress) string {
+	out := fmt.Sprintf("%s:", label)
+	v := primitives.ConvertDecimalToPaddedString(ta.GetAmount())
+	for v[0] == " "[0] {
+		v = v[1:]
+	} // trim leading spaces
+	out += v + " " + fmt.Sprintf("<%d>", ta.GetAmount())
+	if fct {
+		out += primitives.ConvertFctAddressToUserStr(ta.GetAddress())
+	} else {
+		out += primitives.ConvertECAddressToUserStr(ta.GetAddress())
+	}
+	return out
+}
 func (m *FactoidTransaction) String() string {
-	return fmt.Sprintf("Factoid VM %d Leader %x GetHash %x",
+	inputs := "["
+	for _, x := range m.Transaction.GetInputs() {
+		inputs += transToString(true, "I", x)
+		inputs += fmt.Sprintf("<%x> ", x.GetAddress().Bytes()[:4])
+	}
+	inputs += "]"
+	outputs := "["
+	fctOutputs := m.Transaction.GetOutputs()
+	if len(fctOutputs) > 0 {
+		outputs = "["
+		for _, x := range fctOutputs {
+			outputs += transToString(true, "FO", x)
+			outputs += fmt.Sprintf("<%x> ", x.GetAddress().Bytes()[:4])
+		}
+		outputs += "]"
+	}
+	ecOutputs := m.Transaction.GetECOutputs()
+	if len(ecOutputs) > 0 {
+		outputs += "["
+		for _, x := range ecOutputs {
+			outputs += transToString(false, "EO", x)
+			outputs += fmt.Sprintf("<%x> ", x.GetAddress().Bytes()[:4])
+		}
+		outputs += "]"
+	}
+	outputs += "]"
+	rval := fmt.Sprintf("Factoid VM %d Leader %x GetHash %x %s -> %s",
 		m.VMIndex,
-		m.GetLeaderChainID().Bytes()[:3],
-		m.GetHash().Bytes()[:3])
+		m.GetLeaderChainID().Bytes()[3:6],
+		m.GetHash().Bytes()[:3], inputs, outputs)
+	return rval
 }
 
 func (m *FactoidTransaction) LogFields() log.Fields {

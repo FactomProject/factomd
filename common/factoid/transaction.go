@@ -6,6 +6,7 @@ package factoid
 
 import (
 	"fmt"
+	"os"
 	"runtime/debug"
 	"time"
 
@@ -119,11 +120,15 @@ func (*Transaction) GetVersion() uint64 {
 	return 2
 }
 
-func (t *Transaction) GetTxID() interfaces.IHash {
+func (t *Transaction) GetTxID() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "Transaction.GetTxID") }()
+
 	return t.GetSigHash()
 }
 
-func (t *Transaction) GetHash() interfaces.IHash {
+func (t *Transaction) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "Transaction.GetHash") }()
+
 	m, err := t.MarshalBinary()
 	if err != nil {
 		return nil
@@ -161,7 +166,12 @@ func (t *Transaction) GetTimestamp() interfaces.Timestamp {
 }
 
 func (t *Transaction) SetTimestamp(ts interfaces.Timestamp) {
-	t.MilliTimestamp = ts.GetTimeMilliUInt64()
+	milli := ts.GetTimeMilliUInt64()
+
+	if milli != t.MilliTimestamp {
+		//		messages.LogPrintf("timestamps.txt", "transaction %p changed from %d to %d @ %s", t, t.MilliTimestamp, milli, atomic.WhereAmIString(1))
+	}
+	t.MilliTimestamp = milli
 }
 
 func (t *Transaction) SetSignatureBlock(i int, sig interfaces.ISignatureBlock) {
@@ -223,7 +233,7 @@ func (t Transaction) CalculateFee(factoshisPerEC uint64) (uint64, error) {
 }
 
 // Checks that the sum of the given amounts do not cross
-// a signed boundry.  Returns false if invalid, and the
+// a signed boundary.  Returns false if invalid, and the
 // sum if valid.  Returns 0 and true if nothing is passed in.
 func ValidateAmounts(amts ...uint64) (uint64, error) {
 	var sum int64
@@ -334,7 +344,7 @@ func (t Transaction) Validate(index int) error {
 	}
 	// Every input must have an RCD block
 	if len(t.Inputs) != len(t.RCDs) {
-		return fmt.Errorf("All inputs must have a cooresponding RCD")
+		return fmt.Errorf("All inputs must have a corresponding RCD")
 	}
 	// Every input must match the address of an RCD (which is the hash
 	// of the RCD
@@ -520,10 +530,15 @@ func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
 
 // This is what Gets Signed.  Yet signature blocks are part of the transaction.
 // We don't include them here, and tack them on later.
-func (t *Transaction) MarshalBinarySig() ([]byte, error) {
+func (t *Transaction) MarshalBinarySig() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Transaction.MarshalBinarySig err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushVarInt(t.GetVersion())
+	err = buf.PushVarInt(t.GetVersion())
 	if err != nil {
 		return nil, err
 	}
@@ -652,8 +667,14 @@ func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+
+	txid := fmt.Sprintf("%64s", "coinbase") //make it the same length as a real TXID
+	if t.Txid != nil {
+		txid = fmt.Sprintf("%x", t.Txid.Bytes())
+	}
+
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("Transaction (size %d):\n", len(data)))
+	out.WriteString(fmt.Sprintf("Transaction TXID: %s (size %d):\n", txid, len(data)))
 	out.WriteString("                 Version: ")
 	primitives.WriteNumber64(&out, uint64(t.GetVersion()))
 	out.WriteString("\n          MilliTimestamp: ")

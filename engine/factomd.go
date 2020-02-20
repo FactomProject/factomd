@@ -6,15 +6,28 @@ package engine
 
 import (
 	"fmt"
-	"os"
 	"runtime"
-	"strings"
-	"time"
 
+	"github.com/FactomProject/factomd/events"
+
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants/runstate"
+	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 
+	"bufio"
+	"io"
+	"net"
+	"os"
+	"os/exec"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,63 +41,207 @@ var _ = fmt.Print
 // or create more context loggers off of this
 var packageLogger = log.WithFields(log.Fields{"package": "engine"})
 
-// Build sets the factomd build id using git's SHA
-// Version sets the semantic version number of the build
-// $ go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD` -X github.com/FactomProject/factomd/engine.=`cat VERSION`"
-// It also seems to need to have the previous binary deleted if recompiling to have this message show up if no code has changed.
-// Since we are tracking code changes, then there is no need to delete the binary to use the latest message
-var Build string
-var FactomdVersion string = "BuiltWithoutVersion"
-
 func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
-	log.Print("//////////////////////// Copyright 2017 Factom Foundation")
-	log.Print("//////////////////////// Use of this source code is governed by the MIT")
-	log.Print("//////////////////////// license that can be found in the LICENSE file.")
-	log.Printf("Go compiler version: %s\n", runtime.Version())
-	log.Printf("Using build: %s\n", Build)
-	log.Printf("Version: %s\n", FactomdVersion)
-
-	if !isCompilerVersionOK() {
-		for i := 0; i < 30; i++ {
-			log.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
-		}
-		time.Sleep(3 * time.Second)
-		os.Exit(1)
-	}
-
-	//  Go Optimizations...
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	fmt.Printf("Go compiler version: %s\n", runtime.Version())
+	fmt.Printf("Using build: %s\n", Build)
+	fmt.Printf("Version: %s\n", FactomdVersion)
+	StartTime = time.Now()
+	fmt.Printf("Start time: %s\n", StartTime.String())
 
 	state0 := new(state.State)
-	state0.IsRunning = true
-	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
-	fmt.Println("len(Args)", len(os.Args))
+	state0.RunState = runstate.New
 
-	go NetStart(state0, params, listenToStdin)
+	// Setup the name to catch any early logging
+	state0.FactomNodeName = state0.Prefix + "FNode0"
+	state0.TimestampAtBoot = primitives.NewTimestampNow()
+	state0.SetLeaderTimestamp(state0.TimestampAtBoot)
+	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
+	preBootTime := new(primitives.Timestamp)
+	preBootTime.SetTimeMilli(state0.TimestampAtBoot.GetTimeMilli() - constants.PreBootWindow*60*1000)
+	state0.SetMessageFilterTimestamp(preBootTime)
+	state0.EFactory = new(electionMsgs.ElectionsFactory)
+	state0.EventService = events.NewEventService()
+
+	NetStart(state0, params, listenToStdin)
 	return state0
 }
 
-func isCompilerVersionOK() bool {
-	goodenough := false
+func HandleLogfiles(stdoutlog string, stderrlog string) {
+	var outfile *os.File
+	var err error
+	var wait sync.WaitGroup
 
-	if strings.Contains(runtime.Version(), "1.5") {
-		goodenough = true
+	if stdoutlog != "" {
+		// start a go routine to tee stdout to out.txt
+		outfile, err = os.Create(stdoutlog)
+		if err != nil {
+			panic(err)
+		}
+
+		wait.Add(1)
+		go func(outfile *os.File) {
+			defer outfile.Close()
+			defer os.Stdout.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
+			defer time.Sleep(100 * time.Millisecond) // Let the output all complete
+			r, w, _ := os.Pipe()                     // Can't use the writer directly as os.Stdout so make a pipe
+			oldStdout := os.Stdout
+			os.Stdout = w
+			wait.Done()
+			// tee stdout to out.txt
+			if _, err := io.Copy(io.MultiWriter(outfile, oldStdout), r); err != nil { // copy till EOF
+				panic(err)
+			}
+		}(outfile) // stdout redirect func
 	}
 
-	if strings.Contains(runtime.Version(), "1.6") {
-		goodenough = true
+	if stderrlog != "" {
+		if stderrlog != stdoutlog {
+			outfile, err = os.Create(stderrlog)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		wait.Add(1)
+		go func(outfile *os.File) {
+			if stderrlog != stdoutlog {
+				defer outfile.Close()
+			}
+			defer os.Stderr.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
+			defer time.Sleep(100 * time.Millisecond) // Let the output all complete
+
+			r, w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
+			oldStderr := os.Stderr
+			os.Stderr = w
+			wait.Done()
+			if _, err := io.Copy(io.MultiWriter(outfile, oldStderr), r); err != nil { // copy till EOF
+				panic(err)
+			}
+		}(outfile) // stderr redirect func
 	}
 
-	if strings.Contains(runtime.Version(), "1.7") {
-		goodenough = true
+	wait.Wait()                           // wait for the redirects to be active
+	os.Stdout.WriteString("STDOUT Log\n") // Write any file header you want here e.g. node name and date and ...
+	os.Stderr.WriteString("STDERR Log\n") // Write any file header you want here e.g. node name and date and ...
+}
+
+func LaunchDebugServer(service string) {
+
+	// start a go routine to tee stderr to the debug console
+	debugConsole_r, debugConsole_w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
+	var wait sync.WaitGroup
+	wait.Add(1)
+	go func() {
+
+		r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
+		oldStderr := os.Stderr
+		os.Stderr = w
+		defer oldStderr.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
+		defer time.Sleep(100 * time.Millisecond) // let the output all complete
+		wait.Done()
+		if _, err := io.Copy(io.MultiWriter(oldStderr, debugConsole_w), r); err != nil { // copy till EOF
+			panic(err)
+		}
+	}() // stderr redirect func
+
+	//wait.Add(1)
+	//go func() {
+	//
+	//	r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
+	//	oldStdout := os.Stdout
+	//	os.Stdout = w
+	//	defer oldStdout.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
+	//	defer time.Sleep(100 * time.Millisecond) // let the output all complete
+	//	wait.Done()
+	//	if _, err := io.Copy(io.MultiWriter(oldStdout, debugConsole_w), r); err != nil { // copy till EOF
+	//		panic(err)
+	//	}
+	//}() // stdout redirect func
+
+	wait.Wait() // Let the redirection become active ...
+
+	host, port := "localhost", "8093" // defaults
+	if service != "" {
+		parts := strings.Split(service, ":")
+		if len(parts) == 1 { // No port
+			parts = append(parts, port) // use default
+		}
+		if parts[0] == "" { //no
+			parts[0] = host // use default
+		}
+		host, port = parts[0], parts[1]
+
+		_, badPort := strconv.Atoi(port)
+		if (host != "localhost" && host != "remotehost") || badPort != nil {
+			panic("Malformed -debugconsole option. Should be localhost:[port] or remotehost:[port] where [port] is a port number")
+		}
 	}
 
-	if strings.Contains(runtime.Version(), "1.8") {
-		goodenough = true
+	// Start a listener port to connect to the debug server
+	ln, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		panic(err)
 	}
+	fmt.Printf("Debug Server listening for %v on port %v\n", host, port)
 
-	if strings.Contains(runtime.Version(), "1.9") {
-		goodenough = true
+	newStdInR, newStdInW, _ := os.Pipe() // Can't use the reader directly as os.Stdin so make a pipe
+
+	// Accept connections (one at a time)
+	go func() {
+		for {
+			fmt.Printf("Debug server waiting for connection.\n") // Does not accept a reconnect not sure why ... revist
+			connection, err := ln.Accept()
+			if err != nil {
+				panic(err)
+			}
+			fmt.Printf("Debug server accepted a connection.\n")
+
+			writer := bufio.NewWriter(connection) // if we want to send something back to the telnet
+			reader := bufio.NewReader(connection)
+
+			writer.WriteString("Hello from Factom Debug Console\n")
+			writer.Flush()
+			// copy stderr to debug console
+			go func() {
+				if _, err := io.Copy(writer, debugConsole_r); err != nil { // copy till EOF
+					fmt.Printf("Error copying stderr to debug consol: %v\n", err)
+				}
+			}()
+
+			// copy input from debug console to stdin
+			if false { // not sure why this doesn't work -- revist down the road
+				if _, err = io.Copy(newStdInW, reader); err != nil {
+					panic(err)
+				}
+			} else {
+				for { // copy input from debug console to stdin until eof
+					writer.WriteString(">") // print a prompt
+					writer.Flush()
+					if buf, err := reader.ReadString('\n'); err != nil {
+						if err == io.EOF {
+							break
+						} // This connection is closed
+						if err != nil {
+							panic(err)
+						} // This listen has an error
+					} else {
+						newStdInW.WriteString(string(buf))
+					}
+				}
+			}
+			fmt.Printf("Client disconnected.\n")
+		}
+	}() // the accept routine
+
+	if host == "localhost" {
+		cmd := exec.Command("/usr/bin/gnome-terminal", "-x", "telnet", "localhost", port)
+		err = cmd.Start()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("Debug terminal pid %v\n", cmd.Process.Pid)
 	}
-	return goodenough
+	os.Stdin = newStdInR               // start using the pipe as input
+	time.Sleep(100 * time.Millisecond) // Let the redirection become active ...
+
 }

@@ -191,7 +191,7 @@ func main() {
 	}
 
 	fmt.Printf("\t\tRebulding DirBlockInfo\n")
-	err = dbo.RebuildDirBlockInfo()
+	err = dbo.ReparseAnchorChains()
 	if err != nil {
 		panic(err)
 	}
@@ -653,7 +653,7 @@ func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOver
 				eBlockEntries := eBlock.GetEntryHashes()
 				// Used to determine random sampling if fast==true
 				entryCount := 0
-				// Not going to use the loop counter, as it also includes minute markes. We
+				// Not going to use the loop counter, as it also includes minute marks. We
 				// Do not want to include those in our random sampling
 				for _, eHash := range eBlockEntries {
 					if eHash.IsMinuteMarker() == true {

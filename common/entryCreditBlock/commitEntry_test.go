@@ -5,15 +5,15 @@
 package entryCreditBlock_test
 
 import (
-	"testing"
-
 	"encoding/hex"
 	"fmt"
+	"testing"
 
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestUnmarshalNilCommitEntry checks that unmarshaling nil or the empty interface throws the appropriate errors
 func TestUnmarshalNilCommitEntry(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -33,6 +33,7 @@ func TestUnmarshalNilCommitEntry(t *testing.T) {
 	}
 }
 
+// TestMiscEC checks that a specific commit in the block chain unmarshals properly
 func TestMiscEC(t *testing.T) {
 	//chain commit from factom-cli get ecbheight 28556
 	ecbytes, _ := hex.DecodeString("0001538b7fe6fd249f6eed5336f91eb6b506b1f4683c0e03aa8d8c59cf54299b945d41a73b44e90117ef7a21d1a616d65e6b73f3c6a7ad5c49340a6c2592872020ec60767ff00d7dc38e2fc16991f2705244c83cc36e5b4ca796dbbf168601b55d6fc34187a8de061b096f3266f3f6dd986e3f2150a1b14ada29cc9c0fc3a1d1a1875f11dc6cfd0b")
@@ -81,6 +82,7 @@ func TestMiscEC(t *testing.T) {
 	}
 }
 
+// TestStringEC checks that a specific commit to the block chain produces the expected string
 func TestStringEC(t *testing.T) {
 	//chain commit from factom-cli get ecbheight 28556
 	ecbytes, _ := hex.DecodeString("0001538b7fe6fd249f6eed5336f91eb6b506b1f4683c0e03aa8d8c59cf54299b945d41a73b44e90117ef7a21d1a616d65e6b73f3c6a7ad5c49340a6c2592872020ec60767ff00d7dc38e2fc16991f2705244c83cc36e5b4ca796dbbf168601b55d6fc34187a8de061b096f3266f3f6dd986e3f2150a1b14ada29cc9c0fc3a1d1a1875f11dc6cfd0b")
@@ -88,20 +90,13 @@ func TestStringEC(t *testing.T) {
 	ec.UnmarshalBinary(ecbytes)
 
 	got := fmt.Sprintf("%v\n", ec.String())
-	expected := ` CommitEntry
-   Version              0
-   MilliTime            01538b7fe6fd
-   EntryHash            249f6e
-   Credits              1
-   ECPubKey             17ef7a
-   Sig                  c38e2f
-
-`
+	expected := "ehash[249f6e] Credits[1] PublicKey[17ef7a] Sig[c38e2f]\n"
 	if got != expected {
 		t.Errorf("Entry Commit comparison failed")
 	}
 }
 
+// TestCommitEntryMarshalUmarshalStatic checks that specific commit to the block chain unmarshals and has the correct hashes
 func TestCommitEntryMarshalUnmarshalStatic(t *testing.T) {
 	ce := NewCommitEntry()
 	data, _ := hex.DecodeString("0001538b7fe6fd249f6eed5336f91eb6b506b1f4683c0e03aa8d8c59cf54299b945d41a73b44e90117ef7a21d1a616d65e6b73f3c6a7ad5c49340a6c2592872020ec60767ff00d7dc38e2fc16991f2705244c83cc36e5b4ca796dbbf168601b55d6fc34187a8de061b096f3266f3f6dd986e3f2150a1b14ada29cc9c0fc3a1d1a1875f11dc6cfd0b")
@@ -125,6 +120,8 @@ func TestCommitEntryMarshalUnmarshalStatic(t *testing.T) {
 	}
 }
 
+// TestCommitEntryIsValid checks that a specifically created entry is flagged as invalid when the entry credits are invalid, and valid when
+// they are within range. Valid range: 0 < Credits <= 10
 func TestCommitEntryIsValid(t *testing.T) {
 	c := NewCommitEntry()
 	c.Credits = 0

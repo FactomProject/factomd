@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 // The Peer interface allows Factom to connect to any implementation of a p2p network.
 // The simulator uses an implementation of IPeer to simulate various networks
 type IPeer interface {
@@ -13,10 +11,10 @@ type IPeer interface {
 	GetNameTo() string                  // Return the name of the peer
 	GetNameFrom() string                // Return the name of the peer
 	Send(IMsg) error                    // Send a message to this peer
-	Recieve() (IMsg, error)             // Recieve a message from this peer; nil if no message is ready.
+	Receive() (IMsg, error)             // Receive a message from this peer; nil if no message is ready.
 	Len() int                           // Returns the number of messages waiting to be read
 	Equals(IPeer) bool                  // Is this connection equal to parm connection
 	Weight() int                        // How many nodes does this peer represent?
 	BytesOut() int                      // Bytes sent out per second from this peer
-	BytesIn() int                       // Bytes recieved per second from this peer
+	BytesIn() int                       // Bytes received per second from this peer
 }

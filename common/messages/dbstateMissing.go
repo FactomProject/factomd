@@ -7,18 +7,21 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
 // Communicate a Directory Block State
 
 type DBStateMissing struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 
 	DBHeightStart uint32 // First block missing
@@ -46,15 +49,21 @@ func (a *DBStateMissing) IsSameAs(b *DBStateMissing) bool {
 	return true
 }
 
-func (m *DBStateMissing) GetRepeatHash() interfaces.IHash {
+func (m *DBStateMissing) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DBStateMissing.GetRepeatHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *DBStateMissing) GetHash() interfaces.IHash {
+func (m *DBStateMissing) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DBStateMissing.GetHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *DBStateMissing) GetMsgHash() interfaces.IHash {
+func (m *DBStateMissing) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DBStateMissing.GetMsgHash") }()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -70,7 +79,7 @@ func (m *DBStateMissing) Type() byte {
 }
 
 func (m *DBStateMissing) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -110,22 +119,36 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) (msglen 
 	}
 	if send {
 		msg, err := state.LoadDBState(dbheight)
-		if msg != nil && err == nil {
-			b, err := msg.MarshalBinary()
-			if err != nil {
-				return
-			}
-			msglen = len(b)
-			msg.SetOrigin(m.GetOrigin())
-			msg.SetNetworkOrigin(m.GetNetworkOrigin())
-			msg.SetNoResend(false)
-			msg.SendOut(state, msg)
-			state.IncDBStateAnswerCnt()
-			v := new(interfaces.DBStateSent)
-			v.DBHeight = dbheight
-			v.Sent = now
-			keeps = append(keeps, v)
+		if err != nil {
+			state.LogPrintf("executeMsg", "DBStateMissing.send() %v", err)
+			return
 		}
+		if msg == nil {
+			return
+		}
+
+		dbstatemsg := msg.(*DBStateMsg)
+		dbstatemsg.IsInDB = false // else validateSignatures would approve it automatically
+		if dbstatemsg.ValidateSignatures(state) != 1 {
+			return // the last DBState we have saved may not have any or all the signatures so we can't share
+		}
+
+		b, err := msg.MarshalBinary()
+		if err != nil {
+			state.LogPrintf("executeMsg", "DBStateMissing.send() %v", err)
+			return
+		}
+		msglen = len(b)
+		msg.SetOrigin(m.GetOrigin())
+		msg.SetNetworkOrigin(m.GetNetworkOrigin())
+		msg.SetNoResend(false)
+		msg.SendOut(state, msg)
+		state.IncDBStateAnswerCnt()
+		v := new(interfaces.DBStateSent)
+		v.DBHeight = dbheight
+		v.Sent = now
+		keeps = append(keeps, v)
+
 		state.SetDBStatesSent(keeps)
 	}
 	return
@@ -144,13 +167,23 @@ func NewEnd(inLen int, start uint32, end uint32) (s uint32, e uint32) {
 }
 
 func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
-	if state.NetworkOutMsgQueue().Length() > 100 {
+	if state.NetworkOutMsgQueue().Length() > state.NetworkOutMsgQueue().Cap()*99/100 {
 		return
 	}
 	// TODO: Likely need to consider a limit on how many blocks we reply with.  For now,
 	// just give them what they ask for.
 	start := m.DBHeightStart
 	end := m.DBHeightEnd
+
+	hsb := state.GetHighestSavedBlk()
+
+	// Can't serve up block we don't have
+	if start >= hsb {
+		return
+	}
+	if end >= hsb {
+		end = hsb
+	}
 
 	if end == 0 {
 		return
@@ -186,6 +219,7 @@ func (m *DBStateMissing) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Directory Block State Missing Message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Directory Block State Missing Message: %v", r)
 		}
 	}()
 	newData = data
@@ -213,7 +247,12 @@ func (m *DBStateMissing) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
+func (m *DBStateMissing) MarshalForSignature() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBStateMissing.MarshalForSignature err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
@@ -231,7 +270,12 @@ func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *DBStateMissing) MarshalBinary() ([]byte, error) {
+func (m *DBStateMissing) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBStateMissing.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	return m.MarshalForSignature()
 }
 

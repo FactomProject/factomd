@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -15,11 +16,13 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
 type BounceReply struct {
-	MessageBase
+	msgbase.MessageBase
 	Name      string
 	Number    int32
 	Timestamp interfaces.Timestamp
@@ -29,12 +32,16 @@ type BounceReply struct {
 
 var _ interfaces.IMsg = (*BounceReply)(nil)
 
-func (m *BounceReply) GetRepeatHash() interfaces.IHash {
+func (m *BounceReply) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "BounceReply.GetRepeatHash") }()
+
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
-func (m *BounceReply) GetHash() interfaces.IHash {
+// We have to return the hash of the underlying message.
+func (m *BounceReply) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "BounceReply.GetHash") }()
+
 	return m.GetMsgHash()
 }
 
@@ -43,7 +50,9 @@ func (m *BounceReply) SizeOf() int {
 	return m.size
 }
 
-func (m *BounceReply) GetMsgHash() interfaces.IHash {
+func (m *BounceReply) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "BounceReply.GetMsgHash") }()
+
 	data, err := m.MarshalForSignature()
 
 	m.size = len(data)
@@ -60,7 +69,7 @@ func (m *BounceReply) Type() byte {
 }
 
 func (m *BounceReply) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *BounceReply) VerifySignature() (bool, error) {
@@ -113,6 +122,7 @@ func (m *BounceReply) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 
@@ -154,7 +164,12 @@ func (m *BounceReply) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *BounceReply) MarshalForSignature() ([]byte, error) {
+func (m *BounceReply) MarshalForSignature() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "BounceReply.MarshalForSignature err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())

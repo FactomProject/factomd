@@ -6,6 +6,7 @@ package directoryBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -48,7 +49,9 @@ func (a *DBEntry) IsSameAs(b interfaces.IDBEntry) bool {
 	return true
 }
 
-func (c *DBEntry) GetChainID() interfaces.IHash {
+func (c *DBEntry) GetChainID() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DBEntry.GetChainID") }()
+
 	return c.ChainID
 }
 
@@ -56,7 +59,9 @@ func (c *DBEntry) SetChainID(chainID interfaces.IHash) {
 	c.ChainID = chainID
 }
 
-func (c *DBEntry) GetKeyMR() interfaces.IHash {
+func (c *DBEntry) GetKeyMR() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DBEntry.GetKeyMR") }()
+
 	return c.KeyMR
 }
 
@@ -64,11 +69,16 @@ func (c *DBEntry) SetKeyMR(keyMR interfaces.IHash) {
 	c.KeyMR = keyMR
 }
 
-func (e *DBEntry) MarshalBinary() ([]byte, error) {
+func (e *DBEntry) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DBEntry.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushBinaryMarshallable(e.ChainID)
+	err = buf.PushBinaryMarshallable(e.ChainID)
 	if err != nil {
 		return nil, err
 	}
@@ -83,18 +93,19 @@ func (e *DBEntry) MarshalBinary() ([]byte, error) {
 
 func (e *DBEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	e.Init()
-	buf := primitives.NewBuffer(data)
+	newData := data
+	var err error
 
-	err := buf.PopBinaryMarshallable(e.ChainID)
+	newData, err = e.ChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PopBinaryMarshallable(e.KeyMR)
+	newData, err = e.KeyMR.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 
-	return buf.DeepCopyBytes(), nil
+	return newData, nil
 }
 
 func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
@@ -102,7 +113,9 @@ func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (e *DBEntry) ShaHash() interfaces.IHash {
+func (e *DBEntry) ShaHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DBEntry.ShaHash") }()
+
 	byteArray, _ := e.MarshalBinary()
 	return primitives.Sha(byteArray)
 }

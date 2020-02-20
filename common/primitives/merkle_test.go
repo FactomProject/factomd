@@ -6,9 +6,10 @@ package primitives_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
-	"testing"
 )
 
 func TestNextPowerOfTwo(t *testing.T) {
@@ -83,6 +84,11 @@ func TestBuildMerkleTreeStore(t *testing.T) {
 			}
 		}
 	}
+
+	root := ComputeMerkleRoot(list)
+	if root.Fixed() != merkles[len(merkles)-1].Fixed() {
+		t.Errorf("Merkle root discrepancy: %v %v", root, merkles[len(merkles)-1])
+	}
 }
 
 func TestBuildMerkleBranch(t *testing.T) {
@@ -90,6 +96,7 @@ func TestBuildMerkleBranch(t *testing.T) {
 	list := buildMerkleLeafs(max)
 	tree := buildExpectedMerkleTree(list)
 	branch := BuildMerkleBranch(list, max-1, true)
+	branch2 := BuildMerkleBranchForHash(list, list[max-1], true)
 
 	leftIndexes := []int{8, 13, 16, 17}
 	rightIndexes := []int{8, 13, 16, 18}
@@ -99,11 +106,20 @@ func TestBuildMerkleBranch(t *testing.T) {
 		if branch[i].Left.IsSameAs(tree[leftIndexes[i]]) == false {
 			t.Errorf("Left node is wrong on index %v", i)
 		}
+		if branch2[i].Left.IsSameAs(branch[i].Left) == false {
+			t.Errorf("Left node on branch2 is wrong: %v", i)
+		}
 		if branch[i].Right.IsSameAs(tree[rightIndexes[i]]) == false {
 			t.Errorf("Right node is wrong on index %v", i)
 		}
+		if branch2[i].Right.IsSameAs(branch[i].Right) == false {
+			t.Errorf("Right node on branch2 is wrong on index %v", i)
+		}
 		if branch[i].Top.IsSameAs(tree[topIndexes[i]]) == false {
 			t.Errorf("Top node is wrong on index %v", i)
+		}
+		if branch2[i].Top.IsSameAs(branch[i].Top) == false {
+			t.Errorf("Top node on branch2 is wrong on index %v", i)
 		}
 	}
 

@@ -41,7 +41,7 @@ func TestPublicToAddress(t *testing.T) {
 }
 
 func TestCombined(t *testing.T) {
-	priv, pub, add, err := HumanReadiblePrivateKeyStringToEverythingString("Fs37iVGnZ7jShPudsXuB98qURxk35eLrmh9cgPuPpTXHAJEBkUTh")
+	priv, pub, add, err := HumanReadablePrivateKeyStringToEverythingString("Fs37iVGnZ7jShPudsXuB98qURxk35eLrmh9cgPuPpTXHAJEBkUTh")
 	if err != nil {
 		t.Error(err)
 	}
@@ -62,7 +62,7 @@ func TestPublicKeyStringToFactoidAddress(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 	if primitives.ConvertFctAddressToUserStr(add) != "FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB" {
-		t.Error("Wrong address returned - %v", primitives.ConvertFctAddressToUserStr(add))
+		t.Errorf("Wrong address returned - %v", primitives.ConvertFctAddressToUserStr(add))
 	}
 }
 
@@ -72,7 +72,7 @@ func TestPublicKeyStringToECAddress(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 	if primitives.ConvertECAddressToUserStr(add) != "EC2pn759osDzgF4BH5GsXw4NkgTMTrY6jQ7nhhvqkMoBmzjB4Soq" {
-		t.Error("Wrong address returned - %v", primitives.ConvertECAddressToUserStr(add))
+		t.Errorf("Wrong address returned - %v", primitives.ConvertECAddressToUserStr(add))
 	}
 }
 

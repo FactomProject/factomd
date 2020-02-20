@@ -2,10 +2,11 @@ package testHelper_test
 
 import (
 	//"encoding/hex"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/testHelper"
-	"testing"
 )
 
 func TestRCDAddress(t *testing.T) {

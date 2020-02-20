@@ -6,7 +6,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var _ = fmt.Println
@@ -15,12 +15,15 @@ var _ = fmt.Println
 type SafeMsgMap struct {
 	msgmap map[[32]byte]interfaces.IMsg
 	sync.RWMutex
+	name string
+	s    *State
 }
 
-func NewSafeMsgMap() *SafeMsgMap {
+func NewSafeMsgMap(name string, s *State) *SafeMsgMap {
 	m := new(SafeMsgMap)
 	m.msgmap = make(map[[32]byte]interfaces.IMsg)
-
+	m.name = name
+	m.s = s
 	return m
 }
 
@@ -32,24 +35,36 @@ func (m *SafeMsgMap) Get(key [32]byte) (msg interfaces.IMsg) {
 
 func (m *SafeMsgMap) Put(key [32]byte, msg interfaces.IMsg) {
 	m.Lock()
+	_, ok := m.msgmap[key]
+	if !ok {
+		defer m.s.LogMessage(m.name, "put", msg)
+	}
 	m.msgmap[key] = msg
 	m.Unlock()
 }
 
 func (m *SafeMsgMap) Delete(key [32]byte) (msg interfaces.IMsg, found bool) {
 	m.Lock()
-	delete(m.msgmap, key)
+	msg, ok := m.msgmap[key] // return the message being deleted
+	if ok {
+		defer m.s.LogMessage(m.name, fmt.Sprintf("delete from %s", atomic.WhereAmIString(1)), msg)
+		delete(m.msgmap, key)
+	} else {
+		defer m.s.LogPrintf(m.name, "nodelete from %s M-%x", atomic.WhereAmIString(1), key[:3])
+	}
 	m.Unlock()
 	return
 }
 
 func (m *SafeMsgMap) Len() int {
+	m.RLock()
+	defer m.RUnlock()
 	return len(m.msgmap)
 }
 
 func (m *SafeMsgMap) Copy() *SafeMsgMap {
-	m2 := NewSafeMsgMap()
-
+	m2 := NewSafeMsgMap("copyOf"+m.name, m.s)
+	m2.s = m.s // for debug logging
 	m.RLock()
 	for k, v := range m.msgmap {
 		m2.msgmap[k] = v
@@ -66,6 +81,7 @@ func (m *SafeMsgMap) Reset() {
 		m.msgmap = make(map[[32]byte]interfaces.IMsg)
 	}
 	m.Unlock()
+	m.s.LogPrintf(m.name, "reset")
 }
 
 //
@@ -75,25 +91,27 @@ func (m *SafeMsgMap) Reset() {
 // Cleanup will clean old elements out from the commit map.
 func (m *SafeMsgMap) Cleanup(s *State) {
 	m.Lock()
-	// Time out commits every now and again. Also check for entries that have been revealed
-	now := s.GetTimestamp()
+	// Time out commits every leaderTimestamp and again. Also check for entries that have been revealed
+	leaderTimestamp := s.GetLeaderTimestamp()
 	for k, msg := range m.msgmap {
-		{
-			c, ok := msg.(*messages.CommitChainMsg)
-			if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
-				delete(m.msgmap, k)
-				continue
+
+		_, ok := s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), leaderTimestamp)
+		if !ok {
+			msg, ok := m.msgmap[k]
+			if ok {
+				defer m.s.LogMessage(m.name, "cleanup_timeout", msg)
 			}
-		}
-		c, ok := msg.(*messages.CommitEntryMsg)
-		if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
 			delete(m.msgmap, k)
 			continue
 		}
-
-		_, ok = s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
+		ok = s.Replay.IsHashUnique(constants.REVEAL_REPLAY, k)
 		if !ok {
+			msg, ok := m.msgmap[k]
+			if ok {
+				defer m.s.LogMessage(m.name, "cleanup_replay", msg)
+			}
 			delete(m.msgmap, k)
+			continue
 		}
 	}
 	m.Unlock()
@@ -105,8 +123,9 @@ func (m *SafeMsgMap) RemoveExpired(s *State) {
 	// Time out commits every now and again.
 	for k, v := range m.msgmap {
 		if v != nil {
-			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetLeaderTimestamp())
 			if !ok {
+				defer m.s.LogMessage(m.name, "RemoveExpired", v)
 				delete(m.msgmap, k)
 			}
 		}

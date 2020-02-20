@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"time"
+
 	ed "github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -15,6 +17,7 @@ import (
 
 var _ = fmt.Sprint("testing")
 
+// TestUnmarshalNilECBlock checks that unmarshalling nil and the empty interface result in appropriate errors
 func TestUnmarshalNilECBlock(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -34,12 +37,49 @@ func TestUnmarshalNilECBlock(t *testing.T) {
 	}
 }
 
+// TestUnmarshalLarge checks that a 10000 entry EC block can be marshalled and unmarshalled in under 20 secs
+func TestUnmarshalLarge(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+	start := time.Now()
+
+	largenum := 10000
+	ecb := createECBlockWithNum(largenum)
+	data, err := ecb.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	a := new(ECBlock)
+	err = a.UnmarshalBinary(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(a.GetEntries()) < largenum {
+		t.Errorf("Should have %d entries, found %d", largenum, len(a.GetEntries()))
+	}
+
+	took := time.Since(start).Seconds()
+	maxtime := float64(20)
+	if took > maxtime {
+		t.Errorf("It took too long. Took %fs, should be < %fs", took, maxtime)
+	}
+
+}
+
+// TestECBlock is a test structure for testing EC blocks
 type TestECBlock struct {
 	Raw   string
 	KeyMR string
 	Hash  string
 }
 
+// TestStaticECBlockUnmarshal checks that two raw strings can be unmarshalled into EC blocks correctly, and their relevant hashes/properties
+// are the pre-computed values
 func TestStaticECBlockUnmarshal(t *testing.T) {
 	ts := []TestECBlock{}
 
@@ -93,6 +133,7 @@ func TestStaticECBlockUnmarshal(t *testing.T) {
 	}
 }
 
+// TestECBlockMarshal checks that an EC block can be marshalled, unmarshalled, and remarshalled to get the same answer
 func TestECBlockMarshal(t *testing.T) {
 	ecb1 := createECBlock()
 
@@ -114,6 +155,7 @@ func TestECBlockMarshal(t *testing.T) {
 	}
 }
 
+// TestECBlockHashingConsistency checks that multiple calls to the hashing functions always return the same values
 func TestECBlockHashingConsistency(t *testing.T) {
 	ecb := createECBlock()
 	h1, err := ecb.GetFullHash()
@@ -140,7 +182,13 @@ func TestECBlockHashingConsistency(t *testing.T) {
 	}
 }
 
+// createECBlock creates a new test EC block with 1 entry
 func createECBlock() *ECBlock {
+	return createECBlockWithNum(1)
+}
+
+// createECBlockWithNum creates a new test EC block with the requested number of entries
+func createECBlockWithNum(ccount int) *ECBlock {
 	ecb1 := NewECBlock().(*ECBlock)
 
 	// build a CommitChain for testing
@@ -169,7 +217,9 @@ func createECBlock() *ECBlock {
 	ecb1.Header.(*ECBlockHeader).ObjectCount = 0
 
 	// add the CommitChain to the ECBlock
-	ecb1.AddEntry(cc)
+	for i := 0; i < ccount; i++ {
+		ecb1.AddEntry(cc)
+	}
 
 	m1 := NewMinuteNumber(0x01)
 	ecb1.AddEntry(m1)
@@ -203,6 +253,7 @@ func byteof(b byte) []byte {
 	return r
 }
 
+// TestExpandedECBlockHeader checks that a new EC block's json string contains proper chain ids
 func TestExpandedECBlockHeader(t *testing.T) {
 	block := createECBlock()
 	j, err := block.JSONString()

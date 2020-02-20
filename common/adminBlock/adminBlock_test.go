@@ -3,8 +3,11 @@ package adminBlock_test
 import (
 	"bytes"
 	"encoding/hex"
+	"math/rand"
+	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -226,7 +229,7 @@ func TestRemoveFederatedServer(t *testing.T) {
 }
 
 func TestAddMatryoshkaHash(t *testing.T) {
-	testVector := []*AddReplaceMatryoshkaHash{}
+	testVector := []interfaces.IIdentityABEntry{}
 	for i := 0; i < 1000; i++ {
 		se := new(AddReplaceMatryoshkaHash)
 		se.IdentityChainID = primitives.RandomHash()
@@ -235,23 +238,29 @@ func TestAddMatryoshkaHash(t *testing.T) {
 	}
 	ab := new(AdminBlock)
 	for _, v := range testVector {
-		err := ab.AddMatryoshkaHash(v.IdentityChainID, v.MHash)
+		av := v.(*AddReplaceMatryoshkaHash)
+		err := ab.AddMatryoshkaHash(av.IdentityChainID, av.MHash)
 		if err != nil {
 			t.Errorf("%v", err)
 		}
 	}
+
+	sort.Sort(interfaces.IIdentityABEntrySort(testVector))
+
+	ab.InsertIdentityABEntries()
 	for i := range testVector {
-		if ab.ABEntries[i].(*AddReplaceMatryoshkaHash).IdentityChainID.String() != testVector[i].IdentityChainID.String() {
+		av := testVector[i].(*AddReplaceMatryoshkaHash)
+		if ab.ABEntries[i].(*AddReplaceMatryoshkaHash).IdentityChainID.String() != av.IdentityChainID.String() {
 			t.Error("Invalid IdentityChainID")
 		}
-		if ab.ABEntries[i].(*AddReplaceMatryoshkaHash).MHash.String() != testVector[i].MHash.String() {
+		if ab.ABEntries[i].(*AddReplaceMatryoshkaHash).MHash.String() != av.MHash.String() {
 			t.Error("Invalid MHash")
 		}
 	}
 }
 
 func TestAddFederatedServerSigningKey(t *testing.T) {
-	testVector := []*AddFederatedServerSigningKey{}
+	testVector := []interfaces.IIdentityABEntry{}
 	for i := 0; i < 1000; i++ {
 		se := new(AddFederatedServerSigningKey)
 		se.IdentityChainID = primitives.RandomHash()
@@ -261,23 +270,28 @@ func TestAddFederatedServerSigningKey(t *testing.T) {
 	}
 	ab := new(AdminBlock)
 	for _, v := range testVector {
-		err := ab.AddFederatedServerSigningKey(v.IdentityChainID, v.PublicKey.Fixed())
+		av := v.(*AddFederatedServerSigningKey)
+		err := ab.AddFederatedServerSigningKey(av.IdentityChainID, av.PublicKey.Fixed())
 		if err != nil {
 			t.Errorf("%v", err)
 		}
 	}
+	sort.Sort(interfaces.IIdentityABEntrySort(testVector))
+	ab.InsertIdentityABEntries()
 	for i := range testVector {
-		if ab.ABEntries[i].(*AddFederatedServerSigningKey).IdentityChainID.String() != testVector[i].IdentityChainID.String() {
+		av := testVector[i].(*AddFederatedServerSigningKey)
+
+		if ab.ABEntries[i].(*AddFederatedServerSigningKey).IdentityChainID.String() != av.IdentityChainID.String() {
 			t.Error("Invalid IdentityChainID")
 		}
-		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerSigningKey).PublicKey[:], testVector[i].PublicKey[:]) == false {
+		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerSigningKey).PublicKey[:], av.PublicKey[:]) == false {
 			t.Error("Invalid PublicKey")
 		}
 	}
 }
 
 func TestAddFederatedServerBitcoinAnchorKey(t *testing.T) {
-	testVector := []*AddFederatedServerBitcoinAnchorKey{}
+	testVector := []interfaces.IIdentityABEntry{}
 	for i := 0; i < 1000; i++ {
 		se := new(AddFederatedServerBitcoinAnchorKey)
 		se.IdentityChainID = primitives.RandomHash()
@@ -286,29 +300,35 @@ func TestAddFederatedServerBitcoinAnchorKey(t *testing.T) {
 		testVector = append(testVector, se)
 	}
 	ab := new(AdminBlock)
-	for i, v := range testVector {
-		fixed, err := v.ECDSAPublicKey.GetFixed()
+	for _, v := range testVector {
+		av := v.(*AddFederatedServerBitcoinAnchorKey)
+		fixed, err := av.ECDSAPublicKey.GetFixed()
 		if err != nil {
 			t.Errorf("%v", err)
 		}
 
-		err = ab.AddFederatedServerBitcoinAnchorKey(v.IdentityChainID, byte(i%256), byte(256-i%256), fixed)
+		err = ab.AddFederatedServerBitcoinAnchorKey(av.IdentityChainID, 0, 0, fixed)
 		if err != nil {
 			t.Errorf("%v", err)
 		}
 	}
+
+	sort.Sort(interfaces.IIdentityABEntrySort(testVector))
+	ab.InsertIdentityABEntries()
 	for i := range testVector {
-		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).IdentityChainID.String() != testVector[i].IdentityChainID.String() {
+		av := testVector[i].(*AddFederatedServerBitcoinAnchorKey)
+
+		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).IdentityChainID.String() != av.IdentityChainID.String() {
 			t.Error("Invalid IdentityChainID")
 		}
-		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).ECDSAPublicKey[:], testVector[i].ECDSAPublicKey[:]) == false {
+		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).ECDSAPublicKey[:], av.ECDSAPublicKey[:]) == false {
 			t.Error("Invalid ECDSAPublicKey")
 		}
-		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyPriority != byte(i%256) {
+		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyPriority != 0 {
 			t.Error("Invalid KeyPriority")
 		}
-		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyType != byte(256-i%256) {
-			t.Error("Invalid KeyType")
+		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyType != 0 {
+			t.Errorf("Invalid KeyType, found %d", ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyType)
 		}
 	}
 }
@@ -409,10 +429,21 @@ func TestAdminBlockHash(t *testing.T) {
 	}
 }
 
+func TestAdminBlockSetHeader(t *testing.T) {
+	block := createTestAdminBlock()
+	h := createTestAdminHeader()
+	block.SetHeader(h)
+	if !h.IsSameAs(block.GetHeader()) {
+		t.Error("header is not equal to block.Header", h, block.GetHeader())
+	}
+}
+
 func TestAdminBlockMarshalUnmarshal(t *testing.T) {
-	blocks := []interfaces.IAdminBlock{}
-	blocks = append(blocks, createSmallTestAdminBlock())
-	blocks = append(blocks, createTestAdminBlock())
+	blocks := []interfaces.IAdminBlock{
+		createSmallTestAdminBlock(),
+		createTestAdminBlock(),
+	}
+
 	for b, block := range blocks {
 		binary, err := block.MarshalBinary()
 		if err != nil {
@@ -465,6 +496,26 @@ func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 		if block.String() != block2.String() {
 			t.Errorf("String representation doesn't match %d", b)
 		}
+	}
+}
+
+func TestUnmarshalBadAblock(t *testing.T) {
+	block := createTestAdminBlock()
+
+	p, err := block.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	// overwrite the MessageCount with incorrect value
+	p[75] = 0xff
+
+	block2 := new(AdminBlock)
+	err = block2.UnmarshalBinary(p)
+	if err == nil {
+		t.Error("AdminBlock should have errored on unmarshal", block2)
+	} else {
+		t.Log(err)
 	}
 }
 
@@ -831,4 +882,82 @@ func createSmallTestAdminHeader() *ABlockHeader {
 	header.BodySize = 345
 
 	return header
+}
+
+func TestABlockVec(t *testing.T) {
+	vec1 := "000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000009c00000000090000035c018888881570f89283f3a516b6e5ed240f43f5ad7cb05132378c4a006abe7c2b93803b318b23ec15de43db470200c1afb5d1b6156184e247ed035a8f0b6879155b17eb2403f90fe408aa2d83e748a70809299ac7b22b3e92d261b36552d0f7169ccd5044adcdd74e299b2c21bbb586626c20289267ff625d6bb1ee525dbba7490f018888888da6ed14ec63e623cab6917c66b954b361d530770b3f5f5188f87f173811cae6d21e92d9ac0ee83e00f89a3aabde7e3c6f90824339281cfeb93c1377cdba244108175cf299f4db909821adaa42e3346a8b199df30ea391b570bf1cdcbcbb4de04a80de9b8e91885038089bed9046b9c919c90b2da3c0800f89826e3b0d01888888aeaac80d825ac9675cf3a6591916883bd9947e16ab752d39164d80a60815688e940b854d71411dd8dead29843932fc79c9c99cfb69ca6888b29cd13237c7f20041a9d8cd306036253e778a6f833ef75c526aaaf996e6fe8472cc5b7b6b2c58f3695b828550ec247f1c337567a2ab8d184c5c37dd4cf7ae5fb6c98045050138bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a7119b2b8a031ff1ed1a3ce913ab91faf98a3ced5718cf6ce839aef61197c56a7babdb9a09d4f88f22ffa14da4120cd8e95302cb9ac10256b518c2c92b3637a070d4120888888f0b7e308974afc34b2c7f703f25ed2699cb05f818e84e8745644896c551ac603582c31ba6f72a329cea154637d3b372ad538c43a52d3bf3c269cee00240d41208888887020255b631764fc0fd524dac89ae96db264c572391a3f19fcf0f8991e126cf7a9192bae19b3f6920c5f4e0508b87f4d852958641c9b262d5f1727fd520d41208888888da6ed14ec63e623cab6917c66b954b361d530770b3f5f5188f87f17382dd83759f2b90e2083c90399ff8cc5b272b9633b0782bb1daa7a6c11f1b0393f0d4120888888aeaac80d825ac9675cf3a6591916883bd9947e16ab752d39164d80a6089c503dc3d7729b328ad5fc78b43e88ba06bc22736a8c4dc34e3a16a2e2e557e50b4a82a8a9d800641a03e954418966623b4cd6d1477da2cda11ef13d7ed9efb3e1364b1f8c707a82a7fedc001056f38d2e49abf8520f2d447c7b4f8c046add2d2244be5f95a973b6d423e428"
+	vec2 := "000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000009c00000000090000035c018888881570f89283f3a516b6e5ed240f43f5ad7cb05132378c4a006abe7c2b93803b318b23ec15de43db470200c1afb5d1b6156184e247ed035a8f0b6879155b17eb2403f90fe408aa2d83e748a70809299ac7b22b3e92d261b36552d0f7169ccd5044adcdd74e299b2c21bbb586626c20289267ff625d6bb1ee525dbba7490f018888888da6ed14ec63e623cab6917c66b954b361d530770b3f5f5188f87f173811cae6d21e92d9ac0ee83e00f89a3aabde7e3c6f90824339281cfeb93c1377cdba244108175cf299f4db909821adaa42e3346a8b199df30ea391b570bf1cdcbcbb4de04a80de9b8e91885038089bed9046b9c919c90b2da3c0800f89826e3b0d01888888aeaac80d825ac9675cf3a6591916883bd9947e16ab752d39164d80a60815688e940b854d71411dd8dead29843932fc79c9c99cfb69ca6888b29cd13237c7f20041a9d8cd306036253e778a6f833ef75c526aaaf996e6fe8472cc5b7b6b2c58f3695b828550ec247f1c337567a2ab8d184c5c37dd4cf7ae5fb6c98045050138bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a7119b2b8a031ff1ed1a3ce913ab91faf98a3ced5718cf6ce839aef61197c56a7babdb9a09d4f88f22ffa14da4120cd8e95302cb9ac10256b518c2c92b3637a070d41208888888da6ed14ec63e623cab6917c66b954b361d530770b3f5f5188f87f17382dd83759f2b90e2083c90399ff8cc5b272b9633b0782bb1daa7a6c11f1b0393f0d4120888888aeaac80d825ac9675cf3a6591916883bd9947e16ab752d39164d80a6089c503dc3d7729b328ad5fc78b43e88ba06bc22736a8c4dc34e3a16a2e2e557e50d4120888888f0b7e308974afc34b2c7f703f25ed2699cb05f818e84e8745644896c551ac603582c31ba6f72a329cea154637d3b372ad538c43a52d3bf3c269cee00240d41208888887020255b631764fc0fd524dac89ae96db264c572391a3f19fcf0f8991e126cf7a9192bae19b3f6920c5f4e0508b87f4d852958641c9b262d5f1727fd520b4a82a8a9d800641a03e954418966623b4cd6d1477da2cda11ef13d7ed9efb3e1364b1f8c707a82a7fedc001056f38d2e49abf8520f2d447c7b4f8c046add2d2244be5f95a973b6d423e428"
+
+	if vec1 == vec2 {
+		t.Error("WHY!")
+	}
+
+	a1 := NewAdminBlock(nil)
+	a2 := NewAdminBlock(nil)
+
+	d1, _ := hex.DecodeString(vec1)
+	d2, _ := hex.DecodeString(vec2)
+
+	nd, err := a1.UnmarshalBinaryData(d1)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(nd) > 0 {
+		t.Errorf("Left over %d bytes", len(nd))
+	}
+	nd, err = a2.UnmarshalBinaryData(d2)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(nd) > 0 {
+		t.Errorf("Left over %d bytes", len(nd))
+	}
+
+	if !a1.IsSameAs(a2) {
+		t.Error("Not Same")
+	}
+
+}
+
+func TestSortOrder(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+	a := NewAdminBlock(nil)
+	b := NewAdminBlock(nil)
+
+	for i := 0; i < 100; i++ {
+		h := uint32(rand.Intn(100))
+		i := uint32(rand.Intn(100))
+		a.AddCancelCoinbaseDescriptor(h, i)
+		b.AddCancelCoinbaseDescriptor(h, i)
+	}
+
+	a.AddCoinbaseDescriptor([]interfaces.ITransAddress{})
+	b.AddCoinbaseDescriptor([]interfaces.ITransAddress{})
+
+	a.AddFedServer(primitives.NewZeroHash())
+	b.AddFedServer(primitives.NewZeroHash())
+
+	err := a.InsertIdentityABEntries()
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = b.InsertIdentityABEntries()
+	if err != nil {
+		t.Error(err)
+	}
+
+	da, err := a.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	db, err := b.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if bytes.Compare(da, db) != 0 {
+		t.Error("Sorted order is not deterministic")
+	}
 }

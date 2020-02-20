@@ -2,6 +2,8 @@ package dbInfo
 
 import (
 	"encoding/gob"
+	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -25,6 +27,9 @@ type DirBlockInfo struct {
 	DBMerkleRoot interfaces.IHash
 	// A flag to to show BTC anchor confirmation
 	BTCConfirmed bool
+
+	EthereumAnchorRecordEntryHash interfaces.IHash
+	EthereumConfirmed             bool
 }
 
 var _ interfaces.Printable = (*DirBlockInfo)(nil)
@@ -45,6 +50,9 @@ func (e *DirBlockInfo) Init() {
 	if e.DBMerkleRoot == nil {
 		e.DBMerkleRoot = primitives.NewZeroHash()
 	}
+	if e.EthereumAnchorRecordEntryHash == nil {
+		e.EthereumAnchorRecordEntryHash = primitives.NewZeroHash()
+	}
 }
 
 func NewDirBlockInfo() *DirBlockInfo {
@@ -53,6 +61,7 @@ func NewDirBlockInfo() *DirBlockInfo {
 	dbi.BTCTxHash = primitives.NewZeroHash()
 	dbi.BTCBlockHash = primitives.NewZeroHash()
 	dbi.DBMerkleRoot = primitives.NewZeroHash()
+	dbi.EthereumAnchorRecordEntryHash = primitives.NewZeroHash()
 	return dbi
 }
 
@@ -85,30 +94,52 @@ func (c *DirBlockInfo) GetBTCConfirmed() bool {
 	return c.BTCConfirmed
 }
 
-func (c *DirBlockInfo) GetChainID() interfaces.IHash {
+func (c *DirBlockInfo) GetEthereumAnchorRecordEntryHash() interfaces.IHash {
+	return c.EthereumAnchorRecordEntryHash
+}
+
+func (c *DirBlockInfo) GetEthereumConfirmed() bool {
+	return c.EthereumConfirmed
+}
+
+func (c *DirBlockInfo) GetChainID() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DirBlockInfo.GetChainID") }()
+
 	id := make([]byte, 32)
 	copy(id, []byte("DirBlockInfo"))
 	return primitives.NewHash(id)
 }
 
-func (c *DirBlockInfo) DatabasePrimaryIndex() interfaces.IHash {
+func (c *DirBlockInfo) DatabasePrimaryIndex() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DirBlockInfo.DatabasePrimaryIndex") }()
+
 	c.Init()
 	return c.DBMerkleRoot
 }
 
-func (c *DirBlockInfo) DatabaseSecondaryIndex() interfaces.IHash {
+func (c *DirBlockInfo) DatabaseSecondaryIndex() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DirBlockInfo.DatabaseSecondaryIndex") }()
+
 	c.Init()
 	return c.DBHash
 }
 
-func (e *DirBlockInfo) GetDBMerkleRoot() interfaces.IHash {
+func (e *DirBlockInfo) GetDBMerkleRoot() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DirBlockInfo.GetDBMerkleRoot") }()
+
 	e.Init()
 	return e.DBMerkleRoot
 }
 
-func (e *DirBlockInfo) GetBTCTxHash() interfaces.IHash {
+func (e *DirBlockInfo) GetBTCTxHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DirBlockInfo.GetBTCTxHash") }()
+
 	e.Init()
 	return e.BTCTxHash
+}
+
+func (e *DirBlockInfo) GetBTCTxOffset() (rval int32) {
+	return e.BTCTxOffset
 }
 
 func (e *DirBlockInfo) GetTimestamp() interfaces.Timestamp {
@@ -119,13 +150,22 @@ func (e *DirBlockInfo) GetBTCBlockHeight() int32 {
 	return e.BTCBlockHeight
 }
 
-func (e *DirBlockInfo) MarshalBinary() ([]byte, error) {
+func (e *DirBlockInfo) GetBTCBlockHash() interfaces.IHash {
+	return e.BTCBlockHash
+}
+
+func (e *DirBlockInfo) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DirBlockInfo.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	var data primitives.Buffer
 
 	enc := gob.NewEncoder(&data)
 
-	err := enc.Encode(newDirBlockInfoCopyFromDBI(e))
+	err = enc.Encode(newDirBlockInfoCopyFromDBI(e))
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +210,9 @@ type dirBlockInfoCopy struct {
 	DBMerkleRoot interfaces.IHash
 	// A flag to to show BTC anchor confirmation
 	BTCConfirmed bool
+
+	EthereumAnchorRecordEntryHash interfaces.IHash
+	EthereumConfirmed             bool
 }
 
 func newDirBlockInfoCopyFromDBI(dbi *DirBlockInfo) *dirBlockInfoCopy {
@@ -183,6 +226,8 @@ func newDirBlockInfoCopyFromDBI(dbi *DirBlockInfo) *dirBlockInfoCopy {
 	dbic.BTCBlockHash = dbi.BTCBlockHash
 	dbic.DBMerkleRoot = dbi.DBMerkleRoot
 	dbic.BTCConfirmed = dbi.BTCConfirmed
+	dbic.EthereumAnchorRecordEntryHash = dbi.EthereumAnchorRecordEntryHash
+	dbic.EthereumConfirmed = dbi.EthereumConfirmed
 	return dbic
 }
 
@@ -192,6 +237,7 @@ func newDirBlockInfoCopy() *dirBlockInfoCopy {
 	dbi.BTCTxHash = primitives.NewZeroHash()
 	dbi.BTCBlockHash = primitives.NewZeroHash()
 	dbi.DBMerkleRoot = primitives.NewZeroHash()
+	dbi.EthereumAnchorRecordEntryHash = primitives.NewZeroHash()
 	return dbi
 }
 
@@ -205,6 +251,8 @@ func (dbic *DirBlockInfo) parseDirBlockInfoCopy(dbi *dirBlockInfoCopy) {
 	dbic.BTCBlockHash = dbi.BTCBlockHash
 	dbic.DBMerkleRoot = dbi.DBMerkleRoot
 	dbic.BTCConfirmed = dbi.BTCConfirmed
+	dbic.EthereumAnchorRecordEntryHash = dbi.EthereumAnchorRecordEntryHash
+	dbic.EthereumConfirmed = dbi.EthereumConfirmed
 }
 
 // NewDirBlockInfoFromDirBlock creates a DirDirBlockInfo from DirectoryBlock
@@ -217,5 +265,7 @@ func NewDirBlockInfoFromDirBlock(dirBlock interfaces.IDirectoryBlock) *DirBlockI
 	dbi.BTCTxHash = primitives.NewZeroHash()
 	dbi.BTCBlockHash = primitives.NewZeroHash()
 	dbi.BTCConfirmed = false
+	dbi.EthereumAnchorRecordEntryHash = primitives.NewZeroHash()
+	dbi.EthereumConfirmed = false
 	return dbi
 }

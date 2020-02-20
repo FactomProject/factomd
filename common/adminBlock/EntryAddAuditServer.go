@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -30,7 +31,7 @@ func (e *AddAuditServer) String() string {
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("    E: %20s -- %17s %8x %12s %8d",
 		"AddAuditServer",
-		"IdentityChainID", e.IdentityChainID.Bytes()[3:5],
+		"IdentityChainID", e.IdentityChainID.Bytes()[3:6],
 		"DBHeight", e.DBHeight))
 	return (string)(out.DeepCopyBytes())
 }
@@ -60,11 +61,16 @@ func (e *AddAuditServer) Type() byte {
 	return constants.TYPE_ADD_AUDIT_SERVER
 }
 
-func (e *AddAuditServer) MarshalBinary() ([]byte, error) {
+func (e *AddAuditServer) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AddAuditServer.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushByte(e.Type())
+	err = buf.PushByte(e.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +137,9 @@ func (e *AddAuditServer) Interpret() string {
 	return ""
 }
 
-func (e *AddAuditServer) Hash() interfaces.IHash {
+func (e *AddAuditServer) Hash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "AddAuditServer.Hash") }()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

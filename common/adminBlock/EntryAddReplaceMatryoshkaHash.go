@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -33,7 +34,7 @@ func (e *AddReplaceMatryoshkaHash) String() string {
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8s",
 		"AddReplaceMatryoshkaHash",
-		"IdentityChainID", e.IdentityChainID.Bytes()[3:5],
+		"IdentityChainID", e.IdentityChainID.Bytes()[3:6],
 		"MHash", e.MHash.String()[:8]))
 	return (string)(out.DeepCopyBytes())
 }
@@ -55,11 +56,22 @@ func NewAddReplaceMatryoshkaHash(identityChainID interfaces.IHash, mHash interfa
 	return e
 }
 
-func (e *AddReplaceMatryoshkaHash) MarshalBinary() ([]byte, error) {
+func (e *AddReplaceMatryoshkaHash) SortedIdentity() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "AddReplaceMatryoshkaHash.SortedIdentity") }()
+
+	return e.IdentityChainID
+}
+
+func (e *AddReplaceMatryoshkaHash) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AddReplaceMatryoshkaHash.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushByte(e.Type())
+	err = buf.PushByte(e.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +134,9 @@ func (e *AddReplaceMatryoshkaHash) Interpret() string {
 	return ""
 }
 
-func (e *AddReplaceMatryoshkaHash) Hash() interfaces.IHash {
+func (e *AddReplaceMatryoshkaHash) Hash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "AddReplaceMatryoshkaHash.Hash") }()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

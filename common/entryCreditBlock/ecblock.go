@@ -6,25 +6,19 @@ package entryCreditBlock
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-const (
-	ECIDServerIndexNumber byte = iota
-	ECIDMinuteNumber
-	ECIDChainCommit
-	ECIDEntryCommit
-	ECIDBalanceIncrease
-)
-
-// The Entry Credit Block consists of a header and a body. The body is composed
+// ECBlock is an Entry Credit Block and consists of a header and a body. The body is composed
 // of primarily Commits and Balance Increases with Minute Markers and Server
 // Markers distributed throughout.
 type ECBlock struct {
-	Header interfaces.IECBlockHeader `json:"header"`
-	Body   interfaces.IECBlockBody   `json:"body"`
+	Header interfaces.IECBlockHeader `json:"header"` // The entry credit block header
+	Body   interfaces.IECBlockBody   `json:"body"`   // The entry credit block body
 }
 
 var _ interfaces.Printable = (*ECBlock)(nil)
@@ -32,61 +26,68 @@ var _ interfaces.BinaryMarshallableAndCopyable = (*ECBlock)(nil)
 var _ interfaces.IEntryCreditBlock = (*ECBlock)(nil)
 var _ interfaces.DatabaseBlockWithEntries = (*ECBlock)(nil)
 
-func (c *ECBlock) Init() {
-	if c.Header == nil {
+// Init initializes the header and body to new objects if they are nil
+func (e *ECBlock) Init() {
+	if e.Header == nil {
 		h := new(ECBlockHeader)
 		h.Init()
-		c.Header = h
+		e.Header = h
 	}
-	if c.Body == nil {
-		c.Body = new(ECBlockBody)
+	if e.Body == nil {
+		e.Body = new(ECBlockBody)
 	}
 }
 
-func (a *ECBlock) IsSameAs(b interfaces.IEntryCreditBlock) bool {
-	if a == nil || b == nil {
-		if a == nil && b == nil {
+// IsSameAs returns true iff the input block is the same as this object
+func (e *ECBlock) IsSameAs(b interfaces.IEntryCreditBlock) bool {
+	if e == nil || b == nil {
+		if e == nil && b == nil {
 			return true
 		}
 		return false
 	}
 
-	if a.Header.IsSameAs(b.GetHeader()) == false {
+	if e.Header.IsSameAs(b.GetHeader()) == false {
 		return false
 	}
-	if a.Body.IsSameAs(b.GetBody()) == false {
+	if e.Body.IsSameAs(b.GetBody()) == false {
 		return false
 	}
 
 	return true
 }
 
-func (c *ECBlock) UpdateState(state interfaces.IState) error {
+// UpdateState executes the EC transactions
+func (e *ECBlock) UpdateState(state interfaces.IState) error {
 	if state == nil {
 		return fmt.Errorf("No State provided")
 	}
-	c.Init()
-	state.UpdateECs(c)
+	e.Init()
+	state.UpdateECs(e)
 	return nil
 }
 
-func (c *ECBlock) String() string {
-	str := c.GetHeader().String()
-	str = str + c.GetBody().String()
+// String returns this object as a string (header and body included)
+func (e *ECBlock) String() string {
+	str := e.GetHeader().String()
+	str = str + e.GetBody().String()
 	return str
 }
 
-func (c *ECBlock) GetEntries() []interfaces.IECBlockEntry {
-	c.Init()
-	return c.GetBody().GetEntries()
+// GetEntries returns the entries in this block
+func (e *ECBlock) GetEntries() []interfaces.IECBlockEntry {
+	e.Init()
+	return e.GetBody().GetEntries()
 }
 
-func (c *ECBlock) GetEntryByHash(hash interfaces.IHash) interfaces.IECBlockEntry {
+// GetEntryByHash returns the entry whose hash matches the input hash, or whose signature hash matches the input hash.
+// If no hash is found, returns nil
+func (e *ECBlock) GetEntryByHash(hash interfaces.IHash) interfaces.IECBlockEntry {
 	if hash == nil {
 		return nil
 	}
 
-	txs := c.GetEntries()
+	txs := e.GetEntries()
 	for _, tx := range txs {
 		if hash.IsSameAs(tx.Hash()) {
 			return tx
@@ -98,22 +99,29 @@ func (c *ECBlock) GetEntryByHash(hash interfaces.IHash) interfaces.IECBlockEntry
 	return nil
 }
 
-func (c *ECBlock) GetEntryHashes() []interfaces.IHash {
-	entries := c.GetBody().GetEntries()
+// GetEntryHashes returns a list of hashes for each entry in the ECBlock that is either a balance increase, chain commit, or entry commit
+func (e *ECBlock) GetEntryHashes() []interfaces.IHash {
+	entries := e.GetBody().GetEntries()
 	answer := make([]interfaces.IHash, 0, len(entries))
 	for _, entry := range entries {
-		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
+		if entry.ECID() == constants.ECIDBalanceIncrease ||
+			entry.ECID() == constants.ECIDChainCommit ||
+			entry.ECID() == constants.ECIDEntryCommit {
 			answer = append(answer, entry.Hash())
 		}
 	}
 	return answer
 }
 
-func (c *ECBlock) GetEntrySigHashes() []interfaces.IHash {
-	entries := c.GetBody().GetEntries()
+// GetEntrySigHashes returns a list of signature hashes for each entry in the ECBlock that is either a balance increase, chain commit,
+// or entry commit
+func (e *ECBlock) GetEntrySigHashes() []interfaces.IHash {
+	entries := e.GetBody().GetEntries()
 	answer := make([]interfaces.IHash, 0, len(entries))
 	for _, entry := range entries {
-		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
+		if entry.ECID() == constants.ECIDBalanceIncrease ||
+			entry.ECID() == constants.ECIDChainCommit ||
+			entry.ECID() == constants.ECIDEntryCommit {
 			sHash := entry.GetSigHash()
 			if sHash != nil {
 				answer = append(answer, sHash)
@@ -123,49 +131,66 @@ func (c *ECBlock) GetEntrySigHashes() []interfaces.IHash {
 	return answer
 }
 
-func (c *ECBlock) GetBody() interfaces.IECBlockBody {
-	c.Init()
-	return c.Body
+// GetBody returns the EC block body
+func (e *ECBlock) GetBody() interfaces.IECBlockBody {
+	e.Init()
+	return e.Body
 }
 
-func (c *ECBlock) GetHeader() interfaces.IECBlockHeader {
-	c.Init()
-	return c.Header
+// GetHeader returns the EC block header
+func (e *ECBlock) GetHeader() interfaces.IECBlockHeader {
+	e.Init()
+	return e.Header
 }
 
-func (c *ECBlock) New() interfaces.BinaryMarshallableAndCopyable {
+// New returns a new EC block
+func (e *ECBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	block, _ := NextECBlock(nil)
 	return block
 }
 
-func (c *ECBlock) GetDatabaseHeight() uint32 {
-	return c.GetHeader().GetDBHeight()
+// GetDatabaseHeight returns the directory block height this EC block is part of
+func (e *ECBlock) GetDatabaseHeight() uint32 {
+	return e.GetHeader().GetDBHeight()
 }
 
-func (c *ECBlock) GetChainID() interfaces.IHash {
-	return c.GetHeader().GetECChainID()
+// GetChainID returns the chain id of this EC block
+func (e *ECBlock) GetChainID() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "ECBlock.GetChainID") }()
+
+	return e.GetHeader().GetECChainID()
 }
 
-func (c *ECBlock) DatabasePrimaryIndex() interfaces.IHash {
-	key, _ := c.HeaderHash()
+// DatabasePrimaryIndex returns the hash of the header
+func (e *ECBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "ECBlock.DatabasePrimaryIndex") }()
+
+	key, _ := e.HeaderHash()
 	return key
 }
 
-func (c *ECBlock) DatabaseSecondaryIndex() interfaces.IHash {
-	key, _ := c.GetFullHash()
+// DatabaseSecondaryIndex returns the full hash (header and body) of the object
+func (e *ECBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "ECBlock.DatabaseSecondaryIndex") }()
+
+	key, _ := e.GetFullHash()
 	return key
 }
 
+// AddEntry appends the input entries into the EC block
 func (e *ECBlock) AddEntry(entries ...interfaces.IECBlockEntry) {
 	e.GetBody().SetEntries(append(e.GetBody().GetEntries(), entries...))
 }
 
-func (e *ECBlock) GetHash() interfaces.IHash {
+// GetHash returns the full hash (header and body) of the object
+func (e *ECBlock) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "ECBlock.GetHash") }()
+
 	h, _ := e.GetFullHash()
 	return h
 }
 
-// This is the FullHash.
+// GetFullHash returns the full hash (header and body) of the object
 func (e *ECBlock) GetFullHash() (interfaces.IHash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {
@@ -174,6 +199,7 @@ func (e *ECBlock) GetFullHash() (interfaces.IHash, error) {
 	return primitives.Sha(p), nil
 }
 
+// HeaderHash returns the hash of the header
 func (e *ECBlock) HeaderHash() (interfaces.IHash, error) {
 	if err := e.BuildHeader(); err != nil {
 		return nil, err
@@ -186,12 +212,18 @@ func (e *ECBlock) HeaderHash() (interfaces.IHash, error) {
 	return primitives.Sha(p), nil
 }
 
-func (e *ECBlock) MarshalBinary() ([]byte, error) {
+// MarshalBinary marshals the object (header and body)
+func (e *ECBlock) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ECBlock.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	buf := primitives.NewBuffer(nil)
 
 	// Header
-	err := e.BuildHeader()
+	err = e.BuildHeader()
 	if err != nil {
 		return nil, err
 	}
@@ -216,6 +248,7 @@ func (e *ECBlock) MarshalBinary() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// BuildHeader sets all relevant header values based on the current body contents
 func (e *ECBlock) BuildHeader() error {
 	e.Init()
 	// Marshal the Body
@@ -232,6 +265,7 @@ func (e *ECBlock) BuildHeader() error {
 	return nil
 }
 
+// UnmarshalECBlock unmarshals the input data into a new EC block
 func UnmarshalECBlock(data []byte) (interfaces.IEntryCreditBlock, error) {
 	block, _ := NextECBlock(nil)
 
@@ -243,6 +277,7 @@ func UnmarshalECBlock(data []byte) (interfaces.IEntryCreditBlock, error) {
 	return block, nil
 }
 
+// UnmarshalBinaryData unmarshals the input data into this EC block
 func (e *ECBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 
@@ -264,12 +299,19 @@ func (e *ECBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return newData, err
 }
 
+// UnmarshalBinary unmarshals the input data into this EC block
 func (e *ECBlock) UnmarshalBinary(data []byte) (err error) {
 	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 
-func (e *ECBlock) marshalBodyBinary() ([]byte, error) {
+// marshalBodyBinary marshals only the body of the EC block
+func (e *ECBlock) marshalBodyBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ECBlock.marshalBodyBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	buf := primitives.NewBuffer(nil)
 	entries := e.GetBody().GetEntries()
@@ -288,70 +330,84 @@ func (e *ECBlock) marshalBodyBinary() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// unmarshalBodyBinaryData unmarshals the input data into the body (no header info)
 func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
+	var err error
 	e.Init()
-	buf := primitives.NewBuffer(data)
+	// No longer use buffers due to the lots of copying of the same data
 
+	//buf := primitives.NewBuffer(data)
+	newData := data
+
+	allentries := make([]interfaces.IECBlockEntry, e.GetHeader().GetObjectCount())
 	for i := uint64(0); i < e.GetHeader().GetObjectCount(); i++ {
-		id, err := buf.PopByte()
-		if err != nil {
-			return nil, err
-		}
+		id := newData[0]
+		newData = newData[1:]
 
 		switch id {
-		case ECIDServerIndexNumber:
+		case constants.ECIDServerIndexNumber:
 			s := NewServerIndexNumber()
-			err = buf.PopBinaryMarshallable(s)
+			newData, err = s.UnmarshalBinaryData(newData)
 			if err != nil {
 				return nil, err
 			}
-			e.GetBody().AddEntry(s)
-		case ECIDMinuteNumber:
+			allentries[i] = s
+		case constants.ECIDMinuteNumber:
 			m := NewMinuteNumber(0)
-			err = buf.PopBinaryMarshallable(m)
+			_, err = m.UnmarshalBinaryData(newData[:1])
 			if err != nil {
 				return nil, err
 			}
-			e.GetBody().AddEntry(m)
-		case ECIDChainCommit:
+			allentries[i] = m
+			newData = newData[1:]
+		case constants.ECIDChainCommit:
 			c := NewCommitChain()
-			err = buf.PopBinaryMarshallable(c)
+			_, err = c.UnmarshalBinaryData(newData[:200])
 			if err != nil {
 				return nil, err
 			}
-			e.GetBody().AddEntry(c)
-		case ECIDEntryCommit:
+			allentries[i] = c
+			newData = newData[200:]
+		case constants.ECIDEntryCommit:
 			c := NewCommitEntry()
-			err = buf.PopBinaryMarshallable(c)
+			_, err = c.UnmarshalBinaryData(newData[:136])
 			if err != nil {
 				return nil, err
 			}
-			e.GetBody().AddEntry(c)
-		case ECIDBalanceIncrease:
+			allentries[i] = c
+			newData = newData[136:]
+		case constants.ECIDBalanceIncrease:
 			c := NewIncreaseBalance()
-			err = buf.PopBinaryMarshallable(c)
+			newData, err = c.UnmarshalBinaryData(newData)
 			if err != nil {
 				return nil, err
 			}
-			e.GetBody().AddEntry(c)
+			allentries[i] = c
 		default:
 			err = fmt.Errorf("Unsupported ECID: %x\n", id)
 			return nil, err
 		}
 	}
 
-	return buf.DeepCopyBytes(), nil
+	e.Body.SetEntries(allentries)
+
+	//buf.Reset()
+	//buf.Write(newData)
+	return newData, nil
 }
 
-func (b *ECBlock) unmarshalBodyBinary(data []byte) (err error) {
-	_, err = b.unmarshalBodyBinaryData(data)
+// unmarshalBodyBinary unmarshals the input data into the body (no header info)
+func (e *ECBlock) unmarshalBodyBinary(data []byte) (err error) {
+	_, err = e.unmarshalBodyBinaryData(data)
 	return
 }
 
+// JSONByte returns the json encoded byte array
 func (e *ECBlock) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the json encoded string
 func (e *ECBlock) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
@@ -360,6 +416,7 @@ func (e *ECBlock) JSONString() (string, error) {
  * Support Functions
  ********************************************************/
 
+// NewECBlock creates a new empty EC block
 func NewECBlock() interfaces.IEntryCreditBlock {
 	e := new(ECBlock)
 	e.Header = NewECBlockHeader()
@@ -367,6 +424,7 @@ func NewECBlock() interfaces.IEntryCreditBlock {
 	return e
 }
 
+// NextECBlock creates a new EC block with header information filled in from the input previous block information
 func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBlock, error) {
 	e := NewECBlock()
 
@@ -397,6 +455,7 @@ func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBloc
 	return e, nil
 }
 
+// CheckBlockPairIntegrity checks that the input block is derived from the previous block via their header information
 func CheckBlockPairIntegrity(block interfaces.IEntryCreditBlock, prev interfaces.IEntryCreditBlock) error {
 	if block == nil {
 		return fmt.Errorf("No block specified")

@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/securedb"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 func TestEncryptedMarshaler(t *testing.T) {
@@ -17,6 +18,7 @@ func TestEncryptedMarshaler(t *testing.T) {
 	var err error
 	var ems []*EncryptedMarshaler
 	var hashes []interfaces.BinaryMarshallable
+	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
 	key := primitives.RandomHash().Bytes()
 	// Test with IHash
@@ -73,9 +75,9 @@ func TestEncryptedMarshaler(t *testing.T) {
 	// Test a message
 	for i := 0; i < 10; i++ {
 		k := primitives.RandomHash().Bytes()
-		o = messages.NewServerFault(primitives.RandomHash(), primitives.RandomHash(), 0, 0, 0, 0, primitives.NewTimestampNow())
+		o = messages.NewAddServerMsg(s, 0)
 		m := NewEncryptedMarshaler(k, o)
-		d := NewEncryptedMarshaler(k, new(messages.ServerFault))
+		d := NewEncryptedMarshaler(k, new(messages.AddServerMsg))
 		testEM(m, d, o, t)
 	}
 

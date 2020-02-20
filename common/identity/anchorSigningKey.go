@@ -5,6 +5,10 @@
 package identity
 
 import (
+	"bytes"
+	"fmt"
+	"os"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
@@ -12,11 +16,24 @@ import (
 
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
 
+// sort.Sort interface implementation
+type AnchorSigningKeySort []AnchorSigningKey
+
+func (p AnchorSigningKeySort) Len() int {
+	return len(p)
+}
+func (p AnchorSigningKeySort) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p AnchorSigningKeySort) Less(i, j int) bool {
+	return bytes.Compare(p[i].SigningKey[:], p[j].SigningKey[:]) < 0
+}
+
 type AnchorSigningKey struct {
-	BlockChain string   `json:"blockchain"`
-	KeyLevel   byte     `json:"level"`
-	KeyType    byte     `json:"keytype"`
-	SigningKey [20]byte `json:"key"` //if bytes, it is hex
+	BlockChain string                 `json:"blockchain"`
+	KeyLevel   byte                   `json:"level"`
+	KeyType    byte                   `json:"keytype"`
+	SigningKey primitives.ByteSlice20 `json:"key"` //if bytes, it is hex
 }
 
 var _ interfaces.BinaryMarshallable = (*AnchorSigningKey)(nil)
@@ -48,10 +65,15 @@ func (e *AnchorSigningKey) IsSameAs(b *AnchorSigningKey) bool {
 	return true
 }
 
-func (e *AnchorSigningKey) MarshalBinary() ([]byte, error) {
+func (e *AnchorSigningKey) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AnchorSigningKey.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushString(e.BlockChain)
+	err = buf.PushString(e.BlockChain)
 	if err != nil {
 		return nil, err
 	}

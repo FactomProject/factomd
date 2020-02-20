@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -98,11 +99,15 @@ func (c *FBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(FBlock)
 }
 
-func (c *FBlock) DatabasePrimaryIndex() interfaces.IHash {
+func (c *FBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.DatabasePrimaryIndex") }()
+
 	return c.GetKeyMR()
 }
 
-func (c *FBlock) DatabaseSecondaryIndex() interfaces.IHash {
+func (c *FBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.DatabaseSecondaryIndex") }()
+
 	return c.GetLedgerKeyMR()
 }
 
@@ -115,7 +120,7 @@ func (b *FBlock) GetCoinbaseTimestamp() interfaces.Timestamp {
 	if len(b.Transactions) == 0 {
 		return nil
 	}
-	return b.Transactions[0].GetTimestamp()
+	return b.Transactions[0].GetTimestamp().Clone()
 }
 
 func (b *FBlock) EndOfPeriod(period int) {
@@ -142,7 +147,12 @@ func (b *FBlock) GetEndOfPeriod() [10]int {
 	return b.endOfPeriod
 }
 
-func (b *FBlock) MarshalTrans() ([]byte, error) {
+func (b *FBlock) MarshalTrans() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "FBlock.MarshalTrans err:%v", *pe)
+		}
+	}(&err)
 	var out primitives.Buffer
 	var periodMark = 0
 	var i int
@@ -178,7 +188,12 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 	return out.DeepCopyBytes(), nil
 }
 
-func (b *FBlock) MarshalHeader() ([]byte, error) {
+func (b *FBlock) MarshalHeader() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "FBlock.MarshalHeader err:%v", *pe)
+		}
+	}(&err)
 	var out primitives.Buffer
 
 	out.Write(constants.FACTOID_CHAINID)
@@ -228,7 +243,12 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 }
 
 // Write out the block
-func (b *FBlock) MarshalBinary() ([]byte, error) {
+func (b *FBlock) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "FBlock.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	b.Init()
 	var out primitives.Buffer
 
@@ -305,7 +325,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	cnt, err := buf.PopUInt32()
+	txCount, err := buf.PopUInt32()
 	if err != nil {
 		return nil, err
 	}
@@ -315,13 +335,27 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	b.Transactions = make([]interfaces.ITransaction, int(cnt), int(cnt))
+	// txLimit is the maximum number of transactions (min 20 bytes for an empty
+	// coinbase tx) that could fit into the unread portion of the buffer.
+	// This is a reasonable limit to the tx limit, not the hard math to compute that limit.
+	l := buf.Len()
+	txLimit := uint32(l / 20)
+
+	if txCount > txLimit {
+		return nil, fmt.Errorf(
+			"Error: FBlock.Unmarshal: transaction count %d higher than space "+
+				"in body %d (uint underflow?)",
+			txCount, txLimit,
+		)
+	}
+
+	b.Transactions = make([]interfaces.ITransaction, int(txCount), int(txCount))
 	for i, _ := range b.endOfPeriod {
 		b.endOfPeriod[i] = 0
 	}
 	var periodMark = 0
 
-	for i := uint32(0); i < cnt; i++ {
+	for i := uint32(0); i < txCount; i++ {
 		by, err := buf.PeekByte()
 		if err != nil {
 			return nil, err
@@ -355,7 +389,7 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		b.endOfPeriod[periodMark] = int(cnt)
+		b.endOfPeriod[periodMark] = int(txCount)
 		periodMark++
 	}
 
@@ -367,12 +401,16 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 	return err
 }
 
-func (b *FBlock) GetChainID() interfaces.IHash {
+func (b *FBlock) GetChainID() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetChainID") }()
+
 	return primitives.NewHash(constants.FACTOID_CHAINID)
 }
 
 // Calculates the Key Merkle Root for this block and returns it.
-func (b *FBlock) GetKeyMR() interfaces.IHash {
+func (b *FBlock) GetKeyMR() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetKeyMR") }()
+
 	bodyMR := b.GetBodyMR()
 
 	data, err := b.MarshalHeader()
@@ -386,11 +424,15 @@ func (b *FBlock) GetKeyMR() interfaces.IHash {
 	return kmr
 }
 
-func (b *FBlock) GetHash() interfaces.IHash {
+func (b *FBlock) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetHash") }()
+
 	return b.GetLedgerKeyMR()
 }
 
-func (b *FBlock) GetLedgerKeyMR() interfaces.IHash {
+func (b *FBlock) GetLedgerKeyMR() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetLedgerKeyMR") }()
+
 	ledgerMR := b.GetLedgerMR()
 
 	data, err := b.MarshalHeader()
@@ -405,7 +447,9 @@ func (b *FBlock) GetLedgerKeyMR() interfaces.IHash {
 }
 
 // Returns the LedgerMR for this block.
-func (b *FBlock) GetLedgerMR() interfaces.IHash {
+func (b *FBlock) GetLedgerMR() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetLedgerMR") }()
+
 	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
@@ -425,7 +469,9 @@ func (b *FBlock) GetLedgerMR() interfaces.IHash {
 	return lmr
 }
 
-func (b *FBlock) GetBodyMR() interfaces.IHash {
+func (b *FBlock) GetBodyMR() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetBodyMR") }()
+
 	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
@@ -446,7 +492,9 @@ func (b *FBlock) GetBodyMR() interfaces.IHash {
 	return b.BodyMR
 }
 
-func (b *FBlock) GetPrevKeyMR() interfaces.IHash {
+func (b *FBlock) GetPrevKeyMR() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetPrevKeyMR") }()
+
 	return b.PrevKeyMR
 }
 
@@ -454,7 +502,9 @@ func (b *FBlock) SetPrevKeyMR(hash interfaces.IHash) {
 	b.PrevKeyMR = hash
 }
 
-func (b *FBlock) GetPrevLedgerKeyMR() interfaces.IHash {
+func (b *FBlock) GetPrevLedgerKeyMR() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetPrevLedgerKeyMR") }()
+
 	return b.PrevLedgerKeyMR
 }
 
@@ -485,11 +535,9 @@ func (b *FBlock) GetExchRate() uint64 {
 
 func (b FBlock) ValidateTransaction(index int, trans interfaces.ITransaction) error {
 	// Calculate the fee due.
-	{
-		err := trans.Validate(index)
-		if err != nil {
-			return err
-		}
+	err := trans.Validate(index)
+	if err != nil {
+		return err
 	}
 
 	//Ignore coinbase transaction's signatures

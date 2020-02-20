@@ -37,9 +37,9 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		}
 		height := uint32(heightInt)
 		if height < DisplayState.CurrentNodeHeight {
-			dbase := StatePointer.GetAndLockDB()
+			dbase := StatePointer.GetDB()
 			dBlock, err := dbase.FetchDBlockByHeight(height)
-			StatePointer.UnlockDB()
+
 			if err != nil {
 				return false, ""
 			}
@@ -81,13 +81,13 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		}
 
 		// Must unlock manually when returining. Function continues to wsapi, who needs the dbase
-		dbase := st.GetAndLockDB()
+		dbase := st.GetDB()
 
 		// Search for Entry
 		if entry, err := dbase.FetchEntry(hash); err == nil && entry != nil {
 			resp := newSearchResponse("entry", entry)
 			if len(resp) > 1 {
-				st.UnlockDB()
+
 				return true, resp
 			}
 		}
@@ -95,7 +95,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		if mr, err := dbase.FetchHeadIndexByChainID(hash); err == nil && mr != nil {
 			resp := newSearchResponse("chainhead", mr)
 			if len(resp) > 1 {
-				st.UnlockDB()
+
 				return true, resp
 			}
 		}
@@ -103,7 +103,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		if eBlock, err := dbase.FetchEBlock(hash); err == nil && eBlock != nil {
 			resp := newSearchResponse("eblock", eBlock)
 			if len(resp) > 1 {
-				st.UnlockDB()
+
 				return true, resp
 			}
 		}
@@ -111,7 +111,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		if dBlock, err := dbase.FetchDBlock(hash); err == nil && dBlock != nil {
 			resp := newSearchResponse("dblock", dBlock)
 			if len(resp) > 1 {
-				st.UnlockDB()
+
 				return true, resp
 			}
 		}
@@ -119,7 +119,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		if aBlock, err := dbase.FetchABlock(hash); err == nil && aBlock != nil {
 			resp := newSearchResponse("ablock", aBlock)
 			if len(resp) > 1 {
-				st.UnlockDB()
+
 				return true, resp
 			}
 		}
@@ -127,7 +127,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		if fBlock, err := dbase.FetchFBlock(hash); err == nil && fBlock != nil {
 			resp := newSearchResponse("fblock", fBlock)
 			if len(resp) > 1 {
-				st.UnlockDB()
+
 				return true, resp
 			}
 		}
@@ -135,7 +135,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		if ecBlock, err := dbase.FetchECBlock(hash); err == nil && ecBlock != nil {
 			resp := newSearchResponse("ecblock", ecBlock)
 			if len(resp) > 1 {
-				st.UnlockDB()
+
 				return true, resp
 			}
 		}
@@ -144,7 +144,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		if trans, err := dbase.FetchFactoidTransaction(hash); err == nil && trans != nil {
 			resp := newSearchResponse("facttransaction", trans)
 			if len(resp) > 1 {
-				st.UnlockDB()
+
 				return true, resp
 			}
 		}
@@ -153,12 +153,10 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		if trans, err := dbase.FetchECTransaction(hash); err == nil && trans != nil {
 			resp := newSearchResponse("ectransaction", trans)
 			if len(resp) > 1 {
-				st.UnlockDB()
+
 				return true, resp
 			}
 		}
-
-		st.UnlockDB()
 
 		// This search takes too long to make it worth it
 		// Search for Entry Transaction

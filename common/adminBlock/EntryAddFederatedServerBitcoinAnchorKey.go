@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -27,12 +28,18 @@ func (e *AddFederatedServerBitcoinAnchorKey) Init() {
 	e.AdminIDType = uint32(e.Type())
 }
 
+func (e *AddFederatedServerBitcoinAnchorKey) SortedIdentity() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "AddFederatedServerBitcoinAnchorKey.SortedIdentity") }()
+
+	return e.IdentityChainID
+}
+
 func (e *AddFederatedServerBitcoinAnchorKey) String() string {
 	e.Init()
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8x %12s %8x %12s %8s",
 		"AddFederatedServerBitcoinAnchorKey",
-		"IdentityChainID", e.IdentityChainID.Bytes()[3:5],
+		"IdentityChainID", e.IdentityChainID.Bytes()[3:6],
 		"KeyPriority", e.KeyPriority,
 		"KeyType", e.KeyType,
 		"ECDSAPublicKey", e.ECDSAPublicKey.String()[:8]))
@@ -59,11 +66,16 @@ func (e *AddFederatedServerBitcoinAnchorKey) Type() byte {
 	return constants.TYPE_ADD_BTC_ANCHOR_KEY
 }
 
-func (e *AddFederatedServerBitcoinAnchorKey) MarshalBinary() ([]byte, error) {
+func (e *AddFederatedServerBitcoinAnchorKey) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AddFederatedServerBitcoinAnchorKey.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	e.Init()
 	var buf primitives.Buffer
 
-	err := buf.PushByte(e.Type())
+	err = buf.PushByte(e.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +121,7 @@ func (e *AddFederatedServerBitcoinAnchorKey) UnmarshalBinaryData(data []byte) ([
 		return nil, err
 	}
 	if e.KeyType != 0 && e.KeyType != 1 {
-		return nil, fmt.Errorf("Invalid KeyType")
+		return nil, fmt.Errorf("Invalid KeyType, found %d", e.KeyType)
 	}
 	err = buf.PopBinaryMarshallable(&e.ECDSAPublicKey)
 	if err != nil {
@@ -142,7 +154,9 @@ func (e *AddFederatedServerBitcoinAnchorKey) Interpret() string {
 	return ""
 }
 
-func (e *AddFederatedServerBitcoinAnchorKey) Hash() interfaces.IHash {
+func (e *AddFederatedServerBitcoinAnchorKey) Hash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "AddFederatedServerBitcoinAnchorKey.Hash") }()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

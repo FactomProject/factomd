@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
 
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -48,7 +49,7 @@ func TestMarshalUnmarshalDirectoryBlockSignature(t *testing.T) {
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	msg2, err := UnmarshalMessage(hex)
+	msg2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error("#2 ", err)
 	}
@@ -99,7 +100,7 @@ func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
 		t.Error("Signature is not valid")
 	}
 
-	dbs2, err := UnmarshalMessage(hex)
+	dbs2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
@@ -121,7 +122,7 @@ func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
 func TestInvalidSignature(t *testing.T) {
 	s := testHelper.CreateEmptyTestState()
 	m, a, key := newSignedDirectoryBlockSignature()
-	s.Authorities = append(s.Authorities, a)
+	s.IdentityControl.SetAuthority(a.AuthorityChainID, a)
 
 	data, err := m.MarshalBinary()
 	if err != nil {
@@ -149,9 +150,15 @@ func TestInvalidSignature(t *testing.T) {
 		panic(err)
 	}
 
-	m.Signature = m2.Signature
+	m.Signature = m2.Signature       // make message signature bad
+	s.LLeaderHeight = m.DBHeight - 1 // make message in the future
 	v = m.Validate(s)
 
+	if v != -2 {
+		t.Errorf("Expected -2, found %d", v)
+	}
+	s.LLeaderHeight = m.DBHeight // make message current but a bad signature
+	v = m.Validate(s)
 	if v != -1 {
 		t.Errorf("Expected -1, found %d", v)
 	}

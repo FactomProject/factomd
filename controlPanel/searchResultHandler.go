@@ -19,6 +19,8 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
+	"strings"
+
 	"github.com/FactomProject/factomd/common/factoid"
 )
 
@@ -229,9 +231,8 @@ func getEcTransaction(hash string) interfaces.IECBlockEntry {
 		return nil
 	}
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	trans, err := dbase.FetchECTransaction(mr)
-	StatePointer.UnlockDB()
 
 	if trans == nil || err != nil {
 		return nil
@@ -248,9 +249,8 @@ func getFactTransaction(hash string) interfaces.ITransaction {
 		return nil
 	}
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	trans, err := dbase.FetchFactoidTransaction(mr)
-	StatePointer.UnlockDB()
 
 	if trans == nil || err != nil {
 		return nil
@@ -313,9 +313,8 @@ func getECblock(hash string) *ECBlockHolder {
 		return nil
 	}
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	ecblk, err := dbase.FetchECBlock(mr)
-	StatePointer.UnlockDB()
 
 	if ecblk == nil || err != nil {
 		return nil
@@ -349,9 +348,8 @@ func getFblock(hash string) *FBlockHolder {
 		return nil
 	}
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	fblk, err := dbase.FetchFBlock(mr)
-	StatePointer.UnlockDB()
 
 	if fblk == nil || err != nil {
 		return nil
@@ -402,12 +400,11 @@ func getAblock(hash string) *AblockHolder {
 
 	holder := new(AblockHolder)
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	ablk, err := dbase.FetchABlock(mr)
-	StatePointer.UnlockDB()
 
 	if ablk == nil || err != nil {
-		StatePointer.UnlockDB()
+
 		return nil
 	}
 	bytes, err := ablk.JSONByte()
@@ -493,11 +490,7 @@ func getAblock(hash string) *AblockHolder {
 			disp.Type = "Remove Server"
 			disp.OtherInfo = "Identity ChainID: <a href='' id='factom-search-link' type='chainhead'>" + f.IdentityChainID.String() + "</a>"
 		case constants.TYPE_ADD_FED_SERVER_KEY:
-			f := new(adminBlock.AddFederatedServerSigningKey)
-			err := f.UnmarshalBinary(data)
-			if err != nil {
-				continue
-			}
+			f := entry.(*adminBlock.AddFederatedServerSigningKey)
 			disp.Type = "Add Server Key"
 			disp.OtherInfo = "Identity ChainID: <a href='' id='factom-search-link' type='chainhead'>" + f.IdentityChainID.String() + "</a><br />Key: " + f.PublicKey.String()
 		case constants.TYPE_ADD_BTC_ANCHOR_KEY:
@@ -508,11 +501,62 @@ func getAblock(hash string) *AblockHolder {
 			}
 			disp.Type = "Add Bitcoin Server Key"
 			disp.OtherInfo = "Identity ChainID: <a href='' id='factom-search-link' type='chainhead'>" + b.IdentityChainID.String() + "</a>"
+
+			//Coinbase related
+		case constants.TYPE_COINBASE_DESCRIPTOR:
+			f := entry.(*adminBlock.CoinbaseDescriptor)
+			disp.Type = "Coinbase Descriptor"
+			sep := ""
+			for _, o := range f.Outputs {
+				disp.OtherInfo += fmt.Sprintf("%sAddress: <a href='' id='factom-search-link' type='FA'>%s</a> Amount: %s", sep, primitives.ConvertFctAddressToUserStr(o.GetAddress()), FactoshiToFactoid(o.GetAmount()))
+				sep = "<br />"
+			}
+
+		case constants.TYPE_COINBASE_DESCRIPTOR_CANCEL:
+			f := entry.(*adminBlock.CancelCoinbaseDescriptor)
+			disp.Type = "Coinbase Descriptor Cancel"
+			disp.OtherInfo = fmt.Sprintf("Descriptor Height: %d, Index: %d", f.DescriptorHeight, f.DescriptorIndex)
+		case constants.TYPE_ADD_FACTOID_ADDRESS:
+			f := entry.(*adminBlock.AddFactoidAddress)
+			disp.Type = "Add Coinbase Address"
+			disp.OtherInfo = "Identity ChainID: <a href='' id='factom-search-link' type='chainhead'>" + f.IdentityChainID.String() + "</a><br />"
+			disp.OtherInfo += fmt.Sprintf("Address: <a href='' id='factom-search-link' type='FA'>%s</a>", primitives.ConvertFctAddressToUserStr(f.FactoidAddress))
+		case constants.TYPE_ADD_FACTOID_EFFICIENCY:
+			f := entry.(*adminBlock.AddEfficiency)
+			disp.Type = "Add Authority Efficiency"
+			disp.OtherInfo = "Identity ChainID: <a href='' id='factom-search-link' type='chainhead'>" + f.IdentityChainID.String() + "</a><br />"
+			disp.OtherInfo += fmt.Sprintf("Efficiency: %s%%", primitives.EfficiencyToString(f.Efficiency))
+		default:
+			// Forward compatible
+			_, ok := entry.(*adminBlock.ForwardCompatibleEntry)
+			if !ok {
+				disp.Type = "Unknown"
+				data, _ := entry.MarshalBinary()
+				disp.OtherInfo = fmt.Sprintf("Type: %x<br />Raw: %x", entry.Type(), data)
+			} else {
+				disp.Type = "Forward Compatible Type"
+				data, _ := entry.MarshalBinary()
+				disp.OtherInfo = fmt.Sprintf("This entry is not defined, you are probably running old software and should update.<br />Type: 0x%02x<br />Raw: %x\n", entry.Type(), data)
+			}
 		}
 		holder.ABDisplay = append(holder.ABDisplay, *disp)
 	}
 
 	return holder
+}
+
+// FactoshiToFactoid converts a uint64 factoshi ammount into a fixed point
+// number represented as a string
+func FactoshiToFactoid(i uint64) string {
+	d := i / 1e8
+	r := i % 1e8
+	ds := fmt.Sprintf("%d", d)
+	rs := fmt.Sprintf("%08d", r)
+	rs = strings.TrimRight(rs, "0")
+	if len(rs) > 0 {
+		ds = ds + "."
+	}
+	return fmt.Sprintf("%s%s", ds, rs)
 }
 
 type EblockHolder struct {
@@ -542,9 +586,8 @@ func getEblock(hash string) *EblockHolder {
 	}
 	holder := new(EblockHolder)
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	eblk, err := dbase.FetchEBlock(mr)
-	StatePointer.UnlockDB()
 
 	if eblk == nil || err != nil {
 		return nil
@@ -640,9 +683,8 @@ func getDblock(hash string) *DblockHolder {
 	}
 	holder := new(DblockHolder)
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	dblk, err := dbase.FetchDBlock(mr)
-	StatePointer.UnlockDB()
 
 	if dblk == nil || err != nil {
 		return nil
@@ -709,9 +751,8 @@ func getEntry(hash string) *EntryHolder {
 	if err != nil {
 		return nil
 	}
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	entry, err := dbase.FetchEntry(entryHash)
-	StatePointer.UnlockDB()
 
 	if err != nil {
 		return nil
@@ -771,9 +812,8 @@ func getAllChainEntries(chainIDString string) []SearchedStruct {
 	s.Type = "chainhead"
 	s.Input = chainID.String()
 
-	dbase := StatePointer.GetAndLockDB()
+	dbase := StatePointer.GetDB()
 	mr, err := dbase.FetchHeadIndexByChainID(chainID)
-	StatePointer.UnlockDB()
 
 	if err != nil || mr == nil {
 		return nil
@@ -786,10 +826,10 @@ func getAllChainEntries(chainIDString string) []SearchedStruct {
 
 	entries := make([]interfaces.IEBEntry, 0)
 
-	dbase = StatePointer.GetAndLockDB()
+	dbase = StatePointer.GetDB()
 	eblks, err := dbase.FetchAllEBlocksByChain(chainID)
 	if err != nil {
-		StatePointer.UnlockDB()
+
 		return nil
 	}
 
@@ -804,7 +844,7 @@ func getAllChainEntries(chainIDString string) []SearchedStruct {
 		}
 	}
 	//entries, err := dbase.FetchAllEntriesByChainID(chainID)
-	StatePointer.UnlockDB()
+
 	if err != nil {
 		return nil
 	}

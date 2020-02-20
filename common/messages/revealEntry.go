@@ -12,21 +12,22 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
 type RevealEntryMsg struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 	Entry     interfaces.IEntry
 
 	//No signature!
 
 	//Not marshalled
-	hash         interfaces.IHash
 	chainIDHash  interfaces.IHash
 	IsEntry      bool
 	CommitChain  *CommitChainMsg
@@ -51,19 +52,27 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 	return state.ProcessRevealEntry(dbheight, m)
 }
 
-func (m *RevealEntryMsg) GetRepeatHash() interfaces.IHash {
+func (m *RevealEntryMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "RevealEntryMsg.GetRepeatHash") }()
+
 	return m.Entry.GetHash()
 }
 
-func (m *RevealEntryMsg) GetHash() interfaces.IHash {
+func (m *RevealEntryMsg) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "RevealEntryMsg.GetHash") }()
+
 	return m.Entry.GetHash()
 }
 
-func (m *RevealEntryMsg) GetMsgHash() interfaces.IHash {
+func (m *RevealEntryMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "RevealEntryMsg.GetMsgHash") }()
+
 	return m.Entry.GetHash()
 }
 
-func (m *RevealEntryMsg) GetChainIDHash() interfaces.IHash {
+func (m *RevealEntryMsg) GetChainIDHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "RevealEntryMsg.GetChainIDHash") }()
+
 	if m.chainIDHash == nil {
 		m.chainIDHash = primitives.Sha(m.Entry.GetChainID().Bytes())
 	}
@@ -74,7 +83,7 @@ func (m *RevealEntryMsg) GetTimestamp() interfaces.Timestamp {
 	if m.Timestamp == nil {
 		m.Timestamp = new(primitives.Timestamp)
 	}
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *RevealEntryMsg) Type() byte {
@@ -106,7 +115,11 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	commit := state.NextCommit(m.Entry.GetHash())
 
 	if commit == nil {
-		return 0
+		state.LogMessage("executeMsg", "Hold, no commit", m)
+		// old holding return 0
+		state.LogPrintf("dependentHolding", "Hold, no commit M-%x is waiting on H-%x", m.GetMsgHash().Bytes()[:3], m.Entry.GetHash().Bytes()[:3])
+		return state.Add(m.Entry.GetHash().Fixed(), m) // hold for a commit
+
 	}
 	//
 	// Make sure one of the two proper commits got us here.
@@ -114,6 +127,15 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	m.CommitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
 	if !okChain && !okEntry { // What is this trash doing here?  Not a commit at all!
+		state.LogMessage("executeMsg", "drop, bad commit", m)
+		return -1
+	}
+
+	// Any entry over 10240 bytes will be rejected
+	if m.Entry.KSize() > 10 {
+		data, _ := m.Entry.MarshalBinary()
+		state.LogMessage("executeMsg", "drop, oversized", m)
+		state.LogPrintf("executeMsg", "Size = %d %dk", len(data), m.Entry.KSize())
 		return -1
 	}
 
@@ -122,17 +144,16 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	if okEntry {
 		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
-		// Any entry over 10240 bytes will be rejected
-		if m.Entry.KSize() > 10 {
-			return -1
-		}
 
 		if m.Entry.KSize() > ECs {
-			return 0 // not enough payments on the EC to reveal this entry.  Return 0 to wait on another commit
+			state.LogMessage("executeMsg", "Hold, underpaid", m)
+			// old holding .... return 0 // not enough payments on the EC to reveal this entry.  Return 0 to wait on another commit
+			state.LogPrintf("dependentHolding", "Hold, underpaid M-%x is waiting on M-%x", m.GetMsgHash().Bytes()[:3], m.Entry.GetHash().Bytes()[:3])
+			return state.Add(m.Entry.GetHash().Fixed(), m) // hold for a new commit
 		}
 
 		// Make sure we have a chain.  If we don't, then bad things happen.
-		db := state.GetAndLockDB()
+		db := state.GetDB()
 		dbheight := state.GetLeaderHeight()
 		eb := state.GetNewEBlocks(dbheight, m.Entry.GetChainID())
 		if eb == nil {
@@ -148,18 +169,26 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 
 		if eb == nil {
+			state.LogMessage("executeMsg", "Hold, no chain", m)
 			// No chain, we have to leave it be and maybe one will be made.
-			return 0
+			//old holding .., return 0
+			state.LogPrintf("dependentHolding", "Hold, No Chain M-%x is waiting on chain %x", m.GetMsgHash().Bytes()[:3], m.Entry.GetChainID().Bytes()[:6])
+			return state.Add(m.Entry.GetChainID().Fixed(), m) // hold for a new commit
+
 		}
 		return 1
 	} else {
 		m.IsEntry = false
 		ECs := int(m.CommitChain.CommitChain.Credits)
 		if m.Entry.KSize()+10 > ECs { // Discard commits that are not funded properly
-			return 0
+			state.LogMessage("executeMsg", "Hold, under paid", m)
+			// old holding .... return 0 // not enough payments on the EC to reveal this chain.  Return 0 to wait on another commit
+			state.LogPrintf("dependentHolding", "Hold, underpaid M-%x is waiting on M-%x", m.GetMsgHash().Bytes()[:3], m.Entry.GetHash().Bytes()[:3])
+			return state.Add(m.Entry.GetHash().Fixed(), m) // hold for a new commit
 		}
 
 		if !CheckChainID(state, m.Entry.ExternalIDs(), m) {
+			state.LogMessage("executeMsg", "drop, chainID does not match hash of ExtIDs", m)
 			return -1
 		}
 	}
@@ -198,6 +227,7 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 
@@ -221,7 +251,7 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	m.Entry = e
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return newData, nil
 }
@@ -265,7 +295,7 @@ func (m *RevealEntryMsg) String() string {
 		"REntry",
 		m.VMIndex,
 		m.Minute,
-		m.GetLeaderChainID().Bytes()[:5],
+		m.GetLeaderChainID().Bytes()[3:6],
 		m.Entry.GetHash().Bytes()[:3],
 		m.Entry.GetChainID().Bytes()[:5],
 		m.GetHash().Bytes()[:3])

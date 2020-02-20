@@ -13,12 +13,14 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
 type CommitEntryMsg struct {
-	MessageBase
+	msgbase.MessageBase
 
 	CommitEntry *entryCreditBlock.CommitEntry
 
@@ -27,14 +29,14 @@ type CommitEntryMsg struct {
 	//Not marshalled
 	hash interfaces.IHash
 
-	// Not marshaled... Just used by the leader
+	// Not marshalled... Just used by the leader
 	count        int
 	validsig     bool
 	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
-var _ Signable = (*CommitEntryMsg)(nil)
+var _ interfaces.Signable = (*CommitEntryMsg)(nil)
 
 func (a *CommitEntryMsg) IsSameAs(b *CommitEntryMsg) bool {
 	if a == nil || b == nil {
@@ -81,15 +83,21 @@ func (m *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 	return state.ProcessCommitEntry(dbheight, m)
 }
 
-func (m *CommitEntryMsg) GetRepeatHash() interfaces.IHash {
+func (m *CommitEntryMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "CommitEntryMsg.GetRepeatHash") }()
+
 	return m.CommitEntry.GetSigHash()
 }
 
-func (m *CommitEntryMsg) GetHash() interfaces.IHash {
-	return m.GetMsgHash()
+func (m *CommitEntryMsg) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "CommitEntryMsg.GetHash") }()
+
+	return m.CommitEntry.EntryHash
 }
 
-func (m *CommitEntryMsg) GetMsgHash() interfaces.IHash {
+func (m *CommitEntryMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "CommitEntryMsg.GetMsgHash") }()
+
 	if m.MsgHash == nil {
 		m.MsgHash = m.CommitEntry.GetSigHash()
 	}
@@ -97,7 +105,7 @@ func (m *CommitEntryMsg) GetMsgHash() interfaces.IHash {
 }
 
 func (m *CommitEntryMsg) GetTimestamp() interfaces.Timestamp {
-	return m.CommitEntry.GetTimestamp()
+	return m.CommitEntry.GetTimestamp().Clone()
 }
 
 func (m *CommitEntryMsg) Type() byte {
@@ -105,7 +113,7 @@ func (m *CommitEntryMsg) Type() byte {
 }
 
 func (m *CommitEntryMsg) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -118,13 +126,14 @@ func (m *CommitEntryMsg) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *CommitEntryMsg) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Commit entry Message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Commit entry Message: %v", r)
 		}
 	}()
 	newData = data
@@ -148,7 +157,7 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		}
 	}
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return newData, nil
 }
@@ -198,11 +207,13 @@ func (m *CommitEntryMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	str := fmt.Sprintf("%6s-VM%3d:                 -- EntryHash[%x] Hash[%x]",
+	str := fmt.Sprintf("%6s-VM%3d: %s -- EntryHash[%x] Hash[%x] base=%s",
 		"CEntry",
 		m.VMIndex,
+		m.CommitEntry.String(),
 		m.CommitEntry.GetEntryHash().Bytes()[:3],
-		m.GetHash().Bytes()[:3])
+		m.GetHash().Bytes()[:3],
+		m.StringOfMsgBase())
 	return str
 }
 
@@ -228,7 +239,9 @@ func (m *CommitEntryMsg) Validate(state interfaces.IState) int {
 
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitEntry.ECPubKey)
 	if int(m.CommitEntry.Credits) > int(ebal) {
-		return 0
+		// return 0  // old way add to scanned holding queue
+		// new holding mechanism added it to a list of messages dependent on the EC address
+		return state.Add(m.CommitEntry.ECPubKey.Fixed(), m)
 	}
 	return 1
 }
@@ -241,15 +254,12 @@ func (m *CommitEntryMsg) ComputeVMIndex(state interfaces.IState) {
 func (m *CommitEntryMsg) LeaderExecute(state interfaces.IState) {
 	// Check if we have yet to see an entry.  If we have seen one (NoEntryYet == false) then
 	// this commit is invalid.
-	if state.NoEntryYet(m.CommitEntry.EntryHash, m.CommitEntry.GetTimestamp()) {
-		state.LeaderExecuteCommitEntry(m)
-	} else {
-		state.FollowerExecuteCommitEntry(m)
-	}
+	state.LeaderExecuteCommitEntry(m)
+
 }
 
 func (m *CommitEntryMsg) FollowerExecute(state interfaces.IState) {
-	state.FollowerExecuteMsg(m)
+	state.FollowerExecuteCommitEntry(m)
 }
 
 func (e *CommitEntryMsg) JSONByte() ([]byte, error) {

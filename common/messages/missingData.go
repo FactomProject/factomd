@@ -6,17 +6,21 @@ package messages
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
+
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
 //Structure to request missing messages in a node's process list
 type MissingData struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 
 	RequestHash interfaces.IHash
@@ -50,15 +54,21 @@ func (m *MissingData) Process(uint32, interfaces.IState) bool {
 	return true
 }
 
-func (m *MissingData) GetRepeatHash() interfaces.IHash {
+func (m *MissingData) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "MissingData.GetRepeatHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *MissingData) GetHash() interfaces.IHash {
+func (m *MissingData) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "MissingData.GetHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *MissingData) GetMsgHash() interfaces.IHash {
+func (m *MissingData) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "MissingData.GetMsgHash") }()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -70,7 +80,7 @@ func (m *MissingData) GetMsgHash() interfaces.IHash {
 }
 
 func (m *MissingData) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *MissingData) Type() byte {
@@ -81,6 +91,7 @@ func (m *MissingData) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	newData = data
@@ -111,7 +122,12 @@ func (m *MissingData) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *MissingData) MarshalBinary() ([]byte, error) {
+func (m *MissingData) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "MissingData.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
@@ -154,6 +170,10 @@ func (m *MissingData) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *MissingData) FollowerExecute(state interfaces.IState) {
+	panic("deprecated") // go routine in NetworkProcessorNet now handles this
+}
+
+func (m *MissingData) SendResponse(state interfaces.IState) {
 	var dataObject interfaces.BinaryMarshallable
 	//var dataHash interfaces.IHash
 	rawObject, dataType, err := state.LoadDataByHash(m.RequestHash)

@@ -136,7 +136,9 @@ func (nbks *NewBitcoinKeyStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
-func (nbks *NewBitcoinKeyStructure) GetChainID() interfaces.IHash {
+func (nbks *NewBitcoinKeyStructure) GetChainID() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "NewBitcoinKeyStructure.GetChainID") }()
+
 	extIDs := nbks.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)

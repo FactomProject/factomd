@@ -7,19 +7,22 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
 // Communicate a Directory Block State
 
 type DataResponse struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 
 	DataType   int // 0 = Entry, 1 = EntryBlock
@@ -70,15 +73,21 @@ func (a *DataResponse) IsSameAs(b *DataResponse) bool {
 	return true
 }
 
-func (m *DataResponse) GetRepeatHash() interfaces.IHash {
+func (m *DataResponse) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DataResponse.GetRepeatHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *DataResponse) GetHash() interfaces.IHash {
+func (m *DataResponse) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DataResponse.GetHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *DataResponse) GetMsgHash() interfaces.IHash {
+func (m *DataResponse) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "DataResponse.GetMsgHash") }()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -94,7 +103,7 @@ func (m *DataResponse) Type() byte {
 }
 
 func (m *DataResponse) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -160,6 +169,7 @@ func (m *DataResponse) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling: %v", r)
 		}
 	}()
 	newData = data
@@ -213,7 +223,8 @@ func (m *DataResponse) UnmarshalBinary(data []byte) error {
 func attemptEntryUnmarshal(data []byte) (entry interfaces.IEBEntry, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Bytes do not represent an entry")
+			err = fmt.Errorf("Bytes do not represent an entry %v", r)
+			llog.LogPrintf("recovery", "Bytes do not represent an entry %v", r)
 		}
 	}()
 
@@ -229,6 +240,7 @@ func attemptEBlockUnmarshal(data []byte) (eblock interfaces.IEntryBlock, err err
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Bytes do not represent an eblock: %v\n", r)
+			llog.LogPrintf("recovery", "Bytes do not represent an eblock: %v", r)
 		}
 	}()
 
@@ -240,7 +252,12 @@ func attemptEBlockUnmarshal(data []byte) (eblock interfaces.IEntryBlock, err err
 	return eblock, nil
 }
 
-func (m *DataResponse) MarshalBinary() ([]byte, error) {
+func (m *DataResponse) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "DataResponse.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
@@ -269,9 +286,7 @@ func (m *DataResponse) MarshalBinary() ([]byte, error) {
 }
 
 func (m *DataResponse) String() string {
-	return fmt.Sprintf("DataResponse Type: %2d Hash: %x\n",
-		m.DataType,
-		m.DataHash.Bytes())
+	return fmt.Sprintf("DataResponse Type: %2d Hash: %x", m.DataType, m.DataHash.Bytes())
 }
 
 func (m *DataResponse) LogFields() log.Fields {

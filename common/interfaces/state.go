@@ -4,6 +4,14 @@
 
 package interfaces
 
+import (
+	"regexp"
+	"time"
+
+	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common/constants/runstate"
+)
+
 type DBStateSent struct {
 	DBHeight uint32
 	Sent     Timestamp
@@ -24,12 +32,13 @@ type IQueue interface {
 // can be logged about the execution of Factom.  Also ensures that we do not
 // accidentally
 type IState interface {
-	Running() bool // Returns true as long as this Factomd instance is running.
+	GetRunState() runstate.RunState
 	// Server
 	GetFactomNodeName() string
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
 	Clone(number int) IState
 	GetCfg() IFactomConfig
+	GetConfigPath() string
 	LoadConfig(filename string, networkFlag string)
 	Init()
 	String() string
@@ -38,6 +47,7 @@ type IState interface {
 	Sign([]byte) IFullSignature
 	Log(level string, message string)
 	Logf(level string, format string, args ...interface{})
+	GetServerPublicKeyString() string
 
 	GetDBStatesSent() []*DBStateSent
 	SetDBStatesSent([]*DBStateSent)
@@ -46,6 +56,7 @@ type IState interface {
 	SetDirectoryBlockInSeconds(int)
 	GetFactomdVersion() string
 	GetDBHeightComplete() uint32
+	GetDBHeightAtBoot() uint32
 	DatabaseContains(hash IHash) bool
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
@@ -74,6 +85,7 @@ type IState interface {
 	GetRpcAuthHash() []byte
 	GetTlsInfo() (bool, string, string)
 	GetFactomdLocations() string
+	GetCorsDomains() []string
 
 	// Routine for handling the syncroniztion of the leader and follower processes
 	// and how they process messages.
@@ -106,15 +118,16 @@ type IState interface {
 	NetworkOutMsgQueue() IQueue
 	NetworkInvalidMsgQueue() chan IMsg
 
-	// Journalling
+	// Journaling
 	JournalMessage(IMsg)
 	GetJournalMessages() [][]byte
 
 	// Consensus
 	APIQueue() IQueue    // Input Queue from the API
 	InMsgQueue() IQueue  // Read by Validate
-	AckQueue() chan IMsg // Leader Queue
-	MsgQueue() chan IMsg // Follower Queue
+	AckQueue() chan IMsg // Ack Message Queue
+	MsgQueue() chan IMsg // Other Messages Queue
+	ElectionsQueue() IQueue
 
 	// Lists and Maps
 	// =====
@@ -160,6 +173,7 @@ type IState interface {
 	// and what lists they are responsible for.
 	ComputeVMIndex(hash []byte) int // Returns the VMIndex determined by some hash (usually) for the current processlist
 	IsLeader() bool                 // Returns true if this is the leader in the current minute
+	IsRunLeader() bool              // Returns true if the node is finished syncing up it's database
 	GetLeaderVM() int               // Get the Leader VM (only good within a minute)
 	// Returns the list of VirtualServers at a given directory block height and minute
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
@@ -173,8 +187,7 @@ type IState interface {
 	GetAnchor() IAnchor
 
 	// Database
-	GetAndLockDB() DBOverlaySimple
-	UnlockDB()
+	GetDB() DBOverlaySimple
 
 	// Web Services
 	// ============
@@ -222,7 +235,6 @@ type IState interface {
 	ProcessDBSig(dbheight uint32, commitChain IMsg) bool
 	ProcessEOM(dbheight uint32, eom IMsg) bool
 	ProcessRevealEntry(dbheight uint32, m IMsg) bool
-	ProcessFullServerFault(dbheight uint32, fullFault IMsg) bool
 	// For messages that go into the Process List
 	LeaderExecute(IMsg)
 	LeaderExecuteEOM(IMsg)
@@ -246,6 +258,9 @@ type IState interface {
 	UpdateECs(IEntryCreditBlock)
 	SetIsReplaying()
 	SetIsDoneReplaying()
+
+	CrossReplayAddSalt(height uint32, salt [8]byte) error
+
 	// No Entry Yet returns true if no Entry Hash is found in the Replay structs.
 	// Returns false if we have seen an Entry Replay in the current period.
 	NoEntryYet(IHash, Timestamp) bool
@@ -287,10 +302,13 @@ type IState interface {
 	VerifyAuthoritySignature(Message []byte, signature *[64]byte, dbheight uint32) (int, error)
 	FastVerifyAuthoritySignature(Message []byte, signature IFullSignature, dbheight uint32) (int, error)
 	UpdateAuthSigningKeys(height uint32)
+	AddIdentityFromChainID(cid IHash) error
 
 	AddAuthorityDelta(changeString string)
 
+	GetElections() IElections
 	GetAuthorities() []IAuthority
+	GetAuthorityInterface(chainid IHash) IAuthority
 	GetLeaderPL() IProcessList
 	GetLLeaderHeight() uint32
 	GetEntryDBHeightComplete() uint32
@@ -300,6 +318,7 @@ type IState interface {
 	GetCurrentBlockStartTime() int64
 	GetCurrentMinute() int
 	GetCurrentMinuteStartTime() int64
+	GetPreviousMinuteStartTime() int64
 	GetCurrentTime() int64
 	IsStalled() bool
 	GetDelay() int64
@@ -307,6 +326,16 @@ type IState interface {
 	GetDropRate() int
 	SetDropRate(int)
 	GetBootTime() int64
+	IsSyncing() bool
+	IsSyncingEOMs() bool
+	IsSyncingDBSigs() bool
+	DidCreateLastBlockFromDBState() bool
+	GetUnsyncedServers() (ids []IHash, vms []int)
+	Validate(msg IMsg) (validToSend int, validToExecute int)
+	GetIgnoreDone() bool
+
+	// Emit DBState events to the livefeed api from a specified height
+	EmitDirectoryBlockEventsFromHeight(height uint32, end uint32)
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
@@ -315,4 +344,35 @@ type IState interface {
 	// Plugins
 	UsingTorrent() bool
 	GetMissingDBState(height uint32) error
+
+	LogMessage(logName string, comment string, msg IMsg)
+	LogPrintf(logName string, format string, more ...interface{})
+
+	GetHighestAck() uint32
+	SetHighestAck(uint32)
+	DebugExec() bool
+	CheckFileName(string) bool
+	// Filters
+	AddToReplayFilter(mask int, hash [32]byte, timestamp Timestamp, systemtime Timestamp) bool
+
+	// Activations -------------------------------------------------------
+	IsActive(id activations.ActivationType) bool
+
+	// Holding of dependent messages -------------------------------------
+	// Add a message to a dependent holding list
+	Add(h [32]byte, msg IMsg) int
+	// expire any dependent messages that are in holding but are older than limit
+	// Execute messages when a dependency is met
+	ExecuteFromHolding(h [32]byte)
+	// create a hash to hold messages that depend on height
+	HoldForHeight(ht uint32, minute int, msg IMsg) int
+
+	// test/debug filters
+	PassOutputRegEx(*regexp.Regexp, string)
+	GetOutputRegEx() (*regexp.Regexp, string)
+	PassInputRegEx(*regexp.Regexp, string)
+	GetInputRegEx() (*regexp.Regexp, string)
+	GotHeartbeat(heartbeatTS Timestamp, dbheight uint32)
+	GetDBFinished() bool
+	FactomSecond() time.Duration
 }

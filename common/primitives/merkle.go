@@ -6,9 +6,10 @@ package primitives
 
 import (
 	"fmt"
+	"math"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"math"
 )
 
 var _ = fmt.Println
@@ -74,9 +75,9 @@ type MerkleNode struct {
 	Top   *Hash `json:"top,omitempty"`
 }
 
-func BuildMerkleBranchForEntryHash(hashes []interfaces.IHash, entryHash interfaces.IHash, fullDetail bool) []*MerkleNode {
+func BuildMerkleBranchForHash(hashes []interfaces.IHash, target interfaces.IHash, fullDetail bool) []*MerkleNode {
 	for i, h := range hashes {
-		if h.IsSameAs(entryHash) {
+		if h.IsSameAs(target) {
 			return BuildMerkleBranch(hashes, i, fullDetail)
 		}
 	}

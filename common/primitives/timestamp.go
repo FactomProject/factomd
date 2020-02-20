@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -116,7 +117,12 @@ func (t *Timestamp) GetTimeSecondsUInt32() uint32 {
 	return uint32(*t / 1000)
 }
 
-func (t *Timestamp) MarshalBinary() ([]byte, error) {
+func (t *Timestamp) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Timestamp.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var out bytes.Buffer
 	hd := uint32(*t >> 16)
 	ld := uint16(*t & 0xFFFF)
@@ -131,4 +137,11 @@ func (t *Timestamp) String() string {
 
 func (t *Timestamp) UTCString() string {
 	return t.GetTime().UTC().Format("2006-01-02 15:04:05")
+}
+
+// Clone()
+// Functions that return timestamps in structures should clone said timestamps so users
+// don't change the timestamp in the structures.
+func (t Timestamp) Clone() interfaces.Timestamp {
+	return &t
 }

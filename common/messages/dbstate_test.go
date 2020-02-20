@@ -14,11 +14,56 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	statepkg "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 )
+
+func coupleOfSigs(t *testing.T) []interfaces.IFullSignature {
+	priv1 := new(primitives.PrivateKey)
+
+	err := priv1.GenerateKey()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	msg1 := "Test Message Sign1"
+	msg2 := "Test Message Sign2"
+
+	sig1 := priv1.Sign([]byte(msg1))
+	sig2 := priv1.Sign([]byte(msg2))
+
+	var twoSigs []interfaces.IFullSignature
+	twoSigs = append(twoSigs, sig1)
+	twoSigs = append(twoSigs, sig2)
+	return twoSigs
+}
+
+func makeSigList(t *testing.T) SigList {
+	priv1 := new(primitives.PrivateKey)
+
+	err := priv1.GenerateKey()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	msg1 := "Test Message Sign1"
+	msg2 := "Test Message Sign2"
+
+	sig1 := priv1.Sign([]byte(msg1))
+	sig2 := priv1.Sign([]byte(msg2))
+
+	var twoSigs []interfaces.IFullSignature
+	twoSigs = append(twoSigs, sig1)
+	twoSigs = append(twoSigs, sig2)
+
+	sl := new(SigList)
+	sl.Length = 2
+	sl.List = twoSigs
+	return *sl
+}
 
 func TestUnmarshalNilDBStateMsg(t *testing.T) {
 	defer func() {
@@ -49,7 +94,7 @@ func TestMarshalUnmarshalDBStateMsg(t *testing.T) {
 	}
 	//t.Logf("Marshalled - %x", hex)
 
-	msg2, err := UnmarshalMessage(hex)
+	msg2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
@@ -120,7 +165,7 @@ func TestMarshalUnmarshalDBStateMsg(t *testing.T) {
 }
 
 func TestSimpleDBStateMsgValidate(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 
 	msg := new(DBStateMsg)
 	if msg.Validate(state) >= 0 {
@@ -145,7 +190,7 @@ func TestSimpleDBStateMsgValidate(t *testing.T) {
 }
 
 func TestDBStateDataValidate(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	msg := newDBStateMsg()
 
 	if v := msg.ValidateData(state); v != 1 {
@@ -193,10 +238,11 @@ func TestSignedDBStateValidate(t *testing.T) {
 	}
 
 	state := testHelper.CreateEmptyTestState()
+	state.MMRDummy() // Need to start MMR to ensure queues don't fill up() // Clear out the queues that are added too from here
 
 	// Throw in a geneis block
 	prev := testHelper.CreateTestBlockSetWithNetworkID(nil, state.GetNetworkID(), false)
-	dblk, ablk, fblk, ecblk := statepkg.GenerateGenesisBlocks(state.GetNetworkID())
+	dblk, ablk, fblk, ecblk := statepkg.GenerateGenesisBlocks(state.GetNetworkID(), nil)
 	prev.DBlock = dblk.(*directoryBlock.DirectoryBlock)
 	prev.ABlock = ablk.(*adminBlock.AdminBlock)
 	prev.FBlock = fblk
@@ -234,7 +280,12 @@ func TestSignedDBStateValidate(t *testing.T) {
 			a.AddFedServer(id.ID)
 			a.AddFederatedServerSigningKey(id.ID, id.Key.Pub.Fixed())
 			signers = append(signers, id)
+			//a := identity.NewAuthority()
+			//a.AuthorityChainID = id.ID
+			//a.SigningKey = *id.Key.Pub
+			//state.IdentityControl.SetAuthority(id.ID, a)
 		}
+		a.InsertIdentityABEntries()
 
 		set, err := createBlockFromAdmin(a, prev, state)
 		if err != nil {
@@ -299,11 +350,12 @@ func TestSignedDBStateValidate(t *testing.T) {
 	}
 }
 
-// Test Random Conditions
-//		Random number of Feds
-//		Random # of them sign
-//		Random # of them Removed
-func TestPropSignedDBStateValidate(t *testing.T) {
+// Test that a DBStateMsg.Validate() will return invalid (-1) if the starting federated servers
+// no longer hold a majority in the next block due to replacements
+func TestDBStateValidateReplaceFeds(t *testing.T) {
+	// FIXME
+	t.Skip("This test times out")
+
 	type SmallIdentity struct {
 		ID  interfaces.IHash
 		Key primitives.PrivateKey
@@ -323,11 +375,143 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 		}
 	}
 
+	timestamp := primitives.NewTimestampNow()
+
+	// test with fed server sets of size 5 to 32
+	for i := 4; i < 32; i++ {
+		state := testHelper.CreateEmptyTestState()
+
+		// Throw in a geneis block
+		prev := testHelper.CreateTestBlockSetWithNetworkID(nil, state.GetNetworkID(), false)
+		dblk, ablk, fblk, ecblk := statepkg.GenerateGenesisBlocks(state.GetNetworkID(), nil)
+		prev.DBlock = dblk.(*directoryBlock.DirectoryBlock)
+		prev.ABlock = ablk.(*adminBlock.AdminBlock)
+		prev.FBlock = fblk
+		prev.ECBlock = ecblk
+		genDBState := NewDBStateMsg(state.GetTimestamp(), prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock, nil, nil, nil)
+		if genDBState.Validate(state) != 1 {
+			t.Error("Genesis should always be valid")
+		}
+		state.FollowerExecuteDBState(genDBState)
+
+		fedsCount := i + 1 // because the genesis block already has one fed in it
+		timestamp.SetTime(uint64(fedsCount * 1000 * 60 * 60 * 6))
+
+		{ // Create initial block with fedCount feds
+			var signers []SmallIdentity
+			var a *adminBlock.AdminBlock
+			a = testHelper.CreateTestAdminBlock(prev.ABlock)
+			for j := 1; j < fedsCount; j++ {
+				id := ids[j]
+				a.AddFedServer(id.ID)
+				a.AddFederatedServerSigningKey(id.ID, id.Key.Pub.Fixed())
+				signers = append(signers, id)
+			}
+			a.InsertIdentityABEntries()
+			set, err := createBlockFromAdmin(a, prev, state)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
+			for j := 1; j < fedsCount; j++ {
+				state.ProcessLists.Get(set.DBlock.GetDatabaseHeight()).AddFedServer(ids[j].ID)
+			}
+			var dbSigList []interfaces.IFullSignature
+			for _, s := range signers {
+				data, _ := set.DBlock.GetHeader().MarshalBinary()
+				dbSigList = append(dbSigList, s.Key.Sign(data))
+			}
+			msg := NewDBStateMsg(timestamp, set.DBlock, set.ABlock, set.FBlock, set.ECBlock, nil, nil, dbSigList)
+			m := msg.(*DBStateMsg)
+			m.IgnoreSigs = true
+			if m.Validate(state) != 1 {
+				t.Errorf("Setup DBStateMsg should be valid")
+			}
+			if m.ValidateSignatures(state) < 0 {
+				t.Errorf("Should be valid, found %d", m.ValidateSignatures(state))
+			}
+			state.FollowerExecuteDBState(msg)
+			prev = set
+		}
+
+		// Make DBStateMsgs that replace a variable number of the starting feds, and make sure that it's validation
+		// returns -1 when the starting feds no longer have a majority
+		for replaced := 0; replaced < fedsCount; replaced++ {
+			var signers []SmallIdentity
+			var a *adminBlock.AdminBlock
+			a = testHelper.CreateTestAdminBlock(prev.ABlock)
+			for j := 1; j < fedsCount; j++ {
+				if j <= replaced {
+					// replace an old one with a new one
+					a.RemoveFederatedServer(ids[j].ID)
+					newID := ids[j+fedsCount]
+					a.AddFedServer(newID.ID)
+					a.AddFederatedServerSigningKey(newID.ID, newID.Key.Pub.Fixed())
+					signers = append(signers, newID)
+				} else {
+					signers = append(signers, ids[j])
+				}
+			}
+			a.InsertIdentityABEntries()
+			set, err := createBlockFromAdmin(a, prev, state)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
+			for j := 1; j <= replaced; j++ {
+				state.ProcessLists.Get(set.DBlock.GetDatabaseHeight()).RemoveFedServerHash(ids[j].ID)
+				state.ProcessLists.Get(set.DBlock.GetDatabaseHeight()).AddFedServer(ids[j+fedsCount].ID)
+			}
+			var dbSigList []interfaces.IFullSignature
+			for _, s := range signers {
+				data, _ := set.DBlock.GetHeader().MarshalBinary()
+				dbSigList = append(dbSigList, s.Key.Sign(data))
+			}
+			msg := NewDBStateMsg(timestamp, set.DBlock, set.ABlock, set.FBlock, set.ECBlock, nil, nil, dbSigList)
+			m := msg.(*DBStateMsg)
+			m.IgnoreSigs = true
+
+			if fedsCount-replaced < fedsCount/2+1 {
+				if m.Validate(state) == 1 {
+					t.Errorf("New DBStateMsg should be invalid, replaced %d of %d starting feds", replaced, fedsCount)
+				}
+			} else if m.Validate(state) != 1 {
+				t.Errorf("New DBStateMsg should be valid, only replaced %d of %d starting feds", replaced, fedsCount)
+			}
+		}
+	}
+}
+
+// Test Random Conditions
+//		Random number of Feds
+//		Random # of them sign
+//		Random # of them Removed
+func TestPropSignedDBStateValidate(t *testing.T) {
+	type SmallIdentity struct {
+		ID  interfaces.IHash
+		Key primitives.PrivateKey
+	}
+
 	state := testHelper.CreateEmptyTestState()
+	state.MMRDummy() // Need to start MMR to ensure queues don't fill up
+
+	ids := make([]SmallIdentity, 100)
+	for i := range ids {
+		tid, err := primitives.HexToHash("888888" + fmt.Sprintf("%058d", i))
+		if err != nil {
+			panic(err)
+		}
+		ids[i] = SmallIdentity{
+			ID: tid,
+			// Can you believe there isn't a 'RandomPrivateKey' that returns a private key.
+			// Well this works
+			Key: *primitives.RandomPrivateKey(),
+		}
+	}
 
 	// Throw in a geneis block
 	prev := testHelper.CreateTestBlockSetWithNetworkID(nil, state.GetNetworkID(), false)
-	dblk, ablk, fblk, ecblk := statepkg.GenerateGenesisBlocks(state.GetNetworkID())
+	dblk, ablk, fblk, ecblk := statepkg.GenerateGenesisBlocks(state.GetNetworkID(), nil)
 	prev.DBlock = dblk.(*directoryBlock.DirectoryBlock)
 	prev.ABlock = ablk.(*adminBlock.AdminBlock)
 	prev.FBlock = fblk
@@ -346,7 +530,6 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 		var signers []SmallIdentity
 
 		a := testHelper.CreateTestAdminBlock(prev.ABlock)
-		state.ProcessLists.Get(a.GetDatabaseHeight()).Clear()
 		state.ProcessLists.Get(a.GetDatabaseHeight()).FedServers = make([]interfaces.IServer, 0)
 		for ia := 0; ia < len(ids); ia++ {
 			switch random.RandIntBetween(0, 4) {
@@ -380,6 +563,7 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 				totalRemove++
 			}
 		}
+		a.InsertIdentityABEntries()
 
 		set, err := createBlockFromAdmin(a, prev, state)
 		if err != nil {

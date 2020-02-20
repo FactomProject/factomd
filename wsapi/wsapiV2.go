@@ -10,171 +10,172 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
-	"github.com/FactomProject/web"
 )
 
 const API_VERSION string = "2.0"
 
-func HandleV2(ctx *web.Context) {
+func (server *Server) AddV2Endpoints() {
+	server.addRoute("/v2", HandleV2)
+}
+
+func HandleV2(writer http.ResponseWriter, request *http.Request) {
 	n := time.Now()
 	defer HandleV2APICallGeneral.Observe(float64(time.Since(n).Nanoseconds()))
-	ServersMutex.Lock()
-	state := ctx.Server.Env["state"].(interfaces.IState)
-	ServersMutex.Unlock()
 
-	if err := checkAuthHeader(state, ctx.Request); err != nil {
-		remoteIP := ""
-		remoteIP += strings.Split(ctx.Request.RemoteAddr, ":")[0]
-		fmt.Printf("Unauthorized V2 API client connection attempt from %s\n", remoteIP)
-		ctx.ResponseWriter.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
-		http.Error(ctx.ResponseWriter, "401 Unauthorized.", http.StatusUnauthorized)
-
+	state, err := GetState(request)
+	if err != nil {
+		wsLog.Errorf("failed to extract port from request: %s", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	body, err := ioutil.ReadAll(ctx.Request.Body)
+	if err := checkAuthHeader(state, request); err != nil {
+		handleUnauthorized(request, writer)
+		return
+	}
+
+	body, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		HandleV2Error(ctx, nil, NewInvalidRequestError())
+		HandleV2Error(writer, nil, NewInvalidRequestError())
 		return
 	}
 
 	j, err := primitives.ParseJSON2Request(string(body))
 	if err != nil {
-		HandleV2Error(ctx, nil, NewInvalidRequestError())
+		HandleV2Error(writer, nil, NewInvalidRequestError())
 		return
 	}
 
-	jsonResp, jsonError := HandleV2Request(state, j)
-
+	jsonResp, jsonError := HandleV2JSONRequest(state, j)
 	if jsonError != nil {
-		HandleV2Error(ctx, j, jsonError)
+		HandleV2Error(writer, j, jsonError)
 		return
 	}
 
-	ctx.Write([]byte(jsonResp.String()))
+	_, err = writer.Write([]byte(jsonResp.String()))
+	if err != nil {
+		wsLog.Errorf("failed to write response: %v", err)
+		HandleV2Error(writer, nil, NewInternalError())
+		return
+	}
 }
 
-func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
+func HandleV2Request(_ http.ResponseWriter, request *http.Request, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
+	state, err := GetState(request)
+	if err != nil {
+		wsLog.Errorf("failed to extract port from request: %s", err)
+		return nil, NewParseError()
+	}
+	return HandleV2JSONRequest(state, j)
+}
+
+func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
+	wsLog.Infof("request %v", j.String())
 	switch j.Method {
+	case "replay-from-height":
+		resp, jsonError = HandleV2ReplayDBFromHeight(state, params)
+	case "anchors":
+		resp, jsonError = HandleV2Anchors(state, params)
 	case "chain-head":
 		resp, jsonError = HandleV2ChainHead(state, params)
-		break
 	case "commit-chain":
 		resp, jsonError = HandleV2CommitChain(state, params)
-		break
 	case "commit-entry":
 		resp, jsonError = HandleV2CommitEntry(state, params)
-		break
 	case "current-minute":
 		resp, jsonError = HandleV2CurrentMinute(state, params)
-		break
 	case "directory-block":
 		resp, jsonError = HandleV2DirectoryBlock(state, params)
-		break
 	case "directory-block-head":
 		resp, jsonError = HandleV2DirectoryBlockHead(state, params)
-		break
 	case "entry-block":
 		resp, jsonError = HandleV2EntryBlock(state, params)
-		break
 	case "admin-block":
 		resp, jsonError = HandleV2AdminBlock(state, params)
-		break
 	case "factoid-block":
 		resp, jsonError = HandleV2FactoidBlock(state, params)
-		break
 	case "entrycredit-block":
 		resp, jsonError = HandleV2EntryCreditBlock(state, params)
-		break
 	case "entry":
 		resp, jsonError = HandleV2Entry(state, params)
-		break
 	case "entry-credit-balance":
 		resp, jsonError = HandleV2EntryCreditBalance(state, params)
-		break
 	case "entry-credit-rate":
 		resp, jsonError = HandleV2EntryCreditRate(state, params)
-		break
 	case "factoid-balance":
 		resp, jsonError = HandleV2FactoidBalance(state, params)
-		break
 	case "factoid-submit":
 		resp, jsonError = HandleV2FactoidSubmit(state, params)
-		break
 	case "heights":
 		resp, jsonError = HandleV2Heights(state, params)
-		break
 	case "properties":
 		resp, jsonError = HandleV2Properties(state, params)
-		break
 	case "raw-data":
 		resp, jsonError = HandleV2RawData(state, params)
-		break
 	case "receipt":
 		resp, jsonError = HandleV2Receipt(state, params)
-		break
 	case "reveal-chain":
 		resp, jsonError = HandleV2RevealChain(state, params)
-		break
 	case "reveal-entry":
 		resp, jsonError = HandleV2RevealEntry(state, params)
-		break
 	case "factoid-ack":
 		resp, jsonError = HandleV2FactoidACK(state, params)
-		break
 	case "entry-ack":
 		resp, jsonError = HandleV2EntryACK(state, params)
-		break
 	case "pending-entries":
 		resp, jsonError = HandleV2GetPendingEntries(state, params)
-		break
 	case "pending-transactions":
 		resp, jsonError = HandleV2GetPendingTransactions(state, params)
-		break
 	case "send-raw-message":
 		resp, jsonError = HandleV2SendRawMessage(state, params)
-		break
 	case "transaction":
 		resp, jsonError = HandleV2GetTranasction(state, params)
-		break
 	case "dblock-by-height":
 		resp, jsonError = HandleV2DBlockByHeight(state, params)
-		break
 	case "ecblock-by-height":
 		resp, jsonError = HandleV2ECBlockByHeight(state, params)
-		break
 	case "fblock-by-height":
 		resp, jsonError = HandleV2FBlockByHeight(state, params)
-		break
 	case "ablock-by-height":
 		resp, jsonError = HandleV2ABlockByHeight(state, params)
-		break
 	case "authorities":
 		resp, jsonError = HandleAuthorities(state, params)
 	case "tps-rate":
 		resp, jsonError = HandleV2TransactionRate(state, params)
 	case "ack":
 		resp, jsonError = HandleV2ACKWithChain(state, params)
+	case "multiple-fct-balances":
+		resp, jsonError = HandleV2MultipleFCTBalances(state, params)
+	case "multiple-ec-balances":
+		resp, jsonError = HandleV2MultipleECBalances(state, params)
+	case "diagnostics":
+		resp, jsonError = HandleV2Diagnostics(state, params)
+		//case "factoid-accounts":
+		// resp, jsonError = HandleV2Accounts(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
-		break
 	}
 	if jsonError != nil {
+		wsLog.Errorf("error %v", jsonError)
 		return nil, jsonError
 	}
 
@@ -182,7 +183,45 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
 
+	wsLog.Infof("response %v", jsonResp.String())
 	return jsonResp, nil
+}
+
+func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallReplayDBFromHeight.Observe(float64(time.Since(n).Nanoseconds()))
+
+	replayRequest := new(ReplayRequest)
+	err := MapToObject(params, replayRequest)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	beginning := replayRequest.StartHeight
+	end := state.GetDBHeightComplete()
+
+	if replayRequest.EndHeight != 0 && replayRequest.EndHeight < end {
+		end = replayRequest.EndHeight
+	}
+
+	if beginning > end || beginning < 0 || end < 0 {
+		if beginning > end {
+			return nil, NewInvertedHeightError()
+		}
+		return nil, NewInvalidHeightError()
+	}
+
+	if (end - beginning) > 1000 {
+		end = beginning + 1000
+	}
+
+	state.EmitDirectoryBlockEventsFromHeight(beginning, end)
+
+	resp := new(SendReplayMessageResponse)
+	resp.Message = "Successfully initiated replay of blocks " + fmt.Sprint(beginning) + " through " + fmt.Sprint(end)
+	resp.Start = beginning
+	resp.End = end
+	return resp, nil
 }
 
 func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -195,8 +234,7 @@ func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidParamsError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchDBlockByHeight(uint32(heightRequest.Height))
 	if err != nil {
@@ -224,7 +262,7 @@ func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interf
 
 func HandleV2EntryCreditBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
-	defer HandleV2APICallEblock.Observe(float64(time.Since(n).Nanoseconds()))
+	defer HandleV2APICallECBlock.Observe(float64(time.Since(n).Nanoseconds()))
 
 	keymr := new(KeyMRRequest)
 	err := MapToObject(params, keymr)
@@ -237,8 +275,7 @@ func HandleV2EntryCreditBlock(state interfaces.IState, params interface{}) (inte
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchECBlock(h)
 	if err != nil {
@@ -261,8 +298,7 @@ func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (inter
 		return nil, NewInvalidParamsError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchECBlockByHeight(uint32(heightRequest.Height))
 	if err != nil {
@@ -282,10 +318,6 @@ func ECBlockToResp(block interfaces.IEntryCreditBlock) (interface{}, *primitives
 	}
 
 	resp := new(EntryCreditBlockResponse)
-
-	if err != nil {
-		return nil, NewInternalError()
-	}
 	resp.ECBlock.Body = block.GetBody()
 	resp.ECBlock.Header = block.GetHeader()
 	resp.RawData = hex.EncodeToString(raw)
@@ -304,7 +336,7 @@ func ECBlockToResp(block interfaces.IEntryCreditBlock) (interface{}, *primitives
 
 func HandleV2FactoidBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
-	defer HandleV2APICallEblock.Observe(float64(time.Since(n).Nanoseconds()))
+	defer HandleV2APICallFblock.Observe(float64(time.Since(n).Nanoseconds()))
 
 	keymr := new(KeyMRRequest)
 	err := MapToObject(params, keymr)
@@ -317,8 +349,7 @@ func HandleV2FactoidBlock(state interfaces.IState, params interface{}) (interfac
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchFBlock(h)
 	if err != nil {
@@ -353,8 +384,7 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 		}
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchFBlockByHeight(uint32(heightRequest.Height))
 	if err != nil {
@@ -365,7 +395,7 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 	}
 
 	resp, jerr := fBlockToResp(block)
-	if err != nil {
+	if jerr != nil {
 		return nil, jerr
 	}
 
@@ -415,7 +445,7 @@ func correctLowerCasedStringToOriginal(j []byte, original string) []byte {
 
 func HandleV2AdminBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
-	defer HandleV2APICallEblock.Observe(float64(time.Since(n).Nanoseconds()))
+	defer HandleV2APICallAblock.Observe(float64(time.Since(n).Nanoseconds()))
 
 	keymr := new(KeyMRRequest)
 	err := MapToObject(params, keymr)
@@ -428,8 +458,7 @@ func HandleV2AdminBlock(state interfaces.IState, params interface{}) (interface{
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchABlock(h)
 	if err != nil {
@@ -452,8 +481,7 @@ func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidParamsError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchABlockByHeight(uint32(heightRequest.Height))
 	if err != nil {
@@ -483,17 +511,20 @@ func aBlockToResp(block interfaces.IAdminBlock) (interface{}, *primitives.JSONEr
 	return resp, nil
 }
 
-func HandleV2Error(ctx *web.Context, j *primitives.JSON2Request, err *primitives.JSONError) {
+func HandleV2Error(writer http.ResponseWriter, j *primitives.JSON2Request, jErr *primitives.JSONError) {
 	resp := primitives.NewJSON2Response()
 	if j != nil {
 		resp.ID = j.ID
 	} else {
 		resp.ID = nil
 	}
-	resp.Error = err
+	resp.Error = jErr
 
-	ctx.WriteHeader(httpBad)
-	ctx.Write([]byte(resp.String()))
+	writer.WriteHeader(http.StatusBadRequest)
+	_, err := writer.Write([]byte(resp.String()))
+	if err != nil {
+		wsLog.Errorf("failed to write error response: %v", err)
+	}
 }
 
 func MapToObject(source interface{}, dst interface{}) error {
@@ -508,7 +539,12 @@ type JStruct struct {
 	data []byte
 }
 
-func (e *JStruct) MarshalJSON() ([]byte, error) {
+func (e *JStruct) MarshalJSON() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "JStruct.MarshalJSON err:%v", *pe)
+		}
+	}(&err)
 	return e.data, nil
 }
 
@@ -563,7 +599,6 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 	if !state.IsHighestCommit(msg.CommitChain.GetEntryHash(), msg) {
 		return nil, NewRepeatCommitError(RepeatedEntryMessage{"A commit with equal or greater payment already exists", msg.CommitChain.GetEntryHash().String()})
 	}
-
 	state.APIQueue().Enqueue(msg)
 	state.IncECCommits()
 
@@ -591,7 +626,8 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 	}
 
 	commit := entryCreditBlock.NewCommitEntry()
-	if p, err := hex.DecodeString(commitEntryMsg.Message); err != nil {
+	p, err := hex.DecodeString(commitEntryMsg.Message)
+	if err != nil {
 		return nil, NewInvalidCommitEntryError()
 	} else {
 		_, err := commit.UnmarshalBinaryData(p)
@@ -698,8 +734,7 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 	}
 
 	if b == nil {
-		dbase := state.GetAndLockDB()
-		defer state.UnlockDB()
+		dbase := state.GetDB()
 
 		// try to find the block data in db and return the first one found
 		if block, _ = dbase.FetchFBlock(h); block != nil {
@@ -726,25 +761,154 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 	return d, nil
 }
 
-func HandleV2Receipt(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+func HandleV2Anchors(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
-	defer HandleV2APICallReceipt.Observe(float64(time.Since(n).Nanoseconds()))
-
-	hashkey := new(HashRequest)
-	err := MapToObject(params, hashkey)
+	defer HandleV2APICallAnchors.Observe(float64(time.Since(n).Nanoseconds()))
+	request := new(HeightOrHashRequest)
+	err := MapToObject(params, request)
 	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
-	h, err := primitives.HexToHash(hashkey.Hash)
+	var hash interfaces.IHash
+	var directoryBlockHeight uint32
+	dbo := state.GetDB()
+	if request.Height != nil {
+		directoryBlockHeight = uint32(*request.Height)
+	} else if request.Hash != "" {
+		hash, err = primitives.HexToHash(request.Hash)
+		if err != nil {
+			return nil, NewInvalidHashError()
+		}
+		// Find the object at hash and get its directory block height
+		db := state.GetDB()
+		if dBlock, _ := db.FetchDBlock(hash); dBlock != nil {
+			directoryBlockHeight = dBlock.GetDatabaseHeight()
+		} else if entry, _ := state.FetchEntryByHash(hash); entry != nil {
+			dBlockHash, err := db.FetchIncludedIn(hash)
+			if err != nil {
+				return nil, NewInternalDatabaseError()
+			}
+			eBlock, err := db.FetchEBlock(dBlockHash)
+			if err != nil {
+				return nil, NewInternalDatabaseError()
+			}
+			directoryBlockHeight = eBlock.GetDatabaseHeight()
+		} else if aBlock, _ := db.FetchABlock(hash); aBlock != nil {
+			directoryBlockHeight = aBlock.GetDatabaseHeight()
+		} else if eBlock, _ := db.FetchEBlock(hash); eBlock != nil {
+			directoryBlockHeight = eBlock.GetDatabaseHeight()
+		} else if ecBlock, _ := db.FetchECBlock(hash); ecBlock != nil {
+			directoryBlockHeight = ecBlock.GetDatabaseHeight()
+		} else if fBlock, _ := db.FetchFBlock(hash); fBlock != nil {
+			directoryBlockHeight = fBlock.GetDatabaseHeight()
+		} else if tx, _ := state.FetchECTransactionByHash(hash); tx != nil {
+			entryHash := tx.GetEntryHash()
+			dBlockHash, err := db.FetchIncludedIn(entryHash)
+			if err != nil {
+				return nil, NewInternalDatabaseError()
+			}
+			eBlock, err := db.FetchEBlock(dBlockHash)
+			if err != nil {
+				return nil, NewInternalDatabaseError()
+			}
+			directoryBlockHeight = eBlock.GetDatabaseHeight()
+		} else {
+			return nil, NewObjectNotFoundError()
+		}
+	} else {
+		return nil, NewInvalidParamsError()
+	}
+
+	directoryBlockKeyMR, err := dbo.FetchDBKeyMRByHeight(directoryBlockHeight)
+	if err != nil || directoryBlockKeyMR == nil {
+		return nil, NewBlockNotFoundError()
+	}
+
+	response := new(AnchorsResponse)
+	response.Height = directoryBlockHeight
+	response.KeyMR = directoryBlockKeyMR.String()
+	response.Bitcoin = false
+	response.Ethereum = false
+
+	// Search for AnchorRecords for the requested DBlock
+	for i := directoryBlockHeight; i < directoryBlockHeight+1000; i++ {
+		tempKeyMR, err := dbo.FetchDBKeyMRByHeight(uint32(i))
+		if err != nil {
+			return nil, NewBlockNotFoundError()
+		} else if tempKeyMR == nil {
+			break
+		}
+
+		dirBlockInfo, err := dbo.FetchDirBlockInfoByKeyMR(tempKeyMR)
+		if err != nil {
+			return nil, NewBlockNotFoundError()
+		} else if dirBlockInfo == nil {
+			continue
+		}
+
+		dbi := dirBlockInfo.(*dbInfo.DirBlockInfo)
+		// Only add the bitcoin anchor info if at the requested height. Remove the restriction once bitcoin anchors are windowed as well.
+		if i == directoryBlockHeight && dbi.BTCConfirmed {
+			bitcoin := new(BitcoinAnchorResponse)
+			bitcoin.TransactionHash = dbi.BTCTxHash.String()
+			bitcoin.BlockHash = dbi.BTCBlockHash.String()
+			response.Bitcoin = bitcoin
+		}
+		if dbi.EthereumConfirmed && !dbi.EthereumAnchorRecordEntryHash.IsSameAs(primitives.ZeroHash) {
+			anchorRecordEntry, err := dbo.FetchEntry(dbi.EthereumAnchorRecordEntryHash)
+			if err != nil {
+				return nil, NewCustomInternalError(err)
+			}
+			anchorRecordJSON := anchorRecordEntry.GetContent()
+			anchorRecord, err := anchor.UnmarshalAnchorRecord(anchorRecordJSON)
+			if err != nil {
+				return nil, NewCustomInternalError(err)
+			}
+			eth := new(EthereumAnchorResponse)
+			eth.DBHeightMax = int64(anchorRecord.DBHeightMax)
+			eth.DBHeightMin = int64(anchorRecord.DBHeightMin)
+			eth.WindowMR = anchorRecord.WindowMR
+			eth.RecordHeight = int64(anchorRecord.RecordHeight)
+			eth.ContractAddress = anchorRecord.Ethereum.ContractAddress
+			eth.TxID = anchorRecord.Ethereum.TxID
+			eth.BlockHash = anchorRecord.Ethereum.BlockHash
+			eth.TxIndex = anchorRecord.Ethereum.TxIndex
+
+			var allWindowKeyMRs []interfaces.IHash
+			for i := eth.DBHeightMin; i <= eth.DBHeightMax; i++ {
+				keyMR, err := dbo.FetchDBKeyMRByHeight(uint32(i))
+				if err != nil {
+					return nil, NewCustomInternalError(err)
+				}
+				allWindowKeyMRs = append(allWindowKeyMRs, keyMR)
+			}
+			eth.MerkleBranch = primitives.BuildMerkleBranchForHash(allWindowKeyMRs, directoryBlockKeyMR, true)
+			response.Ethereum = eth
+			break
+		}
+	}
+
+	return response, nil
+}
+
+func HandleV2Receipt(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallReceipt.Observe(float64(time.Since(n).Nanoseconds()))
+
+	request := new(ReceiptRequest)
+	err := MapToObject(params, request)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	h, err := primitives.HexToHash(request.EntryHash)
 	if err != nil {
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
-
-	receipt, err := receipts.CreateFullReceipt(dbase, h)
+	dbo := state.GetDB()
+	receipt, err := receipts.CreateFullReceipt(dbo, h, request.IncludeRawEntry)
 	if err != nil {
 		return nil, NewReceiptError()
 	}
@@ -769,8 +933,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchDBlock(h)
 	if err != nil {
@@ -782,6 +945,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 
 	d := new(DirectoryBlockResponse)
 	d.Header.PrevBlockKeyMR = block.GetHeader().GetPrevKeyMR().String()
+
 	d.Header.SequenceNumber = int64(block.GetHeader().GetDBHeight())
 	d.Header.Timestamp = block.GetHeader().GetTimestamp().GetTimeSeconds()
 	for _, v := range block.GetDBEntries() {
@@ -810,8 +974,7 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	block, err := dbase.FetchEBlock(h)
 	if err != nil {
@@ -887,14 +1050,26 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 		return nil, NewInternalError()
 	}
 	if entry == nil {
-		dbase := state.GetAndLockDB()
-		defer state.UnlockDB()
+		dbase := state.GetDB()
 
 		entry, err = dbase.FetchEntry(h)
 		if err != nil {
 			return nil, NewInvalidHashError()
 		}
 		if entry == nil {
+			return nil, NewEntryNotFoundError()
+		}
+
+		// When fetching from the database, optimistic entry writing
+		// might have added entries not in the blockchain.
+		// To ensure the entry actually exists, we need to try
+		// fetching the eblock hash. If it exists, then the entry exists
+		// in the blockchain.
+		included, err := state.GetDB().FetchIncludedIn(h)
+		if err != nil {
+			return nil, NewInternalError()
+		}
+		if included == nil {
 			return nil, NewEntryNotFoundError()
 		}
 	}
@@ -922,8 +1097,7 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	c := new(ChainHeadResponse)
 
@@ -966,6 +1140,8 @@ func HandleV2CurrentMinute(state interfaces.IState, params interface{}) (interfa
 	h.CurrentMinuteStartTime = int64(state.GetCurrentMinuteStartTime())
 	h.DirectoryBlockInSeconds = int64(state.GetDirectoryBlockInSeconds())
 	h.StallDetected = state.IsStalled()
+	h.FaultTimeOut = int64(globals.Params.FaultTimeout)
+	h.RoundTimeOut = int64(globals.Params.RoundTimeout)
 
 	//h.LastBlockTime = state.GetTimestamp
 	return h, nil
@@ -1090,8 +1266,9 @@ func HandleV2Heights(state interfaces.IState, params interface{}) (interface{}, 
 
 	h := new(HeightsResponse)
 
+	lheight := int64(state.GetTrueLeaderHeight())
 	h.DirectoryBlockHeight = int64(state.GetHighestSavedBlk())
-	h.LeaderHeight = int64(state.GetTrueLeaderHeight())
+	h.LeaderHeight = lheight
 	h.EntryBlockHeight = int64(state.GetHighestSavedBlk())
 	h.EntryHeight = int64(state.GetEntryDBHeightComplete())
 	h.MissingEntryCount = int64(state.GetMissingEntryCount())
@@ -1154,7 +1331,7 @@ func HandleV2SendRawMessage(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidParamsError()
 	}
 
-	_, msg, err := messages.UnmarshalMessageData(data)
+	_, msg, err := messages.General.UnmarshalMessageData(data)
 	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
@@ -1200,8 +1377,7 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 		return nil, NewInternalError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbase := state.GetDB()
 
 	if fTx == nil {
 		fTx, err = dbase.FetchFactoidTransaction(h)
@@ -1275,3 +1451,233 @@ func HandleV2TransactionRate(state interfaces.IState, params interface{}) (inter
 	r.InstantTransactionRate = instant
 	return r, nil
 }
+
+func HandleV2MultipleECBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	x, ok := params.(map[string]interface{})
+	if ok != true {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
+	}
+
+	if x["addresses"] == nil {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in, expected 'addresses'")
+	}
+
+	listofadd := (x["addresses"]).([]interface{})
+	totalBalances := make([]interface{}, len(listofadd))
+	var currentHeight uint32
+	var savedHeight uint32
+
+	// Converts readable accounts
+	for i, a := range listofadd {
+		if a.(string) == "" {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "No EC addresses"
+			totalBalances[i] = errStruct
+		} else if primitives.ValidateECUserStr(a.(string)) != true {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "Error decoding address"
+			totalBalances[i] = errStruct
+		} else {
+			covertedAdd := [32]byte{}
+			copy(covertedAdd[:], primitives.ConvertUserStrToAddress(a.(string)))
+			cHeight, sHeight, temp, perm, error := state.GetFactoidState().GetMultipleECBalances(covertedAdd)
+			currentHeight = cHeight
+			savedHeight = sHeight
+
+			valueStruct := new(interfaces.StructToReturnValues)
+			valueStruct.TempBal = temp
+			valueStruct.PermBal = perm
+			valueStruct.Error = error
+			totalBalances[i] = valueStruct
+		}
+	}
+	h := new(MultipleFTBalances)
+
+	h.CurrentHeight = currentHeight
+	h.LastSavedHeight = savedHeight
+	h.Balances = totalBalances
+
+	return h, nil
+}
+
+func HandleV2MultipleFCTBalances(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	x, ok := params.(map[string]interface{})
+	if ok != true {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
+	}
+
+	if x["addresses"] == nil {
+		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in, expected 'addresses'")
+	}
+	listofadd := (x["addresses"]).([]interface{})
+
+	totalBalances := make([]interface{}, len(listofadd))
+	var currentHeight uint32
+	var savedHeight uint32
+
+	// Converts readable accounts
+	for i, a := range listofadd {
+		if a.(string) == "" {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "No FCT addresses"
+			totalBalances[i] = errStruct
+		} else if primitives.ValidateFUserStr(a.(string)) != true {
+			errStruct := new(interfaces.StructToReturnValues)
+			errStruct.PermBal = 0
+			errStruct.TempBal = 0
+			errStruct.Error = "Error decoding address"
+			totalBalances[i] = errStruct
+		} else {
+			covertedAdd := [32]byte{}
+			copy(covertedAdd[:], primitives.ConvertUserStrToAddress(a.(string)))
+			cHeight, sHeight, temp, perm, error := state.GetFactoidState().GetMultipleFactoidBalances(covertedAdd)
+			currentHeight = cHeight
+			savedHeight = sHeight
+
+			valueStruct := new(interfaces.StructToReturnValues)
+			valueStruct.TempBal = temp
+			valueStruct.PermBal = perm
+			valueStruct.Error = error
+			totalBalances[i] = valueStruct
+		}
+	}
+
+	h := new(MultipleFTBalances)
+
+	h.CurrentHeight = currentHeight
+	h.LastSavedHeight = savedHeight
+	h.Balances = totalBalances
+
+	return h, nil
+}
+
+func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	// General state information
+	resp := new(DiagnosticsResponse)
+	resp.Name = state.GetFactomNodeName()
+	resp.ID = state.GetIdentityChainID().String()
+	resp.PublicKey = state.GetServerPublicKeyString()
+
+	resp.LeaderHeight = state.GetLLeaderHeight()
+	resp.CurrentMinute = state.GetCurrentMinute()
+	resp.CurrentMinuteDuration = time.Now().UnixNano() - state.GetCurrentMinuteStartTime()
+	resp.PrevMinuteDuration = state.GetCurrentMinuteStartTime() - state.GetPreviousMinuteStartTime()
+	resp.BalanceHash = state.GetFactoidState().GetBalanceHash(false).String()
+	resp.TempBalanceHash = state.GetFactoidState().GetBalanceHash(true).String()
+	resp.LastBlockFromDBState = state.DidCreateLastBlockFromDBState()
+
+	feds := state.GetFedServers(resp.LeaderHeight)
+	fedCount := len(feds)
+	audits := state.GetAuditServers(resp.LeaderHeight)
+
+	resp.AuthSet = new(AuthSet)
+	resp.Role = "Follower"
+	foundRole := false // tells us when to stop looking for the node's role
+	for i, fed := range feds {
+		vmIndex, listHeight, listLength, nextNil := state.GetLeaderPL().GetVMStatsForFedServer(i)
+		status := LeaderStatus{fed.GetChainID().String(), vmIndex, listHeight, listLength, nextNil}
+		resp.AuthSet.Leaders = append(resp.AuthSet.Leaders, status)
+		if !foundRole && state.GetIdentityChainID().IsSameAs(fed.GetChainID()) {
+			resp.Role = "Leader"
+			foundRole = true
+		}
+	}
+	for _, aud := range audits {
+		status := AuditStatus{aud.GetChainID().String(), aud.IsOnline()}
+		resp.AuthSet.Audits = append(resp.AuthSet.Audits, status)
+		if !foundRole && state.GetIdentityChainID().IsSameAs(aud.GetChainID()) {
+			resp.Role = "Audit"
+		}
+	}
+
+	// Syncing information
+	syncInfo := new(SyncInfo)
+	if state.IsSyncingEOMs() || state.IsSyncingDBSigs() {
+		syncInfo.Status = "Syncing EOMs"
+		if state.IsSyncingDBSigs() {
+			syncInfo.Status = "Syncing DBSigs"
+		}
+		missing, _ := state.GetUnsyncedServers()
+		numberReceived := fedCount - len(missing)
+		syncInfo.Received = &numberReceived
+		syncInfo.Expected = &fedCount
+		for _, v := range missing {
+			syncInfo.Missing = append(syncInfo.Missing, v.String())
+		}
+	} else {
+		syncInfo.Status = "Processing"
+	}
+	resp.SyncInfo = syncInfo
+
+	// Elections information
+	eInfo := new(ElectionInfo)
+	if e := state.GetElections(); e != nil {
+		if electing := e.GetElecting(); electing != -1 {
+			eInfo.InProgress = true
+			vm := e.GetVMIndex()
+			eInfo.VmIndex = &vm
+			eInfo.FedIndex = &electing
+			eInfo.FedID = e.GetFedID().String()
+			// bugfix for https://github.com/FactomProject/factomd/issues/947
+			// the round slice is frequently truncated to zero-length and the default
+			// behavior is to zero-pad it on demand
+			round := e.GetRound()
+			if electing < len(round) {
+				eInfo.Round = &round[electing]
+			} else {
+				zero := 0 // backward compatibility for any consumer that relied on this being present
+				eInfo.Round = &zero
+			}
+		}
+	}
+	resp.ElectionInfo = eInfo
+
+	return resp, nil
+}
+
+//func HandleV2Accounts(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+// height, acc, returnedLen, totalLen := state.GetFactoidState().GetFactiodAccounts(params)
+// h := new(FactiodAccounts)
+//
+// min, max := 0, 10
+//
+// if params != nil {
+//    ok := params.(map[string]interface{})
+//    numbStr := ok["accountsrequest"]
+//    s := strings.Split(numbStr.(string), "-")
+//    first, second := s[0], s[1]
+//    i, err := strconv.Atoi(first)
+//    j, err2 := strconv.Atoi(second)
+//    min, max = i, j
+//    if err != nil && err2 != nil {
+//       // handle error
+//       fmt.Println(err)
+//       os.Exit(2)
+//    }
+//
+//    // no more than 2000 should be returned
+//    if max-min > 2000 {
+//       max = 2000+min
+//    }
+//    if max > numberOfAccounts {
+//       max = numberOfAccounts
+//    }
+// }
+//
+// err := MapToObject(params, h)
+// if err != nil {
+//    return nil, NewInvalidParamsError()
+// }
+//
+// h.NumbOfAccounts = strings.Join([]string{"returned: ", strconv.Itoa(returnedLen), " total: ",strconv.Itoa(totalLen)}, "")
+// h.Height = height
+// h.Accounts = acc
+//
+// return h, nil
+//}

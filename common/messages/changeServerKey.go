@@ -7,18 +7,21 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
 // Communicate a Admin Block Change
 
 type ChangeServerKeyMsg struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp        interfaces.Timestamp // Message Timestamp
 	IdentityChainID  interfaces.IHash     // ChainID of new server
 	AdminBlockChange byte
@@ -30,17 +33,23 @@ type ChangeServerKeyMsg struct {
 }
 
 var _ interfaces.IMsg = (*ChangeServerKeyMsg)(nil)
-var _ Signable = (*ChangeServerKeyMsg)(nil)
+var _ interfaces.Signable = (*ChangeServerKeyMsg)(nil)
 
-func (m *ChangeServerKeyMsg) GetRepeatHash() interfaces.IHash {
+func (m *ChangeServerKeyMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "ChangeServerKeyMsg.GetRepeatHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *ChangeServerKeyMsg) GetHash() interfaces.IHash {
+func (m *ChangeServerKeyMsg) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "ChangeServerKeyMsg.GetHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *ChangeServerKeyMsg) GetMsgHash() interfaces.IHash {
+func (m *ChangeServerKeyMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "ChangeServerKeyMsg.GetMsgHash") }()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -56,7 +65,7 @@ func (m *ChangeServerKeyMsg) Type() byte {
 }
 
 func (m *ChangeServerKeyMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
@@ -81,8 +90,7 @@ func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
 	if err != nil || m.Signature == nil {
 		return -1
 	}
-	sig := m.Signature.GetSignature()
-	authSigned, err := state.VerifyAuthoritySignature(bytes, sig, state.GetLeaderHeight())
+	authSigned, err := state.FastVerifyAuthoritySignature(bytes, m.Signature, state.GetLeaderHeight())
 	if err != nil || authSigned != 1 { // authSigned = 1 for fed signed
 		return -1
 	}
@@ -127,7 +135,7 @@ func (e *ChangeServerKeyMsg) JSONString() (string, error) {
 }
 
 func (m *ChangeServerKeyMsg) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -140,13 +148,14 @@ func (m *ChangeServerKeyMsg) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *ChangeServerKeyMsg) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *ChangeServerKeyMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Add Server Message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Add Server Message: %v", r)
 		}
 	}()
 	newData = data
@@ -197,7 +206,12 @@ func (m *ChangeServerKeyMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *ChangeServerKeyMsg) MarshalForSignature() ([]byte, error) {
+func (m *ChangeServerKeyMsg) MarshalForSignature() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ChangeServerKeyMsg.MarshalForSignature err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
@@ -228,7 +242,12 @@ func (m *ChangeServerKeyMsg) MarshalForSignature() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *ChangeServerKeyMsg) MarshalBinary() ([]byte, error) {
+func (m *ChangeServerKeyMsg) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "ChangeServerKeyMsg.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	data, err := m.MarshalForSignature()

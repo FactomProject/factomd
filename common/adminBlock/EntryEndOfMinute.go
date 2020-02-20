@@ -2,6 +2,7 @@ package adminBlock
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -31,12 +32,17 @@ func NewEndOfMinuteEntry(minuteNumber byte) *EndOfMinuteEntry {
 	return e
 }
 
-func (e *EndOfMinuteEntry) MarshalBinary() ([]byte, error) {
+func (e *EndOfMinuteEntry) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "EndOfMinuteEntry.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
-	
+
 	e.AdminIDType = uint32(e.Type())
 
-	err := buf.PushByte(e.Type())
+	err = buf.PushByte(e.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +101,9 @@ func (e *EndOfMinuteEntry) Interpret() string {
 	return fmt.Sprintf("End of Minute %v", e.MinuteNumber)
 }
 
-func (e *EndOfMinuteEntry) Hash() interfaces.IHash {
+func (e *EndOfMinuteEntry) Hash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "EndOfMinuteEntry.Hash") }()
+
 	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)

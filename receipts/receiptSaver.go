@@ -8,10 +8,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 	"io/ioutil"
 	"os"
+
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var DataStorePath string = "./receipts"
@@ -59,7 +60,7 @@ func ExportEntryReceipt(entryID string, dbo interfaces.DBOverlaySimple) error {
 	if err != nil {
 		return err
 	}
-	receipt, err := CreateFullReceipt(dbo, h)
+	receipt, err := CreateFullReceipt(dbo, h, false)
 	if err != nil {
 		return err
 	}

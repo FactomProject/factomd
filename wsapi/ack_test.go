@@ -5,7 +5,7 @@ import (
 	//"fmt"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
 )
@@ -39,13 +39,13 @@ func TestDecodeTransactionToHashes(t *testing.T) {
 		}
 
 		for _, tx := range block.ECBlock.GetEntries() {
-			if tx.ECID() != entryCreditBlock.ECIDChainCommit && tx.ECID() != entryCreditBlock.ECIDEntryCommit {
+			if tx.ECID() != constants.ECIDChainCommit && tx.ECID() != constants.ECIDEntryCommit {
 				continue
 			}
-			/*if tx.ECID() == entryCreditBlock.ECIDChainCommit {
+			/*if tx.ECID() == constants.ECIDChainCommit {
 				fmt.Println("CC!")
 			}
-			if tx.ECID() == entryCreditBlock.ECIDEntryCommit {
+			if tx.ECID() == constants.ECIDEntryCommit {
 				fmt.Println("EC!")
 			}*/
 			txID := tx.GetHash().String()
@@ -76,7 +76,7 @@ func TestDecodeTransactionToHashes(t *testing.T) {
 }
 
 func TestHandleV2FactoidACK(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	blocks := testHelper.CreateFullTestBlockSet()
 
 	for _, block := range blocks {
@@ -167,14 +167,14 @@ func TestHandleV2FactoidACK(t *testing.T) {
 		_, jError = HandleV2FactoidACK(state, req)
 
 		if jError == nil {
-			t.Error("Invalid transaciton not caught")
+			t.Error("Invalid transactions not caught")
 			continue
 		}
 	}
 }
 
 func TestHandleV2EntryACK(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
+	state := testHelper.CreateAndPopulateTestStateAndStartValidator()
 	blocks := testHelper.CreateFullTestBlockSet()
 
 	for _, block := range blocks {
@@ -245,7 +245,7 @@ func TestHandleV2EntryACK(t *testing.T) {
 		}
 
 		for _, tx := range block.ECBlock.GetEntries() {
-			if tx.ECID() != entryCreditBlock.ECIDChainCommit && tx.ECID() != entryCreditBlock.ECIDEntryCommit {
+			if tx.ECID() != constants.ECIDChainCommit && tx.ECID() != constants.ECIDEntryCommit {
 				continue
 			}
 			req := AckRequest{}
@@ -356,7 +356,7 @@ func TestHandleV2EntryACK(t *testing.T) {
 		_, jError = HandleV2EntryACK(state, req)
 
 		if jError == nil {
-			t.Error("Invalid transaciton not caught")
+			t.Error("Invalid transactions not caught")
 			continue
 		}
 	}

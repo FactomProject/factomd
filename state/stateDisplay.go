@@ -46,10 +46,16 @@ type DisplayState struct {
 	PLEntry   []EntryTransaction
 
 	// DataDump
-	RawSummary   string
-	PrintMap     string
-	ProcessList  string
-	ProcessList2 string
+	RawSummary          string
+	PrintMap            string
+	ProcessList0        string
+	ProcessList         string
+	ProcessList2        string
+	Election            string
+	SimElection         string
+	SyncingState        [256]string
+	SyncingStateCurrent int
+	IgnoreDone          bool
 }
 
 type FactoidTransaction struct {
@@ -85,19 +91,24 @@ func (s *State) CopyStateToControlPanel() error {
 	}
 	s.ControlPanelDataRequest = false
 	if len(s.ControlPanelChannel) < ControlPanelAllowedSize {
-		ds, err := DeepStateDisplayCopy(s)
+		ds, err := DeepStateDisplayCopyDifference(s, s.LastDisplayState)
 		if err != nil {
 			return err
 		}
 		s.ControlPanelChannel <- *ds
+		prev := s.LastDisplayState
+		s.LastDisplayState = ds
+		if ds.LastDirectoryBlock == nil && prev != nil && prev.LastDirectoryBlock != nil {
+			s.LastDisplayState.LastDirectoryBlock = prev.LastDirectoryBlock
+		}
 		return nil
 	} else {
 		return fmt.Errorf("DisplayState Error: Control Panel channel has been filled to maximum allowed size.")
 	}
-	return fmt.Errorf("DisplayState Error: Reached unreachable code. Impressive")
+	// 	return fmt.Errorf("DisplayState Error: Reached unreachable code. Impressive")
 }
 
-func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
+func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState, error) {
 	ds := NewDisplayState()
 
 	ds.NodeName = s.GetFactomNodeName()
@@ -106,91 +117,64 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 
 	// DB Info
 	ds.CurrentNodeHeight = s.GetHighestSavedBlk()
+	lheight := s.GetTrueLeaderHeight()
+	// Acks are from the current block being built, and at +1
 	ds.CurrentLeaderHeight = s.GetLeaderHeight()
 	ds.CurrentEBDBHeight = s.EntryDBHeightComplete
-	ds.LeaderHeight = s.GetTrueLeaderHeight()
-	dir := s.GetDirectoryBlockByHeight(s.GetLeaderHeight())
-	if dir == nil {
-		dir = s.GetDirectoryBlockByHeight(s.GetLeaderHeight() - 1)
-	}
-	if dir != nil {
-		data, err := dir.MarshalBinary()
-		if err != nil || dir == nil {
-		} else {
-			newDBlock, err := directoryBlock.UnmarshalDBlock(data)
-			if err != nil {
-				ds.LastDirectoryBlock = nil
-			} else {
-				ds.LastDirectoryBlock = newDBlock
-			}
-		}
-	}
+	ds.LeaderHeight = lheight
+
+	// Only copies the directory block if it is new
+	ds.CopyDirectoryBlock(s, prev, s.GetLLeaderHeight())
 
 	// Identities
 	ds.IdentityChainID = s.GetIdentityChainID().Copy()
-	for _, id := range s.Identities {
-		ds.Identities = append(ds.Identities, id)
+	ds.Identities = s.IdentityControl.GetSortedIdentities()
+	for _, auth := range s.IdentityControl.GetSortedAuthorities() {
+		ds.Authorities = append(ds.Authorities, auth.(*Authority))
 	}
-	for _, auth := range s.Authorities {
-		ds.Authorities = append(ds.Authorities, auth)
-	}
+
 	if pubkey, err := s.GetServerPublicKey().Copy(); err != nil {
 	} else {
 		ds.PublicKey = pubkey
 	}
 
-	vms := s.LeaderPL.VMs
-	for _, v := range vms {
-		list := v.List
-		for _, msg := range list {
-			if msg == nil {
-				continue
-			}
-			switch msg.Type() {
-			case constants.REVEAL_ENTRY_MSG:
-				data, err := msg.MarshalBinary()
-				if err != nil {
+	if s.LeaderPL != nil {
+		vms := s.LeaderPL.VMs
+		for _, v := range vms {
+			list := v.List
+			for _, msg := range list {
+				if msg == nil {
 					continue
 				}
-				rev := new(messages.RevealEntryMsg)
-				err = rev.UnmarshalBinary(data)
-				if rev.Entry == nil || err != nil {
-					continue
-				}
+				switch msg.Type() {
+				case constants.REVEAL_ENTRY_MSG:
+					rev := msg.(*messages.RevealEntryMsg)
+					var entry EntryTransaction
+					entry.ChainID = "Processing..."
+					entry.EntryHash = rev.Entry.GetHash().String()
 
-				var entry EntryTransaction
-				entry.ChainID = "Processing..."
-				entry.EntryHash = rev.Entry.GetHash().String()
+					ds.PLEntry = append(ds.PLEntry, entry)
+				case constants.FACTOID_TRANSACTION_MSG:
+					transMsg := msg.(*messages.FactoidTransaction)
+					trans := transMsg.Transaction
+					input, err := trans.TotalInputs()
+					if err != nil {
+						continue
+					}
+					totalInputs := len(trans.GetInputs())
+					totalOutputs := len(trans.GetECOutputs())
+					totalOutputs = totalOutputs + len(trans.GetOutputs())
+					inputStr := fmt.Sprintf("%f", float64(input)/1e8)
 
-				ds.PLEntry = append(ds.PLEntry, entry)
-			case constants.FACTOID_TRANSACTION_MSG:
-				data, err := msg.MarshalBinary()
-				if err != nil {
-					continue
+					ds.PLFactoid = append(ds.PLFactoid, struct {
+						TxID         string
+						Hash         string
+						TotalInput   string
+						Status       string
+						TotalInputs  int
+						TotalOutputs int
+					}{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Process List", totalInputs, totalOutputs})
 				}
-				transMsg := new(messages.FactoidTransaction)
-				err = transMsg.UnmarshalBinary(data)
-				if transMsg.Transaction == nil || err != nil {
-					continue
-				}
-				trans := transMsg.Transaction
-				input, err := trans.TotalInputs()
-				if err != nil {
-					continue
-				}
-				totalInputs := len(trans.GetInputs())
-				totalOutputs := len(trans.GetECOutputs())
-				totalOutputs = totalOutputs + len(trans.GetOutputs())
-				inputStr := fmt.Sprintf("%f", float64(input)/1e8)
-
-				ds.PLFactoid = append(ds.PLFactoid, struct {
-					TxID         string
-					Hash         string
-					TotalInput   string
-					Status       string
-					TotalInputs  int
-					TotalOutputs int
-				}{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Process List", totalInputs, totalOutputs})
 			}
 		}
 	}
@@ -214,18 +198,25 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 			if b > 1 {
 				b--
 				pl = s.ProcessLists.Get(b)
+				if pl == nil {
+					return ds, nil
+				}
 			}
 		}
 	}
 
+	pl0 := s.ProcessLists.GetSafe(b + 1)
+	if pl0 != nil {
+		ds.ProcessList0 = pl0.String()
+	} else {
+		ds.ProcessList0 = fmt.Sprintf("Process list %d is nil\n", b+1)
+
+	}
+
 	var pl2 *ProcessList
-	if b > 3 {
-		b--
-		pl2 = s.ProcessLists.GetSafe(b)
-		if pl == nil {
-			b--
-			pl2 = s.ProcessLists.GetSafe(b)
-		}
+	pl2 = s.ProcessLists.GetSafe(b - 1)
+	if pl2 == nil {
+		ds.ProcessList2 = fmt.Sprintf("Process list %d is nil\n", b-1)
 	}
 
 	if pl != nil && pl.FedServers != nil {
@@ -240,7 +231,63 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 		ds.ProcessList2 = pl2.String()
 	}
 
+	prt = ""
+	prt = prt + "\n" + s.Election0
+	if pl != nil {
+		for i, _ := range pl.FedServers {
+			prt = prt + fmt.Sprintf("%4d ", i)
+		}
+		for i, _ := range pl.AuditServers {
+			prt = prt + fmt.Sprintf("%4d ", i)
+		}
+	}
+	prt = prt + "\n"
+	prt += "__ _ " // Active
+	prt = s.Election3 + "\n" + prt + s.Election1 + s.Election2 + "\n"
+
+	ds.Election = prt
+
+	if s.Elections != nil {
+		ea := s.Elections.GetAdapter()
+		if ea != nil {
+			ds.SimElection = ea.Status()
+		} else {
+			ds.SimElection = ""
+		}
+	}
+
+	ds.SyncingState = s.SyncingState
+	ds.SyncingStateCurrent = s.SyncingStateCurrent
+	ds.IgnoreDone = s.GetIgnoreDone()
+
 	return ds, nil
+}
+
+func (ds *DisplayState) CopyDirectoryBlock(s *State, prev *DisplayState, height uint32) {
+	if prev == nil || prev.LastDirectoryBlock == nil || prev.LastDirectoryBlock.GetDatabaseHeight() != height {
+		dir := s.GetDirectoryBlockByHeight(height)
+		if dir == nil {
+			dir = s.GetDirectoryBlockByHeight(height - 1)
+		}
+		if dir != nil {
+			data, err := dir.MarshalBinary()
+			if err != nil || dir == nil {
+			} else {
+				newDBlock, err := directoryBlock.UnmarshalDBlock(data)
+				if err != nil {
+					ds.LastDirectoryBlock = nil
+				} else {
+					ds.LastDirectoryBlock = newDBlock
+				}
+			}
+		}
+	} else {
+		ds.LastDirectoryBlock = nil
+	}
+}
+
+func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
+	return DeepStateDisplayCopyDifference(s, nil)
 }
 
 // Used for display dump. Allows a clone of the display state to be made
@@ -273,6 +320,13 @@ func (d *DisplayState) Clone() *DisplayState {
 	ds.RawSummary = d.RawSummary
 	ds.PrintMap = d.PrintMap
 	ds.ProcessList = d.ProcessList
+	ds.ProcessList2 = d.ProcessList2
+	ds.ProcessList0 = d.ProcessList0
+	ds.Election = d.Election
+
+	ds.SimElection = d.SimElection
+	ds.SyncingStateCurrent = d.SyncingStateCurrent
+	ds.SyncingState = d.SyncingState
 
 	return ds
 }
@@ -312,6 +366,12 @@ func messageLists(fnodes []*State) string {
 		list = list + fmt.Sprintf(" %3d", len(f.MsgQueue()))
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "MsgQueue", list)
+
+	list = ""
+	for _, f := range fnodes {
+		list = list + fmt.Sprintf(" %3d", len(f.PrioritizedMsgQueue()))
+	}
+	prt = prt + fmt.Sprintf(fmtstr, "PrioritizedMsgQueue", list)
 
 	list = ""
 	for _, f := range fnodes {

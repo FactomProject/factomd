@@ -4,9 +4,7 @@
 
 package factoid
 
-import (
-	"github.com/FactomProject/factomd/common/interfaces"
-)
+import "github.com/FactomProject/factomd/common/interfaces"
 
 var adrs []interfaces.IAddress
 var amount uint64 = 5000000000 // One Factoid (remember, fixed point math!
@@ -23,13 +21,13 @@ func UpdateAmount(amt uint64) {
 //
 // Currently we are paying just a few fixed addresses.
 //
-func GetCoinbase(ftime interfaces.Timestamp) interfaces.ITransaction {
-	coinbase := new(Transaction)
-	coinbase.SetTimestamp(ftime)
-
-	for _, adr := range adrs {
-		coinbase.AddOutput(adr, amount) // add specified amount
-	}
-
-	return coinbase
-}
+//func GetCoinbase(ftime interfaces.Timestamp) interfaces.ITransaction {
+//	coinbase := new(Transaction)
+//	coinbase.SetTimestamp(ftime)
+//
+//	for _, adr := range adrs {
+//		coinbase.AddOutput(adr, amount) // add specified amount
+//	}
+//
+//	return coinbase
+//}

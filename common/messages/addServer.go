@@ -8,18 +8,21 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/common/messages/msgbase"
+	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
 
 // Communicate a Directory Block State
 
 type AddServerMsg struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp     interfaces.Timestamp // Message Timestamp
 	ServerChainID interfaces.IHash     // ChainID of new server
 	ServerType    int                  // 0 = Federated, 1 = Audit
@@ -28,17 +31,23 @@ type AddServerMsg struct {
 }
 
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
-var _ Signable = (*AddServerMsg)(nil)
+var _ interfaces.Signable = (*AddServerMsg)(nil)
 
-func (m *AddServerMsg) GetRepeatHash() interfaces.IHash {
+func (m *AddServerMsg) GetRepeatHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "AddServerMsg.GetRepeatHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *AddServerMsg) GetHash() interfaces.IHash {
+func (m *AddServerMsg) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "AddServerMsg.GetHash") }()
+
 	return m.GetMsgHash()
 }
 
-func (m *AddServerMsg) GetMsgHash() interfaces.IHash {
+func (m *AddServerMsg) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "AddServerMsg.GetMsgHash") }()
+
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()
 		if err != nil {
@@ -54,7 +63,7 @@ func (m *AddServerMsg) Type() byte {
 }
 
 func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Timestamp.Clone()
 }
 
 func (m *AddServerMsg) Validate(state interfaces.IState) int {
@@ -106,7 +115,7 @@ func (e *AddServerMsg) JSONString() (string, error) {
 }
 
 func (m *AddServerMsg) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -119,13 +128,14 @@ func (m *AddServerMsg) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *AddServerMsg) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Add Server Message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling Add Server Message: %v", r)
 		}
 	}()
 	newData = data
@@ -164,7 +174,12 @@ func (m *AddServerMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
+func (m *AddServerMsg) MarshalForSignature() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AddServerMsg.MarshalForSignature err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
@@ -184,7 +199,12 @@ func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *AddServerMsg) MarshalBinary() ([]byte, error) {
+func (m *AddServerMsg) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "AddServerMsg.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	var buf primitives.Buffer
 
 	data, err := m.MarshalForSignature()
@@ -213,7 +233,7 @@ func (m *AddServerMsg) String() string {
 	}
 	return fmt.Sprintf("AddServer (%s): ChainID: %x Time: %x Msg Hash %x ",
 		stype,
-		m.ServerChainID.Bytes()[:3],
+		m.ServerChainID.Bytes()[3:6],
 		&m.Timestamp,
 		m.GetMsgHash().Bytes()[:3])
 

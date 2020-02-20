@@ -6,6 +6,7 @@ package state_test
 
 import (
 	"testing"
+
 	//"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -21,7 +22,7 @@ var _ interfaces.IMsg
 var _ = NewProcessList
 
 func TestIsStateFullySynced(t *testing.T) {
-	s1_good := CreateAndPopulateTestState()
+	s1_good := CreateAndPopulateTestStateAndStartValidator()
 	t.Log("IsStateFullySynced():", s1_good.IsStateFullySynced())
 	if !s1_good.IsStateFullySynced() {
 		t.Error("Test state is shown not to be fully synced")
@@ -37,14 +38,14 @@ func TestIsStateFullySynced(t *testing.T) {
 }
 
 func TestFetchECTransactionByHash(t *testing.T) {
-	s1 := CreateAndPopulateTestState()
+	s1 := CreateAndPopulateTestStateAndStartValidator()
 	blocks := CreateFullTestBlockSet()
 
 	for _, block := range blocks {
 		for _, tx := range block.ECBlock.GetEntries() {
-			if tx.ECID() != entryCreditBlock.ECIDChainCommit &&
-				tx.ECID() != entryCreditBlock.ECIDEntryCommit ||
-				tx.ECID() == entryCreditBlock.ECIDBalanceIncrease {
+			if tx.ECID() != constants.ECIDChainCommit &&
+				tx.ECID() != constants.ECIDEntryCommit ||
+				tx.ECID() == constants.ECIDBalanceIncrease {
 				continue
 			}
 
@@ -75,7 +76,7 @@ func TestFetchECTransactionByHash(t *testing.T) {
 }
 
 func TestFetchFactoidTransactionByHash(t *testing.T) {
-	s1 := CreateAndPopulateTestState()
+	s1 := CreateAndPopulateTestStateAndStartValidator()
 	blocks := CreateFullTestBlockSet()
 
 	for _, block := range blocks {
@@ -107,13 +108,13 @@ func TestFetchFactoidTransactionByHash(t *testing.T) {
 }
 
 func TestFetchPaidFor(t *testing.T) {
-	s1 := CreateAndPopulateTestState()
+	s1 := CreateAndPopulateTestStateAndStartValidator()
 	blocks := CreateFullTestBlockSet()
 
 	for _, block := range blocks {
 		for _, tx := range block.ECBlock.GetEntries() {
 			switch tx.ECID() {
-			case entryCreditBlock.ECIDEntryCommit:
+			case constants.ECIDEntryCommit:
 				// check that we can get the hash for the paid entry commit
 				eh := tx.(*entryCreditBlock.CommitEntry).EntryHash
 				h1, err := s1.FetchPaidFor(eh)
@@ -130,7 +131,7 @@ func TestFetchPaidFor(t *testing.T) {
 				if !h1.IsSameAs(tx.GetSigHash()) {
 					t.Error("Hash mismatch")
 				}
-			case entryCreditBlock.ECIDChainCommit:
+			case constants.ECIDChainCommit:
 				// check that we can get the hash for the paid chain commit
 				eh := tx.(*entryCreditBlock.CommitChain).EntryHash
 				h1, err := s1.FetchPaidFor(eh)
@@ -162,7 +163,7 @@ func TestFetchPaidFor(t *testing.T) {
 }
 
 func TestFetchEntryByHash(t *testing.T) {
-	s1 := CreateAndPopulateTestState()
+	s1 := CreateAndPopulateTestStateAndStartValidator()
 	blocks := CreateFullTestBlockSet()
 
 	for _, block := range blocks {
@@ -188,9 +189,9 @@ func TestFetchEntryByHash(t *testing.T) {
 	}
 }
 
-func TestUnkownAcks(t *testing.T) {
+func TestUnknownAcks(t *testing.T) {
 	// All random unknown hashes
-	s := CreateAndPopulateTestState()
+	s := CreateAndPopulateTestStateAndStartValidator()
 	status, _, _, _ := s.GetEntryCommitAckByTXID(primitives.RandomHash())
 	if status != constants.AckStatusUnknown {
 		t.Error("Should be unknown")
@@ -214,7 +215,7 @@ func TestUnkownAcks(t *testing.T) {
 
 func TestDblockConf(t *testing.T) {
 	// All random unknown hashes
-	s := CreateAndPopulateTestState()
+	s := CreateAndPopulateTestStateAndStartValidator()
 	commit := messages.NewCommitEntryMsg()
 	commit.CommitEntry = entryCreditBlock.NewCommitEntry()
 	commit.CommitEntry.Credits = 2
@@ -222,7 +223,7 @@ func TestDblockConf(t *testing.T) {
 	eh := commit.CommitEntry.Hash()
 	commit.CommitEntry.EntryHash = eh
 	s.Commits.Put(eh.Fixed(), commit)
-	s.Replay.IsTSValid_(constants.REVEAL_REPLAY, eh.Fixed(), primitives.NewTimestampNow(), primitives.NewTimestampNow())
+	s.Replay.IsTSValidAndUpdateState(constants.REVEAL_REPLAY, eh.Fixed(), primitives.NewTimestampNow(), primitives.NewTimestampNow())
 
 	status, _ := s.GetEntryCommitAckByEntryHash(eh)
 	if status != constants.AckStatusDBlockConfirmed {

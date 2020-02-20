@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"sync"
 
+	"os"
+	"path/filepath"
+
 	"github.com/FactomProject/bolt"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -39,6 +42,16 @@ func NewBoltDB(bucketList [][]byte, filename string) *BoltDB {
 	db := new(BoltDB)
 	db.Init(bucketList, filename)
 	return db
+}
+
+func NewAndCreateBoltDB(bucketList [][]byte, filename string) *BoltDB {
+	err := os.MkdirAll(filepath.Dir(filename), 0750)
+	if err != nil {
+		if err != nil {
+			panic("Database could not be created, " + err.Error())
+		}
+	}
+	return NewBoltDB(bucketList, filename)
 }
 
 /***************************************
@@ -235,7 +248,7 @@ func (db *BoltDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndC
 	return answer, keys, nil
 }
 
-// We have to make accomadation for many Init functions.  But what we really
+// We have to make accommodation for many Init functions.  But what we really
 // want here is:
 //
 //      Init(bucketList [][]byte, filename string)

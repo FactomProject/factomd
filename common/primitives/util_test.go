@@ -9,10 +9,42 @@ import (
 	"math/rand"
 	"testing"
 
+	"bytes"
+
+	"encoding/hex"
+
 	"github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
 )
+
+func TestCalculateCoinbasePayout(t *testing.T) {
+	testIt := func(eff uint16, exp uint64) {
+		if CalculateCoinbasePayout(eff) != exp {
+			t.Errorf("Expected %d, got %d", exp, CalculateCoinbasePayout(eff))
+		}
+	}
+
+	testIt(10000, 0)
+	testIt(0, 6.4*1e8)
+	testIt(4952, 3.23072*1e8)
+
+}
+
+func TestEfficiencyToString(t *testing.T) {
+	testIt := func(n uint16, e string) {
+		if EfficiencyToString(n) != e {
+			t.Errorf("Expected %s, got %s", e, EfficiencyToString(n))
+		}
+	}
+
+	testIt(10000, "100.00")
+	testIt(4952, "49.52")
+	testIt(0x1358, "49.52")
+	testIt(100, "1.00")
+	testIt(2945, "29.45")
+	testIt(10, "0.10")
+}
 
 func TestPrintHelp(test *testing.T) {
 	t := func(v int64, str string) {
@@ -62,6 +94,11 @@ func TestConversions(test *testing.T) {
 		fmt.Println("4", v, err)
 		test.Fail()
 	}
+	v, err = ConvertFixedPoint("999")
+	if err != nil || v != "99900000000" {
+		fmt.Println("5", v, err)
+		test.Fail()
+	}
 }
 
 func TestWriteNumber(t *testing.T) {
@@ -74,7 +111,7 @@ func TestWriteNumber(t *testing.T) {
 
 	answer := "010203040506070809101112131415"
 	if out.String() != answer {
-		t.Errorf("Failed WriteNumbers. Expected %v, got %v", out.String())
+		t.Errorf("Failed WriteNumbers. Expected %v, got %v", out.String(), answer)
 	}
 }
 
@@ -241,4 +278,52 @@ func TestAddressConversions(t *testing.T) {
 	if converted != user {
 		t.Errorf("Wrong conversion - %v vs %v", converted, user)
 	}
+}
+
+func TestHumanReadableAddressConvert(t *testing.T) {
+	// Test going from Address -> Human Readable -> Address
+	for i := 0; i < 1000; i++ {
+		add := factoid.RandomAddress()
+		hr := ConvertFctAddressToUserStr(add)
+		if bytes.Compare(ConvertUserStrToAddress(hr), add.Bytes()) != 0 {
+			t.Errorf("User string does not match")
+		}
+	}
+
+	// Test Human readable -> Address -> Human Readable
+	humanReadables := []string{
+		"FA3oajkmHMfqkNMMShmqpwDThzMCuVrSsBwiXM2kYFVRz3MzxNAJ",
+		"FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET",
+		"FA3GH7VEFKqTdJcmwGgDrcY4Xh9njQ4EWiJxhJeim6BCA7QuB388",
+		"FA2k8ULFMGVxgXaj2XwJeaQXHGRt5xd7DJ6wjGf4t2KtgwRkhfny",
+		"FA2qG68LqMoyyv1iJaypaXWhKDJg76XU3i3vV4v5Ah8s5UryECR4",
+		"FA3ipMRDLR9SCgdJApqKHiNzZRcB4tRQFZb3wCD8u5horBWcsJ3u",
+		"FA21AsVeHMXSeDuHe9QrZxs3vDotoQV8Ri8WdKpb62wmKcYykKpb",
+		"FA3ifuDtDgna6gCFfxX1kbDjzZ8EMK3fNFkPEZKALkNtPmWtXSoR",
+	}
+	for _, hr := range humanReadables {
+		if hr != ConvertFctAddressToUserStr(factoid.NewAddress(ConvertUserStrToAddress(hr))) {
+			t.Errorf("Human readable does not match")
+		}
+	}
+
+	// Test Vectors
+	// 	map[hr]add
+	vectors := map[string]string{
+		"FA3ifuDtDgna6gCFfxX1kbDjzZ8EMK3fNFkPEZKALkNtPmWtXSoR": "E6AD686AA2E1098DA3D6C44199AE7C51DD40625E47EDABFF3A03BA01CDAD6257",
+		"FA23Lcqqm51BjvcVxY4w9XEvYQKxKfj3KXWPU97XuZNXgm8jAcHJ": "09AC108C627819760D78BACDFCF490D0F6C7C35DFF179EDB6F614B7F2D7C9E2D",
+		"FA3JvZx1EKW6zM9rSZff9nqBjrKmjWK52FWEmieRm9K9XetPC7Bn": "B0C1B468EB5A8EA2A7740D98882757F2B80EBAE1F528D1877A8D14EA8EA6D185",
+	}
+
+	for k, v := range vectors {
+		b, _ := hex.DecodeString(v)
+		if k != ConvertFctAddressToUserStr(factoid.NewAddress(b)) {
+			t.Errorf("Bytes to Human readable failed")
+		}
+
+		if bytes.Compare(ConvertUserStrToAddress(k), b) != 0 {
+			t.Errorf("Human readable to bytes failed")
+		}
+	}
+
 }

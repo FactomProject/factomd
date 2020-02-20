@@ -8,6 +8,7 @@ import (
 	//"encoding/hex"
 	"encoding/hex"
 	"fmt"
+	"os"
 
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
@@ -19,7 +20,7 @@ import (
 type DetachedSignature [ed25519.SignatureSize]byte
 type DetachedPublicKey [ed25519.PublicKeySize]byte
 */
-//Signature has signed data and its corresponsing PublicKey
+//Signature has signed data and its corresponding PublicKey
 type Signature struct {
 	Pub *PublicKey    `json:"pub"`
 	Sig *ByteSliceSig `json:"sig"`
@@ -116,7 +117,12 @@ func (sig *Signature) GetSignature() *[ed25519.SignatureSize]byte {
 	return (*[ed25519.SignatureSize]byte)(sig.Sig)
 }
 
-func (s *Signature) MarshalBinary() ([]byte, error) {
+func (s *Signature) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "Signature.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
 	if s.Sig == nil {
 		return nil, fmt.Errorf("Signature not complete")
 	}

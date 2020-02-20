@@ -74,7 +74,9 @@ func (sm *ServerManagementStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
-func (sm *ServerManagementStructure) GetChainID() interfaces.IHash {
+func (sm *ServerManagementStructure) GetChainID() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "ServerManagementStructure.GetChainID") }()
+
 	extIDs := sm.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)
