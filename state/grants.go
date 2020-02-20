@@ -1086,7 +1086,7 @@ func GetHardCodedGrants() []HardGrant {
 			// Matt York total: 900 FCT
 			HardGrant{233201, 900e8, validateAddress("FA3PTnet6yGwnCkprszYYfHtwqymqQQWKfFjoRkavxSda15VNtwY")},
 			// --------------------------------------------------------
-			
+
 			// ********************************
 			// ** BUG Bounty payout 2020-01  **
 			// ********************************
@@ -1102,7 +1102,7 @@ func GetHardCodedGrants() []HardGrant {
 			// Bug bounty total: 37 FCT, remaining funds: 758 FCT
 			HardGrant{233201, 37e8, validateAddress("FA34H8r61Gt5wTNwgtaUHPvNpma4Kof39uJAYxJ5q9cwqKF2y9Kd")},
 			// --------------------------------------------------------
-			
+
 		}
 
 	default:
