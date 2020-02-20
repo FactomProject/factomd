@@ -979,7 +979,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// Samuel Vanderwaal-Brian Deery-Nolan Bauer-Nic R-The 42nd Factoid AS-Centis BV -- 9000 FCT
-			// Guide Compensation 2020-01-19 - 2020-02-14
+			// Guide Compensation 2019-12-07 - 2020-03-06
 
 			// Brian Deery total: 1800 FCT
 			HardGrant{233201, 1800e8, validateAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq")},
@@ -999,7 +999,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// PaulSnow-Factom Inc. -- 900 FCT
-			// Oracle Master 2020-01-19 - 2020-02-14
+			// Oracle Master 2020-03-09 - 2020-06-09
 
 			// Factom Inc. total: 900 FCT
 			HardGrant{233201, 900e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
@@ -1007,7 +1007,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// PaulSnow-Factom Inc. -- 660 FCT
-			// Anchor Master 2020-01-19 - 2020-02-14
+			// Anchor Master 2020-03-09 - 2020-06-09
 
 			// Factom Inc. total: 660 FCT
 			HardGrant{233201, 660e8, validateAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx")},
@@ -1015,7 +1015,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// David Chapman-Factomize -- 19524 FCT
-			// Core and General Development 2020-01-19 - 2020-02-14
+			// Core and General Development 2020-03-01 - 2020-05-31
 
 			// Factomize total: 19524 FCT
 			HardGrant{233201, 19524e8, validateAddress("FA3nsSjUy5uSkqMEug8t3VcehZn5w2ciSMpgqFEEsMRwMrHoa9k3")},
@@ -1023,7 +1023,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// Julian Fletcher-Taylor-Exchange Committee -- 30000 FCT
-			// Exchange Working Group - 001 2020-01-19 - 2020-02-14
+			// Exchange Working Group - 001 2020-03-01 - 2020-06-01
 
 			// Exchange Committee total: 30000 FCT
 			HardGrant{233201, 30000e8, validateAddress("FA2FrnimQdtuqkB7MFgemGy1RBYNnqZMNEmQ5TAsb5TrkbSNebdm")},
@@ -1031,7 +1031,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// PaulSnow-Nolan Bauer-factomatic-David Kuiper-Factom Inc. -- 34950 FCT
-			// Protocol Development 2020-01-19 - 2020-02-14
+			// Protocol Development 2020-03-09 - 2020-06-09
 
 			// Nolan Bauer total: 300 FCT
 			HardGrant{233201, 300e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
@@ -1048,7 +1048,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// CryptoLogic-The Factoid Authority-Crypto Logic-Bedrock Solutions-De Facto -- 2700 FCT
-			// Factom Open Node Continuity 2020-01-19 - 2020-02-14
+			// Factom Open Node Continuity 2020-03-01 - 2020-05-31
 
 			// The Factoid Authority total: 375 FCT
 			HardGrant{233201, 375e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
@@ -1065,7 +1065,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// David Chapman-Factomize -- 1064 FCT
-			// Factomize Forum Software Upgrade 2020-01-19 - 2020-02-14
+			// Factomize Forum Software Upgrade 2020-03-01 - 2020-03-16
 
 			// Factomize total: 1064 FCT
 			HardGrant{233201, 1064e8, validateAddress("FA3nsSjUy5uSkqMEug8t3VcehZn5w2ciSMpgqFEEsMRwMrHoa9k3")},
@@ -1073,7 +1073,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// Valentin Ganev-Factomatic -- 8500 FCT
-			// Kambani Extension Backpay 2020-01-19 - 2020-02-14
+			// Kambani Extension Backpay 2020-02-03 - 2020-02-03
 
 			// Factomatic total: 8500 FCT
 			HardGrant{233201, 8500e8, validateAddress("FA2QuNHNxgJBZyPggxkU8C16YReA4xFFxUvAGpu9azF3TaZg46SF")},
@@ -1081,7 +1081,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// Matt York -- 900 FCT
-			// IPFS-bridge 2020-01-19 - 2020-02-14
+			// IPFS-bridge 2020-02-01 - 2020-05-01
 
 			// Matt York total: 900 FCT
 			HardGrant{233201, 900e8, validateAddress("FA3PTnet6yGwnCkprszYYfHtwqymqQQWKfFjoRkavxSda15VNtwY")},
