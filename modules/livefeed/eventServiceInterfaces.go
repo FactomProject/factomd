@@ -3,6 +3,7 @@ package livefeed
 import (
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/pubsub"
 )
 
 type StateEventServices interface {
@@ -11,4 +12,5 @@ type StateEventServices interface {
 	GetRunLeader() bool
 	GetLiveFeedService() LiveFeedService
 	GetFactomNodeName() string
+	GetPubRegistry() pubsub.IPubRegistry
 }

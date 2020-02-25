@@ -25,45 +25,45 @@ func (p *SubRegistry) newChannel(name string) *pubsub.SubChannel {
 }
 
 func (p *SubRegistry) BlkSeqChannel() *pubsub.SubChannel {
-	return p.newChannel(event.Path.Seq)
+	return p.newChannel(events.Path.Seq)
 }
 
 func (p *SubRegistry) BankChannel() *pubsub.SubChannel {
-	return p.newChannel(event.Path.Bank)
+	return p.newChannel(events.Path.Bank)
 }
 
 func (p *SubRegistry) DirectoryChannel() *pubsub.SubChannel {
-	return p.newChannel(event.Path.Directory)
+	return p.newChannel(events.Path.Directory)
 }
 
 func (p *SubRegistry) LeaderConfigChannel() *pubsub.SubChannel {
-	return p.newChannel(event.Path.LeaderConfig)
+	return p.newChannel(events.Path.LeaderConfig)
 }
 
 func (p *SubRegistry) CommitChainChannel() *pubsub.SubChannel {
-	return p.newChannel(event.Path.CommitChain)
+	return p.newChannel(events.Path.CommitChain)
 }
 
 func (p *SubRegistry) CommitEntryChannel() *pubsub.SubChannel {
-	return p.newChannel(event.Path.CommitEntry)
+	return p.newChannel(events.Path.CommitEntry)
 }
 
 func (p *SubRegistry) RevealEntryChannel() *pubsub.SubChannel {
-	return p.newChannel(event.Path.RevealEntry)
+	return p.newChannel(events.Path.RevealEntry)
 }
 
 func (p *SubRegistry) CommitDBStateChannel() *pubsub.SubChannel {
-	return p.newChannel(event.Path.CommitDBState)
+	return p.newChannel(events.Path.CommitDBState)
 }
 
 func (p *SubRegistry) DBAnchoredChannel() *pubsub.SubChannel {
-	return p.newChannel(event.Path.DBAnchored)
+	return p.newChannel(events.Path.DBAnchored)
 }
 
 func (p *SubRegistry) NodeMessageChannel() *pubsub.SubChannel {
-	return p.newChannel(event.Path.NodeMessage)
+	return p.newChannel(events.Path.NodeMessage)
 }
 
 func (p *SubRegistry) EOMTickerChannel() *pubsub.SubChannel {
-	return p.newChannel(event.Path.EOM)
+	return p.newChannel(events.Path.EOM)
 }

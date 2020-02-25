@@ -112,15 +112,15 @@ func New(config *Config) {
 	controlPanel.MsgInputSubscription.Subscribe(pubsub.GetPath(config.NodeName, "bmv", "rest"))
 
 	// internal events
-	controlPanel.MovedToHeightSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.Seq))
-	controlPanel.BalanceChangedSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.Bank))
-	controlPanel.DBlockCreatedSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.Directory))
+	controlPanel.MovedToHeightSubscription.Subscribe(pubsub.GetPath(config.NodeName, events.Path.Seq))
+	controlPanel.BalanceChangedSubscription.Subscribe(pubsub.GetPath(config.NodeName, events.Path.Bank))
+	controlPanel.DBlockCreatedSubscription.Subscribe(pubsub.GetPath(config.NodeName, events.Path.Directory))
 	//controlPanel.EomTickerSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.EOM))
-	controlPanel.ConnectionMetricsSubscription.Subscribe(pubsub.GetPath(config.NodeName, event.Path.ConnectionMetrics))
+	controlPanel.ConnectionMetricsSubscription.Subscribe(pubsub.GetPath(config.NodeName, events.Path.ConnectionMetrics))
 
 	// control panel details
-	controlPanel.ProcessListInfo.Subscribe(pubsub.GetPath(config.NodeName, event.Path.ProcessListInfo))
-	controlPanel.StateUpdate.Subscribe(pubsub.GetPath(config.NodeName, event.Path.StateUpdate))
+	controlPanel.ProcessListInfo.Subscribe(pubsub.GetPath(config.NodeName, events.Path.ProcessListInfo))
+	controlPanel.StateUpdate.Subscribe(pubsub.GetPath(config.NodeName, events.Path.StateUpdate))
 
 	go controlPanel.handleEvents(server)
 
@@ -158,7 +158,7 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 				server.SendMessage(URL_PREFIX+"general-events", message)
 			}
 		case v := <-controlPanel.MovedToHeightSubscription.Updates:
-			if dbHeight, ok := v.(*event.DBHT); ok {
+			if dbHeight, ok := v.(*events.DBHT); ok {
 				controlPanel.updateHeight(dbHeight.DBHeight, dbHeight.Minute)
 				controlPanel.pushUpdate(server)
 
@@ -172,7 +172,7 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 				server.SendMessage(URL_PREFIX+"move-to-height", message)
 			}
 		case v := <-controlPanel.BalanceChangedSubscription.Updates:
-			if balance, ok := v.(*event.Balance); ok {
+			if balance, ok := v.(*events.Balance); ok {
 				data, err := json.Marshal(balance)
 				if err != nil {
 					log.Printf("failed to serialize push event: %v", err)
@@ -184,7 +184,7 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 				server.SendMessage(URL_PREFIX+"general-events", message)
 			}
 		case v := <-controlPanel.DBlockCreatedSubscription.Updates:
-			if directory, ok := v.(*event.Directory); ok {
+			if directory, ok := v.(*events.Directory); ok {
 				data, err := json.Marshal(directory)
 				if err != nil {
 					log.Printf("failed to serialize push event: %v", err)
@@ -196,7 +196,7 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 				server.SendMessage(URL_PREFIX+"general-events", message)
 			}
 		case v := <-controlPanel.EomTickerSubscription.Updates:
-			if oem, ok := v.(*event.EOM); ok {
+			if oem, ok := v.(*events.EOM); ok {
 				data, err := json.Marshal(oem)
 				if err != nil {
 					log.Printf("failed to serialize push event: %v", err)
@@ -219,13 +219,13 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 			server.SendMessage(URL_PREFIX+"general-events", message)
 
 		case v := <-controlPanel.StateUpdate.Updates:
-			if stateUpdate, ok := v.(*event.StateUpdate); ok {
+			if stateUpdate, ok := v.(*events.StateUpdate); ok {
 				controlPanel.updateState(stateUpdate.Summary, stateUpdate.AuthoritiesDetails, stateUpdate.IdentitiesDetails)
 				controlPanel.updateLeaderHeight(stateUpdate.LeaderHeight)
 				controlPanel.pushStateUpdate(server)
 			}
 		case v := <-controlPanel.ProcessListInfo.Updates:
-			if processList, ok := v.(*event.ProcessListInfo); ok {
+			if processList, ok := v.(*events.ProcessListInfo); ok {
 				controlPanel.updateNodeTime(processList.ProcessTime)
 				controlPanel.updateProcessList(processList.Dump, processList.PrintMap)
 				controlPanel.pushProcessList(server)

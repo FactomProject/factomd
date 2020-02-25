@@ -41,18 +41,18 @@ func (p *PubRegistry) newPublisher(name string) pubsub.IPublisher {
 }
 
 func (p *PubRegistry) bindPublishers() {
-	p.BlkSeq = p.newPublisher(event.Path.Seq)
-	p.Bank = p.newPublisher(event.Path.Bank)
-	p.Directory = p.newPublisher(event.Path.Directory)
-	p.LeaderConfig = p.newPublisher(event.Path.LeaderConfig)
-	p.CommitChain = p.newPublisher(event.Path.CommitChain)
-	p.CommitEntry = p.newPublisher(event.Path.CommitEntry)
-	p.RevealEntry = p.newPublisher(event.Path.RevealEntry)
-	p.CommitDBState = p.newPublisher(event.Path.CommitDBState)
-	p.DBAnchored = p.newPublisher(event.Path.DBAnchored)
-	p.NodeMessage = p.newPublisher(event.Path.NodeMessage)
-	p.ProcessListInfo = p.newPublisher(event.Path.ProcessListInfo)
-	p.StateUpdate = p.newPublisher(event.Path.StateUpdate)
+	p.BlkSeq = p.newPublisher(events.Path.Seq)
+	p.Bank = p.newPublisher(events.Path.Bank)
+	p.Directory = p.newPublisher(events.Path.Directory)
+	p.LeaderConfig = p.newPublisher(events.Path.LeaderConfig)
+	p.CommitChain = p.newPublisher(events.Path.CommitChain)
+	p.CommitEntry = p.newPublisher(events.Path.CommitEntry)
+	p.RevealEntry = p.newPublisher(events.Path.RevealEntry)
+	p.CommitDBState = p.newPublisher(events.Path.CommitDBState)
+	p.DBAnchored = p.newPublisher(events.Path.DBAnchored)
+	p.NodeMessage = p.newPublisher(events.Path.NodeMessage)
+	p.ProcessListInfo = p.newPublisher(events.Path.ProcessListInfo)
+	p.StateUpdate = p.newPublisher(events.Path.StateUpdate)
 }
 
 func (p PubRegistry) GetBlkSeq() pubsub.IPublisher {

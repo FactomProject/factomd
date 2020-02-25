@@ -1112,7 +1112,7 @@ func (list *DBStateList) ProcessBlock(d *DBState) (progress bool) {
 	if list.State.DBFinished {
 		fs.(*FactoidState).DBHeight = dbht
 		list.State.Balancehash = fs.GetBalanceHash(false)
-		list.State.Pub.Bank.Write(&event.Balance{dbht, list.State.Balancehash})
+		list.State.Pub.Bank.Write(&events.Balance{dbht, list.State.Balancehash})
 	}
 
 	// Make the current exchange rate whatever we had in the previous block.
@@ -1681,7 +1681,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		}
 
 		if progress && d.Saved && d.Signed && !wasSavedBefore {
-			dbStateCommitEvent := &event.DBStateCommit{
+			dbStateCommitEvent := &events.DBStateCommit{
 				DBHeight: d.DirectoryBlock.GetDatabaseHeight(),
 				DBState:  d,
 			}

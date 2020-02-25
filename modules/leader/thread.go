@@ -132,6 +132,8 @@ func (l *Leader) processMin() (ok bool) {
 
 	for {
 		select {
+		case v := <-l.Sub.LeaderConfig.Updates:
+			l.Config = v.(*event.LeaderConfig)
 		case v := <-l.MsgInput.Updates:
 			m := v.(interfaces.IMsg)
 			if constants.NeedsAck(m.Type()) {

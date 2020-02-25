@@ -69,7 +69,6 @@ func CreateAndPopulateStaleHolding() *state.State {
 func CreateAndPopulateTestState() *state.State {
 	pubsub.Reset() // clear existing pubsub paths between tests
 	s := new(state.State)
-	s.BindPublishers()
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))

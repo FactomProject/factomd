@@ -259,7 +259,7 @@ func TestMapToFactomEvent(t *testing.T) {
 		Assertion                func(t *testing.T, event *eventmessages.FactomEvent)
 	}{
 		"RegistrationEvent": {
-			Input:            eventinput.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, newTestCommitChain()),
+			Input:            eventinput.NewRegistrationEvent(eventmessages.EventSource_REPLAY_BOOT, NewTestCommitChain()),
 			BroadcastContent: eventconfig.BroadcastAlways,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
@@ -289,7 +289,7 @@ func TestMapToFactomEvent(t *testing.T) {
 			},
 		},
 		"StateChangeEventFromCommitChain": {
-			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
+			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, NewTestCommitChain()),
 			BroadcastContent:         eventconfig.BroadcastOnce,
 			EventReplayDuringStartup: true,
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
@@ -330,7 +330,7 @@ func TestMapToFactomEvent(t *testing.T) {
 		"StateChangeEventFromCommitChainResend": {
 			BroadcastContent:         eventconfig.BroadcastAlways,
 			EventReplayDuringStartup: false,
-			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, newTestCommitChain()),
+			Input:                    eventinput.NewStateChangeEvent(eventmessages.EventSource_REPLAY_BOOT, eventmessages.EntityState_REJECTED, NewTestCommitChain()),
 			Assertion: func(t *testing.T, event *eventmessages.FactomEvent) {
 				assert.Equal(t, eventmessages.EventSource_REPLAY_BOOT, event.EventSource)
 				if assert.NotNil(t, event.GetChainCommit()) {
@@ -497,46 +497,4 @@ func TestConvertTimeToTimestamp(t *testing.T) {
 	assert.NotNil(t, timestamp)
 	assert.Equal(t, int64(1571946978), timestamp.Seconds)
 	assert.Equal(t, int32(338001966), timestamp.Nanos)
-}
-
-func newTestCommitChain() interfaces.IMsg {
-	msg := new(messages.CommitChainMsg)
-	msg.CommitChain = entryCreditBlock.NewCommitChain()
-	msg.CommitChain.ChainIDHash.SetBytes([]byte(""))
-	msg.CommitChain.ECPubKey = new(primitives.ByteSlice32)
-	msg.CommitChain.Sig = new(primitives.ByteSlice64)
-	msg.CommitChain.Weld.SetBytes([]byte("1"))
-	return msg
-}
-
-func newTestCommitEntry() interfaces.IMsg {
-	msg := messages.NewCommitEntryMsg()
-	msg.CommitEntry = entryCreditBlock.NewCommitEntry()
-	msg.CommitEntry.Init()
-	msg.CommitEntry.EntryHash = msg.CommitEntry.Hash()
-	return msg
-}
-
-func newTestEntryReveal() interfaces.IMsg {
-	msg := messages.NewRevealEntryMsg()
-	msg.Entry = engine.RandomEntry()
-	msg.Timestamp = primitives.NewTimestampNow()
-	return msg
-}
-
-func newTestDirectoryBlockState() interfaces.IDBState {
-	set := testHelper.CreateTestBlockSet(nil)
-	set = testHelper.CreateTestBlockSet(set)
-
-	msg := new(state.DBState)
-	msg.DirectoryBlock = set.DBlock
-	msg.AdminBlock = set.ABlock
-	msg.FactoidBlock = set.FBlock
-	msg.EntryCreditBlock = set.ECBlock
-
-	return msg
-}
-
-func newTestDirectoryBlockInfo() interfaces.IDirBlockInfo {
-	return testHelper.CreateTestDirBlockInfo(&dbInfo.DirBlockInfo{DBHeight: 910})
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
 )
 
-func MapCommitEntry(commitEntryEvent *event.CommitEntry, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
+func MapCommitEntry(commitEntryEvent *events.CommitEntry, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
 	commitEntry := commitEntryEvent.CommitEntry
 	ecPubKey := commitEntry.GetECPubKey().Fixed()
 	sig := commitEntry.GetSig()
@@ -59,7 +59,7 @@ func mapCommitEntryEventState(state eventmessages.EntityState, commitEntryMsg *m
 	return result
 }
 
-func MapRevealEntry(revealEntryEvent *event.RevealEntry, eventSource eventmessages.EventSource,
+func MapRevealEntry(revealEntryEvent *events.RevealEntry, eventSource eventmessages.EventSource,
 	broadcastContent eventconfig.BroadcastContent) *eventmessages.FactomEvent {
 	shouldIncludeContent := broadcastContent > eventconfig.BroadcastNever
 	revealEntry := revealEntryEvent.RevealEntry
@@ -135,7 +135,7 @@ func mapEntryBlockEntries(entries []interfaces.IEBEntry, shouldIncludeContent bo
 	return result
 }
 
-func mapEntryBlockEntry(entry event.IRevealEntry, shouldIncludeContent bool) *eventmessages.EntryBlockEntry {
+func mapEntryBlockEntry(entry events.IRevealEntry, shouldIncludeContent bool) *eventmessages.EntryBlockEntry {
 	blockEntry := &eventmessages.EntryBlockEntry{
 		Hash:    entry.GetHash().Bytes(),
 		ChainID: entry.GetChainIDHash().Bytes(),

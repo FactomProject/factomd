@@ -5,7 +5,7 @@ import (
 	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
 )
 
-func MapCommitChain(commitChainEvent *event.CommitChain, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
+func MapCommitChain(commitChainEvent *events.CommitChain, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
 	commitChain := commitChainEvent.CommitChain
 	ecPubKey := commitChain.GetECPubKey().Fixed()
 	sig := commitChain.GetSig()
@@ -29,7 +29,7 @@ func MapCommitChain(commitChainEvent *event.CommitChain, eventSource eventmessag
 	}
 }
 
-func MapCommitChainState(commitChainEvent *event.CommitChain, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
+func MapCommitChainState(commitChainEvent *events.CommitChain, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
 	commitChain := commitChainEvent.CommitChain
 	factomEvent := &eventmessages.FactomEvent_StateChange{
 		StateChange: &eventmessages.StateChange{
@@ -43,7 +43,7 @@ func MapCommitChainState(commitChainEvent *event.CommitChain, eventSource eventm
 	}
 }
 
-func MapCommitEntryState(commitEntryEvent *event.CommitEntry, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
+func MapCommitEntryState(commitEntryEvent *events.CommitEntry, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
 	commitEntry := commitEntryEvent.CommitEntry
 	factomEvent := &eventmessages.FactomEvent_StateChange{
 		StateChange: &eventmessages.StateChange{
@@ -57,7 +57,7 @@ func MapCommitEntryState(commitEntryEvent *event.CommitEntry, eventSource eventm
 	}
 }
 
-func MapRevealEntryState(revealEntryEvent *event.RevealEntry, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
+func MapRevealEntryState(revealEntryEvent *events.RevealEntry, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
 	revealEntry := revealEntryEvent.RevealEntry
 	factomEvent := &eventmessages.FactomEvent_StateChange{
 		StateChange: &eventmessages.StateChange{

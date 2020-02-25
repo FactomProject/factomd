@@ -22,7 +22,7 @@ func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) (err
 	}
 
 	if err == nil && db.pubState != nil {
-		dbAnchoredEvent := &event.DBAnchored{
+		dbAnchoredEvent := &events.DBAnchored{
 			DBHeight:     block.GetDatabaseHeight(),
 			DirBlockInfo: block,
 		}
@@ -43,7 +43,7 @@ func (db *Overlay) ProcessDirBlockInfoMultiBatch(block interfaces.IDirBlockInfo)
 	}
 
 	if err == nil && db.pubState != nil {
-		dbAnchoredEvent := &event.DBAnchored{
+		dbAnchoredEvent := &events.DBAnchored{
 			DBHeight:     block.GetDBHeight(),
 			DirBlockInfo: block,
 		}

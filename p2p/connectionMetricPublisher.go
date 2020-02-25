@@ -15,7 +15,7 @@ type metricPublisher struct {
 }
 
 func NewMetricPublisher(factomNodeName string, connectionMetricChannel chan interface{}) MetricPublisher {
-	publisher := pubsub.PubFactory.Threaded(5).Publish(pubsub.GetPath(factomNodeName, event.Path.ConnectionMetrics))
+	publisher := pubsub.PubFactory.Threaded(5).Publish(pubsub.GetPath(factomNodeName, events.Path.ConnectionMetrics))
 	go publisher.Start()
 	return &metricPublisher{
 		publisher:                publisher,

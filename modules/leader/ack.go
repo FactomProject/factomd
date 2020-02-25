@@ -32,7 +32,7 @@ func (l *Leader) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) inter
 	}
 
 	// keep height and hash from latest ack
-	l.Ack = &event.Ack{
+	l.Ack = &events.Ack{
 		Height:      ack.Height,
 		MessageHash: ack.MessageHash,
 	}

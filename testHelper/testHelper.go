@@ -3,7 +3,10 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
+	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/simulation"
 	"os/exec"
 	"regexp"
 	"runtime"
@@ -37,7 +40,7 @@ var DefaultCoinbaseAmount uint64 = 100000000
 func CreateEmptyTestState() *state.State {
 	pubsub.Reset()
 	s := new(state.State)
-	s.BindPublishers()
+	s.BuildPubRegistry()
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
 	s.LoadConfig("", "")
@@ -86,7 +89,7 @@ func CreatePopulateAndExecuteTestState() *state.State {
 func CreateAndPopulateTestState() *state.State {
 	pubsub.Reset() // clear existing pubsub paths between tests
 	s := new(state.State)
-	s.BindPublishers()
+	s.BuildPubRegistry()
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
@@ -432,3 +435,58 @@ func GetTestName() (name string) {
 	return name
 }
 
+func NewTestCommitChainMsg() interfaces.IMsg {
+	msg := new(messages.CommitChainMsg)
+	msg.CommitChain = NewTestCommitChain()
+	return msg
+}
+
+func NewTestCommitChain() *entryCreditBlock.CommitChain {
+	commitChain := entryCreditBlock.NewCommitChain()
+	commitChain.ChainIDHash.SetBytes([]byte(""))
+	commitChain.ECPubKey = new(primitives.ByteSlice32)
+	commitChain.Sig = new(primitives.ByteSlice64)
+	commitChain.Weld.SetBytes([]byte("1"))
+	return commitChain
+}
+
+func NewTestCommitEntryMsg() interfaces.IMsg {
+	msg := messages.NewCommitEntryMsg()
+	msg.CommitEntry = NewTestCommitEntry()
+	return msg
+}
+
+func NewTestCommitEntry() *entryCreditBlock.CommitEntry {
+	commitEntry := entryCreditBlock.NewCommitEntry()
+	commitEntry.Init()
+	commitEntry.EntryHash = commitEntry.Hash()
+	return commitEntry
+}
+
+func NewTestEntryRevealMsg() interfaces.IMsg {
+	msg := messages.NewRevealEntryMsg()
+	msg.Entry = simulation.RandomEntry()
+	msg.Timestamp = primitives.NewTimestampNow()
+	return msg
+}
+
+func NewTestEntryReveal() interfaces.IEntry {
+	return simulation.RandomEntry()
+}
+
+func NewTestDirectoryBlockStateMsg() interfaces.IDBState {
+	set := CreateTestBlockSet(nil)
+	set = CreateTestBlockSet(set)
+
+	msg := new(state.DBState)
+	msg.DirectoryBlock = set.DBlock
+	msg.AdminBlock = set.ABlock
+	msg.FactoidBlock = set.FBlock
+	msg.EntryCreditBlock = set.ECBlock
+
+	return msg
+}
+
+func NewTestDirectoryBlockInfo() interfaces.IDirBlockInfo {
+	return CreateTestDirBlockInfo(&dbInfo.DirBlockInfo{DBHeight: 910})
+}

@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func MapCommitDBState(dbStateCommitEvent *event.DBStateCommit, eventSource eventmessages.EventSource,
+func MapCommitDBState(dbStateCommitEvent *events.DBStateCommit, eventSource eventmessages.EventSource,
 	broadcastContent eventconfig.BroadcastContent) *eventmessages.FactomEvent {
 	dbState := dbStateCommitEvent.DBState
 	shouldIncludeContent := broadcastContent > eventconfig.BroadcastNever
@@ -30,7 +30,7 @@ func MapCommitDBState(dbStateCommitEvent *event.DBStateCommit, eventSource event
 	}
 }
 
-func MapCommitDBAnchored(dbAnchoredEvent *event.DBAnchored, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
+func MapCommitDBAnchored(dbAnchoredEvent *events.DBAnchored, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
 	dirBlockInfo := dbAnchoredEvent.DirBlockInfo
 	factomEvent := &eventmessages.FactomEvent_DirectoryBlockAnchor{
 		DirectoryBlockAnchor: &eventmessages.DirectoryBlockAnchor{
@@ -54,7 +54,7 @@ func MapCommitDBAnchored(dbAnchoredEvent *event.DBAnchored, eventSource eventmes
 	}
 }
 
-func MapDBHT(dbht *event.DBHT, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
+func MapDBHT(dbht *events.DBHT, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
 	factomEvent := &eventmessages.FactomEvent_ProcessListEvent{}
 	if dbht.Minute == 0 {
 		factomEvent.ProcessListEvent = &eventmessages.ProcessListEvent{
@@ -81,19 +81,19 @@ func MapDBHT(dbht *event.DBHT, eventSource eventmessages.EventSource) *eventmess
 	}
 }
 
-func mapRequestState(state event.RequestState) eventmessages.EntityState {
+func mapRequestState(state events.RequestState) eventmessages.EntityState {
 	switch state {
-	case event.RequestState_HOLDING:
+	case events.RequestState_HOLDING:
 		return eventmessages.EntityState_REQUESTED
-	case event.RequestState_ACCEPTED:
+	case events.RequestState_ACCEPTED:
 		return eventmessages.EntityState_ACCEPTED
-	case event.RequestState_REJECTED:
+	case events.RequestState_REJECTED:
 		return eventmessages.EntityState_REJECTED
 	}
 	panic(fmt.Sprintf("Unknown request state %v", state))
 }
 
-func MapNodeMessage(nodeMessageEvent *event.NodeMessage, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
+func MapNodeMessage(nodeMessageEvent *events.NodeMessage, eventSource eventmessages.EventSource) *eventmessages.FactomEvent {
 	factomEvent := &eventmessages.FactomEvent_NodeMessage{
 		NodeMessage: &eventmessages.NodeMessage{
 			MessageCode: mapNodeEventMessageCode(nodeMessageEvent.MessageCode),
@@ -106,27 +106,27 @@ func MapNodeMessage(nodeMessageEvent *event.NodeMessage, eventSource eventmessag
 	}
 }
 
-func mapNodeEventLevel(level event.Level) eventmessages.Level {
+func mapNodeEventLevel(level events.Level) eventmessages.Level {
 	switch level {
-	case event.Level_INFO:
+	case events.Level_INFO:
 		return eventmessages.Level_INFO
-	case event.Level_ERROR:
+	case events.Level_ERROR:
 		return eventmessages.Level_ERROR
-	case event.Level_WARNING:
+	case events.Level_WARNING:
 		return eventmessages.Level_WARNING
 	}
 	panic(fmt.Sprintf("Unknown level %v", level))
 }
 
-func mapNodeEventMessageCode(code event.NodeMessageCode) eventmessages.NodeMessageCode {
+func mapNodeEventMessageCode(code events.NodeMessageCode) eventmessages.NodeMessageCode {
 	switch code {
-	case event.NodeMessageCode_STARTED:
+	case events.NodeMessageCode_STARTED:
 		return eventmessages.NodeMessageCode_STARTED
-	case event.NodeMessageCode_SYNCED:
+	case events.NodeMessageCode_SYNCED:
 		return eventmessages.NodeMessageCode_SYNCED
-	case event.NodeMessageCode_GENERAL:
+	case events.NodeMessageCode_GENERAL:
 		return eventmessages.NodeMessageCode_GENERAL
-	case event.NodeMessageCode_SHUTDOWN:
+	case events.NodeMessageCode_SHUTDOWN:
 		return eventmessages.NodeMessageCode_SHUTDOWN
 	}
 	panic(fmt.Sprintf("Unknown NodeMessageCode %v", code))

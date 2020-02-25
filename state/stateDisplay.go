@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func (s *State) stateUpdate() *event.StateUpdate {
+func (s *State) stateUpdate() *events.StateUpdate {
 	fnodes := []*State{s}
 	nodesSummary := nodesSummary(fnodes)
 	summary := fmt.Sprintf("===SummaryStart===%s \n%s===SummaryEnd===\n", s.ShortString(), nodesSummary)
@@ -18,7 +18,7 @@ func (s *State) stateUpdate() *event.StateUpdate {
 	identitiesDetails := identitiesDetails(s.IdentityControl.GetSortedIdentities())
 	authoritiesDetails := authoritiesDetails(s.IdentityControl.GetSortedAuthorities())
 
-	return &event.StateUpdate{
+	return &events.StateUpdate{
 		NodeTime:           s.ProcessTime,
 		LeaderHeight:       s.LLeaderHeight,
 		Summary:            summary,
