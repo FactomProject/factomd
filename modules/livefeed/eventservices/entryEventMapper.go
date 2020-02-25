@@ -4,7 +4,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/modules/event"
+	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/modules/livefeed/eventconfig"
 	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
 )

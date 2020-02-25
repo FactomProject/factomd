@@ -1,7 +1,7 @@
 package databaseOverlay
 
 import (
-	"github.com/FactomProject/factomd/modules/event"
+	"github.com/FactomProject/factomd/modules/events"
 	"sort"
 
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"

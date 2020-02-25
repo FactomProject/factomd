@@ -1,7 +1,7 @@
 package pubregistry
 
 import (
-	"github.com/FactomProject/factomd/modules/event"
+	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/pubsub"
 )
 

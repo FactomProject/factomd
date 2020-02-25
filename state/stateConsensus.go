@@ -7,6 +7,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/modules/events"
 	"hash"
 	"os"
 	"reflect"
@@ -22,7 +23,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/modules/event"
 	. "github.com/FactomProject/factomd/modules/logging"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"

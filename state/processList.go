@@ -7,7 +7,7 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/event"
+	"github.com/FactomProject/factomd/modules/events"
 	"os"
 	"strings"
 	"sync"

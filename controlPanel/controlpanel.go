@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/controlPanel/pages"
-	"github.com/FactomProject/factomd/modules/event"
+	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/alexandrevicenzi/go-sse"
 	"github.com/gorilla/mux"

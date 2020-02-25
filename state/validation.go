@@ -7,13 +7,13 @@ package state
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/modules/events"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
 	llog "github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/util/atomic"
 )

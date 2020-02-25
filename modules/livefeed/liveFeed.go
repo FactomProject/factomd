@@ -2,7 +2,7 @@ package livefeed
 
 import (
 	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/modules/event"
+	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/modules/livefeed/eventservices"
 	"github.com/FactomProject/factomd/p2p"

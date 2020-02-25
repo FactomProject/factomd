@@ -1,7 +1,7 @@
 package eventservices
 
 import (
-	"github.com/FactomProject/factomd/modules/event"
+	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
 )
 
