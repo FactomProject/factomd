@@ -1,9 +1,8 @@
 package simtest
 
 import (
+	"github.com/FactomProject/factomd/testHelper/simulation"
 	"testing"
-
-	. "github.com/FactomProject/factomd/testHelper"
 )
 
 /*
@@ -13,10 +12,10 @@ Just boots to test that follower can sync
 func TestSyncB(t *testing.T) {
 
 	peers := "127.0.0.1:38003"
-	ResetSimHome(t)
+	simulation.ResetSimHome(t)
 
 	// write config file from identity9 to fnode0
-	WriteConfigFile(9, 0, "", t)
+	simulation.WriteConfigFile(9, 0, "", t)
 
 	params := map[string]string{
 		"--db":               "LDB",
@@ -31,7 +30,7 @@ func TestSyncB(t *testing.T) {
 		"--peers":            peers,
 	}
 
-	state0 := SetupSim("F", params, 7, 0, 0, t)
-	WaitForBlock(state0, 6)
-	Halt(t)
+	state0 := simulation.SetupSim("F", params, 7, 0, 0, t)
+	simulation.WaitForBlock(state0, 6)
+	simulation.Halt(t)
 }

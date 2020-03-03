@@ -1,6 +1,8 @@
-hash: 59a5bf8832d158b87de4858e2c7f8231c0dcb5b866278c5b889197e18e96b1af
-updated: 2019-11-12T11:57:07.751501763-06:00
+hash: e38db1d04dc3557d5141c051dfc3ca7db5138d76c5cc23f3764af172d902c3ba
+updated: 2020-02-14T16:06:07.849125261+01:00
 imports:
+- name: github.com/alexandrevicenzi/go-sse
+  version: 7b23d5ff7420ab4f1a3e45a584a56bfc9e4ba49e
 - name: github.com/beorn7/perks
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
   subpackages:

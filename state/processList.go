@@ -7,6 +7,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/modules/event"
 	"os"
 	"strings"
 	"sync"
@@ -937,6 +938,11 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 		p := p.processVM(vm)
 		progress = p || progress
 	}
+
+	// publish process list
+	info := &event.ProcessListInfo{ProcessTime: p.State.ProcessTime, Dump: p.String(), PrintMap: p.PrintMap()}
+	p.State.Pub.ProcessListInfo.Write(info)
+
 	return progress
 }
 

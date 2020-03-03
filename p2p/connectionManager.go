@@ -9,6 +9,7 @@ package p2p
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/pubsub"
 	"math/rand"
 )
 
@@ -22,8 +23,13 @@ type ConnectionManager struct {
 func (cm *ConnectionManager) Init() *ConnectionManager {
 	cm.connections = make(map[string]*Connection)
 	cm.connectionsByAddress = make(map[string]map[string]bool)
-
 	return cm
+}
+
+func newPublisher(name string) pubsub.IPublisher {
+	p := pubsub.PubFactory.Threaded(100).Publish(name)
+	go p.Start()
+	return p
 }
 
 // Get the map of all connections by the peer hash.

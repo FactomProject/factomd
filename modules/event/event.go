@@ -3,6 +3,7 @@ package event
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"path"
 )
 
 type pubSubPaths struct {
@@ -14,6 +15,9 @@ type pubSubPaths struct {
 	LeaderMsgIn  string
 	LeaderMsgOut string
 	AuthoritySet string
+	ConnectionMetrics string
+	ProcessListInfo   string
+	StateUpdate       string
 }
 
 var Path = pubSubPaths{
@@ -24,6 +28,9 @@ var Path = pubSubPaths{
 	LeaderConfig: "leader-config",
 	LeaderMsgIn:  "leader-msg-in",
 	LeaderMsgOut: "leader-msg-out",
+	ConnectionMetrics: path.Join("connection", "metrics"), // REVIEW: pubsub has it's own path maybe should use that
+	ProcessListInfo:   "process-list",
+	StateUpdate:       "state-update",
 	AuthoritySet: "authority-set",
 }
 
@@ -66,4 +73,19 @@ type AuthoritySet struct {
 	LeaderHeight uint32
 	FedServers   []interfaces.IServer
 	AuditServers []interfaces.IServer
+}
+
+
+type ProcessListInfo struct {
+	ProcessTime interfaces.Timestamp
+	Dump        string
+	PrintMap    string
+}
+
+type StateUpdate struct {
+	NodeTime           interfaces.Timestamp
+	LeaderHeight       uint32
+	Summary            string
+	IdentitiesDetails  string
+	AuthoritiesDetails string
 }

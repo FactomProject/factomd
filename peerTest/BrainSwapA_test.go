@@ -1,9 +1,8 @@
 package simtest
 
 import (
+	"github.com/FactomProject/factomd/testHelper/simulation"
 	"testing"
-
-	. "github.com/FactomProject/factomd/testHelper"
 )
 
 /*
@@ -20,11 +19,11 @@ func TestBrainSwapA(t *testing.T) {
 	givenNodes := "LLLLAAA"
 	outputNodes := "LFLLFAA"
 
-	ResetSimHome(t)
+	simulation.ResetSimHome(t)
 
 	// build config files for the test
 	for i := 0; i < len(givenNodes); i++ {
-		WriteConfigFile(i, i, "", t)
+		simulation.WriteConfigFile(i, i, "", t)
 	}
 
 	params := map[string]string{
@@ -40,17 +39,17 @@ func TestBrainSwapA(t *testing.T) {
 		"--peers":            peers,
 	}
 
-	state0 := SetupSim(givenNodes, params, int(maxBlocks), 0, 0, t)
+	state0 := simulation.SetupSim(givenNodes, params, int(maxBlocks), 0, 0, t)
 
-	WaitForAllNodes(state0)
-	WriteConfigFile(9, 1, "ChangeAcksHeight = 10\n", t)
-	WriteConfigFile(8, 4, "ChangeAcksHeight = 10\n", t)
-	WaitForBlock(state0, 10)
-	AdjustAuthoritySet(outputNodes)
+	simulation.WaitForAllNodes(state0)
+	simulation.WriteConfigFile(9, 1, "ChangeAcksHeight = 10\n", t)
+	simulation.WriteConfigFile(8, 4, "ChangeAcksHeight = 10\n", t)
+	simulation.WaitForBlock(state0, 10)
+	simulation.AdjustAuthoritySet(outputNodes)
 
-	WaitBlocks(state0, 3)
-	AssertAuthoritySet(t, outputNodes)
-	WaitBlocks(state0, 1)
-	Halt(t)
+	simulation.WaitBlocks(state0, 3)
+	simulation.AssertAuthoritySet(t, outputNodes)
+	simulation.WaitBlocks(state0, 1)
+	simulation.Halt(t)
 
 }
