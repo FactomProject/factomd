@@ -74,6 +74,7 @@ func CreateAndPopulateTestState() *state.State {
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = testHelper.CreateAndPopulateTestDatabaseOverlay()
 	s.LoadConfig("", "")
+	s.BuildPubRegistry()
 
 	s.DirectoryBlockInSeconds = 20
 
