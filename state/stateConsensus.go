@@ -861,7 +861,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		if EnableLeaderThread {
 			// REVIEW: eventually Election Queue will be replaced completely w/ pubsub
 
-			s.Pub.AuthoritySet.Write(&event.AuthoritySet{
+			s.Pub.AuthoritySet.Write(&events.AuthoritySet{
 				LeaderHeight: s.LLeaderHeight,
 				FedServers:   s.LeaderPL.FedServers,
 				AuditServers: s.LeaderPL.AuditServers,

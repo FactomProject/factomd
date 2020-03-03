@@ -129,17 +129,3 @@ type DBAnchored struct {
 	DBHeight     uint32
 	DirBlockInfo interfaces.IDirBlockInfo
 }
-
-type ProcessListInfo struct {
-	ProcessTime interfaces.Timestamp
-	Dump        string
-	PrintMap    string
-}
-
-type StateUpdate struct {
-	NodeTime           interfaces.Timestamp
-	LeaderHeight       uint32
-	Summary            string
-	IdentitiesDetails  string
-	AuthoritiesDetails string
-}

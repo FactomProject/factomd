@@ -108,7 +108,7 @@ func (s *State) MsgSort() {
 	leaderOut := pubsub.SubFactory.Channel(50)
 
 	if EnableLeaderThread {
-		leaderOut.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), event.Path.LeaderMsgOut))
+		leaderOut.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), events.Path.LeaderMsgOut))
 	}
 
 	// Look for pending inMessages, and get one if there is one.

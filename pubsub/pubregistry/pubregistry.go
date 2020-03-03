@@ -19,6 +19,7 @@ type PubRegistry struct {
 	NodeMessage     pubsub.IPublisher
 	ProcessListInfo pubsub.IPublisher
 	StateUpdate     pubsub.IPublisher
+	AuthoritySet    pubsub.IPublisher
 	factomNodeName  string
 }
 
@@ -53,6 +54,7 @@ func (p *PubRegistry) bindPublishers() {
 	p.NodeMessage = p.newPublisher(events.Path.NodeMessage)
 	p.ProcessListInfo = p.newPublisher(events.Path.ProcessListInfo)
 	p.StateUpdate = p.newPublisher(events.Path.StateUpdate)
+	p.AuthoritySet = p.newPublisher(events.Path.AuthoritySet)
 }
 
 func (p PubRegistry) GetBlkSeq() pubsub.IPublisher {
