@@ -2,10 +2,9 @@ package longtest
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/testHelper/simulation"
 	"testing"
 	"time"
-
-	. "github.com/FactomProject/factomd/testHelper"
 )
 
 /*
@@ -14,7 +13,7 @@ send consistent load to simulator ramping up over 5 iterations.
 NOTE: must run this test with a large timeout such as -timeout=9999h
 */
 func TestBlockTiming(t *testing.T) {
-	ResetSimHome(t) // ditch the old data
+	simulation.ResetSimHome(t) // ditch the old data
 
 	params := map[string]string{
 		"--blktime":      "30",
@@ -23,17 +22,17 @@ func TestBlockTiming(t *testing.T) {
 		//"--db":           "LDB", // XXX using the db incurs heavy IO
 		//"--debuglog":     ".", // enable logs cause max ~ 50 TPS
 	}
-	state0 := SetupSim("LLLFF", params, 60, 0, 0, t) // start 6L 8F
+	state0 := simulation.SetupSim("LLLFF", params, 60, 0, 0, t) // start 6L 8F
 
 	// adjust simulation parameters
-	RunCmd("s")  // show node state summary
-	RunCmd("Re") // keep reloading EC wallet on 'tight' schedule (only small amounts)
+	simulation.RunCmd("s")  // show node state summary
+	simulation.RunCmd("Re") // keep reloading EC wallet on 'tight' schedule (only small amounts)
 
 	incrementLoad := 10 // tx
 	setLoad := 10       // tx/sec
 
 	for x := 0; x < 5; x++ {
-		RunCmd(fmt.Sprintf("R%v", setLoad)) // Load tx/sec
+		simulation.RunCmd(fmt.Sprintf("R%v", setLoad)) // Load tx/sec
 		startHt := state0.GetDBHeightComplete()
 		time.Sleep(time.Second * 300) // test 300s (5min) increments
 

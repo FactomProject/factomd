@@ -4,7 +4,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/modules/event"
+	"github.com/FactomProject/factomd/modules/events"
 )
 
 // Create a new Acknowledgement.  Must be called by a leader.  This
@@ -32,7 +32,7 @@ func (l *Leader) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) inter
 	}
 
 	// keep height and hash from latest ack
-	l.Ack = &event.Ack{
+	l.Ack = &events.Ack{
 		Height:      ack.Height,
 		MessageHash: ack.MessageHash,
 	}

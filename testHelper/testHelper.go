@@ -3,9 +3,10 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
-	"bytes"
-	"encoding/binary"
+	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/simulation"
 	"os/exec"
 	"regexp"
 	"runtime"
@@ -13,7 +14,6 @@ import (
 	"github.com/FactomProject/factomd/registry"
 	"github.com/FactomProject/factomd/worker"
 
-	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -40,7 +40,7 @@ var DefaultCoinbaseAmount uint64 = 100000000
 func CreateEmptyTestState() *state.State {
 	pubsub.Reset()
 	s := new(state.State)
-	s.BindPublishers()
+	s.BuildPubRegistry()
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
 	s.LoadConfig("", "")
@@ -86,50 +86,10 @@ func CreatePopulateAndExecuteTestState() *state.State {
 	return s
 }
 
-func CreateAndPopulateStaleHolding() *state.State {
-	s := CreateAndPopulateTestState()
-
-	// TODO: refactor into test helpers
-	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
-
-	encode := func(s string) []byte {
-		b := bytes.Buffer{}
-		b.WriteString(s)
-		return b.Bytes()
-	}
-
-	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
-	extids := [][]byte{encode(fmt.Sprintf("makeStaleMessages"))}
-
-	e := factom.Entry{
-		ChainID: id,
-		ExtIDs:  extids,
-		Content: encode(fmt.Sprintf("this is a stale message")),
-	}
-
-	// create stale MilliTime
-	mockTime := func() (r []byte) {
-		buf := new(bytes.Buffer)
-		t := time.Now().UnixNano()
-		m := t/1e6 - state.FilterTimeLimit // make msg too old
-		binary.Write(buf, binary.BigEndian, m)
-		return buf.Bytes()[2:]
-	}
-
-	// adding a commit w/ no REVEAL
-	m, _ := ComposeCommitEntryMsg(a.Priv, e)
-	copy(m.CommitEntry.MilliTime[:], mockTime())
-
-	// add commit to holding
-	s.Hold.Add(m.GetMsgHash().Fixed(), m)
-
-	return s
-}
-
 func CreateAndPopulateTestState() *state.State {
 	pubsub.Reset() // clear existing pubsub paths between tests
 	s := new(state.State)
-	s.BindPublishers()
+	s.BuildPubRegistry()
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
@@ -473,4 +433,60 @@ func GetTestName() (name string) {
 	}
 
 	return name
+}
+
+func NewTestCommitChainMsg() interfaces.IMsg {
+	msg := new(messages.CommitChainMsg)
+	msg.CommitChain = NewTestCommitChain()
+	return msg
+}
+
+func NewTestCommitChain() *entryCreditBlock.CommitChain {
+	commitChain := entryCreditBlock.NewCommitChain()
+	commitChain.ChainIDHash.SetBytes([]byte(""))
+	commitChain.ECPubKey = new(primitives.ByteSlice32)
+	commitChain.Sig = new(primitives.ByteSlice64)
+	commitChain.Weld.SetBytes([]byte("1"))
+	return commitChain
+}
+
+func NewTestCommitEntryMsg() interfaces.IMsg {
+	msg := messages.NewCommitEntryMsg()
+	msg.CommitEntry = NewTestCommitEntry()
+	return msg
+}
+
+func NewTestCommitEntry() *entryCreditBlock.CommitEntry {
+	commitEntry := entryCreditBlock.NewCommitEntry()
+	commitEntry.Init()
+	commitEntry.EntryHash = commitEntry.Hash()
+	return commitEntry
+}
+
+func NewTestEntryRevealMsg() interfaces.IMsg {
+	msg := messages.NewRevealEntryMsg()
+	msg.Entry = simulation.RandomEntry()
+	msg.Timestamp = primitives.NewTimestampNow()
+	return msg
+}
+
+func NewTestEntryReveal() interfaces.IEntry {
+	return simulation.RandomEntry()
+}
+
+func NewTestDirectoryBlockStateMsg() interfaces.IDBState {
+	set := CreateTestBlockSet(nil)
+	set = CreateTestBlockSet(set)
+
+	msg := new(state.DBState)
+	msg.DirectoryBlock = set.DBlock
+	msg.AdminBlock = set.ABlock
+	msg.FactoidBlock = set.FBlock
+	msg.EntryCreditBlock = set.ECBlock
+
+	return msg
+}
+
+func NewTestDirectoryBlockInfo() interfaces.IDirBlockInfo {
+	return CreateTestDirBlockInfo(&dbInfo.DirBlockInfo{DBHeight: 910})
 }

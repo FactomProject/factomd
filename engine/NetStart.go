@@ -9,12 +9,16 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/modules/leader"
+	controlpanel "github.com/FactomProject/factomd/controlPanel"
 	"os"
 	"reflect"
 	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common"
+	"github.com/FactomProject/factomd/modules/debugsettings"
+	"github.com/FactomProject/factomd/simulation"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/messages"
@@ -24,10 +28,8 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/modules/debugsettings"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/registry"
-	"github.com/FactomProject/factomd/simulation"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/worker"
@@ -151,6 +153,7 @@ func NetStart(w *worker.Thread, p *globals.FactomParams, listenToStdin bool) {
 	startNetwork(w, p)
 	startFnodes(w)
 	startWebserver(w)
+	startControlPanel(w)
 	simulation.StartSimControl(w, p.ListenTo, listenToStdin)
 }
 
@@ -192,6 +195,14 @@ func initAnchors(s *state.State, reparse bool) {
 	}
 }
 
+func startLiveFeed(w *worker.Thread, p *globals.FactomParams) {
+	state0 := fnode.Get(0).State
+	config := state0.Cfg.(*util.FactomdConfig)
+	if config.LiveFeedAPI.EnableLiveFeedAPI || p.EnableLiveFeedAPI {
+		state0.LiveFeedService.Start(state0, config, p)
+	}
+}
+
 func startWebserver(w *worker.Thread) {
 	state0 := fnode.Get(0).State
 	wsapi.Start(w, state0)
@@ -201,12 +212,29 @@ func startWebserver(w *worker.Thread) {
 
 	// Start prometheus on port
 	launchPrometheus(9876)
+}
 
-	/*
-		w.Run(func() {
-			controlPanel.ServeControlPanel(state0.ControlPanelChannel, state0, connectionMetricsChannel, p2pNetwork, Build, state0.FactomNodeName)
-		})
-	*/
+func startControlPanel(w *worker.Thread) {
+	state0 := fnode.Get(0).State
+	w.Run("controlpanel", func() {
+		controlPanelConfig := &controlpanel.Config{
+			Port:       state0.ControlPanelPort,
+			TLSEnabled: state0.FactomdTLSEnable,
+			CertFile:   state0.FactomdTLSCertFile,
+			KeyFile:    state0.FactomdTLSKeyFile,
+
+			NodeName:   state0.FactomNodeName,
+			BuildNumer: Build,
+			Version:    FactomdVersion,
+
+			CompleteHeight: state0.EntryDBHeightComplete,
+			LeaderHeight:   state0.LLeaderHeight,
+
+			IdentityChainID: state0.GetIdentityChainID().String(),
+			PublicKey:       state0.GetServerPublicKeyString(),
+		}
+		controlpanel.New(controlPanelConfig)
+	})
 }
 
 func startNetwork(w *worker.Thread, p *globals.FactomParams) {
@@ -263,6 +291,10 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 
 	p2p.NetworkDeadline = time.Duration(p.Deadline) * time.Millisecond
 	simulation.BuildNetTopology(p)
+
+	// start a worker that publishes the connection metrics
+	connectionMetricsPublisher := p2p.NewMetricPublisher(s.FactomNodeName, connectionMetricsChannel)
+	connectionMetricsPublisher.Start(w)
 
 	if !p.EnableNet {
 		return
@@ -325,9 +357,10 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 	}
 
 	// Election factory was created and passed int to avoid import loop
+	//node.State.BindPublishers() // REVIEW: has this been fully refactored?
 	node.State.Initialize(w, new(electionMsgs.ElectionsFactory))
 	node.State.NameInit(node, node.State.GetFactomNodeName()+"STATE", reflect.TypeOf(node.State).String())
-	node.State.BindPublishers()
+	node.State.BuildPubRegistry()
 
 	state0Init.Do(func() {
 		logPort = p.LogPort
@@ -335,6 +368,7 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 		initEntryHeight(node.State, p.Sync2)
 		initAnchors(node.State, p.ReparseAnchorChains)
 		echoConfig(node.State, p) // print the config only once
+		// Init settings
 	})
 
 	if state.EnableLeaderThread {

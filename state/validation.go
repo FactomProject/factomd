@@ -7,13 +7,13 @@ package state
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/modules/events"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
 	llog "github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/modules/event"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/util/atomic"
 )
@@ -23,6 +23,7 @@ var ValidationDebug bool = false
 // This is the tread with access to state. It does process and update state
 func (s *State) MsgExecute() {
 	s.validatorLoopThreadID = atomic.Goid()
+	events.EmitNodeMessageF(s, events.NodeMessageCode_STARTED, events.Level_INFO, "Node %s startup complete", s.GetFactomNodeName())
 	s.RunState = runstate.Running
 
 	slp := false
@@ -92,8 +93,14 @@ func (s *State) MsgSort() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("A panic state occurred in ValidatorLoop.", r)
+			fmt.Println("A panic state occurred in MsgSort.", r)
 			llog.LogPrintf("recovery", "A panic state occurred in ValidatorLoop. %v", r)
+			nodeMessageEvent := &events.NodeMessage{
+				MessageCode: events.NodeMessageCode_GENERAL,
+				Level:       events.Level_ERROR,
+				MessageText: fmt.Sprintf("A panic state occurred in ValidatorLoop. %v", r),
+			}
+			s.Pub.GetNodeMessage().Write(nodeMessageEvent)
 			shutdown(s)
 		}
 	}()
@@ -101,7 +108,7 @@ func (s *State) MsgSort() {
 	leaderOut := pubsub.SubFactory.Channel(50)
 
 	if EnableLeaderThread {
-		leaderOut.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), event.Path.LeaderMsgOut))
+		leaderOut.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), events.Path.LeaderMsgOut))
 	}
 
 	// Look for pending inMessages, and get one if there is one.
@@ -190,6 +197,9 @@ func shouldShutdown(state *State) bool {
 }
 
 func shutdown(state *State) {
+	events.EmitNodeMessageF(state, events.NodeMessageCode_SHUTDOWN, events.Level_INFO,
+		"Node %s is shutting down", state.GetFactomNodeName())
+
 	state.RunState = runstate.Stopping
 	fmt.Println("Closing the Database on", state.GetFactomNodeName())
 	state.StateSaverStruct.StopSaving()

@@ -1,8 +1,9 @@
-package testHelper
+package simulation
 
 import (
 	"flag"
 	"fmt"
+	"github.com/FactomProject/factomd/testHelper"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -573,7 +574,7 @@ func GetSimTestHome(t *testing.T) string {
 		t.Fatal(err)
 	}
 
-	return dir + "/.sim/" + GetTestName()
+	return dir + "/.sim/" + testHelper.GetTestName()
 }
 
 // re-use a common dir for longTest

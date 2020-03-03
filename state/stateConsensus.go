@@ -7,6 +7,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/modules/events"
 	"hash"
 	"os"
 	"reflect"
@@ -22,7 +23,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/modules/event"
 	. "github.com/FactomProject/factomd/modules/logging"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -88,6 +88,7 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.Holding[hash] = msg
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
+		events.EmitEventFromMessage(s, msg, events.RequestState_HOLDING)
 	}
 }
 
@@ -97,6 +98,7 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		delete(s.Holding, hash)
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
+		events.EmitEventFromMessage(s, msg, events.RequestState_REJECTED)
 	}
 
 	s.Hold.RemoveDependentMsg(hash, reason)
@@ -405,6 +407,8 @@ func (s *State) Process() (progress bool) {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing
 					s.IgnoreDone = true
 				}
+				events.EmitNodeMessageF(s, events.NodeMessageCode_SYNCED, events.Level_INFO,
+					"Node %s has finished syncing up it's database", s.GetFactomNodeName())
 			}
 		}
 	} else if s.IgnoreMissing {
@@ -857,7 +861,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		if EnableLeaderThread {
 			// REVIEW: eventually Election Queue will be replaced completely w/ pubsub
 
-			s.Pub.AuthoritySet.Write(&event.AuthoritySet{
+			s.Pub.AuthoritySet.Write(&events.AuthoritySet{
 				LeaderHeight: s.LLeaderHeight,
 				FedServers:   s.LeaderPL.FedServers,
 				AuditServers: s.LeaderPL.AuditServers,
@@ -877,7 +881,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			{
 				dbstate := s.DBStates.Get(int(dbheight - 1))
 
-				directory := event.Directory{
+				directory := events.Directory{
 					DBHeight:             dbheight,
 					VMIndex:              s.LeaderVMIndex,
 					DirectoryBlockHeader: dbstate.DirectoryBlock.GetHeader(),
@@ -945,7 +949,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
 	s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
-	s.Pub.BlkSeq.Write(&event.DBHT{DBHeight: s.LLeaderHeight, Minute: s.CurrentMinute})
+	s.Pub.BlkSeq.Write(&events.DBHT{DBHeight: s.LLeaderHeight, Minute: s.CurrentMinute})
 
 	s.Hold.ExecuteForNewHeight(s.LLeaderHeight, s.CurrentMinute) // execute held inMessages
 	s.Hold.Review()                                              // cleanup old inMessages
@@ -2194,6 +2198,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed++
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d EOMProcessed++ (%2d)", s.FactomNodeName, e.VMIndex, s.EOMProcessed))
 		vm.Synced = true // ProcessEOM
+		//markNoFault(pl, msg.GetVMIndex())
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Process this SigType: return on s.SigType(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.FactomNodeName, e.VMIndex, s.SigType, e.Minute, s.EOMMinute))
 		return false
 	}
@@ -2275,7 +2280,7 @@ func (s *State) CheckForIDChange() {
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
 		s.initServerKeys()
 		s.LogPrintf("AckChange", "ReloadIdentity new local_priv: %v ident_chain: %v, prev local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID, prev_LocalServerPrivKey, prev_ChainID)
-		s.Pub.LeaderConfig.Write(&event.LeaderConfig{
+		s.Pub.LeaderConfig.Write(&events.LeaderConfig{
 			NodeName:           s.GetFactomNodeName(),
 			IdentityChainID:    s.IdentityChainID,
 			Salt:               s.Salt,

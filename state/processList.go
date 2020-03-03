@@ -7,6 +7,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/modules/events"
 	"os"
 	"strings"
 	"sync"
@@ -937,6 +938,10 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 		p := p.processVM(vm)
 		progress = p || progress
 	}
+
+	// publish process list
+	info := &events.ProcessListInfo{ProcessTime: p.State.ProcessTime, Dump: p.String(), PrintMap: p.PrintMap()}
+	p.State.Pub.ProcessListInfo.Write(info)
 	return progress
 }
 
@@ -1114,6 +1119,8 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 
 	// also add the msg and ack to our missing msg request handler
 	s.MissingMessageResponseHandler.NotifyNewMsgPair(ack, m)
+
+	events.EmitEventFromMessage(s, m, events.RequestState_ACCEPTED)
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {

@@ -470,3 +470,11 @@ func UnmarshalEntryList(data []byte) ([]interfaces.IEBEntry, []byte, error) {
 
 	return list, buf.DeepCopyBytes(), nil
 }
+
+func (e *Entry) GetVersion() uint8 {
+	return e.Version
+}
+
+func (e *Entry) GetExtIDs() []primitives.ByteSlice {
+	return e.ExtIDs
+}

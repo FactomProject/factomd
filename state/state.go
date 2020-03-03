@@ -10,6 +10,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/modules/livefeed"
+	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/pubsub/pubregistry"
 	"os"
 	"reflect"
 	"regexp"
@@ -104,7 +107,7 @@ type State struct {
 	common.Name
 	StateConfig
 	logging           *logging.LayerLogger
-	Pub               // Publisher hooks
+	Pub               *pubregistry.PubRegistry // Publisher hooks for this vm
 	RunState          runstate.RunState
 	NetworkController *p2p.Controller
 	Salt              interfaces.IHash
@@ -410,6 +413,7 @@ type State struct {
 	InputRegExString          string
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      *HoldingList
+	LiveFeedService           livefeed.LiveFeedService
 
 	// MissingMessageResponse is a cache of the last 1000 msgs we receive such that when
 	// we send out a missing message, we can find that message locally before we ask the net
@@ -2388,4 +2392,16 @@ func (s *State) GetDBFinished() bool {
 
 func (s *State) GetRunLeader() bool {
 	return s.RunLeader
+}
+
+func (s *State) GetPubRegistry() pubsub.IPubRegistry {
+	return s.Pub
+}
+
+func (s *State) BuildPubRegistry() {
+	s.Pub = pubregistry.New(s.FactomNodeName)
+}
+
+func (s *State) GetLiveFeedService() livefeed.LiveFeedService {
+	return s.LiveFeedService
 }

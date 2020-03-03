@@ -3,6 +3,7 @@ package simtest
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/testHelper/simulation"
 	"testing"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/state"
-	. "github.com/FactomProject/factomd/testHelper"
 )
 
 func TestHoldingRebound(t *testing.T) {
@@ -22,10 +22,10 @@ func TestHoldingRebound(t *testing.T) {
 
 	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
 	extids := [][]byte{encode("foo"), encode("bar")}
-	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
+	a := simulation.AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
 
 	println(a.String())
-	state0 := SetupSim("LFF", map[string]string{}, 120, 0, 0, t)
+	state0 := simulation.SetupSim("LFF", map[string]string{}, 120, 0, 0, t)
 
 	e := factom.Entry{
 		ChainID: id,
@@ -35,8 +35,8 @@ func TestHoldingRebound(t *testing.T) {
 
 	c := factom.NewChain(&e)
 
-	commit, _ := ComposeChainCommit(a.Priv, c)
-	reveal, _ := ComposeRevealEntryMsg(a.Priv, c.FirstEntry)
+	commit, _ := simulation.ComposeChainCommit(a.Priv, c)
+	reveal, _ := simulation.ComposeRevealEntryMsg(a.Priv, c.FirstEntry)
 
 	state0.APIQueue().Enqueue(commit)
 	state0.APIQueue().Enqueue(reveal)
@@ -45,12 +45,12 @@ func TestHoldingRebound(t *testing.T) {
 	GenerateCommitsAndRevealsInBatches(t, state0)
 
 	ht := state0.GetDBHeightComplete()
-	WaitBlocks(state0, 2)
+	simulation.WaitBlocks(state0, 2)
 	newHt := state0.GetDBHeightComplete()
 	assert.True(t, ht < newHt, "block height should progress")
 
-	ShutDownEverything(t)
-	WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
+	simulation.WaitForAllNodes(state0)
 
 	for _, ml := range state0.Hold.Messages() {
 		for _, m := range ml {
@@ -69,7 +69,7 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 
 	// KLUDGE vars duplicated from original test - should refactor
 	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
-	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
+	a := simulation.AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
 
 	batchCount := 10
 	setDelay := 1     // blocks to wait between sets of entries
@@ -95,8 +95,8 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 			}
 			i++
 
-			commit, _ := ComposeCommitEntryMsg(a.Priv, e)
-			reveal, _ := ComposeRevealEntryMsg(a.Priv, &e)
+			commit, _ := simulation.ComposeCommitEntryMsg(a.Priv, e)
+			reveal, _ := simulation.ComposeRevealEntryMsg(a.Priv, &e)
 
 			state0.APIQueue().Enqueue(commit)
 			state0.APIQueue().Enqueue(reveal)
@@ -110,14 +110,14 @@ func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
 		{ // measure time it takes to process all messages by observing entry credit spend
 			tstart := time.Now()
 			a.FundEC(uint64(numEntries + 1))
-			WaitForEcBalanceUnder(state0, a.EcPub(), int64(BatchID+2))
+			simulation.WaitForEcBalanceUnder(state0, a.EcPub(), int64(BatchID+2))
 			tend := time.Now()
 			batchTimes[BatchID] = tend.Sub(tstart)
 			state0.LogPrintf(logName, "BATCH %v RUNTIME %v", BatchID, batchTimes[BatchID])
 		}
 
 		if setDelay > 0 {
-			WaitBlocks(state0, int(setDelay)) // wait between batches
+			simulation.WaitBlocks(state0, int(setDelay)) // wait between batches
 		}
 	}
 }

@@ -38,10 +38,13 @@ import:
 - package: gopkg.in/AlecAivazis/survey.v1
 - package: gopkg.in/gcfg.v1
 - package: gopkg.in/yaml.v2
+- package: github.com/gogo/protobuf/proto
+- package: github.com/gogo/protobuf/gogoproto
 - package: github.com/stretchr/testify
   version: ^1.2.2
   subpackages:
   - assert
+- package: github.com/alexandrevicenzi/go-sse  
 testImport:
 - package: github.com/FactomProject/go-spew
   subpackages:

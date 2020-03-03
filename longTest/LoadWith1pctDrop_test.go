@@ -1,12 +1,11 @@
 package longtest
 
 import (
+	"github.com/FactomProject/factomd/testHelper/simulation"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	. "github.com/FactomProject/factomd/testHelper"
 )
 
 // authority node configuration
@@ -16,16 +15,16 @@ var nodesLoadWith1pctDrop string = "LLLLLLLLFFFFFF"
 1st Part - Deletes old test data and re-initializes a new network
 */
 func TestSetupLoadWith1pctDrop(t *testing.T) {
-	homeDir := GetLongTestHome(t)
-	ResetTestHome(homeDir, t)
+	homeDir := simulation.GetLongTestHome(t)
+	simulation.ResetTestHome(homeDir, t)
 
 	params := map[string]string{
 		"--db":         "LDB",
 		"--net":        "alot+",
 		"--factomhome": homeDir,
 	}
-	state0 := SetupSim(nodesLoadWith1pctDrop, params, 10, 0, 0, t)
-	WaitBlocks(state0, 1)
+	state0 := simulation.SetupSim(nodesLoadWith1pctDrop, params, 10, 0, 0, t)
+	simulation.WaitBlocks(state0, 1)
 }
 
 /*
@@ -44,17 +43,17 @@ func TestLoadWith1pctDrop(t *testing.T) {
 		"--blktime":      "30",
 		"--faulttimeout": "12",
 		"--startdelay":   "2",
-		"--factomhome":   GetLongTestHome(t),
+		"--factomhome":   simulation.GetLongTestHome(t),
 	}
-	state0 := StartSim(len(nodesLoadWith1pctDrop), params)
+	state0 := simulation.StartSim(len(nodesLoadWith1pctDrop), params)
 
 	// adjust simulation parameters
-	RunCmd("s")    // show node state summary
-	RunCmd("Re")   // keep reloading EC wallet on 'tight' schedule (only small amounts)
-	RunCmd("r")    // reset all nodes in the simulation (maybe not needed)
-	RunCmd("S10")  // message drop rate 1%
-	RunCmd("F500") // add 500 ms delay to all messages
-	RunCmd("R5")   // Load 5 tx/sec
+	simulation.RunCmd("s")    // show node state summary
+	simulation.RunCmd("Re")   // keep reloading EC wallet on 'tight' schedule (only small amounts)
+	simulation.RunCmd("r")    // reset all nodes in the simulation (maybe not needed)
+	simulation.RunCmd("S10")  // message drop rate 1%
+	simulation.RunCmd("F500") // add 500 ms delay to all messages
+	simulation.RunCmd("R5")   // Load 5 tx/sec
 
 	time.Sleep(time.Second * 300) // wait 5 min
 	startHt := state0.GetDBHeightAtBoot()

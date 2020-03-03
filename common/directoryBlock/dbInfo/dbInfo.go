@@ -95,6 +95,14 @@ func (c *DirBlockInfo) GetBTCConfirmed() bool {
 	return c.BTCConfirmed
 }
 
+func (c *DirBlockInfo) GetEthereumConfirmed() bool {
+	return c.EthereumConfirmed
+}
+
+func (c *DirBlockInfo) GetEthereumAnchorRecordEntryHash() interfaces.IHash {
+	return c.EthereumAnchorRecordEntryHash
+}
+
 func (c *DirBlockInfo) GetChainID() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -156,12 +164,20 @@ func (e *DirBlockInfo) GetBTCTxHash() (rval interfaces.IHash) {
 	return e.BTCTxHash
 }
 
+func (e *DirBlockInfo) GetBTCTxOffset() (rval int32) {
+	return e.BTCTxOffset
+}
+
 func (e *DirBlockInfo) GetTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampFromMilliseconds(uint64(e.Timestamp))
 }
 
 func (e *DirBlockInfo) GetBTCBlockHeight() int32 {
 	return e.BTCBlockHeight
+}
+
+func (e *DirBlockInfo) GetBTCBlockHash() interfaces.IHash {
+	return e.BTCBlockHash
 }
 
 func (e *DirBlockInfo) MarshalBinary() (rval []byte, err error) {

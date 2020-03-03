@@ -6,7 +6,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/modules/event"
+	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/worker"
@@ -24,7 +24,7 @@ func (p *Pub) Init(nodeName string) {
 	// REVIEW: will need to spawn/stop leader thread
 	// based on federated set membership
 	p.MsgOut = pubsub.PubFactory.Threaded(100).Publish(
-		pubsub.GetPath(nodeName, event.Path.LeaderMsgOut),
+		pubsub.GetPath(nodeName, events.Path.LeaderMsgOut),
 	)
 	go p.MsgOut.Start()
 }
@@ -65,8 +65,8 @@ func (s *Sub) Init() {
 
 // start subscriptions
 func (s *Sub) Start(nodeName string) {
-	s.LeaderConfig.Subscribe(pubsub.GetPath(nodeName, event.Path.LeaderConfig))
-	s.AuthoritySet.Subscribe(pubsub.GetPath(nodeName, event.Path.AuthoritySet))
+	s.LeaderConfig.Subscribe(pubsub.GetPath(nodeName, events.Path.LeaderConfig))
+	s.AuthoritySet.Subscribe(pubsub.GetPath(nodeName, events.Path.AuthoritySet))
 	{
 		s.SetLeaderMode(nodeName) //  create initial subscriptions
 	}
@@ -79,9 +79,9 @@ func (s *Sub) SetLeaderMode(nodeName string) {
 	}
 	s.role = FederatedRole
 	s.MsgInput.Subscribe(pubsub.GetPath(nodeName, "bmv", "rest"))
-	s.MovedToHeight.Subscribe(pubsub.GetPath(nodeName, event.Path.Seq))
-	s.DBlockCreated.Subscribe(pubsub.GetPath(nodeName, event.Path.Directory))
-	s.BalanceChanged.Subscribe(pubsub.GetPath(nodeName, event.Path.Bank))
+	s.MovedToHeight.Subscribe(pubsub.GetPath(nodeName, events.Path.Seq))
+	s.DBlockCreated.Subscribe(pubsub.GetPath(nodeName, events.Path.Directory))
+	s.BalanceChanged.Subscribe(pubsub.GetPath(nodeName, events.Path.Bank))
 }
 
 // stop subscribers that we do not need as a follower
@@ -97,12 +97,12 @@ func (s *Sub) SetFollowerMode() {
 }
 
 type Events struct {
-	Config              *event.LeaderConfig //
-	*event.DBHT                             // from move-to-ht
-	*event.Balance                          // REVIEW: does this relate to a specific VM
-	*event.Directory                        //
-	*event.Ack                              // record of last sent ack by leader
-	*event.AuthoritySet                     //
+	Config              *events.LeaderConfig //
+	*events.DBHT                             // from move-to-ht
+	*events.Balance                          // REVIEW: does this relate to a specific VM
+	*events.Directory                        //
+	*events.Ack                              // record of last sent ack by leader
+	*events.AuthoritySet                     //
 }
 
 func (l *Leader) Start(w *worker.Thread) {
@@ -132,6 +132,8 @@ func (l *Leader) processMin() (ok bool) {
 
 	for {
 		select {
+		case v := <-l.Sub.LeaderConfig.Updates:
+			l.Config = v.(*events.LeaderConfig)
 		case v := <-l.MsgInput.Updates:
 			m := v.(interfaces.IMsg)
 			if constants.NeedsAck(m.Type()) {
@@ -151,7 +153,7 @@ func (l *Leader) waitForNextMinute() (min int, ok bool) {
 	for {
 		select {
 		case v := <-l.MovedToHeight.Updates:
-			evt := v.(*event.DBHT)
+			evt := v.(*events.DBHT)
 			log.LogPrintf(l.logfile, "DBHT: %v", evt)
 
 			if evt.Minute == 10 {
@@ -174,14 +176,14 @@ func (l *Leader) WaitForDBlockCreated() (ok bool) {
 	for { // wait on a new (unique) directory event
 		select {
 		case v := <-l.Sub.DBlockCreated.Updates:
-			evt := v.(*event.Directory)
+			evt := v.(*events.Directory)
 			if l.Directory != nil && evt.DBHeight == l.Directory.DBHeight {
 				log.LogPrintf(l.logfile, "DUP Directory: %v", v)
 				continue
 			} else {
 				log.LogPrintf(l.logfile, "Directory: %v", v)
 			}
-			l.Directory = v.(*event.Directory)
+			l.Directory = v.(*events.Directory)
 			return true
 		case <-l.exit:
 			return false
@@ -192,7 +194,7 @@ func (l *Leader) WaitForDBlockCreated() (ok bool) {
 func (l *Leader) WaitForBalanceChanged() (ok bool) {
 	select {
 	case v := <-l.Sub.BalanceChanged.Updates:
-		l.Balance = v.(*event.Balance)
+		l.Balance = v.(*events.Balance)
 		log.LogPrintf(l.logfile, "BalChange: %v", v)
 		return true
 	case <-l.exit:
@@ -210,7 +212,7 @@ readLatestAuthSet:
 		select {
 		case v := <-l.Sub.AuthoritySet.Updates:
 			{
-				evt = v.(*event.AuthoritySet)
+				evt = v.(*events.AuthoritySet)
 			}
 		default:
 			{
@@ -238,9 +240,9 @@ func (l *Leader) WaitForAuthority() (isLeader bool) {
 	for {
 		select {
 		case v := <-l.Sub.LeaderConfig.Updates:
-			l.Config = v.(*event.LeaderConfig)
+			l.Config = v.(*events.LeaderConfig)
 		case v := <-l.Sub.AuthoritySet.Updates:
-			l.Events.AuthoritySet = v.(*event.AuthoritySet)
+			l.Events.AuthoritySet = v.(*events.AuthoritySet)
 		case <-l.exit:
 			return false
 		}

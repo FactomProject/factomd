@@ -2,11 +2,13 @@ package longtest
 
 import (
 	"bytes"
+	"github.com/FactomProject/factomd/testHelper/simulation"
+	"testing"
+
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/state"
-	. "github.com/FactomProject/factomd/testHelper"
-	"testing"
+	. "github.com/FactomProject/factomd/testHelper/simulation"
 )
 
 //  Currently just tests FCT/EC Commit/Reveal messages to make sure leader is working
@@ -23,7 +25,7 @@ func TestLeaderModule(t *testing.T) {
 	extids := [][]byte{encode("foo"), encode("bar")}
 
 	//a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
-	b := AccountFromFctSecret("Fs2BNvoDgSoGJpWg4PvRUxqvLE28CQexp5FZM9X5qU6QvzFBUn6D")
+	b := simulation.AccountFromFctSecret("Fs2BNvoDgSoGJpWg4PvRUxqvLE28CQexp5FZM9X5qU6QvzFBUn6D")
 
 	numEntries := 1 // set the total number of entries to add
 
