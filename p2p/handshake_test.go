@@ -1,32 +1,46 @@
 package p2p
 
-import "testing"
+import (
+	"math/rand"
+	"testing"
+)
+
+func testRandomHandshake() *Handshake {
+	hs := new(Handshake)
+	hs.Version = uint16(rand.Uint32())
+	hs.Type = ParcelType(rand.Uint32())
+	hs.NodeID = rand.Uint32()
+	hs.Network = NetworkID(rand.Uint32())
+	hs.Loopback = rand.Uint64()
+	hs.ListenPort = testRandomPort()
+
+	if hs.Type == TypeRejectAlternative {
+		alts := 1 + rand.Intn(16)
+		hs.Alternatives = make([]Endpoint, alts)
+		for i := range hs.Alternatives {
+			hs.Alternatives[i] = testRandomEndpoint()
+		}
+	}
+
+	return hs
+}
 
 func TestHandshake_Valid(t *testing.T) {
 	conf := DefaultP2PConfiguration()
 
 	var handshakes []*Handshake
-	for i := 0; i < 13; i++ {
-		hs := newHandshake(&conf, []byte("nonce"))
-		hs.Header.NodeID++
-		hs.Header.PeerAddress = "127.0.0.1"
+	for i := 0; i < 7; i++ {
+		hs := newHandshake(&conf, 0)
+		hs.NodeID++
 		handshakes = append(handshakes, hs)
 	}
 	// 0 is default payload
-	handshakes[1].Header.Version = 2 // incompatible version
-	handshakes[2].Header.Network = 0xf00
-	handshakes[3].Header.PeerPort = "foo"
-	handshakes[4].Header.PeerPort = ""
-	handshakes[5].Header.PeerPort = "0"
-	handshakes[6].Header.PeerPort = "900000"
-	handshakes[7].SetPayload(nil)
-	handshakes[8].Payload = nil
-	handshakes[8].Header.Crc32 = 0
-	handshakes[8].Header.Length = 0
-	handshakes[9].Header.Length = 100
-	handshakes[10].Header.Crc32 = 0xf00
-	handshakes[11].Payload = []byte("Invalid")
-	handshakes[12].Header.PeerAddress = ""
+	handshakes[1].Version = 2 // incompatible version
+	handshakes[2].Network = 0xf00
+	handshakes[3].ListenPort = "foo"
+	handshakes[4].ListenPort = ""
+	handshakes[5].ListenPort = "0"
+	handshakes[6].ListenPort = "900000"
 
 	type args struct {
 		conf *Configuration
@@ -44,12 +58,6 @@ func TestHandshake_Valid(t *testing.T) {
 		{"empty port", handshakes[4], args{&conf}, true},
 		{"zero port", handshakes[5], args{&conf}, true},
 		{"too high port", handshakes[6], args{&conf}, true},
-		{"nil payload", handshakes[7], args{&conf}, true},
-		{"no payload initialized", handshakes[8], args{&conf}, true},
-		{"wrong payload length", handshakes[9], args{&conf}, true},
-		{"wrong payload crc", handshakes[10], args{&conf}, true},
-		{"wrong payload bytes", handshakes[11], args{&conf}, true},
-		{"no peer address", handshakes[12], args{&conf}, false},
 	}
 
 	for _, tt := range tests {

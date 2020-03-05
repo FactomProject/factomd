@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 )
 
@@ -18,13 +17,13 @@ func TestMetricsReadWriter_ReadWrite(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		sc      MetricsReadWriter
+		sc      *MetricsReadWriter
 		args    args
 		want    int
 		wantErr bool
 	}{
-		{"one byte", *mrw, args{[]byte{0x1}}, 1, false},
-		{"phrase", *mrw, args{[]byte("foo")}, 3, false},
+		{"one byte", mrw, args{[]byte{0x1}}, 1, false},
+		{"phrase", mrw, args{[]byte("foo")}, 3, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -73,7 +72,6 @@ func TestMetricsReadWriter_Collect(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.sc.Write(tt.args.p)
-			fmt.Println(tt.sc.bytesWritten)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("MetricsReadWriter.Write() error = %v, wantErr %v", err, tt.wantErr)
 				return

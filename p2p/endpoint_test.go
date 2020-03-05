@@ -21,18 +21,19 @@ func TestNewEndpoint(t *testing.T) {
 		{"empty", args{"", ""}, Endpoint{}, true},
 		{"no port", args{"127.0.0.1", ""}, Endpoint{}, true},
 		{"no ip", args{"", "8088"}, Endpoint{}, true},
-		{"invalid ip", args{"127.0.0.256", "8088"}, Endpoint{}, true},
-		{"domain lookup", args{"localhost", "8088"}, Endpoint{}, true}, // likely uses ::1 ipv6 address
+		//{"invalid ip", args{"127.0.0.256", "8088"}, Endpoint{}, true}, // technically a valid hostname
+		{"hostname", args{"localhost", "8088"}, Endpoint{"localhost", "8088"}, false}, // likely uses ::1 ipv6 address
+		{"punycode", args{"xn--qei9019maa.xn--z38hpa", "8088"}, Endpoint{"xn--qei9019maa.xn--z38hpa", "8088"}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := NewEndpoint(tt.args.addr, tt.args.port)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewIP() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NewEndpoint() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewIP() = %v, want %v", got, tt.want)
+				t.Errorf("NewEndpoint() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -55,7 +56,7 @@ func TestParseEndpoint(t *testing.T) {
 		{"no port", args{"127.0.0.1"}, Endpoint{}, true},
 		{"empty", args{""}, Endpoint{}, true},
 		{"no ip", args{":80"}, Endpoint{}, true},
-		{"bad ip", args{"127.0:80"}, Endpoint{}, true},
+		// {"bad ip", args{"127.0:80"}, Endpoint{}, true}, // this is theoretically a valid hostname
 		{"wrong format 1", args{"127.0.0.1,80"}, Endpoint{}, true},
 		{"wrong format 2", args{"127.0.0.1:80 test"}, Endpoint{}, true},
 		{"wrong format 3", args{"ip:127.0.0.1 port:80"}, Endpoint{}, true},
@@ -105,12 +106,52 @@ func TestEndpoint_Valid(t *testing.T) {
 		{"zero port", Endpoint{IP: "127.0.0.1", Port: "0"}, false},
 		{"nonnumeric port", Endpoint{IP: "127.0.0.1", Port: "eighty"}, false},
 		{"nonnumeric port", Endpoint{IP: "127.0.0.1", Port: "80th"}, false},
-		{"hostname", Endpoint{IP: "factom.fct", Port: "8088"}, true},
+		{"localhost", Endpoint{IP: "localhost", Port: "8088"}, true},
+		{"domain name", Endpoint{IP: "factom.fct", Port: "8088"}, true},
+		{"invalid characters", Endpoint{IP: "localho$t", Port: "8088"}, false},
+		{"invalid start", Endpoint{IP: "-test.com", Port: "8088"}, false},
+		{"invalid start middle", Endpoint{IP: "test.-com", Port: "8088"}, false},
+		{"longest hostname", Endpoint{IP: "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcde.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijk.com", Port: "8088"}, true},
+		{"real domain", Endpoint{IP: "www.google.com", Port: "8088"}, true},
+		{"invalid url", Endpoint{IP: "https://www.google.com", Port: "8088"}, false},
+		{"punycode", Endpoint{IP: "xn--qei9019maa.xn--z38hpa", Port: "8088"}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.ps.Valid(); got != tt.want {
 				t.Errorf("Endpoint.Valid() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEndpoint_Equal(t *testing.T) {
+	ep := func(ip, port string) Endpoint {
+		return Endpoint{IP: ip, Port: port}
+	}
+
+	type args struct {
+		o Endpoint
+	}
+	tests := []struct {
+		name string
+		ep   Endpoint
+		args args
+		want bool
+	}{
+		{"both empty", Endpoint{}, args{Endpoint{}}, true},
+		{"both empty strings", ep("", ""), args{ep("", "")}, true},
+		{"localhost, no port", ep("localhost", ""), args{ep("localhost", "")}, true},
+		{"no ip, same port", ep("", "80"), args{ep("", "80")}, true},
+		{"both set", ep("127.0.0.1", "8108"), args{ep("127.0.0.1", "8108")}, true},
+		{"port wrong", ep("127.0.0.1", "51"), args{ep("127.0.0.1", "50")}, false},
+		{"ip wrong", ep("127.0.0.1", "80"), args{ep("127.0.0.2", "80")}, false},
+		{"both wrong", ep("127.0.0.1", "80"), args{ep("127.0.0.2", "81")}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.ep.Equal(tt.args.o); got != tt.want {
+				t.Errorf("Endpoint.Equal() = %v, want %v", got, tt.want)
 			}
 		})
 	}

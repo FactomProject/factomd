@@ -2,9 +2,29 @@ package p2p
 
 import (
 	"fmt"
+	math "math"
+	"math/rand"
 	"net"
+	"regexp"
 	"strconv"
 )
+
+func testRandomEndpoint() Endpoint {
+	ip := fmt.Sprintf("%d.%d.%d.%d", 1+rand.Intn(255), rand.Intn(256), rand.Intn(256), 1+rand.Intn(255))
+	return Endpoint{IP: ip, Port: testRandomPort()}
+}
+
+func testRandomPort() string {
+	return fmt.Sprintf("%d", (1+rand.Uint32())%math.MaxUint16)
+}
+
+var hostnameRegex *regexp.Regexp
+
+func init() {
+	// built after https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames
+	//                                   (      optional labels           ) (    required label          )
+	hostnameRegex = regexp.MustCompile(`^([0-9A-Za-z][0-9A-Za-z\-]{0,62}\.)*[0-9A-Za-z][0-9A-Za-z\-]{0,62}$`)
+}
 
 type Endpoint struct {
 	IP   string `json:"ip"`
@@ -13,16 +33,10 @@ type Endpoint struct {
 
 // NewEndpoint creates an Endpoint struct from a given ip and port, throws error if ip could not be resolved
 func NewEndpoint(ip, port string) (Endpoint, error) {
-	if len(ip) == 0 || len(port) == 0 {
-		return Endpoint{}, fmt.Errorf("no ip or port given (%s:%s)", ip, port)
-	}
-
-	parse := net.ParseIP(ip)
-	if parse == nil {
-		return Endpoint{}, fmt.Errorf("unable to parse ip: %s", ip)
-	}
-
 	ep := Endpoint{ip, port}
+	if !ep.Valid() {
+		return Endpoint{}, fmt.Errorf("(%s:%s) is not a valid endpoint", ip, port)
+	}
 	return ep, nil
 }
 
@@ -51,8 +65,23 @@ func (ep Endpoint) String() string {
 
 // Verify checks if the data is usable. Does not check if the remote address works
 func (ep Endpoint) Valid() bool {
-	if _, err := strconv.Atoi(ep.Port); err == nil {
-		return ep.Port != "0" && ep.IP != ""
+	if ep.IP == "" || ep.Port == "" || len(ep.IP) > 253 { // 253 is max according to rfc 952
+		return false
 	}
-	return false
+
+	if p, err := strconv.Atoi(ep.Port); err != nil || p == 0 {
+		return false
+	}
+
+	if parse := net.ParseIP(ep.IP); parse == nil {
+		// check hostname
+		return hostnameRegex.MatchString(ep.IP)
+	}
+
+	return true
+}
+
+// Equals returns true if both endpoints are the same
+func (ep Endpoint) Equal(o Endpoint) bool {
+	return ep.IP == o.IP && ep.Port == o.Port
 }

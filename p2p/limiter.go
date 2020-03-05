@@ -12,15 +12,15 @@ type LimitedListener struct {
 	listener       net.Listener
 	limit          time.Duration
 	lastConnection time.Time
-	history        []limitedConnect
+	history        []attempt
 }
 
-type limitedConnect struct {
-	address string
-	time    time.Time
+type attempt struct {
+	host string
+	time time.Time
 }
 
-// NewLimitedListener initializes a new listener for the specified address (address:port)
+// NewLimitedListener initializes a new listener for the specified address (host:port)
 // throttling incoming connections
 func NewLimitedListener(address string, limit time.Duration) (*LimitedListener, error) {
 	if limit < 0 {
@@ -64,13 +64,13 @@ func (ll *LimitedListener) clearHistory() {
 	}
 }
 
-// isInHistory checks if an address has connected in the last X seconds
+// isInHistory checks if a host (IP) has connected in the last X seconds
 // clears history before checking
-func (ll *LimitedListener) isInHistory(addr string) bool {
+func (ll *LimitedListener) isInHistory(host string) bool {
 	ll.clearHistory()
 
 	for _, h := range ll.history {
-		if h.address == addr {
+		if h.host == host {
 			return true
 		}
 	}
@@ -78,8 +78,8 @@ func (ll *LimitedListener) isInHistory(addr string) bool {
 }
 
 // addToHistory adds an address to the system at the current time
-func (ll *LimitedListener) addToHistory(addr string) {
-	ll.history = append(ll.history, limitedConnect{address: addr, time: time.Now()})
+func (ll *LimitedListener) addToHistory(host string) {
+	ll.history = append(ll.history, attempt{host: host, time: time.Now()})
 	ll.lastConnection = time.Now()
 }
 
@@ -92,18 +92,18 @@ func (ll *LimitedListener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 
-	addr, _, err := net.SplitHostPort(con.RemoteAddr().String())
+	host, _, err := net.SplitHostPort(con.RemoteAddr().String())
 	if err != nil {
 		con.Close()
 		return nil, err
 	}
 
-	if ll.isInHistory(addr) {
+	if ll.isInHistory(host) {
 		con.Close()
-		return nil, fmt.Errorf("connection rate limit exceeded for %s", addr)
+		return nil, fmt.Errorf("connection rate limit exceeded for %s", host)
 	}
 
-	ll.addToHistory(addr)
+	ll.addToHistory(host)
 	return con, nil
 }
 

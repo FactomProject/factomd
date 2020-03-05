@@ -24,8 +24,8 @@ func NewNetworkID(name string) NetworkID {
 	return NetworkID(StringToUint32(name))
 }
 
-func (n *NetworkID) String() string {
-	switch *n {
+func (n NetworkID) String() string {
+	switch n {
 	case MainNet:
 		return "MainNet"
 	case TestNet:
@@ -33,6 +33,6 @@ func (n *NetworkID) String() string {
 	case LocalNet:
 		return "LocalNet"
 	default:
-		return fmt.Sprintf("CustomNet ID: %x\n", *n)
+		return fmt.Sprintf("CustomNet ID: %x", uint32(n))
 	}
 }

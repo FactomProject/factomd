@@ -1,8 +1,6 @@
 package p2p
 
 import (
-	"encoding/gob"
-	"encoding/json"
 	"fmt"
 	"net"
 	"sync"
@@ -24,22 +22,16 @@ type Peer struct {
 	// current state, read only "constants" after the handshake
 	IsIncoming bool
 	Endpoint   Endpoint
-	NodeID     uint32 // a nonce to distinguish multiple nodes behind one endpoint
 	Hash       string // This is more of a connection ID than hash right now.
 
 	stopper sync.Once
 	stop    chan bool
 
-	lastPeerRequest  time.Time
-	peerShareAsk     bool
-	peerShareDeliver chan *Parcel
-	lastPeerSend     time.Time
+	lastPeerRequest time.Time
+	lastPeerSend    time.Time
 
 	// communication channels
-	send       ParcelChannel   // parcels from Send() are added here
-	status     chan peerStatus // the controller's notification channel
-	data       chan peerParcel // the controller's data channel
-	registered bool
+	send ParcelChannel // parcels from Send() are added here
 
 	// Metrics
 	metricsMtx           sync.RWMutex
@@ -58,177 +50,46 @@ type Peer struct {
 	logger *log.Entry
 }
 
-func newPeer(net *Network, status chan peerStatus, data chan peerParcel) *Peer {
-	p := &Peer{}
+func newPeer(net *Network, id uint32, ep Endpoint, conn net.Conn, protocol Protocol, metrics ReadWriteCollector, incoming bool) *Peer {
+	p := new(Peer)
 	p.net = net
-	p.status = status
-	p.data = data
+	p.prot = protocol
+	p.Endpoint = ep
+	p.metrics = metrics
+	p.conn = conn
+
+	p.stop = make(chan bool, 1)
+	p.Hash = fmt.Sprintf("%s:%s %08x", ep.IP, ep.Port, id)
 
 	p.logger = peerLogger.WithFields(log.Fields{
-		"node": net.conf.NodeName,
-	})
-	p.stop = make(chan bool, 1)
-
-	p.peerShareDeliver = nil
-
-	p.logger.Debugf("Creating blank peer")
-	return p
-}
-
-func (p *Peer) bootstrapProtocol(hs *Handshake, conn net.Conn, decoder *gob.Decoder, encoder *gob.Encoder) error {
-	v := hs.Header.Version
-	if v > p.net.conf.ProtocolVersion {
-		v = p.net.conf.ProtocolVersion
-	}
-
-	///fmt.Printf("@@@ %d %+v %s\n", v, hs.Header, conn.RemoteAddr())
-	switch v {
-	case 9:
-		v9 := new(ProtocolV9)
-		v9.init(p, decoder, encoder)
-		p.prot = v9
-
-		// v9 starts with a peer request
-		hsParcel := new(Parcel)
-		hsParcel.Address = hs.Header.TargetPeer
-		hsParcel.Payload = hs.Payload
-		hsParcel.Type = TypePeerRequest
-		/*	TODO at this point, peer is not fully initialized
-			if !p.deliver(hsParcel) {
-				return fmt.Errorf("unable to deliver peer request to controller")
-			}*/
-	case 10:
-		v10 := new(ProtocolV10)
-		v10.init(p, decoder, encoder)
-		p.prot = v10
-	default:
-		return fmt.Errorf("unknown protocol version %d", v)
-	}
-	return nil
-}
-
-// StartWithHandshake performs a basic handshake maneouver to establish the validity
-// of the connection. Immediately sends a Peer Request upon connection and waits for the
-// response, which can be any parcel. The information in the header is verified, especially
-// the port.
-//
-// The handshake ensures that ALL peers have a valid Port field to start with.
-// If there is no reply within the specified HandshakeTimeout config setting, the process
-// fails
-//
-// For outgoing connections, it is possible the endpoint will reject due to being full, in which
-// case this function returns an error AND a list of alternate endpoints
-func (p *Peer) StartWithHandshake(ep Endpoint, con net.Conn, incoming bool) ([]Endpoint, error) {
-	tmplogger := p.logger.WithField("addr", ep.IP)
-	timeout := time.Now().Add(p.net.conf.HandshakeTimeout)
-
-	nonce := []byte(fmt.Sprintf("%x", p.net.instanceID))
-
-	// upgrade connection to a metrics connection
-	p.metrics = NewMetricsReadWriter(con)
-	p.conn = con
-
-	handshake := newHandshake(p.net.conf, nonce)
-	decoder := gob.NewDecoder(p.metrics) // pipe gob through the metrics writer
-	encoder := gob.NewEncoder(p.metrics)
-	con.SetWriteDeadline(timeout)
-	con.SetReadDeadline(timeout)
-	//fmt.Printf("@@@ %+v %s\n", handshake.Header, con.RemoteAddr())
-
-	failfunc := func(err error) ([]Endpoint, error) {
-		tmplogger.WithError(err).Debug("Handshake failed")
-		p.conn.Close()
-		return nil, err
-	}
-
-	err := encoder.Encode(handshake)
-	if err != nil {
-		return failfunc(fmt.Errorf("Failed to send handshake to incoming connection"))
-	}
-
-	var reply Handshake
-	err = decoder.Decode(&reply)
-	if err != nil {
-		return failfunc(fmt.Errorf("Failed to read handshake from incoming connection"))
-	}
-
-	// check basic structure
-	if err = reply.Valid(p.net.conf); err != nil {
-		return failfunc(err)
-	}
-
-	// loopback detection
-	if string(reply.Payload) == string(nonce) {
-		return failfunc(fmt.Errorf("loopback"))
-	}
-
-	if err = p.bootstrapProtocol(&reply, con, decoder, encoder); err != nil {
-		return failfunc(err)
-	}
-
-	if reply.Header.Type == TypeRejectAlternative {
-		con.Close()
-		tmplogger.Debug("con rejected with alternatives")
-		var rawShare []Endpoint
-		err := json.Unmarshal(reply.Payload, &rawShare)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse alternatives: %s", err.Error())
-		}
-
-		filtered := make([]Endpoint, 0, len(rawShare))
-		for _, ep := range rawShare {
-			if ep.Valid() {
-				filtered = append(filtered, ep)
-			}
-		}
-		return filtered, fmt.Errorf("connection rejected")
-	}
-
-	// initialize channels
-	ep.Port = reply.Header.PeerPort
-	p.Endpoint = ep
-	p.NodeID = uint32(reply.Header.NodeID)
-	p.Hash = fmt.Sprintf("%s:%s %08x", ep.IP, ep.Port, p.NodeID)
-	p.send = newParcelChannel(p.net.conf.ChannelCapacity)
-	p.IsIncoming = incoming
-	p.connected = time.Now()
-	p.logger = p.logger.WithFields(log.Fields{
 		"hash":    p.Hash,
 		"address": p.Endpoint.IP,
 		"Port":    p.Endpoint.Port,
 		"Version": p.prot.Version(),
+		"node":    p.net.conf.NodeName,
 	})
 
-	p.status <- peerStatus{peer: p, online: true}
-	p.registered = true
+	// initialize channels
+	p.send = newParcelChannel(p.net.conf.ChannelCapacity)
+	p.IsIncoming = incoming
+	p.connected = time.Now()
 
 	go p.sendLoop()
 	go p.readLoop()
 	go p.statLoop()
 
-	return nil, nil
+	return p
 }
 
 // Stop disconnects the peer from its active connection
 func (p *Peer) Stop() {
 	p.stopper.Do(func() {
 		p.logger.Debug("Stopping peer")
-		sc := p.send
-
-		p.send = nil
-
-		close(p.stop)
-
-		if p.conn != nil {
-			p.conn.Close()
-		}
-
-		if sc != nil {
-			close(sc)
-		}
-
-		if p.registered {
-			p.status <- peerStatus{peer: p, online: false}
+		close(p.stop) // stops sendLoop and readLoop and statLoop
+		// sendLoop closes p.conn and p.send in defer
+		select {
+		case p.net.controller.peerStatus <- peerStatus{peer: p, online: false}:
+		case <-p.net.stopper:
 		}
 	})
 }
@@ -238,8 +99,16 @@ func (p *Peer) String() string {
 }
 
 func (p *Peer) Send(parcel *Parcel) {
-	_, dropped := p.send.Send(parcel)
-	p.dropped += uint64(dropped)
+	select {
+	case <-p.stop:
+		// don't send when stopped
+	default:
+		_, dropped := p.send.Send(parcel)
+		p.metricsMtx.Lock()
+		p.dropped += uint64(dropped)
+		p.metricsMtx.Unlock()
+
+	}
 }
 
 func (p *Peer) statLoop() {
@@ -314,9 +183,9 @@ func (p *Peer) readLoop() {
 // deliver is a blocking delivery of this peer's messages to the peer manager.
 func (p *Peer) deliver(parcel *Parcel) bool {
 	select {
-	case p.data <- peerParcel{peer: p, parcel: parcel}:
 	case <-p.stop:
 		return false
+	case p.net.controller.peerData <- peerParcel{peer: p, parcel: parcel}:
 	}
 	return true
 }
@@ -329,9 +198,13 @@ func (p *Peer) sendLoop() {
 		defer p.net.prom.SendRoutines.Dec()
 	}
 
+	defer close(p.send)
 	defer p.conn.Close() // close connection on fatal error
 	for {
 		select {
+		case <-p.net.stopper:
+			p.Stop()
+			return
 		case <-p.stop:
 			return
 		case parcel := <-p.send:
@@ -356,13 +229,19 @@ func (p *Peer) sendLoop() {
 			// stats
 			if p.net.prom != nil {
 				p.net.prom.ParcelsSent.Inc()
-				p.net.prom.ParcelSize.Observe(float64(len(parcel.Payload)+32) / 1024) // TODO FIX
+				p.net.prom.ParcelSize.Observe(float64(len(parcel.Payload)+32) / 1024)
 				if parcel.IsApplicationMessage() {
 					p.net.prom.AppSent.Inc()
 				}
 			}
 		}
 	}
+}
+
+func (p *Peer) LastSendAge() time.Duration {
+	p.metricsMtx.RLock()
+	defer p.metricsMtx.RUnlock()
+	return time.Since(p.lastSend)
 }
 
 // GetMetrics returns live metrics for this connection
@@ -389,13 +268,13 @@ func (p *Peer) GetMetrics() PeerMetrics {
 		MPSUp:            p.mpsUp,
 		BPSDown:          p.bpsDown,
 		BPSUp:            p.bpsUp,
-		ConnectionState:  fmt.Sprintf("v%s", p.prot.Version()),
-		Capacity:         p.Capacity(),
+		ConnectionState:  fmt.Sprintf("v%s", p.prot),
+		SendFillRatio:    p.SendFillRatio(),
 		Dropped:          p.dropped,
 	}
 }
 
-// Capacity is a wrapper for the send channel's Capacity
-func (p *Peer) Capacity() float64 {
-	return p.send.Capacity()
+// SendFillRatio is a wrapper for the send channel's FillRatio
+func (p *Peer) SendFillRatio() float64 {
+	return p.send.FillRatio()
 }

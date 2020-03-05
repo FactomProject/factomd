@@ -17,8 +17,6 @@ type Prometheus struct {
 	Incoming    prometheus.Gauge // done
 	Outgoing    prometheus.Gauge // done
 
-	KnownPeers prometheus.Gauge // done
-
 	SendRoutines    prometheus.Gauge
 	ReceiveRoutines prometheus.Gauge
 
@@ -49,7 +47,6 @@ func (p *Prometheus) Setup() {
 		p.Connecting = ng("factomd_p2p_peers_connecting", "Number of connections currently dialing or awaiting handshake")
 		p.Incoming = ng("factomd_p2p_peers_incoming", "Number of peers that have dialed to this node")
 		p.Outgoing = ng("factomd_p2p_peers_outgoing", "Number of peers that this node has dialed to")
-		p.KnownPeers = ng("factomd_p2p_peers_known", "Number of peers known to the system")
 		p.SendRoutines = ng("factomd_p2p_tech_sendroutines", "Number of active send routines")
 		p.ReceiveRoutines = ng("factomd_p2p_tech_receiveroutines", "Number of active receive routines")
 		p.ParcelsSent = ng("factomd_p2p_parcels_sent", "Total number of parcels sent out")

@@ -2,65 +2,57 @@ package p2p
 
 import (
 	"fmt"
-	"hash/crc32"
 	"strconv"
 )
 
-// Handshake is an alias of V9MSG for backward compatibility
-type Handshake V9Msg
+// Handshake is the protocol independent data that is required to authenticate a peer.
+type Handshake struct {
+	Network      NetworkID
+	Version      uint16
+	Type         ParcelType
+	NodeID       uint32
+	ListenPort   string
+	Loopback     uint64
+	Alternatives []Endpoint
+}
 
-// Valid checks if the other node is compatible
+// Valid checks the Handshake's data against a configuration.
+// Loopback is checked outside of this function.
 func (h *Handshake) Valid(conf *Configuration) error {
-	if h.Header.Version < conf.ProtocolVersionMinimum {
-		return fmt.Errorf("version %d is below the minimum", h.Header.Version)
+	if h.Version < conf.ProtocolVersionMinimum {
+		return fmt.Errorf("version %d is below the minimum", h.Version)
 	}
 
-	if h.Header.Network != conf.Network {
-		return fmt.Errorf("wrong network id %x", h.Header.Network)
+	if h.Network != conf.Network {
+		return fmt.Errorf("wrong network id %x", h.Network)
 	}
 
-	if len(h.Payload) == 0 {
-		return fmt.Errorf("zero-length payload")
-	}
-
-	if h.Header.Length != uint32(len(h.Payload)) {
-		return fmt.Errorf("length in header does not match payload")
-	}
-
-	csum := crc32.Checksum(h.Payload, crcTable)
-	if csum != h.Header.Crc32 {
-		return fmt.Errorf("invalid checksum")
-	}
-
-	port, err := strconv.Atoi(h.Header.PeerPort)
+	port, err := strconv.Atoi(h.ListenPort)
 	if err != nil {
-		return fmt.Errorf("unable to parse port %s: %v", h.Header.PeerPort, err)
+		return fmt.Errorf("unable to parse port %s: %v", h.ListenPort, err)
 	}
 
 	if port < 1 || port > 65535 {
 		return fmt.Errorf("given port out of range: %d", port)
 	}
+
+	for _, ep := range h.Alternatives {
+		if !ep.Valid() {
+			return fmt.Errorf("invalid list of alternatives provided")
+		}
+	}
+
 	return nil
 }
 
-func newHandshake(conf *Configuration, payload []byte) *Handshake {
+// create a new handshake
+func newHandshake(conf *Configuration, loopback uint64) *Handshake {
 	hs := new(Handshake)
-	hs.Header = V9Header{
-		Network:  conf.Network,
-		Version:  conf.ProtocolVersion,
-		Type:     TypeHandshake,
-		NodeID:   uint64(conf.NodeID),
-		PeerPort: conf.ListenPort,
-		AppHash:  "NetworkMessage",
-		AppType:  "Network",
-	}
-	hs.SetPayload(payload)
+	hs.Type = TypeHandshake
+	hs.Network = conf.Network
+	hs.Version = conf.ProtocolVersion
+	hs.NodeID = conf.NodeID
+	hs.ListenPort = conf.ListenPort
+	hs.Loopback = loopback
 	return hs
-}
-
-// SetPayload adds a payload to the handshake and updates the header with metadata
-func (h *Handshake) SetPayload(payload []byte) {
-	h.Payload = payload
-	h.Header.Crc32 = crc32.Checksum(h.Payload, crcTable)
-	h.Header.Length = uint32(len(h.Payload))
 }

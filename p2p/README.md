@@ -84,11 +84,11 @@ The CAT (Cyclic Auto Truncate) is a cyclic peering strategy to prevent a rigid n
 Rounds run once every 15 minutes (config: `RoundTime`) and does the following:
 
 1. Persist current peer endpoints and bans in the peer file (config: `PersistFile`)
-2. If there are more than 30 peers (config: `Drop`), it randomly selects non-special peers to drop to reach 30 peers.
+2. If there are more than 30 peers (config: `DropTo`), it randomly selects non-special peers to drop to reach 30 peers.
 
 ### Replenish
 
-The goal of Replenish is to reach 32 (config: `Target`) active connections. If there are 32 or more connections, Replenish waits. Otherwise, it runs once a second.
+The goal of Replenish is to reach 32 (config: `TargetPeers`) active connections. If there are 32 or more connections, Replenish waits. Otherwise, it runs once a second.
 
 Once on startup, if the peer file is less than an hour old (config: `PersistAge`) Replenish will try to re-establish those connections first. This improves reconnection speeds after rebooting a node.
 
@@ -105,26 +105,130 @@ Peers that are rejected are given a list of 3 (conf: `PeerShareAmount`) random p
 
 ### Handshake
 
-The handshake starts with an already established TCP connection.
+The handshake follows establishing a TCP connection. The "outgoing" handshake is performed by the node dialing into another node. The format of the Handshake struct is protocol-dependent but it contains the following information:
 
-1. A deadline of 10 seconds (conf: `HandshakeTimeout`) is set for both reading and writing
-2. Generate a Handshake containing our preferred version (conf: `ProtocolVersion`), listen port (conf: `ListenPort`), network id (conf: `Network`), and node id (conf: `NodeID`) and send it across the wire
-3. Blocking read of the first message
-4. Verify that we are in the same network
-5. Calculate the minimum of both our and their version
-6. Check if we can handle that version (conf: `ProtocolVersionMinimum`) and initialize the protocol adapter
-7. If it's an outgoing connection, check if the Handshake is of type RejectAlternative, in which case we parse the list of alternate endpoints
+| Name | Type | Description |
+|------|------|-------------|
+| Network | NetworkID | The network id of the network (ie, MainNet = `0xfeedbeef`) (conf: `Network`) |
+| Version | uint16 | The version of the protocol we want to use. (conf: `ProtocolVersion`) | 
+| Type | ParcelType | For V10 and up, this is either type "Handshake" (`0x8`) or "Reject with Alternatives" (`0x9`). For V9, this is "Peer Request" (`0x3`) |
+| NodeID | uint32 | An application-defined value that can persist across restarts (conf: `NodeID`) |
+| ListenPort | string | The port the node is defined to listen at (conf: `ListenPort`) | 
+| Loopback | uint64 | A unique nonce to detect loopback connections | 
+| Alternatives | slice of Endpoints | If the connection is rejected, a list of alternative endpoints to connect to | 
 
-If any step fails, the handshake will fail. 
+#### Outgoing Handshake
 
-For backward compatibility, the Handshake message is in the same format as protocol v9 requests but it uses the type "Handshake". Nodes running the old software will just drop the invalid message without affecting the node's status in any way.
+1. Set a deadline of 10 seconds (conf: `HandshakeTimeout`)
+2. Select the desired protocol
+3. Encode the handshake data using the desired protocol
+4. Send the handshake
+5. Wait for a response
+6. Attempt to identify the encoding scheme and decode the first message as handshake
+7. Validate the handshake response to see if the network, loopback, and types are desired
+8. Use the protocol that matches the reply's encoding and version
+
+If any step fails, the handshake is considered failed. 
+
+#### Incoming Handshake
+
+1. Set a deadline of 10 seconds (conf: `HandshakeTimeout`)
+2. Attempt to identify the encoding scheme and decode the first message as handshake
+3. Validate the handshake response to see if the network and types are desired
+4. (Optional) Propose an alternative protocol
+5. Create a handshake, copying the loopback value from 3.
+6. Send the handshake
+
+If any step fails, the handshake is considered failed. In most cases, the node should use the same protocol that it received the handshake for. However, p2p1 nodes are unable to understand the newer protocol and will always send a message containing protocol version 9. In this case, nodes are expected to downgrade the protocol to V9. 
 
 ### 9
 
-Protocol 9 is the legacy (Factomd v6.5 and lower) protocol with the ability to split messages into parts disabled. V9 has the disadvantage of sending unwanted overhead with every message, namely Network, Version, Length, Address, Part info, NodeID, Address, Port. In the old p2p system this was used to post-load information but now has been shifted to the handshake.
+Protocol 9 is the legacy (Factomd v6.6 and lower) protocol with the ability to split messages into parts disabled. V9 has the disadvantage of sending unwanted overhead with every message, namely Network, Version, Length, Address, Part info, NodeID, Address, Port. In the old p2p system this was used to post-load information but now has been shifted to the handshake.
 
 Data is serialized via Golang's gob.
 
 ### 10
 
-Protocol 10 is the slimmed down version of V9, containing only the Type, CRC32 of the payload, and the payload itself. Data is also serialized via Golang's gob.
+Protocol 10 is the slimmed down version of V9, containing only the Type, CRC32 of the payload, and the payload itself. Data is also serialized via Golang's gob. The handshake is encoded using V9's format.
+
+### 11
+
+Protocol 11 uses Protobuf ([protocolV11.proto](protocolV11.proto)) to define the Handshake and message. To signal that the connection is used for V11, the 4-byte sequence `0xfafafafa` is transmitted first. Protobufs are transmitted by sending the size of the marshalled protobuf first, encoded as uint32 in Big Endian format, followed by the protobuf byte sequence itself.
+
+V11 has a maximum parcel size of 128 Mebibytes.
+
+## Usage
+
+### Setting up a Network
+
+In order to set up a network, you need two things: a network id, and a bootstrap file.
+
+The network ID can be generated with `p2p.NewNetworkID(string)`, with your preferred name as input. For example, "myNetwork" results in `0x29cb7175`. There are also predefined networks, like `p2p.MainNet` that are used for Factom specific networks.
+
+The bootstrap seed file contains the addresses of your seed nodes, the ones that every new node will attempt to connect to. Plaintext, one `ip:port` address per line. An example is [Factom's mainnet seed file](https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt):
+```
+52.17.183.121:8108
+52.17.153.126:8108
+52.19.117.149:8108
+52.18.72.212:8108
+52.19.44.249:8108
+52.214.189.110:8108
+34.249.228.82:8108
+34.248.202.6:8108
+52.19.181.120:8108
+34.248.6.133:8108
+```
+
+
+### Connecting to a Network
+
+First, you need to create the configuration:
+
+```go
+config := p2p.DefaultP2PConfiguration()
+config.Network = p2p.NewNetworkID("myNetwork")
+config.SeedURL = "http://url/of/seed/file.txt"
+config.PersistFile = "/path/to/peerfile.json"
+```
+
+The default values are derived from Factom's network and described in the [Configuration file](configuration.go). The `config.NodeID` is a unique number tied to a node's ip and port. The same node should use the same NodeID between restarts, but two nodes running at the same time and using the same ip and listen port should have different NodeIDs. The latter is the case if you have multiple nodes behind a NAT connecting to a public network.
+
+The `config.PersistFile` setting can be blank to not save peers and bans to disk. Enabling this makes a node able to restart the network faster and re-establish old connections.
+
+### Starting the Network
+
+Once you have the config, the rest is easy.
+
+```go
+network, err := p2p.NewNetwork(config)
+if err != nil {
+    // handle err, typically related to the peer file or unable to bind to a listen port
+}
+
+network.Run() // nonblocking, starts its own goroutines
+```
+
+You can start reading and writing to the network immediately, though no peers may be connected at first. You can check how many connections are established via `network.Total()`.
+
+### Reading and Writing
+
+To send an application message to the network, you need to create a Parcel with a **target** and a **payload**:
+
+```go
+parcel := p2p.NewParcel(p2p.Broadcast, byteSequence)
+network.ToNetwork.Send(parcel)
+```
+
+The target can be either a peer's hash, or one of the predefined flags of `p2p.RandomPeer`, `p2p.Broadcast`, or `p2p.FullBroadcast`. The functions of these are described in detail in the Lifecycle section "Parcel (Application -> Remote Node)". The p2p package is data agnostic and any interpretation of the byte sequence is left up to the application.
+
+To read incoming Parcels:
+
+```go
+for parcel := range network.FromNetwork.Reader() {
+    // parcel.Address is the sender's peer hash
+    // parcel.Payload is the application data
+}
+```
+
+If you want to return a message to the sender, use the parcel's Address as the **target** of a new parcel.
+

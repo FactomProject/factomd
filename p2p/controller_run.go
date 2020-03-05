@@ -16,16 +16,18 @@ func (c *controller) run() {
 		c.runPing()
 
 		select {
+		case <-c.net.stopper:
+			return
 		case <-time.After(time.Second):
 		}
 	}
 }
 
-// the factom network ping behavior is so send a ping message after
+// the factom network ping behavior is to send a ping message after
 // a specific duration has passed
 func (c *controller) runPing() {
 	for _, p := range c.peers.Slice() {
-		if time.Since(p.lastSend) > c.net.conf.PingInterval {
+		if p.LastSendAge() > c.net.conf.PingInterval {
 			ping := newParcel(TypePing, []byte("Ping"))
 			p.Send(ping)
 		}

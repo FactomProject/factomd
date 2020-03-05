@@ -14,7 +14,7 @@ func testServer() {
 		w.Write([]byte("127.0.0.1:80\n192.168.0.1:8088\n10.12.13.14:8110"))
 	})
 	mux.HandleFunc("/seedBad.txt", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("127.0.0.256:80\n192.168.0.1:8088\n10.12.13.14:8110"))
+		w.Write([]byte("192.168.0.1:8088\n10.12.13.14:8110"))
 	})
 	mux.HandleFunc("/git.txt", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("52.17.183.121:8108\n52.17.153.126:8108\n52.19.117.149:8108\n52.18.72.212:8108\n52.19.44.249:8108\n52.214.189.110:8108\n34.249.228.82:8108\n34.248.202.6:8108\n52.19.181.120:8108\n34.248.6.133:8108"))

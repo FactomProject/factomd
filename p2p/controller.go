@@ -31,7 +31,7 @@ type controller struct {
 	specialEndpoints []Endpoint
 	bootstrap        []Endpoint
 
-	shareListener map[uint32]func(*Parcel)
+	shareListener map[string]chan *Parcel
 	shareMtx      sync.RWMutex
 
 	lastPeerDial time.Time
@@ -73,7 +73,7 @@ func newController(network *Network) (*controller, error) {
 	c.peerData = make(chan peerParcel, conf.ChannelCapacity)
 
 	c.special = make(map[string]bool)
-	c.shareListener = make(map[uint32]func(*Parcel))
+	c.shareListener = make(map[string]chan *Parcel)
 
 	// CAT
 	c.lastRound = time.Now()
@@ -82,17 +82,13 @@ func newController(network *Network) (*controller, error) {
 	c.peers = NewPeerStore()
 	c.setSpecial(conf.Special)
 
-	if persist, err := c.loadPersist(); err != nil || persist == nil {
+	if cache, err := c.loadPeerCache(); err != nil || cache == nil {
 		c.logger.Infof("no valid bootstrap file found")
 		c.bans = make(map[string]time.Time)
 		c.bootstrap = nil
-	} else if persist != nil {
-		c.bans = persist.Bans
-		c.bootstrap = persist.Bootstrap
-	}
-
-	if c.net.prom != nil {
-		c.net.prom.KnownPeers.Set(float64(c.peers.Total()))
+	} else if cache != nil {
+		c.bans = cache.Bans
+		c.bootstrap = cache.Peers
 	}
 
 	return c, nil

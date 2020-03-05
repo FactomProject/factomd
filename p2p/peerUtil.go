@@ -23,7 +23,7 @@ type PeerMetrics struct {
 	MPSUp            float64
 	BPSDown          float64
 	BPSUp            float64
-	Capacity         float64
+	SendFillRatio    float64
 	Dropped          uint64
 }
 

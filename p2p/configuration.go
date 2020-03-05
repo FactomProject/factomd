@@ -40,22 +40,27 @@ type Configuration struct {
 	// ip is considered special
 	Special string
 
-	// PersistFile is the filepath to the file to save peers. It is persisted in every CAT round
-	PersistFile string
-	// PersistAge is the maximum age of the peer file to try and bootstrap peers from
-	PersistAge time.Duration
+	// PeerCacheFile is the filepath to the file to save peers. It is persisted in every CAT round
+	PeerCacheFile string
+	// PeerCacheAge is the maximum age of the peer file to try and bootstrap peers from
+	PeerCacheAge time.Duration
 
 	// to count as being connected
 	// PeerShareAmount is the number of peers we share
 	PeerShareAmount uint
 
 	// CAT Settings
+	// How often to do cat rounds
 	RoundTime time.Duration
-	Target    uint
-	Max       uint
-	Drop      uint
-	MinReseed uint
-	Incoming  uint // maximum inbound connections, 0 <= Incoming <= Max
+	// Desired amount of peers
+	TargetPeers uint
+	// Hard cap of connections
+	MaxPeers uint
+	// Amount of peers to drop down to
+	DropTo uint
+	// Reseed if there are fewer than this peers
+	MinReseed   uint
+	MaxIncoming uint // maximum inbound connections, 0 <= MaxIncoming <= MaxPeers
 
 	// === Gossip Behavior ===
 
@@ -126,16 +131,16 @@ func DefaultP2PConfiguration() (c Configuration) {
 	c.PeerIPLimitOutgoing = 0
 	c.ManualBan = time.Hour * 24 * 7 // a week
 
-	c.PersistFile = ""
-	c.PersistAge = time.Hour //
+	c.PeerCacheFile = ""
+	c.PeerCacheAge = time.Hour //
 
-	c.Incoming = 36
+	c.MaxIncoming = 36
 	c.Fanout = 8
 	c.PeerShareAmount = 3 // CAT share
 	c.RoundTime = time.Minute * 15
-	c.Target = 32
-	c.Max = 36
-	c.Drop = 30
+	c.TargetPeers = 32
+	c.MaxPeers = 36
+	c.DropTo = 30
 	c.MinReseed = 10
 
 	c.BindIP = "" // bind to all
@@ -160,7 +165,7 @@ func DefaultP2PConfiguration() (c Configuration) {
 
 // Sanitize automatically adjusts some variables that are dependent on others
 func (c *Configuration) Sanitize() {
-	if c.Incoming > c.Max {
-		c.Incoming = c.Max
+	if c.MaxIncoming > c.MaxPeers {
+		c.MaxIncoming = c.MaxPeers
 	}
 }

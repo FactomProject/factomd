@@ -185,12 +185,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	p2pconf := p2p.DefaultP2PConfiguration()
 	p2pconf.ListenPort = "8108"
-	p2pconf.Target = 32
-	p2pconf.Drop = 30
-	p2pconf.Max = 36
+	p2pconf.TargetPeers = 32
+	p2pconf.DropTo = 30
+	p2pconf.MaxPeers = 36
 	p2pconf.Fanout = 16
 	p2pconf.ChannelCapacity = 1000
 	p2pconf.PingInterval = time.Second * 15
+	p2pconf.ProtocolVersion = 10
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")
@@ -280,8 +281,8 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "balancehash", messages.AckBalanceHash))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", fmt.Sprintf("%s Salt", s.GetFactomNodeName()), s.Salt.String()[:16]))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", p.EnableNet))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net target", p2pconf.Target))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net max", p2pconf.Max))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net target", p2pconf.TargetPeers))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net max", p2pconf.MaxPeers))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "waitentries", p.WaitEntries))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", p.ListenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", p.Prefix))

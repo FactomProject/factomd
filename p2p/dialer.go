@@ -11,7 +11,7 @@ import (
 type Dialer struct {
 	dialer      net.Dialer
 	bindTo      string
-	interval    time.Duration
+	interval    time.Duration // Minimum duration enforced between two dial attempts
 	timeout     time.Duration
 	attempts    map[Endpoint]time.Time
 	attemptsMtx sync.RWMutex

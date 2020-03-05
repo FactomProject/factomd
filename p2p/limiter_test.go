@@ -49,14 +49,14 @@ func TestNewLimitedListener(t *testing.T) {
 }
 
 func createLLHistory() *LimitedListener {
-	past := limitedConnect{"past", time.Now().Add(time.Hour * -2)}
-	presence := limitedConnect{"presence", time.Now()}
-	future := limitedConnect{"future", time.Now().Add(time.Hour * 2)}
+	past := attempt{"past", time.Now().Add(time.Hour * -2)}
+	presence := attempt{"presence", time.Now()}
+	future := attempt{"future", time.Now().Add(time.Hour * 2)}
 	return &LimitedListener{
 		listener:       nil,
 		limit:          time.Hour,
 		lastConnection: time.Now(),
-		history:        []limitedConnect{past, presence, future}, // order matters, old < new
+		history:        []attempt{past, presence, future}, // order matters, old < new
 	}
 }
 

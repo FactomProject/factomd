@@ -8,25 +8,24 @@ import (
 )
 
 type seed struct {
-	url      string
-	interval time.Duration
-
+	url       string
 	cache     []Endpoint
+	cacheTTL  time.Duration
 	cacheTime time.Time
 
 	logger *log.Entry
 }
 
-func newSeed(url string, interval time.Duration) *seed {
+func newSeed(url string, cacheTTL time.Duration) *seed {
 	s := new(seed)
 	s.url = url
 	s.logger = packageLogger.WithFields(log.Fields{"subpackage": "Seed", "url": url})
-	s.interval = interval
+	s.cacheTTL = cacheTTL
 	return s
 }
 
 func (s *seed) retrieve() []Endpoint {
-	if s.cache != nil && time.Since(s.cacheTime) <= s.interval {
+	if s.cache != nil && time.Since(s.cacheTime) <= s.cacheTTL {
 		return s.cache
 	}
 
