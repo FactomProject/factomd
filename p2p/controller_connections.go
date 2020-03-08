@@ -168,6 +168,10 @@ func (c *controller) detectProtocolFromFirstMessage(rw io.ReadWriter) (Protocol,
 			return nil, nil, fmt.Errorf("protocol version %d below minimum of %d", hs.Version, c.net.conf.ProtocolVersionMinimum)
 		}
 
+		if hs.Version == 10 && c.net.conf.ProtocolVersion == 9 {
+			hs.Version = 9
+		}
+
 		handshake = hs
 
 		switch hs.Version {

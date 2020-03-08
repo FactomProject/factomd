@@ -177,7 +177,7 @@ func Test_controller_handshakes(t *testing.T) {
 	testControllerHandshakes(t, "same version 9", 9, 9, 9)
 	testControllerHandshakes(t, "same version 10", 10, 10, 10)
 	testControllerHandshakes(t, "same version 11", 11, 11, 11)
-	testControllerHandshakes(t, "agree on upper 9->10", 9, 10, 10)
+	testControllerHandshakes(t, "backward compatible p2p1", 9, 10, 9)
 	testControllerHandshakes(t, "agree on upper 9->11", 9, 11, 11)
 	testControllerHandshakes(t, "agree on upper 10->11", 10, 11, 11)
 	testControllerHandshakes(t, "agree on lower 10->9", 10, 9, 9)
