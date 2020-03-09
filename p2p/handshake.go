@@ -24,7 +24,7 @@ func (h *Handshake) Valid(conf *Configuration) error {
 	}
 
 	if h.Network != conf.Network {
-		return fmt.Errorf("wrong network id %x", h.Network)
+		return fmt.Errorf("wrong network id %s", h.Network)
 	}
 
 	port, err := strconv.Atoi(h.ListenPort)

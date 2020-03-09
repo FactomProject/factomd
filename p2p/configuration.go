@@ -125,7 +125,7 @@ func DefaultP2PConfiguration() (c Configuration) {
 	c.NodeName = "FNode0"
 	c.ListenPort = "8108"
 
-	c.PeerRequestInterval = time.Second
+	c.PeerRequestInterval = time.Second * 5
 	c.PeerReseedInterval = time.Hour * 4
 	c.PeerIPLimitIncoming = 0
 	c.PeerIPLimitOutgoing = 0

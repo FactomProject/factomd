@@ -1,6 +1,9 @@
 package p2p
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -52,6 +55,50 @@ func TestStringToUint32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := StringToUint32(tt.args.input); got != tt.want {
 				t.Errorf("StringToUint32() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestWebScanner(t *testing.T) {
+	lines := []string{"foo", "bar", "moo"}
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "foo")
+		fmt.Fprintln(w, "bar")
+		fmt.Fprint(w, "moo")
+	}))
+	defer ts.Close()
+
+	testf1c := 0
+	testf1 := func(line string) {
+		if testf1c > len(lines) {
+			t.Error("got more lines than test cases")
+			return
+		}
+		if line != lines[testf1c] {
+			t.Errorf("mismatch on line %d. got = %s, want = %s", testf1c, line, lines[testf1c])
+		}
+		testf1c++ // note: webscanner isn't multithreaded
+	}
+
+	type args struct {
+		url string
+		f   func(line string)
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{"first test case", args{ts.URL, testf1}, false},
+		{"bad url", args{ts.URL + "@", nil}, true},
+		{"404", args{"https://httpstat.us/404", nil}, true}, // if it goes down or is unreachable, test case will still pass
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := WebScanner(tt.args.url, tt.args.f); (err != nil) != tt.wantErr {
+				t.Errorf("WebScanner() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

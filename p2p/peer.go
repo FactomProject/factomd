@@ -112,19 +112,19 @@ func (p *Peer) Send(parcel *Parcel) {
 }
 
 func (p *Peer) statLoop() {
-	ticker := time.NewTicker(time.Second * 5)
+	ticker := time.NewTicker(time.Second)
 	for {
 		select {
 		case <-ticker.C:
 			p.metricsMtx.Lock()
 			mw, mr, bw, br := p.metrics.Collect()
-			p.bpsDown = float64(br) / 5
-			p.bpsUp = float64(bw) / 5
+			p.bpsDown = float64(br)
+			p.bpsUp = float64(bw)
 			p.totalBytesReceived += br
 			p.totalBytesSent += bw
 
-			p.mpsDown = float64(mr) / 5
-			p.mpsUp = float64(mw) / 5
+			p.mpsDown = float64(mr)
+			p.mpsUp = float64(mw)
 			p.totalParcelsReceived += mr
 			p.totalParcelsSent += mw
 

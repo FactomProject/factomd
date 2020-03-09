@@ -14,6 +14,9 @@ func (c *controller) runCatRound() {
 	c.lastRound = time.Now()
 	c.logger.Debug("Cat Round")
 	c.rounds++
+	if c.net.prom != nil {
+		c.net.prom.CatRounds.Inc()
+	}
 
 	if err := c.writePeerCache(); err != nil {
 		c.logger.Errorf("unable to write peer cache to disk: %v", err)

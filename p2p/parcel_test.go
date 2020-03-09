@@ -11,18 +11,18 @@ func TestParcel_Test(t *testing.T) {
 		app     bool
 	}{
 		{"blank parcel", &Parcel{}, true, false},
-		{"heartbeat", &Parcel{Type: TypeHeartbeat, Address: "", Payload: []byte{0}}, false, false},
-		{"empty payload", &Parcel{Type: TypeHeartbeat, Address: "", Payload: []byte{}}, true, false},
-		{"ping", &Parcel{Type: TypePing, Address: "", Payload: []byte{0}}, false, false},
-		{"pong", &Parcel{Type: TypePong, Address: "", Payload: []byte{0}}, false, false},
-		{"p request", &Parcel{Type: TypePeerRequest, Address: "", Payload: []byte{0}}, false, false},
-		{"p response", &Parcel{Type: TypePeerResponse, Address: "", Payload: []byte{0}}, false, false},
-		{"alert", &Parcel{Type: TypeAlert, Address: "", Payload: []byte{0}}, false, false},
-		{"message", &Parcel{Type: TypeMessage, Address: "", Payload: []byte{0}}, false, true},
-		{"messagepart", &Parcel{Type: TypeMessagePart, Address: "", Payload: []byte{0}}, false, true},
-		{"handshake", &Parcel{Type: TypeHandshake, Address: "", Payload: []byte{0}}, false, false},
-		{"reject alternative", &Parcel{Type: TypeRejectAlternative, Address: "", Payload: []byte{0}}, false, false},
-		{"out of range", &Parcel{Type: ParcelType(len(typeStrings)), Address: "", Payload: []byte{0}}, true, false},
+		{"heartbeat", &Parcel{ptype: TypeHeartbeat, Address: "", Payload: []byte{0}}, false, false},
+		{"empty payload", &Parcel{ptype: TypeHeartbeat, Address: "", Payload: []byte{}}, true, false},
+		{"ping", &Parcel{ptype: TypePing, Address: "", Payload: []byte{0}}, false, false},
+		{"pong", &Parcel{ptype: TypePong, Address: "", Payload: []byte{0}}, false, false},
+		{"p request", &Parcel{ptype: TypePeerRequest, Address: "", Payload: []byte{0}}, false, false},
+		{"p response", &Parcel{ptype: TypePeerResponse, Address: "", Payload: []byte{0}}, false, false},
+		{"alert", &Parcel{ptype: TypeAlert, Address: "", Payload: []byte{0}}, false, false},
+		{"message", &Parcel{ptype: TypeMessage, Address: "", Payload: []byte{0}}, false, true},
+		{"messagepart", &Parcel{ptype: TypeMessagePart, Address: "", Payload: []byte{0}}, false, true},
+		{"handshake", &Parcel{ptype: TypeHandshake, Address: "", Payload: []byte{0}}, false, false},
+		{"reject alternative", &Parcel{ptype: TypeRejectAlternative, Address: "", Payload: []byte{0}}, false, false},
+		{"out of range", &Parcel{ptype: ParcelType(len(typeStrings)), Address: "", Payload: []byte{0}}, true, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

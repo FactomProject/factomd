@@ -28,7 +28,7 @@ func testEqualEndpointList(a, b []Endpoint) bool {
 
 func testRandomParcel() *Parcel {
 	p := new(Parcel)
-	p.Type = ParcelType(rand.Intn(len(typeStrings)))
+	p.ptype = ParcelType(rand.Intn(len(typeStrings)))
 	p.Address = ""                              // address is internal in prot10+
 	p.Payload = make([]byte, 1+rand.Intn(8191)) // 1 byte - 8KiB
 	rand.Read(p.Payload)

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 	"net"
 	"net/http"
 )
@@ -53,15 +54,19 @@ func StringToUint32(input string) uint32 {
 // WebScanner is a wrapper that applies the closure f to the response body
 func WebScanner(url string, f func(line string)) error {
 	resp, err := http.Get(url)
-
 	if err != nil {
 		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("invalid http status code: %d", resp.StatusCode)
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
 		f(scanner.Text())
 	}
-	resp.Body.Close()
+
 	return nil
 }

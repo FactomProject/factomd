@@ -25,14 +25,14 @@ var (
 //
 // The payload is arbitrary data defined at application level
 type Parcel struct {
-	Type    ParcelType // 2 bytes - network level commands (eg: ping/pong)
+	ptype   ParcelType // 2 bytes - network level commands (eg: ping/pong)
 	Address string     // ? bytes - "" or nil for broadcast, otherwise the destination peer's hash.
 	Payload []byte
 }
 
 // IsApplicationMessage checks if the message is intended for the application
 func (p *Parcel) IsApplicationMessage() bool {
-	switch p.Type {
+	switch p.ptype {
 	case TypeMessage, TypeMessagePart:
 		return true
 	default:
@@ -41,7 +41,7 @@ func (p *Parcel) IsApplicationMessage() bool {
 }
 
 func (p *Parcel) String() string {
-	return fmt.Sprintf("[%s] %dB", p.Type, len(p.Payload))
+	return fmt.Sprintf("[%s] %dB", p.ptype, len(p.Payload))
 }
 
 // NewParcel creates a new application message. The target should be either an identifier
@@ -54,7 +54,7 @@ func NewParcel(target string, payload []byte) *Parcel {
 
 func newParcel(command ParcelType, payload []byte) *Parcel {
 	parcel := new(Parcel)
-	parcel.Type = command
+	parcel.ptype = command
 	parcel.Payload = payload
 	return parcel
 }
@@ -65,8 +65,8 @@ func (p *Parcel) Valid() error {
 		return fmt.Errorf("nil parcel")
 	}
 
-	if p.Type >= ParcelType(len(typeStrings)) {
-		return fmt.Errorf("unknown parcel type %d", p.Type)
+	if p.ptype >= ParcelType(len(typeStrings)) {
+		return fmt.Errorf("unknown parcel type %d", p.ptype)
 	}
 
 	if len(p.Payload) == 0 {

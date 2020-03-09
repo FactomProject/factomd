@@ -147,7 +147,7 @@ func (v11 *ProtocolV11) writeMessage(msg proto.Message) error {
 
 func (v11 *ProtocolV11) Send(p *Parcel) error {
 	msg := new(V11Msg)
-	msg.Type = uint32(p.Type)
+	msg.Type = uint32(p.ptype)
 	msg.Payload = p.Payload
 
 	return v11.writeMessage(msg)

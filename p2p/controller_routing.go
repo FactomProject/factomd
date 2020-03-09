@@ -11,7 +11,7 @@ func (c *controller) route() {
 		select {
 		case <-c.net.stopper:
 			return
-		case parcel := <-c.net.ToNetwork:
+		case parcel := <-c.net.toNetwork:
 			switch parcel.Address {
 			case FullBroadcast:
 				for _, p := range c.peers.Slice() {
@@ -59,15 +59,15 @@ func (c *controller) manageData() {
 			}
 
 			//c.logger.Debugf("Received parcel %s from %s", parcel, peer)
-			switch parcel.Type {
+			switch parcel.ptype {
 			case TypePing:
 				go func() {
 					parcel := newParcel(TypePong, []byte("Pong"))
 					peer.Send(parcel)
 				}()
 			case TypeMessage, TypeMessagePart:
-				parcel.Type = TypeMessage
-				c.net.FromNetwork.Send(parcel)
+				parcel.ptype = TypeMessage
+				c.net.fromNetwork.Send(parcel)
 			case TypePeerRequest:
 				if time.Since(peer.lastPeerRequest) >= c.net.conf.PeerRequestInterval {
 					peer.lastPeerRequest = time.Now()

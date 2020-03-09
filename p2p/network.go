@@ -14,8 +14,8 @@ import (
 //
 // FromNetwork is the channel that gets filled with parcels arriving from the network layer
 type Network struct {
-	ToNetwork   ParcelChannel
-	FromNetwork ParcelChannel
+	toNetwork   ParcelChannel
+	fromNetwork ParcelChannel
 
 	conf       *Configuration
 	controller *controller
@@ -68,8 +68,8 @@ func NewNetwork(conf Configuration) (*Network, error) {
 	if err != nil {
 		return nil, err
 	}
-	n.ToNetwork = newParcelChannel(n.conf.ChannelCapacity)
-	n.FromNetwork = newParcelChannel(n.conf.ChannelCapacity)
+	n.toNetwork = newParcelChannel(n.conf.ChannelCapacity)
+	n.fromNetwork = newParcelChannel(n.conf.ChannelCapacity)
 	return n, nil
 }
 
@@ -162,4 +162,22 @@ func (n *Network) Total() int {
 // Rounds returns the total number of CAT rounds that have occurred
 func (n *Network) Rounds() int {
 	return n.controller.rounds
+}
+
+// Send accepts a parcel and sends it to the appropriate parties.
+// This function is non-blocking.
+// If the network goes down, older messages are dropped first.
+func (n *Network) Send(p *Parcel) {
+	n.toNetwork.Send(p)
+}
+
+// BlockingSend accepts a parcel and sends it to the appropriate patries.
+// This function blocks after the queue fills up.
+func (n *Network) BlockingSend(p *Parcel) {
+	n.toNetwork <- p
+}
+
+// Reader returns a read-only channel containing application parcels arriving from the network.
+func (n *Network) Reader() <-chan *Parcel {
+	return n.fromNetwork.Reader()
 }
