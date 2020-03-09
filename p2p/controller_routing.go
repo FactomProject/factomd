@@ -67,7 +67,10 @@ func (c *controller) manageData() {
 				}()
 			case TypeMessage, TypeMessagePart:
 				parcel.ptype = TypeMessage
-				c.net.fromNetwork.Send(parcel)
+				_, dropped := c.net.fromNetwork.Send(parcel)
+				if dropped > 0 && c.net.prom != nil {
+					c.net.prom.DroppedFromNetwork.Add(float64(dropped))
+				}
 			case TypePeerRequest:
 				if time.Since(peer.lastPeerRequest) >= c.net.conf.PeerRequestInterval {
 					peer.lastPeerRequest = time.Now()

@@ -23,15 +23,18 @@ type Prometheus struct {
 	SendRoutines    prometheus.Gauge
 	ReceiveRoutines prometheus.Gauge
 
-	ParcelsSent     prometheus.Counter
-	ParcelsReceived prometheus.Counter
-	Invalid         prometheus.Counter
-	AppSent         prometheus.Counter
-	AppReceived     prometheus.Counter
-	ByteRateDown    prometheus.Gauge
-	ByteRateUp      prometheus.Gauge
-	MessageRateDown prometheus.Gauge
-	MessageRateUp   prometheus.Gauge
+	ParcelsSent        prometheus.Counter
+	ParcelsReceived    prometheus.Counter
+	Invalid            prometheus.Counter
+	AppSent            prometheus.Counter
+	AppReceived        prometheus.Counter
+	ByteRateDown       prometheus.Gauge
+	ByteRateUp         prometheus.Gauge
+	MessageRateDown    prometheus.Gauge
+	MessageRateUp      prometheus.Gauge
+	DroppedPeerSend    prometheus.Counter
+	DroppedFromNetwork prometheus.Counter
+	DroppedToNetwork   prometheus.Counter
 
 	ParcelSize prometheus.Histogram
 }
@@ -70,6 +73,10 @@ func (p *Prometheus) Setup() {
 		p.ByteRateUp = ng("factomd_p2p_byte_rate_up", "Current rate of outgoing traffic (in bytes/sec)")
 		p.MessageRateDown = ng("factomd_p2p_msg_rate_down", "Current rate of incoming traffic (in messages/sec)")
 		p.MessageRateUp = ng("factomd_p2p_msg_rate_up", "Current rate of outgoing traffic (in messages/sec)")
+
+		p.DroppedPeerSend = ng("factomd_p2p_dropped_peer_send", "Number of parcels that were unable to be sent because of peer's lack of bandwidth")
+		p.DroppedFromNetwork = ng("factomd_p2p_dropped_from_network", "Number of parcels that were dropped because application is sending parcels too fast")
+		p.DroppedToNetwork = ng("factomd_p2p_dropped_to_network", "Number of parcels that were dropped because application is not reading parcels fast enough")
 
 		p.ParcelSize = prometheus.NewHistogram(prometheus.HistogramOpts{
 			Name:    "factomd_p2p_parcels_size",

@@ -168,7 +168,10 @@ func (n *Network) Rounds() int {
 // This function is non-blocking.
 // If the network goes down, older messages are dropped first.
 func (n *Network) Send(p *Parcel) {
-	n.toNetwork.Send(p)
+	_, dropped := n.toNetwork.Send(p)
+	if dropped > 0 && n.prom != nil {
+		n.prom.DroppedToNetwork.Add(float64(dropped))
+	}
 }
 
 // BlockingSend accepts a parcel and sends it to the appropriate patries.
