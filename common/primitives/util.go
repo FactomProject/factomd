@@ -12,9 +12,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/FactomProject/btcutil/base58"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/btcsuitereleases/btcutil/base58"
 )
 
 func CalculateCoinbasePayout(efficiency uint16) uint64 {

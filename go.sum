@@ -20,8 +20,6 @@ github.com/FactomProject/factoid v0.3.4 h1:uC0161wd2IHYFBTduUQvW4ivHLj+De12c/QsV
 github.com/FactomProject/factoid v0.3.4/go.mod h1:ExOuHMC672nR0h9b+jaTiW9ilQeWQOap4OXixzW359M=
 github.com/FactomProject/factom v0.3.6-0.20190712163801-e7717c4ab072 h1:ZqIDCBU/hWkmyFtLj3vXQrVp8IjExnmw4k7P0tqDgoQ=
 github.com/FactomProject/factom v0.3.6-0.20190712163801-e7717c4ab072/go.mod h1:V1V8mWqOI72JBpGj/aPQZEmhDepdykxyhVRH5GxbP4E=
-github.com/FactomProject/factomd v6.6.0+incompatible h1:+hY+DVyyH39YI8whwUNF5DzefiOelW/zmY5AXxbeTuc=
-github.com/FactomProject/factomd v6.6.0+incompatible/go.mod h1:zeNvpIESaAp0bQSQ7U0c9tWzsklqMd5vGHLGCe3Bs3M=
 github.com/FactomProject/fastsha256 v0.2.1 h1:ICfr2Lw5Ucy785GfJSjLLG9X1mZA6dsy/xgARlZ+brs=
 github.com/FactomProject/fastsha256 v0.2.1/go.mod h1:/nQG+MXzxlaSxnkToKarNFTq1k0tbtSx5R82M00kC4k=
 github.com/FactomProject/fsnotify v0.9.0 h1:D7P7JyVP/CHGI9dPkTdKcgSoyk8uayHq/5rZYr+t+l4=

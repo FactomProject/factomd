@@ -21,7 +21,6 @@ require (
 	github.com/Netflix/go-expect v0.0.0-20200312175327-da48e75238e2 // indirect
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
-	github.com/btcsuitereleases/btcutil v0.0.0-20150612230727-f2b1058a8255
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/gogo/protobuf v1.3.1-0.20190908201246-8a5ed79f6888
