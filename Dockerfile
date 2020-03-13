@@ -1,24 +1,12 @@
-FROM golang:1.12
+FROM golang:1.13
 
 # Get git
 RUN apt-get update \
     && apt-get -y install curl git \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Get glide
-RUN go get github.com/Masterminds/glide
-
 # Where factomd sources will live
-WORKDIR $GOPATH/src/github.com/FactomProject/factomd
-
-# Get the dependencies
-COPY glide.yaml glide.lock ./
-
-# Install dependencies
-RUN glide install -v
-
-# Get goveralls for testing/coverage
-RUN go get github.com/mattn/goveralls
+WORKDIR /opt/FactomProject/factomd
 
 # Populate the rest of the source
 COPY . .
