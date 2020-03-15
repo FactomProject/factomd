@@ -184,3 +184,177 @@ func Test_controller_handshakes(t *testing.T) {
 	testControllerHandshakes(t, "agree on lower 11->9", 11, 9, 9)
 
 }
+
+func Test_controller_manageOnline(t *testing.T) {
+	net := testNetworkHarness(t)
+
+	done := make(chan bool, 1)
+	go func() {
+		net.controller.manageOnline()
+		done <- true
+	}()
+
+	p := testRandomPeer(net)
+	c := net.controller
+
+	if c.peers.Total() != 0 {
+		t.Fatalf("peerstore not empty, has %d peers", c.peers.Total())
+	}
+	c.peerStatus <- peerStatus{peer: p, online: true}
+	time.Sleep(time.Millisecond * 50)
+
+	if c.peers.Get(p.Hash) == nil {
+		t.Errorf("peerstore get %s returned nil", p.Hash)
+	}
+
+	c.peerStatus <- peerStatus{peer: p, online: false}
+	time.Sleep(time.Millisecond * 50)
+
+	if p2 := c.peers.Get(p.Hash); p2 != nil {
+		t.Errorf("peerstore peer %s was not removed: returned %s", p.Hash, p2.Hash)
+	}
+
+	// a second peer connecting with the same hash
+	p2 := testRandomPeer(net)
+	p2.Hash = p.Hash
+
+	p.stopper.Do(func() {})
+
+	c.peerStatus <- peerStatus{peer: p, online: true}
+	c.peerStatus <- peerStatus{peer: p2, online: true}
+	time.Sleep(time.Millisecond * 50)
+
+	p3 := c.peers.Get(p.Hash)
+	if p3 == nil {
+		t.Errorf("duplicate peer not found")
+	} else if p3 == p {
+		t.Errorf("duplicate peer did not replace original peer")
+	}
+
+	close(net.stopper)
+	<-done
+}
+
+// checks that the listen routine opens a port we can connect to via tcp
+// also that stopping the network stops the listener
+// it will fail the handshake but that's tested elsewhere
+func Test_controller_listen(t *testing.T) {
+	n1 := testNetworkHarness(t)
+	ep, _ := NewEndpoint("127.0.0.1", "14236")
+	n1.conf.BindIP = ep.IP
+	n1.conf.ListenPort = ep.Port
+
+	done := make(chan bool, 1)
+	go func() {
+		go n1.controller.listen()
+		done <- true
+	}()
+
+	con, err := net.Dial("tcp", ep.String())
+	if err != nil {
+		t.Error(err)
+	}
+	con.Close()
+	n1.Stop()
+	<-done
+}
+
+// only checks that controller.Dial will open a tcp connection
+func Test_controller_Dial(t *testing.T) {
+	n1 := testNetworkHarness(t)
+
+	ep, _ := NewEndpoint("127.0.0.1", "14237")
+	listener, err := net.Listen("tcp", ep.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	done := make(chan bool)
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			t.Error(err)
+		} else {
+			conn.Close()
+		}
+		listener.Close()
+		done <- true
+	}()
+
+	n1.controller.Dial(ep)
+
+	<-done
+}
+
+func Test_controller_allowIncoming(t *testing.T) {
+	net := testNetworkHarness(t)
+
+	net.controller.setSpecial("special:1")
+	banned := testRandomPeer(net)
+	banned.stopper.Do(func() {})
+	net.controller.peers.Add(banned)
+	net.controller.ban(banned.Hash, time.Hour)
+
+	sameAddr := Endpoint{IP: "samehost", Port: "1"}
+	net.conf.PeerIPLimitIncoming = 1
+	net.conf.MaxIncoming = 3
+
+	type args struct {
+		addr string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{"ok", args{testRandomEndpoint().IP}, false},
+		{"banned", args{banned.Endpoint.IP}, true},
+		{"same ip limit", args{sameAddr.IP}, true},
+		{"max peers", args{"max"}, true},
+		{"special through max", args{"special"}, false},
+	}
+	for i, tt := range tests {
+		if i == 2 { // same ip limit
+			p := testRandomPeer(net)
+			p.Endpoint = sameAddr
+			net.controller.peers.Add(p)
+		}
+		if i == 3 { // max inc
+			net.controller.peers.Add(testRandomPeer(net))
+		}
+		t.Run(tt.name, func(t *testing.T) {
+			if err := net.controller.allowIncoming(tt.args.addr); (err != nil) != tt.wantErr {
+				t.Errorf("controller.allowIncoming() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_controller_RejectWithShare(t *testing.T) {
+	n := testNetworkHarness(t)
+	for _, i := range []uint16{9, 11} {
+		share := testRandomEndpointList(int(n.conf.PeerShareAmount))
+		n.conf.ProtocolVersion = i
+
+		A, B := net.Pipe()
+		A.SetWriteDeadline(time.Now().Add(time.Millisecond * 100))
+		B.SetReadDeadline(time.Now().Add(time.Millisecond * 100))
+		go n.controller.RejectWithShare(A, share)
+
+		prot := n.controller.selectProtocol(B)
+		hs, err := prot.ReadHandshake()
+		if err != nil {
+			t.Errorf("prot %d receive error %v", i, err)
+			continue
+		}
+
+		if hs.Type != TypeRejectAlternative {
+			t.Errorf("prot %d parcel unexpected type. got = %s, want = %s", i, hs.Type, TypeRejectAlternative)
+			continue
+		}
+
+		if !testEqualEndpointList(share, hs.Alternatives) {
+			t.Errorf("prot %d different endpoint list. got = %v, want = %v", i, hs.Alternatives, share)
+		}
+	}
+}

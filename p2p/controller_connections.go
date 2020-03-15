@@ -292,7 +292,7 @@ func (c *controller) RejectWithShare(con net.Conn, share []Endpoint) error {
 // Dial attempts to connect to a remote endpoint.
 // If the dial was not successful, it may return a list of alternate endpoints
 // given by the remote host.
-func (c *controller) Dial(ep Endpoint) (bool, []Endpoint) {
+func (c *controller) Dial(ep Endpoint) (*Peer, []Endpoint) {
 	if c.net.prom != nil {
 		c.net.prom.Connecting.Inc()
 		defer c.net.prom.Connecting.Dec()
@@ -302,7 +302,7 @@ func (c *controller) Dial(ep Endpoint) (bool, []Endpoint) {
 	con, err := c.dialer.Dial(ep)
 	if err != nil {
 		c.logger.WithError(err).Infof("Failed to dial to %s", ep)
-		return false, nil
+		return nil, nil
 	}
 
 	peer, alternatives, err := c.handshakeOutgoing(con, ep)
@@ -310,19 +310,19 @@ func (c *controller) Dial(ep Endpoint) (bool, []Endpoint) {
 		if err.Error() == "loopback" {
 			c.logger.Debugf("Banning ourselves for 50 years")
 			c.banEndpoint(ep, time.Hour*24*365*50) // ban for 50 years
-			return false, nil
+			return nil, nil
 		}
 
 		if len(alternatives) > 0 {
 			c.logger.Debugf("Connection declined with alternatives from %s", ep)
-			return false, alternatives
+			return nil, alternatives
 		}
 		c.logger.WithError(err).Debugf("Handshake fail with %s", ep)
-		return false, nil
+		return nil, nil
 	}
 
 	c.logger.Debugf("Handshake success for peer %s, version %s", peer.Hash, peer.prot)
-	return true, nil
+	return peer, nil
 }
 
 // listen listens for incoming TCP connections and passes them off to handshake maneuver

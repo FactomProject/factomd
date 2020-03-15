@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 )
 
@@ -99,6 +100,46 @@ func TestWebScanner(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := WebScanner(tt.args.url, tt.args.f); (err != nil) != tt.wantErr {
 				t.Errorf("WebScanner() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_parseSpecial(t *testing.T) {
+	type args struct {
+		raw string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []Endpoint
+		wantErr bool
+	}{
+		{"bunch of addresses", args{"127.0.0.1:80,127.0.0.2:8080,1.1.1.1:8110"}, []Endpoint{{"127.0.0.1", "80"}, {"127.0.0.2", "8080"}, {"1.1.1.1", "8110"}}, false},
+		{"spaces 1", args{" a:1,a:2,a:3,a:4"}, []Endpoint{{"a", "1"}, {"a", "2"}, {"a", "3"}, {"a", "4"}}, false},
+		{"spaces 2", args{"a:1 ,a:2,a:3,a:4"}, []Endpoint{{"a", "1"}, {"a", "2"}, {"a", "3"}, {"a", "4"}}, false},
+		{"spaces 3", args{"a:1 , a:2,a:3,a:4"}, []Endpoint{{"a", "1"}, {"a", "2"}, {"a", "3"}, {"a", "4"}}, false},
+		{"spaces 4", args{"a:1,a:2,a:3,a:4"}, []Endpoint{{"a", "1"}, {"a", "2"}, {"a", "3"}, {"a", "4"}}, false},
+		{"spaces 5", args{"a:1         ,a:2,a:3,a:4"}, []Endpoint{{"a", "1"}, {"a", "2"}, {"a", "3"}, {"a", "4"}}, false},
+		{"spaces 6", args{"a:1,a:2,a:3,a :4"}, nil, true},
+		{"semicolon", args{"a:1;a:2"}, nil, true},
+		{"single address", args{"127.0.0.1:80"}, []Endpoint{{"127.0.0.1", "80"}}, false},
+		{"single bad address", args{":50"}, nil, true},
+		{"blank", args{""}, nil, true},
+		{"just address", args{"127.0.0.1"}, nil, true},
+		{"hostname w/o port", args{"domain.com"}, nil, true},
+		{"hostname w port", args{"domain.com:80"}, []Endpoint{{"domain.com", "80"}}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseSpecial(tt.args.raw)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseSpecial() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("controller.parseSpecial() = %v, want %v", got, tt.want)
 			}
 		})
 	}

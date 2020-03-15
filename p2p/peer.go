@@ -86,7 +86,8 @@ func (p *Peer) Stop() {
 	p.stopper.Do(func() {
 		p.logger.Debug("Stopping peer")
 		close(p.stop) // stops sendLoop and readLoop and statLoop
-		// sendLoop closes p.conn and p.send in defer
+		p.conn.Close()
+		// sendLoop closes p.send in defer
 		select {
 		case p.net.controller.peerStatus <- peerStatus{peer: p, online: false}:
 		case <-p.net.stopper:
@@ -107,12 +108,12 @@ func (p *Peer) Send(parcel *Parcel) {
 		p.metricsMtx.Lock()
 		p.dropped += uint64(dropped)
 		p.metricsMtx.Unlock()
-
 	}
 }
 
 func (p *Peer) statLoop() {
 	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
@@ -140,19 +141,17 @@ func (p *Peer) readLoop() {
 		p.net.prom.ReceiveRoutines.Inc()
 		defer p.net.prom.ReceiveRoutines.Dec()
 	}
-	defer p.conn.Close() // close connection on fatal error
+	defer p.Stop() // close connection on fatal error
 	for {
 		p.conn.SetReadDeadline(time.Now().Add(p.net.conf.ReadDeadline))
 		msg, err := p.prot.Receive()
 		if err != nil {
 			p.logger.WithError(err).Debug("connection error (readLoop)")
-			p.Stop()
 			return
 		}
 
 		if err := msg.Valid(); err != nil {
 			p.logger.WithError(err).Warnf("received invalid msg, disconnecting peer")
-			p.Stop()
 			if p.net.prom != nil {
 				p.net.prom.Invalid.Inc()
 			}
@@ -174,7 +173,7 @@ func (p *Peer) readLoop() {
 		}
 
 		msg.Address = p.Hash // always set sender = peer
-		if !p.deliver(msg) {
+		if !p.deliver(msg) { // blocking unless peer is already stopped
 			return
 		}
 	}
@@ -199,11 +198,10 @@ func (p *Peer) sendLoop() {
 	}
 
 	defer close(p.send)
-	defer p.conn.Close() // close connection on fatal error
+	defer p.Stop() // close connection on fatal error
 	for {
 		select {
 		case <-p.net.stopper:
-			p.Stop()
 			return
 		case <-p.stop:
 			return
@@ -217,8 +215,7 @@ func (p *Peer) sendLoop() {
 			err := p.prot.Send(parcel)
 			if err != nil { // no error is recoverable
 				p.logger.WithError(err).Debug("connection error (sendLoop)")
-				p.Stop()
-				return
+				return // stops in defer
 			}
 
 			// metrics

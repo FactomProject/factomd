@@ -19,7 +19,7 @@ func (c *controller) runCatRound() {
 	}
 
 	if err := c.writePeerCache(); err != nil {
-		c.logger.Errorf("unable to write peer cache to disk: %v", err)
+		c.logger.WithError(err).Errorf("unable to write peer cache to disk")
 	}
 
 	peers := c.peers.Slice()
@@ -73,6 +73,7 @@ func (c *controller) shuffleTrimShare(list []Endpoint) []Endpoint {
 	if len(list) == 0 {
 		return nil
 	}
+	list = append(list[:0:0], list...) // don't shuffle passed parameter
 	c.net.rng.Shuffle(len(list), func(i, j int) { list[i], list[j] = list[j], list[i] })
 	if uint(len(list)) > c.net.conf.PeerShareAmount {
 		list = list[:c.net.conf.PeerShareAmount]
@@ -141,7 +142,7 @@ func (c *controller) asyncPeerRequest(peer *Peer) ([]Endpoint, error) {
 	case parcel := <-async:
 		share := c.shuffleTrimShare(c.processPeerShare(peer, parcel))
 		return share, nil
-	case <-time.After(time.Second * 5):
+	case <-time.After(c.net.conf.PeerShareTimeout):
 		return nil, fmt.Errorf("timeout")
 	}
 }
@@ -252,7 +253,7 @@ func (c *controller) catReplenish() {
 			}
 
 			attempts++
-			if ok, alts := c.Dial(ep); !ok {
+			if p, alts := c.Dial(ep); p != nil {
 				for _, alt := range alts {
 					connect = append(connect, alt)
 				}

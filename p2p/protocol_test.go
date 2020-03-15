@@ -27,8 +27,11 @@ func testEqualEndpointList(a, b []Endpoint) bool {
 }
 
 func testRandomParcel() *Parcel {
+	return testParcel(ParcelType(rand.Intn(len(typeStrings))))
+}
+func testParcel(typ ParcelType) *Parcel {
 	p := new(Parcel)
-	p.ptype = ParcelType(rand.Intn(len(typeStrings)))
+	p.ptype = typ
 	p.Address = ""                              // address is internal in prot10+
 	p.Payload = make([]byte, 1+rand.Intn(8191)) // 1 byte - 8KiB
 	rand.Read(p.Payload)
@@ -149,10 +152,7 @@ func TestProtocol_Handshake(t *testing.T) {
 func TestProtocol_PeerShare(t *testing.T) {
 	shares := make([][]Endpoint, 128)
 	for i := range shares {
-		shares[i] = make([]Endpoint, rand.Intn(64))
-		for j := range shares[i] {
-			shares[i][j] = testRandomEndpoint()
-		}
+		shares[i] = testRandomEndpointList(rand.Intn(64))
 	}
 
 	for _, prot := range []Protocol{testProtV9(nil), testProtV10(nil), testProtV11(nil)} {

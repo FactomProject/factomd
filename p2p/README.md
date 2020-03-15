@@ -153,7 +153,7 @@ Protocol 10 is the slimmed down version of V9, containing only the Type, CRC32 o
 
 ### 11
 
-Protocol 11 uses Protobuf ([protocolV11.proto](protocolV11.proto)) to define the Handshake and message. To signal that the connection is used for V11, the 4-byte sequence `0xfafafafa` is transmitted first. Protobufs are transmitted by sending the size of the marshalled protobuf first, encoded as uint32 in Big Endian format, followed by the protobuf byte sequence itself.
+Protocol 11 uses Protobuf ([protocolV11.proto](protocolV11.proto)) to define the Handshake and message. To signal that the connection is used for V11, the 4-byte sequence `0x70627566` (ASCII for "pbuf") is transmitted first. Protobufs are transmitted by sending the size of the marshalled protobuf first, encoded as uint32 in Big Endian format, followed by the protobuf byte sequence itself.
 
 V11 has a maximum parcel size of 128 Mebibytes.
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 )
 
 // IP2Location converts an ip address to a uint32
@@ -69,4 +70,18 @@ func WebScanner(url string, f func(line string)) error {
 	}
 
 	return nil
+}
+
+func parseSpecial(raw string) ([]Endpoint, error) {
+	var eps []Endpoint
+	split := strings.Split(raw, ",")
+	for _, item := range split {
+		item = strings.TrimSpace(item)
+		ep, err := ParseEndpoint(item)
+		if err != nil {
+			return nil, err
+		}
+		eps = append(eps, ep)
+	}
+	return eps, nil
 }

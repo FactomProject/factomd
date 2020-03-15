@@ -16,10 +16,7 @@ func testRandomHandshake() *Handshake {
 
 	if hs.Type == TypeRejectAlternative {
 		alts := 1 + rand.Intn(16)
-		hs.Alternatives = make([]Endpoint, alts)
-		for i := range hs.Alternatives {
-			hs.Alternatives[i] = testRandomEndpoint()
-		}
+		hs.Alternatives = testRandomEndpointList(alts)
 	}
 
 	return hs

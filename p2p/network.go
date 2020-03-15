@@ -39,6 +39,10 @@ var packageLogger = log.WithField("package", "p2p")
 func NewNetwork(conf Configuration) (*Network, error) {
 	var err error
 
+	if err = conf.Check(); err != nil {
+		return nil, err
+	}
+
 	n := new(Network)
 	n.conf = &conf
 	n.conf.Sanitize()
@@ -174,7 +178,7 @@ func (n *Network) Send(p *Parcel) {
 	}
 }
 
-// BlockingSend accepts a parcel and sends it to the appropriate patries.
+// BlockingSend accepts a parcel and sends it to the appropriate parties.
 // This function blocks after the queue fills up.
 func (n *Network) BlockingSend(p *Parcel) {
 	n.toNetwork <- p
