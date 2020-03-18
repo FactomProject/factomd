@@ -142,7 +142,7 @@ func (m *SafeMsgMap) RemoveExpired(s *State) {
 	// Time out commits every now and again.
 	for k, v := range m.msgmap {
 		if v != nil {
-			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetLeaderTimestamp())
+			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 			if !ok {
 				defer m.s.LogMessage(m.name, "RemoveExpired", v)
 				delete(m.msgmap, k)

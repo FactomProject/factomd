@@ -60,7 +60,7 @@ func Test_Replay(test *testing.T) {
 			for in := 0; in < 1000; in++ {
 				i := rand.Int() % len(mhs)
 				x := mhs[i]
-				if r.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, x.hash, x.time, now) {
+				if r.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, x.hash, x.time, now) {
 					fmt.Printf("Failed Repeat Test %d\n", i)
 					test.Fail()
 					return
@@ -83,7 +83,7 @@ func Test_Replay(test *testing.T) {
 		ntime := now.GetTimeSeconds()/60 - spanMin + delta
 		x.time = primitives.NewTimestampFromSeconds(uint32(ntime * 60))
 
-		if _, ok := r.Valid(constants.NETWORK_REPLAY, x.hash, x.time, now); !ok {
+		if _, ok := r.Valid(constants.INTERNAL_REPLAY, x.hash, x.time, now); !ok {
 			mnow := Minutes(now.GetTimeSeconds())
 			mx := Minutes(x.time.GetTimeSeconds())
 			fmt.Printf("Failed an element in the time range. Test %d element Time: %d now %d Diff %d\n", i, mx, mnow, mx-mnow)
@@ -92,14 +92,14 @@ func Test_Replay(test *testing.T) {
 		}
 
 		// The first time we test, it should be valid.
-		if !r.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, x.hash, x.time, now) {
+		if !r.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, x.hash, x.time, now) {
 			fmt.Println("Failed Test ", i, "first")
 			test.Fail()
 			return
 		}
 
 		// An immediate replay!  Should fail!
-		if r.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, x.hash, x.time, now) {
+		if r.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, x.hash, x.time, now) {
 			fmt.Println("Failed Test ", i, "second")
 			test.Fail()
 			return
@@ -113,8 +113,8 @@ func Test_Replay(test *testing.T) {
 		ntime = now.GetTimeSeconds()/60 - delta
 		x.time = primitives.NewTimestampFromSeconds(uint32(ntime * 60))
 
-		// should not be valid, INTERNAL_REPLAY is valid outside of the time window
-		if _, ok := r.Valid(constants.NETWORK_REPLAY, x.hash, x.time, now); ok {
+		// should not be valid
+		if _, ok := r.Valid(constants.INTERNAL_REPLAY, x.hash, x.time, now); ok {
 			mnow := Minutes(now.GetTimeSeconds())
 			mx := Minutes(x.time.GetTimeSeconds())
 			fmt.Printf("Okayed an element out of time range. Test %d element Time: %d now %d Diff %d\n", i, mx, mnow, mx-mnow)
@@ -123,7 +123,7 @@ func Test_Replay(test *testing.T) {
 		}
 
 		// The first time we test, it should not be valid.
-		if r.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, x.hash, x.time, now) {
+		if r.IsTSValidAndUpdateState(constants.INTERNAL_REPLAY, x.hash, x.time, now) {
 			fmt.Println("Failed Test ", i, "bad first")
 			test.Fail()
 			return

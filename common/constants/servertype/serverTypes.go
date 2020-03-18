@@ -9,7 +9,7 @@ type ServerType string
 
 const (
 	Follower        ServerType = "follower"         // All servers that are not audit or federated, are followers (may or may not have an identity)
-	AuditServer     ServerType = "audit server"     // Audit serveres have identities
+	AuditServer     ServerType = "audit server"     // Audit servers have identities
 	FederatedServer ServerType = "federated server" // Federated servers have identities
 )
 

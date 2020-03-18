@@ -129,7 +129,6 @@ func (c *CommitChain) String() string {
 // NewCommitChain creates a newly initialized commit chain
 func NewCommitChain() *CommitChain {
 	c := new(CommitChain)
-	c.Init()
 	c.Version = 0
 	c.MilliTime = new(primitives.ByteSlice6)
 	c.ChainIDHash = primitives.NewZeroHash()

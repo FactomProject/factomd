@@ -124,9 +124,12 @@ func (e *CommitEntry) GetEntryHash() (rval interfaces.IHash) {
 // NewCommitEntry returns a new commit entry
 func NewCommitEntry() *CommitEntry {
 	c := new(CommitEntry)
-	c.Init()
 	c.Version = 0
+	c.MilliTime = new(primitives.ByteSlice6)
+	c.EntryHash = primitives.NewZeroHash()
 	c.Credits = 0
+	c.ECPubKey = new(primitives.ByteSlice32)
+	c.Sig = new(primitives.ByteSlice64)
 	return c
 }
 
