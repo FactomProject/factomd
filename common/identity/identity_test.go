@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestMarshalEntryBlockSync checks that EntryBlockSync objects can be marshaled and unmarshalled properly
 func TestMarshalEntryBlockSync(t *testing.T) {
 	e := NewEntryBlockSync()
 	e.Target = *NewEntryBlockMarker()
@@ -38,9 +39,13 @@ func TestMarshalEntryBlockSync(t *testing.T) {
 	}
 }
 
+// TestIdentityMasrhalUnmarshal checks whether 1000 random identities can be marshaled and unmarshaled properly
 func TestIdentityMarshalUnmarshal(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		id := RandomIdentity()
+		if id.IsFull() == false {
+			t.Errorf("Identity created which is not full")
+		}
 		h, err := id.MarshalBinary()
 		if err != nil {
 			t.Errorf("%v", err)
@@ -56,6 +61,7 @@ func TestIdentityMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestIdentityClone checks that 1000 random identities can be cloned and marshaled properly
 func TestIdentityClone(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		id := RandomIdentity()
@@ -80,6 +86,7 @@ func TestIdentityClone(t *testing.T) {
 	}
 }
 
+// TestIsComplete creates random identities, some with missing pieces, and checks that the IsComplete() function returns properly
 func TestIsComplete(t *testing.T) {
 	i := NewIdentity()
 	if complete, _ := i.IsComplete(); complete {

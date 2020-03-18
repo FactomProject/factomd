@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestUnmarshalNilAck checks that unmarshaling nil or the empty interface results in the proper errors
 func TestUnmarshalNilAck(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -34,6 +35,7 @@ func TestUnmarshalNilAck(t *testing.T) {
 	}
 }
 
+// TestMarshalUnmarshalAck checks that an Ack can be marshaled and unmarshaled properly
 func TestMarshalUnmarshalAck(t *testing.T) {
 	test := func(ack *Ack, num string) {
 		_, err := ack.JSONString()
@@ -72,6 +74,7 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 	test(ack2, "2")
 }
 
+// TestSignAndVerifyAck checks that a properly signed (verified) Ack can be marshaled and unmarshaled, maintining its signature verification
 func TestSignAndVerifyAck(t *testing.T) {
 	ack := NewSignedAck()
 
@@ -113,6 +116,7 @@ func TestSignAndVerifyAck(t *testing.T) {
 	}
 }
 
+// NewAck returns a new, unsigned Ack from hardcoded inputs
 func NewAck() *Ack {
 	ack := new(Ack)
 	ack.Timestamp = primitives.NewTimestampNow()
@@ -146,6 +150,7 @@ func NewAck() *Ack {
 	return ack
 }
 
+// NewSignedAck returns a new, signed Ack from hardcoded inputs
 func NewSignedAck() *Ack {
 	ack := NewAck()
 

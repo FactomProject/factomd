@@ -6,6 +6,8 @@ import (
 	. "github.com/FactomProject/factomd/common/identity"
 )
 
+// TestUnmarshalBadEntryBlockSync creates a new entry block sync, marshals the object, corrupts it and tries to unmarshal the corrupted object
+// The test ensures unmarshaling catches this error
 func TestUnmarshalBadEntryBlockSync(t *testing.T) {
 	ebs := NewEntryBlockSync()
 
@@ -14,7 +16,7 @@ func TestUnmarshalBadEntryBlockSync(t *testing.T) {
 		t.Error(err)
 	}
 
-	// wright bad block count into EntryBlockSync
+	// write bad block count into EntryBlockSync
 	p[99] = 0xff
 
 	ebs2 := new(EntryBlockSync)

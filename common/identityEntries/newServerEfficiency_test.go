@@ -11,6 +11,7 @@ import (
 	. "github.com/FactomProject/factomd/common/identityEntries"
 )
 
+// TestNewServerEfficiencyStruct checks a hardcoded external ID can be set into the sever efficiency structure and obtain the correct chain ID
 func TestNewServerEfficiencyStruct(t *testing.T) {
 	parts := []string{
 		"00",

@@ -11,6 +11,7 @@ import (
 	. "github.com/FactomProject/factomd/common/identityEntries"
 )
 
+// TestNewBlockSigningKeyStruct checks a hardcoded external ID can be set into the block signing structure and obtain the correct chain ID
 func TestNewBlockSigningKeyStruct(t *testing.T) {
 	parts := []string{
 		"00",

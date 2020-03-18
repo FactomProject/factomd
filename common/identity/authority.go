@@ -19,32 +19,40 @@ import (
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
+// AuthoritySort is a slice of IAuthoritys
 // sort.Sort interface implementation
 type AuthoritySort []interfaces.IAuthority
 
+// Len returns the length of the slice
 func (p AuthoritySort) Len() int {
 	return len(p)
 }
+
+// Swap swaps the data at the input indices 'i' and 'j' in the slice
 func (p AuthoritySort) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
+
+// Less returns true if the data at the ith index is less than the data at the jth index
 func (p AuthoritySort) Less(i, j int) bool {
 	return bytes.Compare(p[i].GetAuthorityChainID().Bytes(), p[j].GetAuthorityChainID().Bytes()) < 0
 }
 
+// Authority is a struct containing information related to an authority server for the factom protocol.
 type Authority struct {
-	AuthorityChainID  interfaces.IHash     `json:"chainid"`
+	AuthorityChainID  interfaces.IHash     `json:"chainid"` // chain id for the authority server
 	ManagementChainID interfaces.IHash     `json:"manageid"`
 	MatryoshkaHash    interfaces.IHash     `json:"matroyshka"`
 	SigningKey        primitives.PublicKey `json:"signingkey"`
-	Status            uint8                `json:"status"`
+	Status            uint8                `json:"status"` // Identity status type, see constants.go
 	AnchorKeys        []AnchorSigningKey   `json:"anchorkeys"`
 
-	KeyHistory      []HistoricKey       `json:"-"`
-	Efficiency      uint16              `json:"efficiency"`
-	CoinbaseAddress interfaces.IAddress `json:"coinbaseaddress"`
+	KeyHistory      []HistoricKey       `json:"-"`               // Slice of old signing keys previously associated with this authority server along with the dbheight it was retired
+	Efficiency      uint16              `json:"efficiency"`      // The efficiency of this authority server in hundredths of a percent: 10000 = 100%
+	CoinbaseAddress interfaces.IAddress `json:"coinbaseaddress"` // The Factoid address payments are sent do for this server
 }
 
+// NewAuthority returns a new Authority with hashes initialized to the zero hash, and an efficiency of 10000 (100%)
 func NewAuthority() *Authority {
 	a := new(Authority)
 	a.AuthorityChainID = primitives.NewZeroHash()
@@ -58,6 +66,7 @@ func NewAuthority() *Authority {
 
 var _ interfaces.BinaryMarshallable = (*Authority)(nil)
 
+// RandomAuthority returns a new Authority with random starting values
 func RandomAuthority() *Authority {
 	a := NewAuthority()
 
@@ -79,11 +88,12 @@ func RandomAuthority() *Authority {
 	}
 
 	a.CoinbaseAddress = primitives.RandomHash()
-	a.Efficiency = uint16(rand.Intn(10000))
+	a.Efficiency = uint16(rand.Intn(10001)) // rand is non-inclusive of the number, so this returns 0-10000
 
 	return a
 }
 
+// GetCoinbaseHumanReadable returns the human readable factoid address associated with this authority server
 func (a *Authority) GetCoinbaseHumanReadable() string {
 	if a.CoinbaseAddress.IsZero() {
 		return "No Address"
@@ -93,6 +103,7 @@ func (a *Authority) GetCoinbaseHumanReadable() string {
 	return primitives.ConvertFctAddressToUserStr(add)
 }
 
+// Clone returns a new, identical copy of this Authority
 func (a *Authority) Clone() *Authority {
 	b := NewAuthority()
 	b.AuthorityChainID.SetBytes(a.AuthorityChainID.Bytes())
@@ -117,126 +128,129 @@ func (a *Authority) Clone() *Authority {
 	return b
 }
 
-func (e *Authority) IsSameAs(b *Authority) bool {
-	if e.AuthorityChainID.IsSameAs(b.AuthorityChainID) == false {
+// IsSameAs returns true iff the input object is identical to this object
+func (a *Authority) IsSameAs(b *Authority) bool {
+	if a.AuthorityChainID.IsSameAs(b.AuthorityChainID) == false {
 		return false
 	}
-	if e.ManagementChainID.IsSameAs(b.ManagementChainID) == false {
+	if a.ManagementChainID.IsSameAs(b.ManagementChainID) == false {
 		return false
 	}
-	if e.MatryoshkaHash.IsSameAs(b.MatryoshkaHash) == false {
+	if a.MatryoshkaHash.IsSameAs(b.MatryoshkaHash) == false {
 		return false
 	}
-	if e.SigningKey.IsSameAs(&b.SigningKey) == false {
+	if a.SigningKey.IsSameAs(&b.SigningKey) == false {
 		return false
 	}
-	if e.Status != b.Status {
+	if a.Status != b.Status {
 		return false
 	}
 
-	if len(e.AnchorKeys) != len(b.AnchorKeys) {
+	if len(a.AnchorKeys) != len(b.AnchorKeys) {
 		return false
 	}
-	for i := range e.AnchorKeys {
-		if e.AnchorKeys[i].IsSameAs(&b.AnchorKeys[i]) == false {
+	for i := range a.AnchorKeys {
+		if a.AnchorKeys[i].IsSameAs(&b.AnchorKeys[i]) == false {
 			return false
 		}
 	}
-	if len(e.KeyHistory) != len(b.KeyHistory) {
+	if len(a.KeyHistory) != len(b.KeyHistory) {
 		return false
 	}
-	for i := range e.KeyHistory {
-		if e.KeyHistory[i].IsSameAs(&b.KeyHistory[i]) == false {
+	for i := range a.KeyHistory {
+		if a.KeyHistory[i].IsSameAs(&b.KeyHistory[i]) == false {
 			return false
 		}
 	}
 
-	if e.Efficiency != b.Efficiency {
+	if a.Efficiency != b.Efficiency {
 		return false
 	}
 
-	if !e.CoinbaseAddress.IsSameAs(b.CoinbaseAddress) {
+	if !a.CoinbaseAddress.IsSameAs(b.CoinbaseAddress) {
 		return false
 	}
 
 	return true
 }
 
-func (e *Authority) Init() {
-	if e.AuthorityChainID == nil {
-		e.AuthorityChainID = primitives.NewZeroHash()
+// Init initializes any nil hashes to the zero hash
+func (a *Authority) Init() {
+	if a.AuthorityChainID == nil {
+		a.AuthorityChainID = primitives.NewZeroHash()
 	}
-	if e.ManagementChainID == nil {
-		e.ManagementChainID = primitives.NewZeroHash()
+	if a.ManagementChainID == nil {
+		a.ManagementChainID = primitives.NewZeroHash()
 	}
-	if e.MatryoshkaHash == nil {
-		e.MatryoshkaHash = primitives.NewZeroHash()
+	if a.MatryoshkaHash == nil {
+		a.MatryoshkaHash = primitives.NewZeroHash()
 	}
-	if e.CoinbaseAddress == nil {
-		e.CoinbaseAddress = primitives.NewZeroHash()
+	if a.CoinbaseAddress == nil {
+		a.CoinbaseAddress = primitives.NewZeroHash()
 	}
 }
 
-func (e *Authority) MarshalBinary() (rval []byte, err error) {
+// MarshalBinary marshals the object
+func (a *Authority) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "Authority.MarshalBinary err:%v", *pe)
 		}
 	}(&err)
-	e.Init()
+	a.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err = buf.PushBinaryMarshallable(e.AuthorityChainID)
+	err = buf.PushBinaryMarshallable(a.AuthorityChainID)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(e.ManagementChainID)
+	err = buf.PushBinaryMarshallable(a.ManagementChainID)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(e.MatryoshkaHash)
+	err = buf.PushBinaryMarshallable(a.MatryoshkaHash)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(&e.SigningKey)
+	err = buf.PushBinaryMarshallable(&a.SigningKey)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushByte(byte(e.Status))
+	err = buf.PushByte(byte(a.Status))
 	if err != nil {
 		return nil, err
 	}
 
-	l := len(e.AnchorKeys)
+	l := len(a.AnchorKeys)
 	err = buf.PushVarInt(uint64(l))
 	if err != nil {
 		return nil, err
 	}
-	for _, v := range e.AnchorKeys {
+	for _, v := range a.AnchorKeys {
 		err = buf.PushBinaryMarshallable(&v)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	l = len(e.KeyHistory)
+	l = len(a.KeyHistory)
 	err = buf.PushVarInt(uint64(l))
 	if err != nil {
 		return nil, err
 	}
-	for _, v := range e.KeyHistory {
+	for _, v := range a.KeyHistory {
 		err = buf.PushBinaryMarshallable(&v)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err = buf.PushUInt16(e.Efficiency)
+	err = buf.PushUInt16(a.Efficiency)
 	if err != nil {
 		return nil, err
 	}
 
-	err = buf.PushIHash(e.CoinbaseAddress)
+	err = buf.PushIHash(a.CoinbaseAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -244,24 +258,25 @@ func (e *Authority) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
-	e.Init()
+// UnmarshalBinaryData unmarshals the input data into this object
+func (a *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	a.Init()
 	newData = p
 	buf := primitives.NewBuffer(p)
 
-	err = buf.PopBinaryMarshallable(e.AuthorityChainID)
+	err = buf.PopBinaryMarshallable(a.AuthorityChainID)
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(e.ManagementChainID)
+	err = buf.PopBinaryMarshallable(a.ManagementChainID)
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(e.MatryoshkaHash)
+	err = buf.PopBinaryMarshallable(a.MatryoshkaHash)
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(&e.SigningKey)
+	err = buf.PopBinaryMarshallable(&a.SigningKey)
 	if err != nil {
 		return
 	}
@@ -269,7 +284,7 @@ func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	if err != nil {
 		return
 	}
-	e.Status = uint8(status)
+	a.Status = uint8(status)
 
 	l, err := buf.PopVarInt()
 	if err != nil {
@@ -281,7 +296,7 @@ func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		if err != nil {
 			return
 		}
-		e.AnchorKeys = append(e.AnchorKeys, ask)
+		a.AnchorKeys = append(a.AnchorKeys, ask)
 	}
 
 	l, err = buf.PopVarInt()
@@ -294,15 +309,15 @@ func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		if err != nil {
 			return
 		}
-		e.KeyHistory = append(e.KeyHistory, hk)
+		a.KeyHistory = append(a.KeyHistory, hk)
 	}
 
-	e.Efficiency, err = buf.PopUInt16()
+	a.Efficiency, err = buf.PopUInt16()
 	if err != nil {
 		return nil, err
 	}
 
-	e.CoinbaseAddress, err = buf.PopIHash()
+	a.CoinbaseAddress, err = buf.PopIHash()
 	if err != nil {
 		return nil, err
 	}
@@ -311,62 +326,67 @@ func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	return
 }
 
-func (e *Authority) UnmarshalBinary(p []byte) error {
-	_, err := e.UnmarshalBinaryData(p)
+// UnmarshalBinary unmarshals the input data into this object
+func (a *Authority) UnmarshalBinary(p []byte) error {
+	_, err := a.UnmarshalBinaryData(p)
 	return err
 }
 
-func (e *Authority) GetAuthorityChainID() (rval interfaces.IHash) {
+// GetAuthorityChainID returns the authority chain id
+func (a *Authority) GetAuthorityChainID() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "Authority.GetAuthorityChainID") }()
 
-	return e.AuthorityChainID
+	return a.AuthorityChainID
 }
 
-// 1 if fed, 0 if audit, -1 if neither
-func (auth *Authority) Type() int {
-	if auth.Status == constants.IDENTITY_FEDERATED_SERVER {
+// Type returns: 1 if fed, 0 if audit, -1 if neither
+func (a *Authority) Type() int {
+	if a.Status == constants.IDENTITY_FEDERATED_SERVER {
 		return 1
-	} else if auth.Status == constants.IDENTITY_AUDIT_SERVER {
+	} else if a.Status == constants.IDENTITY_AUDIT_SERVER {
 		return 0
 	}
 	return -1
 }
 
-func (auth *Authority) GetSigningKey() []byte {
-	if auth == nil {
+// GetSigningKey returns the signing key
+func (a *Authority) GetSigningKey() []byte {
+	if a == nil {
 		return constants.ZERO_HASH // probably bad we got here but worse to let it cause a panic
 	}
-	return auth.SigningKey[:]
+	return a.SigningKey[:]
 }
 
-func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
+// VerifySignature verifies input message and signature with the internal public signing key
+func (a *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
 	//return true, nil // Testing
 	var pub [32]byte
-	tmp, err := auth.SigningKey.MarshalBinary()
+	tmp, err := a.SigningKey.MarshalBinary()
 	if err != nil {
 		return false, err
-	} else {
-		copy(pub[:], tmp)
-		valid := ed.VerifyCanonical(&pub, msg, sig)
-		if !valid {
-			for _, histKey := range auth.KeyHistory {
-				histTemp, err := histKey.SigningKey.MarshalBinary()
-				if err != nil {
-					continue
-				}
-				copy(pub[:], histTemp)
-				if ed.VerifyCanonical(&pub, msg, sig) {
-					return true, nil
-				}
-			}
-		} else {
-			return true, nil
-		}
 	}
+	copy(pub[:], tmp)
+	valid := ed.VerifyCanonical(&pub, msg, sig)
+	if !valid {
+		for _, histKey := range a.KeyHistory {
+			histTemp, err := histKey.SigningKey.MarshalBinary()
+			if err != nil {
+				continue
+			}
+			copy(pub[:], histTemp)
+			if ed.VerifyCanonical(&pub, msg, sig) {
+				return true, nil
+			}
+		}
+	} else {
+		return true, nil
+	}
+
 	return false, nil
 }
 
-func (auth *Authority) MarshalJSON() (rval []byte, err error) {
+// MarshalJSON marshals this object as json
+func (a *Authority) MarshalJSON() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "Authority.MarshalJSON err:%v", *pe)
@@ -382,18 +402,18 @@ func (auth *Authority) MarshalJSON() (rval []byte, err error) {
 		Efficiency        int                `json:"efficiency"`
 		CoinbaseAddress   string             `json:"coinbaseaddress"`
 	}{
-		AuthorityChainID:  auth.AuthorityChainID,
-		ManagementChainID: auth.ManagementChainID,
-		MatryoshkaHash:    auth.MatryoshkaHash,
-		SigningKey:        auth.SigningKey.String(),
-		Status:            statusToJSONString(auth.Status),
-		AnchorKeys:        auth.AnchorKeys,
-		Efficiency:        int(auth.Efficiency),
-		CoinbaseAddress:   primitives.ConvertFctAddressToUserStr(auth.CoinbaseAddress),
+		AuthorityChainID:  a.AuthorityChainID,
+		ManagementChainID: a.ManagementChainID,
+		MatryoshkaHash:    a.MatryoshkaHash,
+		SigningKey:        a.SigningKey.String(),
+		Status:            statusToJSONString(a.Status),
+		AnchorKeys:        a.AnchorKeys,
+		Efficiency:        int(a.Efficiency),
+		CoinbaseAddress:   primitives.ConvertFctAddressToUserStr(a.CoinbaseAddress),
 	})
 }
 
-// Only used for marshaling JSON
+// statusToJSONString returns the input status as a string. Only used for marshaling JSON
 func statusToJSONString(status uint8) string {
 	switch status {
 	case constants.IDENTITY_UNASSIGNED:

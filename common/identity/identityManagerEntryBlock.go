@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// ProcessIdentityEntry will process an entry and update an entry. Wrapper around ProcessIdentityEntryWithABlockUpdate
 func (im *IdentityManager) ProcessIdentityEntry(entry interfaces.IEBEntry, dBlockHeight uint32, dBlockTimestamp interfaces.Timestamp, newEntry bool) (bool, error) {
 	return im.ProcessIdentityEntryWithABlockUpdate(entry, dBlockHeight, dBlockTimestamp, nil, newEntry)
 }
@@ -38,7 +39,7 @@ func (im *IdentityManager) ProcessIdentityEntryWithABlockUpdate(entry interfaces
 	}
 
 	if bytes.Compare(entry.GetChainID().Bytes()[:3], []byte{0x88, 0x88, 0x88}) != 0 {
-		return false, fmt.Errorf("Invalic chainID - expected 888888..., got %v", entry.GetChainID().String())
+		return false, fmt.Errorf("Invalid chainID - expected 888888..., got %v", entry.GetChainID().String())
 	}
 
 	chainID := entry.GetChainID()
@@ -220,6 +221,8 @@ func (im *IdentityManager) ProcessIdentityEntryWithABlockUpdate(entry interfaces
 	return change, nil
 }
 
+// ApplyIdentityChainStructure updates or adds a new identity with the 4 secret keys and the block height creation associated with the chain id.
+// Will also register then identity if it hasn't been registered yet
 func (im *IdentityManager) ApplyIdentityChainStructure(ic *IdentityChainStructure, chainID interfaces.IHash, dBlockHeight uint32) (bool, error) {
 	id := im.GetIdentity(chainID)
 	if id == nil {
@@ -245,7 +248,7 @@ func (im *IdentityManager) ApplyIdentityChainStructure(ic *IdentityChainStructur
 	return false, nil
 }
 
-//		Returns
+// ApplyNewBitcoinKeyStructure returns
 //			bool	change		If a key has been changed
 //			bool	tryagain	If this is set to true, this entry can be reprocessed if it is *new*
 //			error	err			Any errors
@@ -284,12 +287,11 @@ func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructu
 			if bytes.Compare(a.SigningKey[:], bnk.NewKey[:]) == 0 {
 				im.SetIdentity(chainID, id)
 				return false, false, nil // Key already exists in identity
-			} else {
-				// Keylevel and keytype exist already. Overwrite
-				id.AnchorKeys[i] = oneAsk
-				written = true
-				break
 			}
+			// Keylevel and keytype exist already. Overwrite
+			id.AnchorKeys[i] = oneAsk
+			written = true
+			break
 		}
 	}
 
@@ -391,6 +393,7 @@ func (im *IdentityManager) ApplyNewMatryoshkaHashStructure(nmh *NewMatryoshkaHas
 	return true, false, err
 }
 
+// ApplyRegisterFactomIdentityStructure updates the identity registrations associated with the chain id
 func (im *IdentityManager) ApplyRegisterFactomIdentityStructure(rfi *RegisterFactomIdentityStructure, dBlockHeight uint32) (bool, error) {
 	im.IdentityRegistrations[rfi.IdentityChainID.Fixed()] = rfi
 
@@ -410,6 +413,7 @@ func (im *IdentityManager) ApplyRegisterFactomIdentityStructure(rfi *RegisterFac
 	return false, nil
 }
 
+// ApplyRegisterServerManagementStructure updates the server managment structure associated with the chain id
 func (im *IdentityManager) ApplyRegisterServerManagementStructure(rsm *RegisterServerManagementStructure, chainID interfaces.IHash, dBlockHeight uint32) (bool, error) {
 	id := im.GetIdentity(chainID)
 	if id == nil {

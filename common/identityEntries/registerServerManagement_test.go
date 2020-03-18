@@ -11,6 +11,7 @@ import (
 	. "github.com/FactomProject/factomd/common/identityEntries"
 )
 
+// TestRegisterServerManagementStructure checks a hardcoded external ID can be set into the regiester server management structure and obtain the correct chain ID
 func TestRegisterServerManagementStructure(t *testing.T) {
 	parts := []string{
 		"00",

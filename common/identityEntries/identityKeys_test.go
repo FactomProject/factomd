@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
+// TestCheckExternalIDsLength
 func TestCheckExternalIDsLength(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		l := random.RandIntBetween(0, 100)
@@ -26,23 +27,24 @@ func TestCheckExternalIDsLength(t *testing.T) {
 		}
 
 		if len(lens) > 0 {
-			lens[0]++
+			lens[0]++ // corrupt the length of the first - should return false now
 			if CheckExternalIDsLength(extIDs, lens) == true {
 				t.Errorf("Wrong CheckExternalIDsLength response")
 			}
 
-			lens = lens[1:]
+			lens = lens[1:] // drop the first length - should return false still
 			if CheckExternalIDsLength(extIDs, lens) == true {
 				t.Errorf("Wrong CheckExternalIDsLength response")
 			}
 
-			extIDs = extIDs[1:]
+			extIDs = extIDs[1:] // drop the first ID - now slices are compatible and should return true
 			if CheckExternalIDsLength(extIDs, lens) == false {
 				t.Errorf("Wrong CheckExternalIDsLength response")
 			}
 		}
 	}
 
+	// Check hardcoded external ID and lengths
 	extIDs := [][]byte{
 		{0x00, 0x00, 0x00, 0x00, 0x00},                               // 5
 		{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // 10

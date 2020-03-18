@@ -16,19 +16,26 @@ import (
 
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
 
+// AnchorSigningKeySort is a slice of AnchorSigningKeys
 // sort.Sort interface implementation
 type AnchorSigningKeySort []AnchorSigningKey
 
+// Len returns the length of the slice
 func (p AnchorSigningKeySort) Len() int {
 	return len(p)
 }
+
+// Swap swaps the data at the input indices 'i' and 'j' in the slice
 func (p AnchorSigningKeySort) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
+
+// Less returns true if the data at the ith index is less than the data at the jth index
 func (p AnchorSigningKeySort) Less(i, j int) bool {
 	return bytes.Compare(p[i].SigningKey[:], p[j].SigningKey[:]) < 0
 }
 
+// AnchorSigningKey
 type AnchorSigningKey struct {
 	BlockChain string                 `json:"blockchain"`
 	KeyLevel   byte                   `json:"level"`
@@ -38,6 +45,7 @@ type AnchorSigningKey struct {
 
 var _ interfaces.BinaryMarshallable = (*AnchorSigningKey)(nil)
 
+// RandomAnchorSigningKey returns a new AnchorSigningKey with random starting values
 func RandomAnchorSigningKey() *AnchorSigningKey {
 	ask := new(AnchorSigningKey)
 
@@ -49,23 +57,25 @@ func RandomAnchorSigningKey() *AnchorSigningKey {
 	return ask
 }
 
-func (e *AnchorSigningKey) IsSameAs(b *AnchorSigningKey) bool {
-	if e.BlockChain != b.BlockChain {
+// IsSameAs returns true iff the input object is identical to this object
+func (p *AnchorSigningKey) IsSameAs(b *AnchorSigningKey) bool {
+	if p.BlockChain != b.BlockChain {
 		return false
 	}
-	if e.KeyLevel != b.KeyLevel {
+	if p.KeyLevel != b.KeyLevel {
 		return false
 	}
-	if e.KeyType != b.KeyType {
+	if p.KeyType != b.KeyType {
 		return false
 	}
-	if primitives.AreBytesEqual(e.SigningKey[:], b.SigningKey[:]) == false {
+	if primitives.AreBytesEqual(p.SigningKey[:], b.SigningKey[:]) == false {
 		return false
 	}
 	return true
 }
 
-func (e *AnchorSigningKey) MarshalBinary() (rval []byte, err error) {
+// MarshalBinary marshals this object
+func (p *AnchorSigningKey) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "AnchorSigningKey.MarshalBinary err:%v", *pe)
@@ -73,21 +83,21 @@ func (e *AnchorSigningKey) MarshalBinary() (rval []byte, err error) {
 	}(&err)
 	buf := primitives.NewBuffer(nil)
 
-	err = buf.PushString(e.BlockChain)
+	err = buf.PushString(p.BlockChain)
 	if err != nil {
 		return nil, err
 	}
 
-	err = buf.PushByte(e.KeyLevel)
+	err = buf.PushByte(p.KeyLevel)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushByte(e.KeyType)
+	err = buf.PushByte(p.KeyType)
 	if err != nil {
 		return nil, err
 	}
 
-	err = buf.Push(e.SigningKey[:])
+	err = buf.Push(p.SigningKey[:])
 	if err != nil {
 		return nil, err
 	}
@@ -95,19 +105,20 @@ func (e *AnchorSigningKey) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (e *AnchorSigningKey) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
-	newData = p
-	buf := primitives.NewBuffer(p)
+// UnmarshalBinaryData unmarshals the input data into this object
+func (p *AnchorSigningKey) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	newData = data
+	buf := primitives.NewBuffer(data)
 
-	e.BlockChain, err = buf.PopString()
+	p.BlockChain, err = buf.PopString()
 	if err != nil {
 		return
 	}
-	e.KeyLevel, err = buf.PopByte()
+	p.KeyLevel, err = buf.PopByte()
 	if err != nil {
 		return
 	}
-	e.KeyType, err = buf.PopByte()
+	p.KeyType, err = buf.PopByte()
 	if err != nil {
 		return
 	}
@@ -115,13 +126,14 @@ func (e *AnchorSigningKey) UnmarshalBinaryData(p []byte) (newData []byte, err er
 	if err != nil {
 		return
 	}
-	copy(e.SigningKey[:], h)
+	copy(p.SigningKey[:], h)
 
 	newData = buf.DeepCopyBytes()
 	return
 }
 
-func (e *AnchorSigningKey) UnmarshalBinary(p []byte) error {
-	_, err := e.UnmarshalBinaryData(p)
+// UnmarshalBinary unmarshals the input data into this object
+func (p *AnchorSigningKey) UnmarshalBinary(data []byte) error {
+	_, err := p.UnmarshalBinaryData(data)
 	return err
 }

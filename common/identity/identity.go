@@ -21,49 +21,56 @@ import (
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
-// sort.Sort interface implementation
+// IdentitySort is sort.Sort interface implementation
 type IdentitySort []*Identity
 
+// Len returns the length of this object
 func (p IdentitySort) Len() int {
 	return len(p)
 }
+
+// Swap swaps the objects at indices 'i' and 'i'
 func (p IdentitySort) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
+
+// Less returns true if the object at index 'i' is less than the object at index 'j'
 func (p IdentitySort) Less(i, j int) bool {
 	return bytes.Compare(p[i].IdentityChainID.Bytes(), p[j].IdentityChainID.Bytes()) < 0
 
 }
 
-//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
+// Identity is a very important data structure for managing server identities. See a more detailed description here:
+// https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
 type Identity struct {
-	IdentityChainID    interfaces.IHash `json:"identity_chainid"`
+	IdentityChainID    interfaces.IHash `json:"identity_chainid"` // The chain id associated with this id
 	IdentityChainSync  EntryBlockSync   `json:"-"`
-	IdentityRegistered uint32           `json:"identity_registered`
-	IdentityCreated    uint32           `json:"identity_created`
+	IdentityRegistered uint32           `json:"identity_registered` // Directory block height of when the identity was registered
+	IdentityCreated    uint32           `json:"identity_created`    // Directory block height of when the identity was created
 
-	ManagementChainID    interfaces.IHash `json:"management_chaind`
+	ManagementChainID    interfaces.IHash `json:"management_chaind` // Messages related to being a federated, audit, or candidate server live in this subchain
 	ManagementChainSync  EntryBlockSync   `json:"-"`
-	ManagementRegistered uint32           `json:"management_registered`
-	ManagementCreated    uint32           `json:"management_created`
-	MatryoshkaHash       interfaces.IHash `json:"matryoshka_hash`
+	ManagementRegistered uint32           `json:"management_registered` // Directory block height of when the managment chain id was registered
+	ManagementCreated    uint32           `json:"management_created`    // Directory block height of when the managment chain id was created
+	MatryoshkaHash       interfaces.IHash `json:"matryoshka_hash`       // (no longer used since M2 and M3) The MatryoshkaHash of the id
 
 	// All 4 levels keys, 0 indexed.
 	//		Keys[0] --> Key 1
 	//		Keys[1] --> Key 2
 	//		Keys[2] --> Key 3
 	//		Keys[3] --> Key 4
-	Keys            [4]interfaces.IHash `json:"identity_keys"`
-	SigningKey      interfaces.IHash    `json:"signing_key"`
-	Status          uint8               `json:"status"`
-	AnchorKeys      []AnchorSigningKey  `json:"anchor_keys"`
-	Efficiency      uint16              `json:"efficiency"`
-	CoinbaseAddress interfaces.IHash    `json:"coinbase_address"`
+	Keys            [4]interfaces.IHash `json:"identity_keys"`    // The four secret keys associated with this identity
+	SigningKey      interfaces.IHash    `json:"signing_key"`      // The key this id uses to sign blocks in Factom
+	Status          uint8               `json:"status"`           // Identity status type, see constants.go (is this a federated / audit / etc )
+	AnchorKeys      []AnchorSigningKey  `json:"anchor_keys"`      // (no longer used since M2 and M3) Bitcoin anchor keys
+	Efficiency      uint16              `json:"efficiency"`       // The efficiency of the server in hundredths of a percent: ie 10000 is 100%
+	CoinbaseAddress interfaces.IHash    `json:"coinbase_address"` // The Factoid address associated with this identity for receiving Factoids from the protocol
 }
 
 var _ interfaces.Printable = (*Identity)(nil)
 var _ interfaces.BinaryMarshallable = (*Identity)(nil)
 
+// NewIdentity returns a new identity with zero hashes
 func NewIdentity() *Identity {
 	i := new(Identity)
 	i.IdentityChainID = primitives.NewZeroHash()
@@ -83,8 +90,8 @@ func NewIdentity() *Identity {
 	return i
 }
 
-// ToAuthority should ONLY be used in TESTING
-// 	Helpful for unit tests, useless for anything else
+// ToAuthority should ONLY be used in TESTING. Returns a new authority with the input identity
+// Helpful for unit tests, useless for anything else
 func (id *Identity) ToAuthority() *Authority {
 	a := NewAuthority()
 	a.AuthorityChainID = id.IdentityChainID
@@ -98,6 +105,7 @@ func (id *Identity) ToAuthority() *Authority {
 	return a
 }
 
+// RandomIdentity creates new identity with random initialized values
 func RandomIdentity() *Identity {
 	id := NewIdentity()
 
@@ -129,6 +137,7 @@ func RandomIdentity() *Identity {
 	return id
 }
 
+// GetCoinbaseHumanReadable returns the coinbasae address in human readable format if it exists, else returns 'No Address"
 func (id *Identity) GetCoinbaseHumanReadable() string {
 	if id.CoinbaseAddress.IsZero() {
 		return "No Address"
@@ -235,206 +244,210 @@ func (id *Identity) IsComplete() (bool, error) {
 	return true, nil
 }
 
-func (e *Identity) Clone() *Identity {
+// Clone returns an identical copy of this object
+func (id *Identity) Clone() *Identity {
 	b := NewIdentity()
-	b.IdentityChainID.SetBytes(e.IdentityChainID.Bytes())
-	b.ManagementChainID.SetBytes(e.ManagementChainID.Bytes())
-	b.MatryoshkaHash.SetBytes(e.MatryoshkaHash.Bytes())
+	b.IdentityChainID.SetBytes(id.IdentityChainID.Bytes())
+	b.ManagementChainID.SetBytes(id.ManagementChainID.Bytes())
+	b.MatryoshkaHash.SetBytes(id.MatryoshkaHash.Bytes())
 	for i := range b.Keys {
-		b.Keys[i].SetBytes(e.Keys[i].Bytes())
+		b.Keys[i].SetBytes(id.Keys[i].Bytes())
 	}
 
-	b.SigningKey = e.SigningKey
-	b.IdentityRegistered = e.IdentityRegistered
-	b.IdentityCreated = e.IdentityCreated
-	b.ManagementRegistered = e.ManagementRegistered
-	b.ManagementCreated = e.ManagementCreated
-	b.Status = e.Status
-	b.Efficiency = e.Efficiency
-	b.IdentityChainSync = *e.IdentityChainSync.Clone()
-	b.ManagementChainSync = *e.ManagementChainSync.Clone()
-	b.CoinbaseAddress = e.CoinbaseAddress.Copy()
+	b.SigningKey = id.SigningKey
+	b.IdentityRegistered = id.IdentityRegistered
+	b.IdentityCreated = id.IdentityCreated
+	b.ManagementRegistered = id.ManagementRegistered
+	b.ManagementCreated = id.ManagementCreated
+	b.Status = id.Status
+	b.Efficiency = id.Efficiency
+	b.IdentityChainSync = *id.IdentityChainSync.Clone()
+	b.ManagementChainSync = *id.ManagementChainSync.Clone()
+	b.CoinbaseAddress = id.CoinbaseAddress.Copy()
 
-	b.AnchorKeys = make([]AnchorSigningKey, len(e.AnchorKeys))
-	for i := range e.AnchorKeys {
-		b.AnchorKeys[i] = e.AnchorKeys[i]
+	b.AnchorKeys = make([]AnchorSigningKey, len(id.AnchorKeys))
+	for i := range id.AnchorKeys {
+		b.AnchorKeys[i] = id.AnchorKeys[i]
 	}
 
 	return b
 }
 
-func (e *Identity) IsSameAs(b *Identity) bool {
-	if e.IdentityChainID.IsSameAs(b.IdentityChainID) == false {
+// IsSameAs returns true iff the input object is identical to this object
+func (id *Identity) IsSameAs(b *Identity) bool {
+	if id.IdentityChainID.IsSameAs(b.IdentityChainID) == false {
 		return false
 	}
-	if e.IdentityRegistered != b.IdentityRegistered {
+	if id.IdentityRegistered != b.IdentityRegistered {
 		return false
 	}
-	if e.IdentityCreated != b.IdentityCreated {
+	if id.IdentityCreated != b.IdentityCreated {
 		return false
 	}
-	if e.ManagementChainID.IsSameAs(b.ManagementChainID) == false {
+	if id.ManagementChainID.IsSameAs(b.ManagementChainID) == false {
 		return false
 	}
-	if e.ManagementRegistered != b.ManagementRegistered {
+	if id.ManagementRegistered != b.ManagementRegistered {
 		return false
 	}
-	if e.ManagementCreated != b.ManagementCreated {
+	if id.ManagementCreated != b.ManagementCreated {
 		return false
 	}
-	if e.MatryoshkaHash.IsSameAs(b.MatryoshkaHash) == false {
+	if id.MatryoshkaHash.IsSameAs(b.MatryoshkaHash) == false {
 		return false
 	}
-	if e.Keys[0].IsSameAs(b.Keys[0]) == false {
+	if id.Keys[0].IsSameAs(b.Keys[0]) == false {
 		return false
 	}
-	if e.Keys[1].IsSameAs(b.Keys[1]) == false {
+	if id.Keys[1].IsSameAs(b.Keys[1]) == false {
 		return false
 	}
-	if e.Keys[2].IsSameAs(b.Keys[2]) == false {
+	if id.Keys[2].IsSameAs(b.Keys[2]) == false {
 		return false
 	}
-	if e.Keys[3].IsSameAs(b.Keys[3]) == false {
+	if id.Keys[3].IsSameAs(b.Keys[3]) == false {
 		return false
 	}
-	if e.SigningKey.IsSameAs(b.SigningKey) == false {
+	if id.SigningKey.IsSameAs(b.SigningKey) == false {
 		return false
 	}
-	if e.Status != b.Status {
+	if id.Status != b.Status {
 		return false
 	}
-	if e.Efficiency != b.Efficiency {
+	if id.Efficiency != b.Efficiency {
 		return false
 	}
-	if len(e.AnchorKeys) != len(b.AnchorKeys) {
+	if len(id.AnchorKeys) != len(b.AnchorKeys) {
 		return false
 	}
-	for i := range e.AnchorKeys {
-		if e.AnchorKeys[i].IsSameAs(&b.AnchorKeys[i]) == false {
+	for i := range id.AnchorKeys {
+		if id.AnchorKeys[i].IsSameAs(&b.AnchorKeys[i]) == false {
 			return false
 		}
 	}
-	if !e.IdentityChainSync.IsSameAs(&b.IdentityChainSync) {
+	if !id.IdentityChainSync.IsSameAs(&b.IdentityChainSync) {
 		return false
 	}
-	if !e.ManagementChainSync.IsSameAs(&b.ManagementChainSync) {
+	if !id.ManagementChainSync.IsSameAs(&b.ManagementChainSync) {
 		return false
 	}
 	return true
 }
 
-func (e *Identity) Init() {
-	if e.IdentityChainID == nil {
-		e.IdentityChainID = primitives.NewZeroHash()
+// Init initializes this object with zero hashes
+func (id *Identity) Init() {
+	if id.IdentityChainID == nil {
+		id.IdentityChainID = primitives.NewZeroHash()
 	}
-	if e.ManagementChainID == nil {
-		e.ManagementChainID = primitives.NewZeroHash()
+	if id.ManagementChainID == nil {
+		id.ManagementChainID = primitives.NewZeroHash()
 	}
-	if e.MatryoshkaHash == nil {
-		e.MatryoshkaHash = primitives.NewZeroHash()
+	if id.MatryoshkaHash == nil {
+		id.MatryoshkaHash = primitives.NewZeroHash()
 	}
-	if e.Keys[0] == nil {
-		e.Keys[0] = primitives.NewZeroHash()
+	if id.Keys[0] == nil {
+		id.Keys[0] = primitives.NewZeroHash()
 	}
-	if e.Keys[1] == nil {
-		e.Keys[1] = primitives.NewZeroHash()
+	if id.Keys[1] == nil {
+		id.Keys[1] = primitives.NewZeroHash()
 	}
-	if e.Keys[2] == nil {
-		e.Keys[2] = primitives.NewZeroHash()
+	if id.Keys[2] == nil {
+		id.Keys[2] = primitives.NewZeroHash()
 	}
-	if e.Keys[3] == nil {
-		e.Keys[3] = primitives.NewZeroHash()
+	if id.Keys[3] == nil {
+		id.Keys[3] = primitives.NewZeroHash()
 	}
-	if e.SigningKey == nil {
-		e.SigningKey = primitives.NewZeroHash()
+	if id.SigningKey == nil {
+		id.SigningKey = primitives.NewZeroHash()
 	}
 }
 
-func (e *Identity) MarshalBinary() (rval []byte, err error) {
+// MarshalBinary marshals this object
+func (id *Identity) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "Identity.MarshalBinary err:%v", *pe)
 		}
 	}(&err)
-	e.Init()
+	id.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err = buf.PushBinaryMarshallable(e.IdentityChainID)
+	err = buf.PushBinaryMarshallable(id.IdentityChainID)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushUInt32(e.IdentityRegistered)
+	err = buf.PushUInt32(id.IdentityRegistered)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushUInt32(e.IdentityCreated)
+	err = buf.PushUInt32(id.IdentityCreated)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(&e.IdentityChainSync)
+	err = buf.PushBinaryMarshallable(&id.IdentityChainSync)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(e.ManagementChainID)
+	err = buf.PushBinaryMarshallable(id.ManagementChainID)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushUInt32(e.ManagementRegistered)
+	err = buf.PushUInt32(id.ManagementRegistered)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushUInt32(e.ManagementCreated)
+	err = buf.PushUInt32(id.ManagementCreated)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(&e.ManagementChainSync)
+	err = buf.PushBinaryMarshallable(&id.ManagementChainSync)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(e.MatryoshkaHash)
+	err = buf.PushBinaryMarshallable(id.MatryoshkaHash)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(e.Keys[0])
+	err = buf.PushBinaryMarshallable(id.Keys[0])
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(e.Keys[1])
+	err = buf.PushBinaryMarshallable(id.Keys[1])
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(e.Keys[2])
+	err = buf.PushBinaryMarshallable(id.Keys[2])
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(e.Keys[3])
+	err = buf.PushBinaryMarshallable(id.Keys[3])
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(e.SigningKey)
+	err = buf.PushBinaryMarshallable(id.SigningKey)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushByte(byte(e.Status))
+	err = buf.PushByte(byte(id.Status))
 	if err != nil {
 		return nil, err
 	}
 
-	l := len(e.AnchorKeys)
+	l := len(id.AnchorKeys)
 	err = buf.PushVarInt(uint64(l))
-	for _, v := range e.AnchorKeys {
+	for _, v := range id.AnchorKeys {
 		err = buf.PushBinaryMarshallable(&v)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err = buf.PushUInt16(e.Efficiency)
+	err = buf.PushUInt16(id.Efficiency)
 	if err != nil {
 		return nil, err
 	}
 
-	err = buf.PushIHash(e.CoinbaseAddress)
+	err = buf.PushIHash(id.CoinbaseAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -442,64 +455,65 @@ func (e *Identity) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
-	e.Init()
+// UnmarshalBinaryData unmarshals the input data into this object
+func (id *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	id.Init()
 	buf := primitives.NewBuffer(p)
 	newData = p
 
-	err = buf.PopBinaryMarshallable(e.IdentityChainID)
+	err = buf.PopBinaryMarshallable(id.IdentityChainID)
 	if err != nil {
 		return
 	}
-	e.IdentityRegistered, err = buf.PopUInt32()
+	id.IdentityRegistered, err = buf.PopUInt32()
 	if err != nil {
 		return
 	}
-	e.IdentityCreated, err = buf.PopUInt32()
+	id.IdentityCreated, err = buf.PopUInt32()
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(&e.IdentityChainSync)
+	err = buf.PopBinaryMarshallable(&id.IdentityChainSync)
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(e.ManagementChainID)
+	err = buf.PopBinaryMarshallable(id.ManagementChainID)
 	if err != nil {
 		return
 	}
-	e.ManagementRegistered, err = buf.PopUInt32()
+	id.ManagementRegistered, err = buf.PopUInt32()
 	if err != nil {
 		return
 	}
-	e.ManagementCreated, err = buf.PopUInt32()
+	id.ManagementCreated, err = buf.PopUInt32()
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(&e.ManagementChainSync)
+	err = buf.PopBinaryMarshallable(&id.ManagementChainSync)
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(e.MatryoshkaHash)
+	err = buf.PopBinaryMarshallable(id.MatryoshkaHash)
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(e.Keys[0])
+	err = buf.PopBinaryMarshallable(id.Keys[0])
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(e.Keys[1])
+	err = buf.PopBinaryMarshallable(id.Keys[1])
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(e.Keys[2])
+	err = buf.PopBinaryMarshallable(id.Keys[2])
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(e.Keys[3])
+	err = buf.PopBinaryMarshallable(id.Keys[3])
 	if err != nil {
 		return
 	}
-	err = buf.PopBinaryMarshallable(e.SigningKey)
+	err = buf.PopBinaryMarshallable(id.SigningKey)
 	if err != nil {
 		return
 	}
@@ -507,7 +521,7 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	if err != nil {
 		return
 	}
-	e.Status = uint8(b)
+	id.Status = uint8(b)
 
 	l, err := buf.PopVarInt()
 	if err != nil {
@@ -520,15 +534,15 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		if err != nil {
 			return
 		}
-		e.AnchorKeys = append(e.AnchorKeys, ak)
+		id.AnchorKeys = append(id.AnchorKeys, ak)
 	}
 
-	e.Efficiency, err = buf.PopUInt16()
+	id.Efficiency, err = buf.PopUInt16()
 	if err != nil {
 		return
 	}
 
-	e.CoinbaseAddress, err = buf.PopIHash()
+	id.CoinbaseAddress, err = buf.PopIHash()
 	if err != nil {
 		return
 	}
@@ -537,41 +551,43 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	return
 }
 
-func (e *Identity) UnmarshalBinary(p []byte) error {
-	_, err := e.UnmarshalBinaryData(p)
+// UnmarshalBinary unmarshals the input data into this object
+func (id *Identity) UnmarshalBinary(p []byte) error {
+	_, err := id.UnmarshalBinaryData(p)
 	return err
 }
 
+// VerifySignature verifies the input message and signature using the public key from this id
 func (id *Identity) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
 	//return true, nil // Testing
 	var pub [32]byte
 	tmp, err := id.SigningKey.MarshalBinary()
 	if err != nil {
 		return false, err
-	} else {
-		copy(pub[:], tmp)
-		valid := ed.VerifyCanonical(&pub, msg, sig)
-		if !valid {
-		} else {
-			return true, nil
-		}
 	}
-	return false, nil
+	copy(pub[:], tmp)
+	valid := ed.VerifyCanonical(&pub, msg, sig)
+
+	return valid, nil
 }
 
-func (e *Identity) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+// JSONByte returns the json encoded byte array
+func (id *Identity) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(id)
 }
 
-func (e *Identity) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+// JSONString returns the json encoded string
+func (id *Identity) JSONString() (string, error) {
+	return primitives.EncodeJSONString(id)
 }
 
-func (e *Identity) String() string {
-	str, _ := e.JSONString()
+// String returns the json encoded string
+func (id *Identity) String() string {
+	str, _ := id.JSONString()
 	return str
 }
 
+// IsFull returns false if any hash is the zero hash
 func (id *Identity) IsFull() bool {
 	zero := primitives.NewZeroHash()
 	if id.IdentityChainID.IsSameAs(zero) {

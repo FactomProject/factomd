@@ -11,6 +11,7 @@ import (
 	. "github.com/FactomProject/factomd/common/identityEntries"
 )
 
+// TestNewCoinbaseCancelStruct checks a hardcoded external ID can be set into the coinbase cancel structure and obtain the correct chain ID
 func TestNewCoinbaseCancelStruct(t *testing.T) {
 	parts := []string{
 		"00",
