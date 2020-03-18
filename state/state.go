@@ -10,10 +10,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/modules/livefeed"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/pubsub/pubregistry"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"sync"
@@ -183,6 +185,7 @@ type State struct {
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
+	TimeOffset             interfaces.Timestamp
 	MaxTimeOffset          interfaces.Timestamp
 	networkOutMsgQueue     *queue.MsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
@@ -192,10 +195,8 @@ type State struct {
 	apiQueue               *queue.MsgQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	// prioritizedMsgQueue contains inMessages we know we need for consensus. (missing from processlist)
-	//		Currently inMessages from MMR handling can be put in here to fast track
-	//		them to the front.
-	prioritizedMsgQueue chan interfaces.IMsg
+	dataQueue              chan interfaces.IMsg
+	prioritizedMsgQueue    chan interfaces.IMsg
 
 	ShutdownChan chan int // For gracefully halting Factom
 
@@ -205,7 +206,16 @@ type State struct {
 	serverPendingPubKeys  []*primitives.PublicKey
 
 	// RPC connection config
+	RpcUser     string
+	RpcPass     string
+	RpcAuthHash []byte
 
+	FactomdTLSEnable   bool
+	FactomdTLSKeyFile  string
+	FactomdTLSCertFile string
+	FactomdLocations   string
+
+	CorsDomains []string
 	// Server State
 	StartDelay   int64 // Time in Milliseconds since the last DBState was applied
 	DBFinished   bool
@@ -214,8 +224,8 @@ type State struct {
 	EOMIssueTime int64
 	EOMSyncEnd   int64
 
-	// Ignore missing inMessages for a period to allow rebooting a network where your
-	// own inMessages from the previously executing network can confuse you.
+	// Ignore missing messages for a period to allow rebooting a network where your
+	// own messages from the previously executing network can confuse you.
 	IgnoreDone    bool
 	IgnoreMissing bool
 
@@ -224,9 +234,12 @@ type State struct {
 	LeaderVMIndex   int
 	LeaderPL        *ProcessList
 	PLProcessHeight uint32
-	// Height cutoff where no missing inMessages below this height
-	DBHeightAtBoot uint32
-	CurrentMinute  int
+	// Height cutoff where no missing messages below this height
+	DBHeightAtBoot  uint32
+	TimestampAtBoot interfaces.Timestamp
+	OneLeader       bool
+	OutputAllowed   bool
+	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
 	PreviousMinuteStartTime int64
@@ -257,7 +270,7 @@ type State struct {
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 
 	Saving  bool // True if we are in the process of saving to the database
-	Syncing bool // Looking for inMessages from leaders to sync
+	Syncing bool // Looking for messages from leaders to sync
 
 	NetStateOff            bool // Disable if true, Enable if false
 	DebugConsensus         bool // If true, dump consensus trace
@@ -267,6 +280,7 @@ type State struct {
 	FCTSubmits             int
 	NewEntryChains         int
 	NewEntries             int
+	LeaderTimestamp        interfaces.Timestamp
 	messageFilterTimestamp interfaces.Timestamp
 	// Maps
 	// ====
@@ -275,7 +289,7 @@ type State struct {
 	HoldingList   chan [32]byte                // Queue to process Holding in order
 	HoldingVM     int                          // VM used to build current holding list
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
-	XReview       []interfaces.IMsg            // After the EOM, we must review the inMessages in Holding
+	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgements
 	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
 
@@ -284,7 +298,10 @@ type State struct {
 
 	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
 
-	LastTiebreak int64
+	FaultTimeout  int
+	FaultWait     int
+	EOMfaultIndex int
+	LastTiebreak  int64
 
 	AuthoritySetString string
 	// Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
@@ -353,7 +370,8 @@ type State struct {
 	MissingEntries chan *MissingEntry
 
 	// Holds leaders and followers up until all missing entries are processed, if true
-	UpdateEntryHash chan *EntryUpdate // SubChannel for updating entry Hashes tracking (repeats and such)
+	WaitForEntries  bool
+	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
 	WriteEntry      chan interfaces.IEBEntry
 	// MessageTally causes the node to keep track of (and display) running totals of each
 	// type of message received during the tally interval
@@ -365,6 +383,7 @@ type State struct {
 	LastPrintCnt int
 
 	// FER section
+	FactoshisPerEC                 uint64
 	FERChainId                     string
 	ExchangeRateAuthorityPublicKey string
 
@@ -393,6 +412,7 @@ type State struct {
 	NumFCTTrans    int // Number of Factoid Transactions in this block
 
 	// debug message about state status rolling queue for ControlPanel
+	pstate              string
 	SyncingState        [256]string
 	SyncingStateCurrent int
 
@@ -439,6 +459,181 @@ func (s *State) GetConfigPath() string {
 
 func (s *State) GetRunState() runstate.RunState {
 	return s.RunState
+}
+
+func (s *State) Clone(cloneNumber int) interfaces.IState {
+	newState := new(State)
+	number := fmt.Sprintf("%02d", cloneNumber)
+
+	simConfigPath := util.GetHomeDir() + "/.factom/m2/simConfig/"
+	configfile := fmt.Sprintf("%sfactomd%03d.conf", simConfigPath, cloneNumber)
+
+	if cloneNumber == 1 {
+		os.Stderr.WriteString(fmt.Sprintf("Looking for Config File %s\n", configfile))
+	}
+	if _, err := os.Stat(simConfigPath); os.IsNotExist(err) {
+		os.Stderr.WriteString("Creating simConfig directory\n")
+		os.MkdirAll(simConfigPath, 0775)
+	}
+
+	newState.FactomNodeName = s.Prefix + "FNode" + number
+	config := false
+	if _, err := os.Stat(configfile); !os.IsNotExist(err) {
+		os.Stderr.WriteString(fmt.Sprintf("   Using the %s config file.\n", configfile))
+		newState.LoadConfig(configfile, s.GetNetworkName())
+		config = true
+	}
+
+	if s.LogPath == "stdout" {
+		newState.LogPath = "stdout"
+	} else {
+		newState.LogPath = s.LogPath + "/Sim" + number
+	}
+
+	newState.FactomNodeName = s.Prefix + "FNode" + number
+	newState.FactomdVersion = s.FactomdVersion
+	newState.RunState = runstate.New // reset runstate since this clone will be started by sim node
+	newState.DropRate = s.DropRate
+	newState.LdbPath = s.LdbPath + "/Sim" + number
+	newState.BoltDBPath = s.BoltDBPath + "/Sim" + number
+	newState.LogLevel = s.LogLevel
+	newState.ConsoleLogLevel = s.ConsoleLogLevel
+	newState.NodeMode = "FULL"
+	newState.CloneDBType = s.CloneDBType
+	newState.DBType = s.CloneDBType
+	newState.CheckChainHeads = s.CheckChainHeads
+	newState.ExportData = s.ExportData
+	newState.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
+	newState.Network = s.Network
+	newState.MainNetworkPort = s.MainNetworkPort
+	newState.PeersFile = s.PeersFile
+	newState.MainSeedURL = s.MainSeedURL
+	newState.MainSpecialPeers = s.MainSpecialPeers
+	newState.TestNetworkPort = s.TestNetworkPort
+	newState.TestSeedURL = s.TestSeedURL
+	newState.TestSpecialPeers = s.TestSpecialPeers
+	newState.LocalNetworkPort = s.LocalNetworkPort
+	newState.LocalSeedURL = s.LocalSeedURL
+	newState.LocalSpecialPeers = s.LocalSpecialPeers
+	newState.CustomNetworkPort = s.CustomNetworkPort
+	newState.CustomSeedURL = s.CustomSeedURL
+	newState.CustomSpecialPeers = s.CustomSpecialPeers
+	newState.StartDelayLimit = s.StartDelayLimit
+	newState.CustomNetworkID = s.CustomNetworkID
+	newState.CustomBootstrapIdentity = s.CustomBootstrapIdentity
+	newState.CustomBootstrapKey = s.CustomBootstrapKey
+
+	newState.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
+	newState.PortNumber = s.PortNumber
+
+	newState.ControlPanelPort = s.ControlPanelPort
+	newState.ControlPanelSetting = s.ControlPanelSetting
+
+	//newState.Identities = s.Identities
+	//newState.Authorities = s.Authorities
+	newState.AuthorityServerCount = s.AuthorityServerCount
+
+	newState.IdentityControl = s.IdentityControl.Clone()
+
+	newState.FaultTimeout = s.FaultTimeout
+	newState.FaultWait = s.FaultWait
+	newState.EOMfaultIndex = s.EOMfaultIndex
+
+	if !config {
+		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
+		s.LogPrintf("AckChange", "Default3 IdentityChainID %v", s.IdentityChainID.String())
+
+		//generate and use a new deterministic PrivateKey for this clone
+		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name
+		clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
+		newState.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
+		s.initServerKeys()
+	}
+
+	newState.TimestampAtBoot = primitives.NewTimestampFromMilliseconds(s.TimestampAtBoot.GetTimeMilliUInt64())
+	newState.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(s.LeaderTimestamp.GetTimeMilliUInt64())
+	newState.SetMessageFilterTimestamp(s.GetMessageFilterTimestamp())
+
+	newState.FactoshisPerEC = s.FactoshisPerEC
+
+	newState.Port = s.Port
+
+	newState.OneLeader = s.OneLeader
+	newState.OneLeader = s.OneLeader
+
+	newState.RpcUser = s.RpcUser
+	newState.RpcPass = s.RpcPass
+	newState.RpcAuthHash = s.RpcAuthHash
+
+	newState.RequestTimeout = s.RequestTimeout
+	newState.RequestLimit = s.RequestLimit
+	newState.FactomdTLSEnable = s.FactomdTLSEnable
+	newState.FactomdTLSKeyFile = s.FactomdTLSKeyFile
+	newState.FactomdTLSCertFile = s.FactomdTLSCertFile
+	newState.FactomdLocations = s.FactomdLocations
+
+	newState.FastSaveRate = s.FastSaveRate
+	newState.CorsDomains = s.CorsDomains
+	switch newState.DBType {
+	case "LDB":
+		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
+		newState.StateSaverStruct.FastBootLocation = newState.LdbPath
+		break
+	case "Bolt":
+		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
+		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
+		break
+	}
+	if globals.Params.WriteProcessedDBStates {
+		path := filepath.Join(newState.LdbPath, newState.Network, "dbstates")
+		os.MkdirAll(path, 0775)
+	}
+	return newState
+}
+
+func (s *State) EmitDirectoryBlockEventsFromHeight(height uint32, end uint32) {
+	i := height
+	msgCount := 0
+	for i <= end {
+		d, err := s.DB.FetchDBlockByHeight(i)
+		if err != nil || d == nil {
+			break
+		}
+
+		a, err := s.DB.FetchABlockByHeight(i)
+		if err != nil || a == nil {
+			break
+		}
+		f, err := s.DB.FetchFBlockByHeight(i)
+		if err != nil || f == nil {
+			break
+		}
+		ec, err := s.DB.FetchECBlockByHeight(i)
+		if err != nil || ec == nil {
+			break
+		}
+
+		var eblocks []interfaces.IEntryBlock
+		var entries []interfaces.IEBEntry
+
+		ebs := d.GetEBlockDBEntries()
+		for _, eb := range ebs {
+			eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
+			if eblock != nil {
+				eblocks = append(eblocks, eblock)
+				for _, e := range eblock.GetEntryHashes() {
+					ent, _ := s.DB.FetchEntry(e)
+					if ent != nil {
+						entries = append(entries, ent)
+					}
+				}
+			}
+		}
+
+		i++
+		msgCount++
+
+	}
 }
 
 func (s *State) AddPrefix(prefix string) {
@@ -1098,7 +1293,7 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			if pl.DBHeight > currentHeightComplete {
 				cb := pl.State.FactoidState.GetCurrentBlock()
 				ct := cb.GetTransactions()
-				for _, tran := range ct {
+				for i, tran := range ct {
 					var tmp interfaces.IPendingTransaction
 					tmp.TransactionID = tran.GetSigHash()
 					if tran.GetBlockHeight() > 0 {
@@ -1110,9 +1305,11 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 					tmp.Inputs = tran.GetInputs()
 					tmp.Outputs = tran.GetOutputs()
 					tmp.ECOutputs = tran.GetECOutputs()
-					ecrate := s.GetPredictiveFER()
-					ecrate, _ = tran.CalculateFee(ecrate)
-					tmp.Fees = ecrate
+					if i > 0 {
+						ecrate := s.GetPredictiveFER()
+						ecrate, _ = tran.CalculateFee(ecrate)
+						tmp.Fees = ecrate
+					}
 
 					if params.(string) == "" {
 						flgFound = true
@@ -1326,13 +1523,18 @@ func (s *State) UpdateState() (progress bool) {
 		ProcessLists.Str = ProcessLists.String()
 	}
 
-	if plbase <= dbheight { // TODO: This is where we have to fix the fact that syncing with dbstates can fail to transition to inMessages
+	if plbase <= dbheight { // TODO: This is where we have to fix the fact that syncing with dbstates can fail to transition to messages
 		if !s.Leader || s.RunLeader {
 			progress = ProcessLists.UpdateState(dbheight)
 		}
 	}
 
 	s.SetString()
+	/*
+		if s.ControlPanelDataRequest {
+			s.CopyStateToControlPanel()
+		}
+	*/
 
 	// Update our TPS every ~ 3 seconds at the earliest
 	if s.lasttime.Before(time.Now().Add(-3 * time.Second)) {
@@ -1357,6 +1559,11 @@ entryHashProcessing:
 			break entryHashProcessing
 		}
 	}
+
+	// publish new updated state
+	stateUpdate := s.stateUpdate()
+	s.Pub.StateUpdate.Write(stateUpdate)
+
 	return
 }
 
@@ -1583,6 +1790,10 @@ func (s *State) ElectionsQueue() interfaces.IQueue {
 	return s.electionsQueue
 }
 
+func (s *State) DataMsgQueue() chan interfaces.IMsg {
+	return s.dataQueue
+}
+
 func (s *State) APIQueue() interfaces.IQueue {
 	return s.apiQueue
 }
@@ -1614,39 +1825,44 @@ func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampFromMilliseconds(s.messageFilterTimestamp.GetTimeMilliUInt64())
 }
 
-// the MessageFilterTimestamp  is used to filter inMessages from the past or before the replay filter.
+// the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.
 // We will not set it to a time that is before (20 minutes before) boot or more than one hour in the past.
-// this ensure inMessages from prior boot and inMessages that predate the current replay filter are
+// this ensure messages from prior boot and messages that predate the current replay filter are
 // are dropped.
 // It marks the start of the replay filter content
-func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
+func (s *State) SetMessageFilterTimestamp(requestedTS interfaces.Timestamp) {
+	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) from %s", requestedTS.String(), atomic.WhereAmIString(1))
 
-	// make a copy of the time stamp so we don't change the source
-	requestedTS := new(primitives.Timestamp)
-	requestedTS.SetTimestamp(leaderTS)
+	// create a new timestamp
+	appliedTimestamp := primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
 
-	onehourago := new(primitives.Timestamp)
-	onehourago.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 60*60*1000) // now() - one hour
+	// It's ok for the follower to be working on a block that is two behind the network, the block two back could be
+	// 20 before now and it accepts commits from up to an hour before it plus we gave messages 10 minutes to transit
+	// gossip network so 20 + 60 + 10 = 90 minutes ago is ok.
+	historicallimit := new(primitives.Timestamp)
+	historicallimit.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 90*60*1000) // now() - 90 minutes
 
-	if requestedTS.GetTimeMilli() < onehourago.GetTimeMilli() {
-		requestedTS.SetTimestamp(onehourago)
+	if appliedTimestamp.GetTimeMilli() < historicallimit.GetTimeMilli() {
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to historical limit %s", requestedTS.String(), appliedTimestamp.String(), historicallimit.String())
+		appliedTimestamp.SetTimestamp(historicallimit)
 	}
 
-	// build a timestamp 20 minutes before boot so we will accept inMessages from nodes who booted before us.
+	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
 	preBootTime := new(primitives.Timestamp)
-	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
+	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - constants.PreBootWindow*60*1000)
 
-	if requestedTS.GetTimeMilli() < preBootTime.GetTimeMilli() {
-		requestedTS.SetTimestamp(preBootTime)
+	if appliedTimestamp.GetTimeMilli() < preBootTime.GetTimeMilli() {
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to preboot limit    %s", requestedTS.String(), appliedTimestamp.String(), preBootTime.String())
+		appliedTimestamp.SetTimestamp(preBootTime)
 	}
 
-	if s.messageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
-		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
-		return
+	if s.messageFilterTimestamp != nil && appliedTimestamp.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to current limit    %s", requestedTS.String(), appliedTimestamp.String(), s.messageFilterTimestamp.String())
+		appliedTimestamp.SetTimestamp(s.messageFilterTimestamp)
 	}
 
-	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", leaderTS, requestedTS.String())
-	s.messageFilterTimestamp = primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
+	//	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", requestedTS.String(), appliedTimestamp.String())
+	s.messageFilterTimestamp = appliedTimestamp
 }
 
 func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) {
@@ -1816,7 +2032,7 @@ func (s *State) GetNetworkBootStrapIdentity() (rval interfaces.IHash) {
 	return primitives.NewZeroHash()
 }
 
-// The identity for validating inMessages
+// The identity for validating messages
 func (s *State) GetNetworkSkeletonIdentity() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -1965,7 +2181,7 @@ func (s *State) SummaryHeader() string {
 		"DB ",
 		"PL  ",
 		" ",
-		"Min",
+		"Minute",
 		"DBState(ask/rply/drop/apply)",
 		"Msg",
 		"   Resend",
@@ -2258,7 +2474,7 @@ func (s *State) ProcessInvalidMsgQueue() {
 	s.InvalidMessagesMutex.Lock()
 	defer s.InvalidMessagesMutex.Unlock()
 	if len(s.InvalidMessages)+len(s.networkInvalidMsgQueue) > 2048 {
-		//Clearing old invalid inMessages
+		//Clearing old invalid messages
 		s.InvalidMessages = map[[32]byte]interfaces.IMsg{}
 	}
 
@@ -2388,6 +2604,10 @@ func (s *State) ShutdownNode(exitCode int) {
 
 func (s *State) GetDBFinished() bool {
 	return s.DBFinished
+}
+
+func (s *State) IsRunLeader() bool {
+	return s.RunLeader
 }
 
 func (s *State) GetRunLeader() bool {

@@ -7,7 +7,6 @@ package messages
 import (
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -56,34 +55,19 @@ func (m *MissingData) Process(uint32, interfaces.IState) bool {
 }
 
 func (m *MissingData) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("MissingData.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "MissingData.GetRepeatHash") }()
 
 	return m.GetMsgHash()
 }
 
 func (m *MissingData) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("MissingData.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "MissingData.GetHash") }()
 
 	return m.GetMsgHash()
 }
 
 func (m *MissingData) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("MissingData.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "MissingData.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
@@ -191,6 +175,10 @@ func (m *MissingData) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *MissingData) FollowerExecute(state interfaces.IState) {
+	panic("deprecated") // go routine in NetworkProcessorNet now handles this
+}
+
+func (m *MissingData) SendResponse(state interfaces.IState) {
 	var dataObject interfaces.BinaryMarshallable
 	//var dataHash interfaces.IHash
 	rawObject, dataType, err := state.LoadDataByHash(m.RequestHash)

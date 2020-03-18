@@ -3,11 +3,12 @@ package state
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/livefeed"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/FactomProject/factomd/modules/livefeed"
 
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	"github.com/FactomProject/factomd/common"
@@ -505,6 +506,8 @@ func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IEle
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
+	// REVIEW: was this relocated? or does it need to be replaced during rewrite
+	//w.Run(s.DBStates.Catchup)
 
 	s.StatesMissing = NewStatesMissing()
 	s.StatesWaiting = NewStatesWaiting()

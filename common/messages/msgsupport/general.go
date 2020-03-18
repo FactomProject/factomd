@@ -16,6 +16,11 @@ import (
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 )
 
+func init() {
+	// KLUDGE: a way to allow logs from p2p/connection.go
+	messages.FP = UnmarshalMessage
+}
+
 func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	_, msg, err := UnmarshalMessageData(data)
 	return msg, err

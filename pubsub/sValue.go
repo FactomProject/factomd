@@ -7,7 +7,9 @@ import (
 // SubValue handles a single atomic value of the last write.
 type SubValue struct {
 	SubBase
+
 	value interface{}
+
 	sync.RWMutex
 }
 

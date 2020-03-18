@@ -8,17 +8,14 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/leader"
-	controlpanel "github.com/FactomProject/factomd/controlPanel"
 	"os"
 	"reflect"
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/modules/debugsettings"
-	"github.com/FactomProject/factomd/simulation"
+	controlpanel "github.com/FactomProject/factomd/controlPanel"
 
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/messages"
@@ -28,8 +25,11 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/modules/debugsettings"
+	"github.com/FactomProject/factomd/modules/leader"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/simulation"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/worker"
@@ -364,6 +364,7 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 
 	state0Init.Do(func() {
 		logPort = p.LogPort
+		//SetLogLevel(p)
 		setupFirstAuthority(node.State)
 		initEntryHeight(node.State, p.Sync2)
 		initAnchors(node.State, p.ReparseAnchorChains)
@@ -388,7 +389,9 @@ func startFnodes(w *worker.Thread) {
 	state.CheckGrants() // check the grants table hard coded into the build is well formed.
 	for i, _ := range fnode.GetFnodes() {
 		node := fnode.Get(i)
-		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) { startServer(w, node) })
+		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) {
+			startServer(w, node)
+		})
 	}
 	time.Sleep(10 * time.Second)
 	common.PrintAllNames()

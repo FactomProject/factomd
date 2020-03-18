@@ -6,16 +6,15 @@ package state
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/modules/events"
-	"time"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	llog "github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/util/atomic"
+	"time"
 )
 
 var ValidationDebug bool = false
@@ -159,6 +158,11 @@ func (s *State) MsgSort() {
 				eom.DBHeight = s.LLeaderHeight
 				eom.VMIndex = s.LeaderVMIndex
 				eom.Minute = byte(currentMinute)
+			}
+			{ // hook into internal events
+				s.Pub.EOMTicker.Write(&events.EOM{
+					Timestamp: s.GetTimestamp(),
+				})
 			}
 
 			eom.Sign(s)

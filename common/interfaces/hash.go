@@ -19,5 +19,6 @@ type IHash interface {
 	IsZero() bool
 	ToMinute() byte
 	IsHashNil() bool
+
 	//MarshalText() ([]byte, error)
 }

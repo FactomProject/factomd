@@ -7,11 +7,9 @@ package directoryBlock
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
-	"reflect"
-
-	"errors"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -178,12 +176,7 @@ func (c *DirectoryBlock) CheckDBEntries() error {
 }
 
 func (c *DirectoryBlock) GetKeyMR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DirectoryBlock.GetKeyMR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DirectoryBlock.GetKeyMR") }()
 	keyMR, err := c.BuildKeyMerkleRoot()
 	if err != nil {
 		panic("Failed to build the key MR")
@@ -231,32 +224,17 @@ func (c *DirectoryBlock) GetDatabaseHeight() uint32 {
 }
 
 func (c *DirectoryBlock) GetChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DirectoryBlock.GetChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DirectoryBlock.GetChainID") }()
 	return primitives.NewHash(constants.D_CHAINID)
 }
 
 func (c *DirectoryBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DirectoryBlock.DatabasePrimaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DirectoryBlock.DatabasePrimaryIndex") }()
 	return c.GetKeyMR()
 }
 
 func (c *DirectoryBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DirectoryBlock.DatabaseSecondaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DirectoryBlock.DatabaseSecondaryIndex") }()
 	return c.GetHash()
 }
 
@@ -354,12 +332,7 @@ func (b *DirectoryBlock) GetHeaderHash() (interfaces.IHash, error) {
 }
 
 func (b *DirectoryBlock) BodyKeyMR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DirectoryBlock.BodyKeyMR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DirectoryBlock.BodyKeyMR") }()
 	key, _ := b.BuildBodyMR()
 	return key
 }
@@ -373,6 +346,7 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 	if err != nil {
 		return nil, err
 	}
+	b.HeaderHash = headerHash
 	hashes = append(hashes, headerHash)
 	hashes = append(hashes, bodyKeyMR)
 	merkle := primitives.BuildMerkleTreeStore(hashes)
@@ -451,22 +425,12 @@ func (b *DirectoryBlock) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (b *DirectoryBlock) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DirectoryBlock.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DirectoryBlock.GetHash") }()
 	return b.GetFullHash()
 }
 
 func (b *DirectoryBlock) GetFullHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DirectoryBlock.GetFullHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DirectoryBlock.GetFullHash") }()
 	binaryDblock, err := b.MarshalBinary()
 	if err != nil {
 		return nil

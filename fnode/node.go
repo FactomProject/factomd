@@ -64,4 +64,7 @@ func (node *FactomNode) addFnodeName() {
 
 	// common short set
 	globals.FnodeNames[fmt.Sprintf("%x", node.State.IdentityChainID.Bytes()[3:6])] = name
+	globals.FnodeNames[fmt.Sprintf("%x", node.State.IdentityChainID.Bytes()[:5])] = name
+	globals.FnodeNames[fmt.Sprintf("%x", node.State.IdentityChainID.Bytes()[:])] = name
+	globals.FnodeNames[fmt.Sprintf("%x", node.State.IdentityChainID.Bytes()[:8])] = name
 }

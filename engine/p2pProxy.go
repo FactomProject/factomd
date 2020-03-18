@@ -7,12 +7,11 @@ package engine
 import (
 	"bytes"
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/worker"
+	"os"
+	"time"
 
 	// "github.com/FactomProject/factomd/common/constants"
 

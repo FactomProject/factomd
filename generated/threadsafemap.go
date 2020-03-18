@@ -13,10 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common"
 )
 
-// End fileheader template
-
-// Start threadsafemap generated go code
-
 type foo struct {
 	sync.Mutex
 	common.Name

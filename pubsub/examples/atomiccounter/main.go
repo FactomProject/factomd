@@ -25,8 +25,8 @@ func main() {
 }
 
 func ValueWatcher(worker int) {
-	// SubChannel based subscription is just a channel written to by a publisher
-	pubsub.SubFactory.Value().Subscribe("/source", pubsub.SubCallbackWrap(nil,
+	// Channel based subscription is just a channel written to by a publisher
+	pubsub.SubFactory.Value().Subscribe("/source", pubsub.NewCallback(nil,
 		// Add a function call after every write
 		func(o interface{}) {
 			if i, ok := o.(int64); ok {

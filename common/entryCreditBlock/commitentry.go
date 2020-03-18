@@ -17,16 +17,19 @@ import (
 
 const (
 	// CommitEntrySize = 1 + 6 + 32 + 1 + 32 + 64
+	// These are the sizes of the members of the data structure below
 	CommitEntrySize int = 136
 )
 
+// CommitEntry is a type of EC block entry which handles commits to the block chain. Related to the EC block because you
+// must pay EC to commit something to the chain
 type CommitEntry struct {
-	Version   uint8                   `json:"version"`
-	MilliTime *primitives.ByteSlice6  `json:"millitime"`
-	EntryHash interfaces.IHash        `json:"entryhash"`
-	Credits   uint8                   `json:"credits"`
-	ECPubKey  *primitives.ByteSlice32 `json:"ecpubkey"`
-	Sig       *primitives.ByteSlice64 `json:"sig"`
+	Version   uint8                   `json:"version"`   // Version, must be 0
+	MilliTime *primitives.ByteSlice6  `json:"millitime"` // Millisecond time stamp for this entry's creation (0~=1970)
+	EntryHash interfaces.IHash        `json:"entryhash"` // SHA512+256 descriptor of the Entry to be paid for
+	Credits   uint8                   `json:"credits"`   // number of entry credits to deduct for this entry, must be 0 < Credits <= 10
+	ECPubKey  *primitives.ByteSlice32 `json:"ecpubkey"`  // EC public key that will have balanced reduced
+	Sig       *primitives.ByteSlice64 `json:"sig"`       // signature of the entry commit by the public key
 }
 
 var _ interfaces.Printable = (*CommitEntry)(nil)
@@ -111,29 +114,24 @@ func (c *CommitEntry) String() string {
 	return fmt.Sprintf("ehash[%x] Credits[%d] PublicKey[%x] Sig[%x]", c.EntryHash.Bytes()[:3], c.Credits, c.ECPubKey[:3], c.Sig[:3])
 }
 
-func (c *CommitEntry) GetEntryHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("CommitEntry.GetEntryHash() saw an interface that was nil")
-		}
-	}()
+// GetEntryHash returns the entry's hash
+func (e *CommitEntry) GetEntryHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "CommitEntry.GetEntryHash") }()
 
-	return c.EntryHash
+	return e.EntryHash
 }
 
+// NewCommitEntry returns a new commit entry
 func NewCommitEntry() *CommitEntry {
 	c := new(CommitEntry)
+	c.Init()
 	c.Version = 0
-	c.MilliTime = new(primitives.ByteSlice6)
-	c.EntryHash = primitives.NewZeroHash()
 	c.Credits = 0
-	c.ECPubKey = new(primitives.ByteSlice32)
-	c.Sig = new(primitives.ByteSlice64)
 	return c
 }
 
-func (c *CommitEntry) Hash() (rval interfaces.IHash) {
+// Hash marshals the object and computes the sha
+func (e *CommitEntry) Hash() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface
@@ -141,106 +139,102 @@ func (c *CommitEntry) Hash() (rval interfaces.IHash) {
 		}
 	}()
 
-	bin, err := c.MarshalBinary()
+	bin, err := e.MarshalBinary()
 	if err != nil {
 		panic(err)
 	}
 	return primitives.Sha(bin)
 }
 
-func (c *CommitEntry) IsInterpretable() bool {
+// IsInterpretable always returns false
+func (e *CommitEntry) IsInterpretable() bool {
 	return false
 }
 
-func (c *CommitEntry) Interpret() string {
+// Interpret always returns the empty string ""
+func (e *CommitEntry) Interpret() string {
 	return ""
 }
 
 // CommitMsg returns the binary marshalled message section of the CommitEntry
 // that is covered by the CommitEntry.Sig.
-func (c *CommitEntry) CommitMsg() []byte {
-	p, err := c.MarshalBinarySig()
+func (e *CommitEntry) CommitMsg() []byte {
+	p, err := e.MarshalBinarySig()
 	if err != nil {
 		return []byte{byte(0)}
 	}
 	return p
 }
 
-// Return the timestamp
-func (c *CommitEntry) GetTimestamp() interfaces.Timestamp {
+// GetTimestamp returns the timestamp in milliseconds
+func (e *CommitEntry) GetTimestamp() interfaces.Timestamp {
 	a := make([]byte, 2, 8)
-	a = append(a, c.MilliTime[:]...)
+	a = append(a, e.MilliTime[:]...)
 	milli := uint64(binary.BigEndian.Uint64(a))
 	return primitives.NewTimestampFromMilliseconds(milli)
 }
 
-func (c *CommitEntry) IsValid() bool {
+// IsValid checks if the commit entry is valid: 0 < Credits <= 10, version==0, and valid signature
+func (e *CommitEntry) IsValid() bool {
 	//double check the credits in the commit
-	if c.Credits < 1 || c.Version != 0 || c.Credits > 10 {
+	if e.Credits < 1 || e.Version != 0 || e.Credits > 10 {
 		return false
 	}
 
 	//if there were no errors in processing the signature, formatting or if didn't validate
-	if nil == c.ValidateSignatures() {
+	if nil == e.ValidateSignatures() {
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
-func (c *CommitEntry) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("CommitEntry.GetHash() saw an interface that was nil")
-		}
-	}()
+// GetHash marshals the object and computes the sha of the data
+func (e *CommitEntry) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "CommitEntry.GetHash") }()
 
-	h, _ := c.MarshalBinary()
+	h, _ := e.MarshalBinary()
 	return primitives.Sha(h)
 }
 
-func (c *CommitEntry) GetSigHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("CommitEntry.GetSigHash() saw an interface that was nil")
-		}
-	}()
+// GetSigHash computes the hash of the partially marshalled object: (version through entry credits hashed)
+func (e *CommitEntry) GetSigHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "CommitEntry.GetSigHash") }()
 
-	data := c.CommitMsg()
+	data := e.CommitMsg()
 	return primitives.Sha(data)
 }
 
-func (c *CommitEntry) MarshalBinarySig() (rval []byte, err error) {
+// MarshalBinarySig marshals the object covered by the signature (version through entry credits)
+// If this serialized data is hashed, it becomes the transaction hash of entry commit. (version through entry credits)
+func (e *CommitEntry) MarshalBinarySig() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "CommitEntry.MarshalBinarySig err:%v", *pe)
 		}
 	}(&err)
-	c.Init()
+	e.Init()
 	buf := primitives.NewBuffer(nil)
 
 	// 1 byte Version
-	err = buf.PushUInt8(c.Version)
+	err = buf.PushUInt8(e.Version)
 	if err != nil {
 		return nil, err
 	}
 
 	// 6 byte MilliTime
-	err = buf.PushBinaryMarshallable(c.MilliTime)
+	err = buf.PushBinaryMarshallable(e.MilliTime)
 	if err != nil {
 		return nil, err
 	}
 
 	// 32 byte Entry Hash
-	err = buf.PushBinaryMarshallable(c.EntryHash)
+	err = buf.PushBinaryMarshallable(e.EntryHash)
 	if err != nil {
 		return nil, err
 	}
 
 	// 1 byte number of Entry Credits
-	err = buf.PushUInt8(c.Credits)
+	err = buf.PushUInt8(e.Credits)
 	if err != nil {
 		return nil, err
 	}
@@ -291,13 +285,14 @@ func (c *CommitEntry) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (c *CommitEntry) Sign(privateKey []byte) error {
-	c.Init()
-	sig, err := primitives.SignSignable(privateKey, c)
+// Sign signs the object with the input private key
+func (e *CommitEntry) Sign(privateKey []byte) error {
+	e.Init()
+	sig, err := primitives.SignSignable(privateKey, e)
 	if err != nil {
 		return err
 	}
-	err = c.Sig.UnmarshalBinary(sig)
+	err = e.Sig.UnmarshalBinary(sig)
 	if err != nil {
 		return err
 	}
@@ -305,67 +300,70 @@ func (c *CommitEntry) Sign(privateKey []byte) error {
 	if err != nil {
 		return err
 	}
-	err = c.ECPubKey.UnmarshalBinary(pub)
+	err = e.ECPubKey.UnmarshalBinary(pub)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *CommitEntry) ValidateSignatures() error {
-	if c.ECPubKey == nil {
+// ValidateSignatures validates the object's signature
+func (e *CommitEntry) ValidateSignatures() error {
+	if e.ECPubKey == nil {
 		return fmt.Errorf("No public key present")
 	}
-	if c.Sig == nil {
+	if e.Sig == nil {
 		return fmt.Errorf("No signature present")
 	}
-	data, err := c.MarshalBinarySig()
+	data, err := e.MarshalBinarySig()
 	if err != nil {
 		return err
 	}
-	return primitives.VerifySignature(data, c.ECPubKey[:], c.Sig[:])
+	return primitives.VerifySignature(data, e.ECPubKey[:], e.Sig[:])
 }
 
-func (c *CommitEntry) ECID() byte {
+// ECID returns the entry credit id ECIDEntryCommit
+func (e *CommitEntry) ECID() byte {
 	return constants.ECIDEntryCommit
 }
 
-func (c *CommitEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
-	c.Init()
+// UnmarshalBinaryData unmarshals the input data into this object
+func (e *CommitEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	e.Init()
 	buf := primitives.NewBuffer(data)
 	var err error
 
-	c.Version, err = buf.PopUInt8()
+	e.Version, err = buf.PopUInt8()
 	if err != nil {
 		return nil, err
 	}
 
 	// 6 byte MilliTime
-	err = buf.PopBinaryMarshallable(c.MilliTime)
+	err = buf.PopBinaryMarshallable(e.MilliTime)
 	if err != nil {
 		return nil, err
 	}
 
 	// 32 byte Entry Hash
-	err = buf.PopBinaryMarshallable(c.EntryHash)
+	err = buf.PopBinaryMarshallable(e.EntryHash)
 	if err != nil {
 		return nil, err
 	}
 
 	// 1 byte number of Entry Credits
-	c.Credits, err = buf.PopUInt8()
+	e.Credits, err = buf.PopUInt8()
 	if err != nil {
 		return nil, err
 	}
 
 	// 32 byte Public Key
-	err = buf.PopBinaryMarshallable(c.ECPubKey)
+	err = buf.PopBinaryMarshallable(e.ECPubKey)
 	if err != nil {
 		return nil, err
 	}
 
 	// 64 byte Signature
-	err = buf.PopBinaryMarshallable(c.Sig)
+	err = buf.PopBinaryMarshallable(e.Sig)
 	if err != nil {
 		return nil, err
 	}
@@ -373,8 +371,9 @@ func (c *CommitEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (c *CommitEntry) UnmarshalBinary(data []byte) (err error) {
-	_, err = c.UnmarshalBinaryData(data)
+// UnmarshalBinary unmarshals the input data into this object
+func (e *CommitEntry) UnmarshalBinary(data []byte) (err error) {
+	_, err = e.UnmarshalBinaryData(data)
 	return
 }
 

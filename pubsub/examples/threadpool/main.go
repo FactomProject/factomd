@@ -51,7 +51,7 @@ func main() {
 }
 
 func PrimeWorker() {
-	// SubChannel based subscription is just a channel written to by a publisher
+	// Channel based subscription is just a channel written to by a publisher
 	sub := pubsub.SubFactory.Channel(5).Subscribe("/source")
 
 	// agg is where we write our results.
@@ -61,7 +61,7 @@ func PrimeWorker() {
 
 	for {
 		// WithInfo to detect a close.
-		v, open := sub.ReadWithInfo()
+		v, open := sub.ReceiveWithInfo()
 		if !open {
 			fmt.Println("\tWorker closing....")
 			_ = agg.Close()

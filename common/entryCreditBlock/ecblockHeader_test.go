@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestUnmarshalNilECBlockHeader checks that when unmarshalling nil or the empty interface, appropriate errors are thrown
 func TestUnmarshalNilECBlockHeader(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -31,6 +32,7 @@ func TestUnmarshalNilECBlockHeader(t *testing.T) {
 	}
 }
 
+// TestStaticECBlockHeaderUnmarshal checks that a pre-created hex string can be unmarshalled into an EC block header, remarshalled and compared
 func TestStaticECBlockHeaderUnmarshal(t *testing.T) {
 	ecbh := new(ECBlockHeader)
 	data, _ := hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000cbb3ff38bbb90032de6965587f46dcf37551ac26e15819303057c88999b2910b4f87cfc073df0e82cdc2ed0bb992d7ea956fd32b435b099fc35f4b0696948507a66fb49a15b68a2a0ce2382e6aa6970c835497c6074bec9794ccf84bb331ad1350000000100000000000000000b0000000000000058")

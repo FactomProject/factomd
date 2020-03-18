@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -40,6 +41,19 @@ type MessageBase struct {
 	Stalled     bool // This message is currently stalled
 	MarkInvalid bool
 	Sigvalid    bool
+
+	// The time the message was received by our node
+	// Use time.Time vs Timestamp so we don't have to deal with nils
+	// Also the code that adds this timestamp already has the time.Time
+	LocalReceived time.Time
+}
+
+func (m *MessageBase) GetReceivedTime() time.Time {
+	return m.LocalReceived
+}
+
+func (m *MessageBase) SetReceivedTime(time time.Time) {
+	m.LocalReceived = time
 }
 
 func (m *MessageBase) StringOfMsgBase() string {
@@ -182,7 +196,7 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	// debug code end ............
 	s.LogMessage("NetworkOutputs", "Enqueue", msg)
 
-	if s.GetRunLeader() { // true means - we are not in wait period
+	if s.IsRunLeader() { // true means - we are not in wait period
 		s.NetworkOutMsgQueue().Enqueue(msg)
 	} else {
 		q := s.NetworkOutMsgQueue()
@@ -249,12 +263,7 @@ func (m *MessageBase) SetStall(b bool) {
 }
 
 func (m *MessageBase) GetFullMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("MessageBase.GetFullMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "MessageBase.GetFullMsgHash") }()
 
 	if m.FullMsgHash == nil {
 		m.FullMsgHash = primitives.NewZeroHash()
@@ -315,12 +324,7 @@ func (m *MessageBase) SetFullBroadcast(v bool) {
 	m.FullBroadcast = v
 }
 func (m *MessageBase) GetLeaderChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("MessageBase.GetLeaderChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "MessageBase.GetLeaderChainID") }()
 
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()

@@ -10,18 +10,15 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/FactomProject/factomd/modules/bmv"
-	"github.com/FactomProject/factomd/pubsub"
-	"github.com/FactomProject/factomd/state"
-
-	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/worker"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/modules/bmv"
+	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/worker"
 )
 
 var _ = fmt.Print
@@ -31,21 +28,21 @@ func NetworkProcessorNet(w *worker.Thread, fnode *fnode.FactomNode) {
 	FromPeerToPeer(w, fnode)
 	stubs(w, fnode)
 	BasicMessageValidation(w, fnode)
-	sort(w, fnode.State) // TODO: Replace this service entirely
+	sort(w, fnode) // TODO: Replace this service entirely
 	w.Run("NetworkOutputs", func() { NetworkOutputs(fnode) })
-	w.Run("InvalidOutputs", func() { InvalidOutputs(fnode.State) })
+	w.Run("InvalidOutputs", func() { InvalidOutputs(fnode) })
 }
 
 // TODO: sort should not exist, we should have each module subscribing to the
 //		msgs, rather than this one.
-func sort(parent *worker.Thread, s *state.State) {
+func sort(parent *worker.Thread, fnode *fnode.FactomNode) {
 	parent.Spawn("MsgSort", func(w *worker.Thread) {
 
 		// Run init conditions. Setup publishers
 		sub := pubsub.SubFactory.Channel(50)
 
 		w.OnReady(func() {
-			sub.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), "bmv", "rest"))
+			sub.Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "rest"))
 		})
 
 		w.OnRun(func() {
@@ -55,7 +52,7 @@ func sort(parent *worker.Thread, s *state.State) {
 					continue
 				}
 				//fmt.Println("sorted ->", msg)
-				sortMsg(msg, s, "pubsub")
+				sortMsg(msg, fnode, "pubsub")
 			}
 		})
 
@@ -180,7 +177,7 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 				}
 
 				//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-				sendToExecute(msg, msgPub)
+				sendToExecute(msg, fnode, "from API", msgPub)
 
 			} // for the api queue read up to 100 messages {...}
 
@@ -229,7 +226,7 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 					}
 
 					msg.SetNetwork(true)
-					sendToExecute(msg, msgPub)
+					sendToExecute(msg, fnode, fromPeer, msgPub)
 				} // For a peer read up to 100 messages {...}
 			} // for each peer {...}
 			if cnt == 0 {
@@ -444,7 +441,7 @@ func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 				}
 
 				//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-				sendToExecute(msg, msgPub)
+				sendToExecute(msg, fnode, "from API", msgPub)
 
 			} // for the api queue read up to 100 messages {...}
 
@@ -592,7 +589,7 @@ func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 
 					msg.SetNetwork(true)
 					if !crossBootIgnore(msg) {
-						sendToExecute(msg, msgPub)
+						sendToExecute(msg, fnode, fromPeer, msgPub)
 					}
 				} // For a peer read up to 100 messages {...}
 			} // for each peer {...}
@@ -603,61 +600,61 @@ func Peers(w *worker.Thread, fnode *fnode.FactomNode) {
 	})
 }
 
-func sendToExecute(msg interfaces.IMsg, pub pubsub.IPublisher) {
+func sendToExecute(msg interfaces.IMsg, _ *fnode.FactomNode, _ string, pub pubsub.IPublisher) {
 	pub.Write(msg)
 }
 
-func sortMsg(msg interfaces.IMsg, s *state.State, source string) {
+func sortMsg(msg interfaces.IMsg, fnode *fnode.FactomNode, source string) {
 	// TODO: These state updates need to be moved to their modules
 	t := msg.Type()
 	switch t {
 	case constants.MISSING_MSG:
-		s.LogMessage("mmr_response", fmt.Sprintf("%s, enqueue %d", source, len(s.MissingMessageResponseHandler.MissingMsgRequests)), msg)
-		s.MissingMessageResponseHandler.NotifyPeerMissingMsg(msg)
+		fnode.State.LogMessage("mmr_response", fmt.Sprintf("%s, enqueue %d", source, len(fnode.State.MissingMessageResponseHandler.MissingMsgRequests)), msg)
+		fnode.State.MissingMessageResponseHandler.NotifyPeerMissingMsg(msg)
 
 	case constants.COMMIT_CHAIN_MSG:
-		s.ChainCommits.Add(msg) // keep last 100 chain commits
-		Q1(s, source, msg)      // send it fast track
-		reveal := s.Reveals.Get(msg.GetHash().Fixed())
+		fnode.State.ChainCommits.Add(msg) // keep last 100 chain commits
+		Q1(fnode, source, msg)            // send it fast track
+		reveal := fnode.State.Reveals.Get(msg.GetHash().Fixed())
 		if reveal != nil {
-			Q1(s, source, reveal) // if we have it send it fast track
+			Q1(fnode, source, reveal) // if we have it send it fast track
 			// it will still arrive from thr slow track but that is ok.
 		}
 
 	case constants.REVEAL_ENTRY_MSG:
 		// if this is a chain commit reveal send it fast track to allow processing of dependant reveals
-		if s.ChainCommits.Get(msg.GetHash().Fixed()) != nil {
-			Q1(s, source, msg) // fast track chain reveals
+		if fnode.State.ChainCommits.Get(msg.GetHash().Fixed()) != nil {
+			Q1(fnode, source, msg) // fast track chain reveals
 		} else {
-			Q2(s, source, msg) // all other reveals are slow track
-			s.Reveals.Add(msg)
+			Q2(fnode, source, msg) // all other reveals are slow track
+			fnode.State.Reveals.Add(msg)
 		}
 
 	case constants.COMMIT_ENTRY_MSG:
-		Q2(s, source, msg) // slow track
+		Q2(fnode, source, msg) // slow track
 
 	default:
 		//todo: Probably should send EOM/DBSig and their ACKs on a faster yet track
 		// in general this makes ACKs more likely to arrive first.
-		Q1(s, source, msg) // fast track
+		Q1(fnode, source, msg) // fast track
 	}
 
 	if constants.NeedsAck(msg.Type()) {
 		// send msg to MMRequest processing to suppress requests for messages we already have
-		s.RecentMessage.NewMsgs <- msg
+		fnode.State.RecentMessage.NewMsgs <- msg
 	}
 }
 
-func Q1(s *state.State, source string, msg interfaces.IMsg) {
-	s.LogMessage("NetworkInputs", source+", enqueue", msg)
-	s.LogMessage("InMsgQueue", source+", enqueue", msg)
-	s.InMsgQueue().Enqueue(msg)
+func Q1(fnode *fnode.FactomNode, source string, msg interfaces.IMsg) {
+	fnode.State.LogMessage("NetworkInputs", source+", enqueue", msg)
+	fnode.State.LogMessage("InMsgQueue", source+", enqueue", msg)
+	fnode.State.InMsgQueue().Enqueue(msg)
 }
 
-func Q2(s *state.State, source string, msg interfaces.IMsg) {
-	s.LogMessage("NetworkInputs", source+", enqueue2", msg)
-	s.LogMessage("InMsgQueue2", source+", enqueue2", msg)
-	s.InMsgQueue2().Enqueue(msg)
+func Q2(fnode *fnode.FactomNode, source string, msg interfaces.IMsg) {
+	fnode.State.LogMessage("NetworkInputs", source+", enqueue2", msg)
+	fnode.State.LogMessage("InMsgQueue2", source+", enqueue2", msg)
+	fnode.State.InMsgQueue2().Enqueue(msg)
 }
 
 func NetworkOutputs(fnode *fnode.FactomNode) {
@@ -736,31 +733,31 @@ func NetworkOutputs(fnode *fnode.FactomNode) {
 					p = rand.Int() % len(fnode.Peers)
 				}
 				peer := fnode.Peers[p]
-				if !s.GetNetStateOff() { // don't Send p2p messages if he is OFF
+				if !fnode.State.GetNetStateOff() { // don't Send p2p messages if he is OFF
 					// Don't do a rand int if drop rate is 0
-					if s.GetDropRate() > 0 && rand.Int()%1000 < s.GetDropRate() {
+					if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
 						//drop the message, rather than processing it normally
 
-						s.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+						fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
 					} else {
 						preSendTime := time.Now()
-						s.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
+						fnode.State.LogMessage("NetworkOutputs", "Send P2P "+peer.GetNameTo(), msg)
 						peer.Send(msg)
 						sendTime := time.Since(preSendTime)
 						TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-						if s.MessageTally {
-							s.TallySent(int(msg.Type()))
+						if fnode.State.MessageTally {
+							fnode.State.TallySent(int(msg.Type()))
 						}
 					}
 				} else {
 
-					s.LogMessage("NetworkOutputs", "Drop, simCtrl X", msg)
+					fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl X", msg)
 				}
 			} else {
-				s.LogMessage("NetworkOutputs", "Drop, no peers", msg)
+				fnode.State.LogMessage("NetworkOutputs", "Drop, no peers", msg)
 			}
 		} else {
-			s.LogMessage("NetworkOutputs", "Send broadcast", msg)
+			fnode.State.LogMessage("NetworkOutputs", "Send broadcast", msg)
 			for i, peer := range fnode.Peers {
 				wt := 1
 				if p >= 0 {
@@ -769,18 +766,18 @@ func NetworkOutputs(fnode *fnode.FactomNode) {
 				// Don't resend to the node that sent it to you.
 				if i != p || wt > 1 {
 					//bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-					if !s.GetNetStateOff() { // Don't send him broadcast message if he is off
-						if s.GetDropRate() > 0 && rand.Int()%1000 < s.GetDropRate() && !msg.IsFullBroadcast() {
+					if !fnode.State.GetNetStateOff() { // Don't send him broadcast message if he is off
+						if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() && !msg.IsFullBroadcast() {
 							//drop the message, rather than processing it normally
 
-							s.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
+							fnode.State.LogMessage("NetworkOutputs", "Drop, simCtrl", msg)
 						} else {
 							preSendTime := time.Now()
 							peer.Send(msg)
 							sendTime := time.Since(preSendTime)
 							TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-							if s.MessageTally {
-								s.TallySent(int(msg.Type()))
+							if fnode.State.MessageTally {
+								fnode.State.TallySent(int(msg.Type()))
 							}
 						}
 					}
@@ -791,10 +788,10 @@ func NetworkOutputs(fnode *fnode.FactomNode) {
 }
 
 // Just throw away the trash
-func InvalidOutputs(s *state.State) {
+func InvalidOutputs(fnode *fnode.FactomNode) {
 	for {
 		time.Sleep(1 * time.Millisecond)
-		_ = <-s.NetworkInvalidMsgQueue()
+		_ = <-fnode.State.NetworkInvalidMsgQueue()
 		//fmt.Println(invalidMsg)
 
 		// The following code was giving a demerit for each instance of a message in the NetworkInvalidMsgQueue.
@@ -803,5 +800,17 @@ func InvalidOutputs(s *state.State) {
 		// if len(invalidMsg.GetNetworkOrigin()) > 0 {
 		// 	p2pNetwork.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2)
 		// }
+	}
+}
+
+// Handle requests for missing data
+func MissingData(fnode *fnode.FactomNode) {
+	q := fnode.State.DataMsgQueue()
+	for {
+		select {
+		case msg := <-q:
+			fnode.State.LogMessage("DataQueue", fmt.Sprintf("dequeue %v", len(q)), msg)
+			msg.(*messages.MissingData).SendResponse(fnode.State)
+		}
 	}
 }

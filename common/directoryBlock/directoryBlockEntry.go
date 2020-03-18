@@ -7,7 +7,6 @@ package directoryBlock
 import (
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -51,12 +50,7 @@ func (a *DBEntry) IsSameAs(b interfaces.IDBEntry) bool {
 }
 
 func (c *DBEntry) GetChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DBEntry.GetChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DBEntry.GetChainID") }()
 
 	return c.ChainID
 }
@@ -66,12 +60,7 @@ func (c *DBEntry) SetChainID(chainID interfaces.IHash) {
 }
 
 func (c *DBEntry) GetKeyMR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DBEntry.GetKeyMR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DBEntry.GetKeyMR") }()
 
 	return c.KeyMR
 }
@@ -125,12 +114,7 @@ func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *DBEntry) ShaHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DBEntry.ShaHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DBEntry.ShaHash") }()
 
 	byteArray, _ := e.MarshalBinary()
 	return primitives.Sha(byteArray)
