@@ -51,7 +51,7 @@ func main() {
 }
 
 func PrimeWorker() {
-	// SubChannel based subscription is just a channel written to by a publisher
+	// Channel based subscription is just a channel written to by a publisher
 	sub := pubsub.SubFactory.Channel(5).Subscribe("/source")
 
 	// agg is where we write our results.

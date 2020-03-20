@@ -6,13 +6,13 @@ package electionMsgs
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/elections"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/elections"
+
 	llog "github.com/FactomProject/factomd/log"
 	log "github.com/sirupsen/logrus"
 )
@@ -35,25 +35,25 @@ func (m *AuthorityListInternal) MarshalBinary() (data []byte, err error) {
 	return nil, fmt.Errorf("Not implmented for AuthorityListInternal")
 }
 
-func (m *AuthorityListInternal) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("AuthorityListInternal.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+var msgCount int
 
+func (m *AuthorityListInternal) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "AuthorityListInternal.GetMsgHash") }()
+
+	// because this is an internal only message it has no serialization so no real hash. make a fake hash so it
+	// doesn't trigger pokemon tracking and can be logged.
 	if m.MsgHash == nil {
-		data, err := m.MarshalBinary()
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
+		msgCount++
+		m.MsgHash = new(primitives.Hash)
+		m.MsgHash.PFixed()[0] = byte((msgCount >> 0) & 0xFF)
+		m.MsgHash.PFixed()[1] = byte((msgCount >> 8) & 0xFF)
+		m.MsgHash.PFixed()[2] = byte((msgCount >> 16) & 0xFF)
+		m.MsgHash.PFixed()[3] = byte((msgCount >> 24) & 0xFF)
 	}
 	return m.MsgHash
 }
 
-func (m *AuthorityListInternal) ElectionProcess(_ interfaces.IState, elect interfaces.IElections) {
+func (m *AuthorityListInternal) ElectionProcess(s interfaces.IState, elect interfaces.IElections) {
 	e := elect.(*elections.Elections)
 	e.Federated = m.Federated
 	e.Audit = m.Audit
@@ -65,24 +65,14 @@ func (m *AuthorityListInternal) LogFields() log.Fields {
 }
 
 func (m *AuthorityListInternal) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("AuthorityListInternal.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "AuthorityListInternal.GetRepeatHash") }()
 
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
 func (m *AuthorityListInternal) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("AuthorityListInternal.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "AuthorityListInternal.GetHash") }()
 
 	return m.GetMsgHash()
 }

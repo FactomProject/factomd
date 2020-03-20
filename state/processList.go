@@ -22,8 +22,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util/atomic"
 
-	//"github.com/FactomProject/factomd/database/databaseOverlay"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -121,7 +119,6 @@ type VM struct {
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
-
 	if p == nil {
 		return
 	}
@@ -582,6 +579,55 @@ func (p *ProcessList) RemoveAuditServerHash(identityChainID interfaces.IHash) {
 	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.RemoveAuditServer: Removing Audit Server %x", identityChainID.Bytes()[3:8]))
 }
 
+func (p *ProcessList) CountFederatedServersAddedAndRemoved() (added int, removed int) {
+	startingFeds := p.StartingFedServers
+	var containsServerChainID func([]interfaces.IServer, interfaces.IHash) bool
+	containsServerChainID = func(haystack []interfaces.IServer, needle interfaces.IHash) bool {
+		for _, hay := range haystack {
+			if needle.IsSameAs(hay.GetChainID()) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, adminEntry := range p.AdminBlock.GetABEntries() {
+		switch adminEntry.Type() {
+		case constants.TYPE_ADD_FED_SERVER:
+			// Double check the entry is a real add fed server message
+			ad, ok := adminEntry.(*adminBlock.AddFederatedServer)
+			if !ok {
+				continue
+			}
+			if containsServerChainID(startingFeds, ad.IdentityChainID) {
+				removed--
+			} else {
+				added++
+			}
+		case constants.TYPE_REMOVE_FED_SERVER:
+			// Double check the entry is a real remove fed server message
+			ad, ok := adminEntry.(*adminBlock.RemoveFederatedServer)
+			if !ok {
+				continue
+			}
+			// See if this was one of our starting leaders
+			if containsServerChainID(startingFeds, ad.IdentityChainID) {
+				removed++
+			}
+		case constants.TYPE_ADD_AUDIT_SERVER:
+			// This could be a demotion, so we need to reduce the fedcount
+			ad, ok := adminEntry.(*adminBlock.AddAuditServer)
+			if !ok {
+				continue
+			}
+			// See if this was one of our starting leaders
+			if containsServerChainID(startingFeds, ad.IdentityChainID) {
+				removed++
+			}
+		}
+	}
+	return added, removed
+}
+
 // Given a server index, return the last Ack
 func (p *ProcessList) GetAckAt(vmIndex int, height int) *messages.Ack {
 	vm := p.VMs[vmIndex]
@@ -1001,8 +1047,8 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	TotalAcksInputs.Inc()
 
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
-	//
-	if !ack.Response && ack.LeaderChainID.IsSameAs(s.IdentityChainID) {
+	// When the ack is from the future, don't panic, when it's from the past honor older/newer than 120 seconds rule below
+	if !ack.Response && ack.LeaderChainID.IsSameAs(s.IdentityChainID) && ack.DBHeight <= s.LLeaderHeight {
 		now := s.GetTimestamp().GetTimeSeconds()
 		ackSeconds := ack.Timestamp.GetTimeSeconds()
 		if now-ackSeconds > 120 {

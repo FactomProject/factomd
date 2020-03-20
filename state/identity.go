@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"reflect"
 	"sort"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -65,12 +64,7 @@ func (st *State) GetSigningKey(id interfaces.IHash) (interfaces.IHash, int) {
 }
 
 func (st *State) GetNetworkSkeletonKey() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("State.GetNetworkSkeletonKey() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "State.GetNetworkSkeletonKey") }()
 
 	id := st.IdentityControl.GetIdentity(st.GetNetworkSkeletonIdentity())
 	if id == nil {

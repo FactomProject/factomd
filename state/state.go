@@ -183,6 +183,7 @@ type State struct {
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
+	TimeOffset             interfaces.Timestamp
 	MaxTimeOffset          interfaces.Timestamp
 	networkOutMsgQueue     *queue.MsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
@@ -192,10 +193,8 @@ type State struct {
 	apiQueue               *queue.MsgQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	// prioritizedMsgQueue contains inMessages we know we need for consensus. (missing from processlist)
-	//		Currently inMessages from MMR handling can be put in here to fast track
-	//		them to the front.
-	prioritizedMsgQueue chan interfaces.IMsg
+	dataQueue              chan interfaces.IMsg
+	prioritizedMsgQueue    chan interfaces.IMsg
 
 	ShutdownChan chan int // For gracefully halting Factom
 
@@ -205,7 +204,16 @@ type State struct {
 	serverPendingPubKeys  []*primitives.PublicKey
 
 	// RPC connection config
+	RpcUser     string
+	RpcPass     string
+	RpcAuthHash []byte
 
+	FactomdTLSEnable   bool
+	FactomdTLSKeyFile  string
+	FactomdTLSCertFile string
+	FactomdLocations   string
+
+	CorsDomains []string
 	// Server State
 	StartDelay   int64 // Time in Milliseconds since the last DBState was applied
 	DBFinished   bool
@@ -214,8 +222,8 @@ type State struct {
 	EOMIssueTime int64
 	EOMSyncEnd   int64
 
-	// Ignore missing inMessages for a period to allow rebooting a network where your
-	// own inMessages from the previously executing network can confuse you.
+	// Ignore missing messages for a period to allow rebooting a network where your
+	// own messages from the previously executing network can confuse you.
 	IgnoreDone    bool
 	IgnoreMissing bool
 
@@ -224,9 +232,12 @@ type State struct {
 	LeaderVMIndex   int
 	LeaderPL        *ProcessList
 	PLProcessHeight uint32
-	// Height cutoff where no missing inMessages below this height
-	DBHeightAtBoot uint32
-	CurrentMinute  int
+	// Height cutoff where no missing messages below this height
+	DBHeightAtBoot  uint32
+	TimestampAtBoot interfaces.Timestamp
+	OneLeader       bool
+	OutputAllowed   bool
+	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
 	PreviousMinuteStartTime int64
@@ -257,7 +268,7 @@ type State struct {
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 
 	Saving  bool // True if we are in the process of saving to the database
-	Syncing bool // Looking for inMessages from leaders to sync
+	Syncing bool // Looking for messages from leaders to sync
 
 	NetStateOff            bool // Disable if true, Enable if false
 	DebugConsensus         bool // If true, dump consensus trace
@@ -267,6 +278,7 @@ type State struct {
 	FCTSubmits             int
 	NewEntryChains         int
 	NewEntries             int
+	LeaderTimestamp        interfaces.Timestamp
 	messageFilterTimestamp interfaces.Timestamp
 	// Maps
 	// ====
@@ -275,7 +287,7 @@ type State struct {
 	HoldingList   chan [32]byte                // Queue to process Holding in order
 	HoldingVM     int                          // VM used to build current holding list
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
-	XReview       []interfaces.IMsg            // After the EOM, we must review the inMessages in Holding
+	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgements
 	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
 
@@ -284,7 +296,10 @@ type State struct {
 
 	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
 
-	LastTiebreak int64
+	FaultTimeout  int
+	FaultWait     int
+	EOMfaultIndex int
+	LastTiebreak  int64
 
 	AuthoritySetString string
 	// Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
@@ -353,7 +368,8 @@ type State struct {
 	MissingEntries chan *MissingEntry
 
 	// Holds leaders and followers up until all missing entries are processed, if true
-	UpdateEntryHash chan *EntryUpdate // SubChannel for updating entry Hashes tracking (repeats and such)
+	WaitForEntries  bool
+	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
 	WriteEntry      chan interfaces.IEBEntry
 	// MessageTally causes the node to keep track of (and display) running totals of each
 	// type of message received during the tally interval
@@ -365,6 +381,7 @@ type State struct {
 	LastPrintCnt int
 
 	// FER section
+	FactoshisPerEC                 uint64
 	FERChainId                     string
 	ExchangeRateAuthorityPublicKey string
 
@@ -393,6 +410,7 @@ type State struct {
 	NumFCTTrans    int // Number of Factoid Transactions in this block
 
 	// debug message about state status rolling queue for ControlPanel
+	pstate              string
 	SyncingState        [256]string
 	SyncingStateCurrent int
 
@@ -1098,7 +1116,7 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			if pl.DBHeight > currentHeightComplete {
 				cb := pl.State.FactoidState.GetCurrentBlock()
 				ct := cb.GetTransactions()
-				for _, tran := range ct {
+				for i, tran := range ct {
 					var tmp interfaces.IPendingTransaction
 					tmp.TransactionID = tran.GetSigHash()
 					if tran.GetBlockHeight() > 0 {
@@ -1110,9 +1128,11 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 					tmp.Inputs = tran.GetInputs()
 					tmp.Outputs = tran.GetOutputs()
 					tmp.ECOutputs = tran.GetECOutputs()
-					ecrate := s.GetPredictiveFER()
-					ecrate, _ = tran.CalculateFee(ecrate)
-					tmp.Fees = ecrate
+					if i > 0 {
+						ecrate := s.GetPredictiveFER()
+						ecrate, _ = tran.CalculateFee(ecrate)
+						tmp.Fees = ecrate
+					}
 
 					if params.(string) == "" {
 						flgFound = true
@@ -1357,6 +1377,11 @@ entryHashProcessing:
 			break entryHashProcessing
 		}
 	}
+
+	// publish new updated state
+	stateUpdate := s.stateUpdate()
+	s.Pub.StateUpdate.Write(stateUpdate)
+
 	return
 }
 
@@ -1583,6 +1608,10 @@ func (s *State) ElectionsQueue() interfaces.IQueue {
 	return s.electionsQueue
 }
 
+func (s *State) DataMsgQueue() chan interfaces.IMsg {
+	return s.dataQueue
+}
+
 func (s *State) APIQueue() interfaces.IQueue {
 	return s.apiQueue
 }
@@ -1614,39 +1643,44 @@ func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampFromMilliseconds(s.messageFilterTimestamp.GetTimeMilliUInt64())
 }
 
-// the MessageFilterTimestamp  is used to filter inMessages from the past or before the replay filter.
+// the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.
 // We will not set it to a time that is before (20 minutes before) boot or more than one hour in the past.
-// this ensure inMessages from prior boot and inMessages that predate the current replay filter are
+// this ensure messages from prior boot and messages that predate the current replay filter are
 // are dropped.
 // It marks the start of the replay filter content
-func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
+func (s *State) SetMessageFilterTimestamp(requestedTS interfaces.Timestamp) {
+	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) from %s", requestedTS.String(), atomic.WhereAmIString(1))
 
-	// make a copy of the time stamp so we don't change the source
-	requestedTS := new(primitives.Timestamp)
-	requestedTS.SetTimestamp(leaderTS)
+	// create a new timestamp
+	appliedTimestamp := primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
 
-	onehourago := new(primitives.Timestamp)
-	onehourago.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 60*60*1000) // now() - one hour
+	// It's ok for the follower to be working on a block that is two behind the network, the block two back could be
+	// 20 before now and it accepts commits from up to an hour before it plus we gave messages 10 minutes to transit
+	// gossip network so 20 + 60 + 10 = 90 minutes ago is ok.
+	historicallimit := new(primitives.Timestamp)
+	historicallimit.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 90*60*1000) // now() - 90 minutes
 
-	if requestedTS.GetTimeMilli() < onehourago.GetTimeMilli() {
-		requestedTS.SetTimestamp(onehourago)
+	if appliedTimestamp.GetTimeMilli() < historicallimit.GetTimeMilli() {
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to historical limit %s", requestedTS.String(), appliedTimestamp.String(), historicallimit.String())
+		appliedTimestamp.SetTimestamp(historicallimit)
 	}
 
-	// build a timestamp 20 minutes before boot so we will accept inMessages from nodes who booted before us.
+	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
 	preBootTime := new(primitives.Timestamp)
-	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
+	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - constants.PreBootWindow*60*1000)
 
-	if requestedTS.GetTimeMilli() < preBootTime.GetTimeMilli() {
-		requestedTS.SetTimestamp(preBootTime)
+	if appliedTimestamp.GetTimeMilli() < preBootTime.GetTimeMilli() {
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to preboot limit    %s", requestedTS.String(), appliedTimestamp.String(), preBootTime.String())
+		appliedTimestamp.SetTimestamp(preBootTime)
 	}
 
-	if s.messageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
-		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
-		return
+	if s.messageFilterTimestamp != nil && appliedTimestamp.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to current limit    %s", requestedTS.String(), appliedTimestamp.String(), s.messageFilterTimestamp.String())
+		appliedTimestamp.SetTimestamp(s.messageFilterTimestamp)
 	}
 
-	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", leaderTS, requestedTS.String())
-	s.messageFilterTimestamp = primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
+	//	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", requestedTS.String(), appliedTimestamp.String())
+	s.messageFilterTimestamp = appliedTimestamp
 }
 
 func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) {
@@ -1816,7 +1850,7 @@ func (s *State) GetNetworkBootStrapIdentity() (rval interfaces.IHash) {
 	return primitives.NewZeroHash()
 }
 
-// The identity for validating inMessages
+// The identity for validating messages
 func (s *State) GetNetworkSkeletonIdentity() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -1965,7 +1999,7 @@ func (s *State) SummaryHeader() string {
 		"DB ",
 		"PL  ",
 		" ",
-		"Min",
+		"Minute",
 		"DBState(ask/rply/drop/apply)",
 		"Msg",
 		"   Resend",
@@ -2258,7 +2292,7 @@ func (s *State) ProcessInvalidMsgQueue() {
 	s.InvalidMessagesMutex.Lock()
 	defer s.InvalidMessagesMutex.Unlock()
 	if len(s.InvalidMessages)+len(s.networkInvalidMsgQueue) > 2048 {
-		//Clearing old invalid inMessages
+		//Clearing old invalid messages
 		s.InvalidMessages = map[[32]byte]interfaces.IMsg{}
 	}
 

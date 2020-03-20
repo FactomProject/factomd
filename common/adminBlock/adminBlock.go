@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-
-	"reflect"
 	"sort"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -329,44 +327,24 @@ func (c *AdminBlock) GetDatabaseHeight() uint32 {
 }
 
 func (c *AdminBlock) GetChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("AdminBlock.DatabasePrimaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "AdminBlock.GetChainID") }()
 	return c.GetHeader().GetAdminChainID()
 }
 
 func (c *AdminBlock) DatabasePrimaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("AdminBlock.DatabasePrimaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "AdminBlock.DatabasePrimaryIndex") }()
 	key, _ := c.LookupHash()
 	return key
 }
 
 func (c *AdminBlock) DatabaseSecondaryIndex() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("AdminBlock.DatabaseSecondaryIndex() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "AdminBlock.DatabaseSecondaryIndex") }()
 	key, _ := c.BackReferenceHash()
 	return key
 }
 
 func (c *AdminBlock) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("AdminBlock.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "AdminBlock.GetHash") }()
 	h, _ := c.GetKeyMR()
 	return h
 }

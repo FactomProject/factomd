@@ -8,8 +8,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/leader"
 	controlpanel "github.com/FactomProject/factomd/controlPanel"
+	"github.com/FactomProject/factomd/modules/leader"
 	"os"
 	"reflect"
 	"sync"
@@ -388,7 +388,9 @@ func startFnodes(w *worker.Thread) {
 	state.CheckGrants() // check the grants table hard coded into the build is well formed.
 	for i, _ := range fnode.GetFnodes() {
 		node := fnode.Get(i)
-		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) { startServer(w, node) })
+		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) {
+			startServer(w, node)
+		})
 	}
 	time.Sleep(10 * time.Second)
 	common.PrintAllNames()

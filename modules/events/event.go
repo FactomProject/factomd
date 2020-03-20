@@ -22,6 +22,8 @@ type pubSubPaths struct {
 	NodeMessage       string
 	AuthoritySet      string
 	ConnectionMetrics string
+	ConnectionAdded   string
+	ConnectionRemoved string
 	ProcessListInfo   string
 	StateUpdate       string
 }
@@ -34,15 +36,17 @@ var Path = pubSubPaths{
 	LeaderConfig:      "leader-config",
 	LeaderMsgIn:       "leader-msg-in",
 	LeaderMsgOut:      "leader-msg-out",
-	ConnectionMetrics: path.Join("connection", "metrics"),
-	ProcessListInfo:   "process-list",
-	StateUpdate:       "state-update",
 	CommitChain:       "commit-chain",
 	CommitEntry:       "commit-entry",
 	RevealEntry:       "reveal-entry",
 	CommitDBState:     "commit-dbstate",
 	NodeMessage:       "node-message",
-	AuthoritySet: "authority-set",
+	ConnectionMetrics: path.Join("connection", "metrics"), // REVIEW: pubsub has it's own path maybe should use that
+	ConnectionAdded:   "connection-added",
+	ConnectionRemoved: "connection-removed",
+	ProcessListInfo:   "process-list",
+	StateUpdate:       "state-update",
+	AuthoritySet:      "authority-set",
 }
 
 type Balance struct {
@@ -80,17 +84,34 @@ type EOM struct {
 	Timestamp interfaces.Timestamp
 }
 
+type ProcessListInfo struct {
+	ProcessTime interfaces.Timestamp
+	Dump        string
+	PrintMap    string
+}
+
 type AuthoritySet struct {
 	LeaderHeight uint32
 	FedServers   []interfaces.IServer
 	AuditServers []interfaces.IServer
 }
 
+type ConnectionChanged struct {
+	IP       string
+	Status   string
+	Duration string
+	Send     string
+	Received string
+	IsOnline bool
+	State    string
+}
 
-type ProcessListInfo struct {
-	ProcessTime interfaces.Timestamp
-	Dump        string
-	PrintMap    string
+type ConnectionAdded struct {
+	ConnectionChanged
+}
+
+type ConnectionRemoved struct {
+	ConnectionChanged
 }
 
 type StateUpdate struct {
