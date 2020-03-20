@@ -7,7 +7,6 @@ package factoid
 import (
 	"fmt"
 	"os"
-	"reflect"
 	"runtime/debug"
 	"time"
 
@@ -122,23 +121,13 @@ func (*Transaction) GetVersion() uint64 {
 }
 
 func (t *Transaction) GetTxID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("Transaction.GetTxID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "Transaction.GetTxID") }()
 
 	return t.GetSigHash()
 }
 
 func (t *Transaction) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("Transaction.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "Transaction.GetHash") }()
 
 	m, err := t.MarshalBinary()
 	if err != nil {
