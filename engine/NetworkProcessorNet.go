@@ -802,3 +802,15 @@ func InvalidOutputs(fnode *fnode.FactomNode) {
 		// }
 	}
 }
+
+// Handle requests for missing data
+func MissingData(fnode *fnode.FactomNode) {
+	q := fnode.State.DataMsgQueue()
+	for {
+		select {
+		case msg := <-q:
+			fnode.State.LogMessage("DataQueue", fmt.Sprintf("dequeue %v", len(q)), msg)
+			msg.(*messages.MissingData).SendResponse(fnode.State)
+		}
+	}
+}

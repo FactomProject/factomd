@@ -154,13 +154,13 @@ func ValidateServerManagement(ent interfaces.IEBEntry) error {
 	return nil
 }
 
-// Checking the external ids if they match the needed lengths
-func CheckExternalIDsLength(extIDs [][]byte, lengths []int) bool {
-	if len(extIDs) != len(lengths) {
+// CheckExternalIDsLength checks that the input external ids match the input required lengths
+func CheckExternalIDsLength(extIDs [][]byte, reqLengths []int) bool {
+	if len(extIDs) != len(reqLengths) {
 		return false
 	}
 	for i := range extIDs {
-		if lengths[i] != len(extIDs[i]) {
+		if reqLengths[i] != len(extIDs[i]) {
 			return false
 		}
 	}

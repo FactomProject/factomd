@@ -105,7 +105,7 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 
 }
 
-var FilterTimeLimit = int64(Range * 60 * 2 * 1000000000) // Filter hold two hours of inMessages, one in the past one in the future
+var FilterTimeLimit = int64(Range * 60 * 2 * 1000000000) // Filter hold two hours of messages, one in the past one in the future
 
 func (s *State) GetFilterTimeNano() int64 {
 	t := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
@@ -115,17 +115,17 @@ func (s *State) GetFilterTimeNano() int64 {
 	return t
 }
 
-// this is the common validation to all inMessages. they must not be a reply, they must not be out size the time window
+// this is the common validation to all messages. they must not be a reply, they must not be out size the time window
 // for the replay filter.
 func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int) {
-	// check the time frame of inMessages with ACKs and reject any that are before the message filter time (before boot
+	// check the time frame of messages with ACKs and reject any that are before the message filter time (before boot
 	// or outside the replay filter time frame)
 
 	defer func() {
 		s.LogMessage("msgvalidation", fmt.Sprintf("send=%d execute=%d local=%v %s", *(&validToSend), *(&validToExec), msg.IsLocal(), atomic.WhereAmIString(1)), msg)
 	}()
 
-	// During boot ignore inMessages that are more than 15 minutes old...
+	// During boot ignore messages that are more than 15 minutes old...
 	if s.IgnoreMissing && msg.Type() != constants.DBSTATE_MSG {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
@@ -154,10 +154,10 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 				s.LogPrintf("executeMsg", "Message   %s", msg.GetTimestamp().GetTime().String())
 			}
 		}
-		// inMessages before message filter timestamp it's an old message
+		// messages before message filter timestamp it's an old message
 		if msgtime < filterTime {
 			s.LogMessage("executeMsg", "drop message, more than an hour in the past", msg)
-			return -1, -1 // Old inMessages are bad.
+			return -1, -1 // Old messages are bad.
 		} else if msgtime > (filterTime + FilterTimeLimit) {
 			s.LogMessage("executeMsg", "hold message from the future", msg)
 			return 0, 0 // Far Future (>1H) stuff I can hold for now.  It might be good later?
@@ -201,15 +201,15 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 		return 1, 1
 	}
 
-	// only valid to send inMessages past here
+	// only valid to send messages past here
 
 	msg.ComputeVMIndex(s)
 	vmIndex := msg.GetVMIndex()
 	// If we are not the leader, or this isn't the VM we are responsible for ...
 	if !s.Leader || (s.LeaderVMIndex != vmIndex) {
 		if constants.NeedsAck(msg.Type()) {
-			// don't need to check for a matching ack for ACKs or local inMessages
-			// for inMessages that get ACK make sure we can expect to process them
+			// don't need to check for a matching ack for ACKs or local messages
+			// for messages that get ACK make sure we can expect to process them
 			ack, _ := s.Acks[msg.GetMsgHash().Fixed()].(*messages.Ack)
 			if ack == nil {
 				s.LogPrintf("executeMsg", "LeaderVm = %d, msg vm = %d M-%x", s.LeaderVMIndex, vmIndex, msg.GetMsgHash().Bytes()[:3])

@@ -1603,6 +1603,10 @@ func (s *State) ElectionsQueue() interfaces.IQueue {
 	return s.electionsQueue
 }
 
+func (s *State) DataMsgQueue() chan interfaces.IMsg {
+	return s.dataQueue
+}
+
 func (s *State) APIQueue() interfaces.IQueue {
 	return s.apiQueue
 }
@@ -1634,39 +1638,44 @@ func (s *State) GetMessageFilterTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampFromMilliseconds(s.messageFilterTimestamp.GetTimeMilliUInt64())
 }
 
-// the MessageFilterTimestamp  is used to filter inMessages from the past or before the replay filter.
+// the MessageFilterTimestamp  is used to filter messages from the past or before the replay filter.
 // We will not set it to a time that is before (20 minutes before) boot or more than one hour in the past.
-// this ensure inMessages from prior boot and inMessages that predate the current replay filter are
+// this ensure messages from prior boot and messages that predate the current replay filter are
 // are dropped.
 // It marks the start of the replay filter content
-func (s *State) SetMessageFilterTimestamp(leaderTS interfaces.Timestamp) {
+func (s *State) SetMessageFilterTimestamp(requestedTS interfaces.Timestamp) {
+	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) from %s", requestedTS.String(), atomic.WhereAmIString(1))
 
-	// make a copy of the time stamp so we don't change the source
-	requestedTS := new(primitives.Timestamp)
-	requestedTS.SetTimestamp(leaderTS)
+	// create a new timestamp
+	appliedTimestamp := primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
 
-	onehourago := new(primitives.Timestamp)
-	onehourago.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 60*60*1000) // now() - one hour
+	// It's ok for the follower to be working on a block that is two behind the network, the block two back could be
+	// 20 before now and it accepts commits from up to an hour before it plus we gave messages 10 minutes to transit
+	// gossip network so 20 + 60 + 10 = 90 minutes ago is ok.
+	historicallimit := new(primitives.Timestamp)
+	historicallimit.SetTimeMilli(primitives.NewTimestampNow().GetTimeMilli() - 90*60*1000) // now() - 90 minutes
 
-	if requestedTS.GetTimeMilli() < onehourago.GetTimeMilli() {
-		requestedTS.SetTimestamp(onehourago)
+	if appliedTimestamp.GetTimeMilli() < historicallimit.GetTimeMilli() {
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to historical limit %s", requestedTS.String(), appliedTimestamp.String(), historicallimit.String())
+		appliedTimestamp.SetTimestamp(historicallimit)
 	}
 
-	// build a timestamp 20 minutes before boot so we will accept inMessages from nodes who booted before us.
+	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
 	preBootTime := new(primitives.Timestamp)
-	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
+	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - constants.PreBootWindow*60*1000)
 
-	if requestedTS.GetTimeMilli() < preBootTime.GetTimeMilli() {
-		requestedTS.SetTimestamp(preBootTime)
+	if appliedTimestamp.GetTimeMilli() < preBootTime.GetTimeMilli() {
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to preboot limit    %s", requestedTS.String(), appliedTimestamp.String(), preBootTime.String())
+		appliedTimestamp.SetTimestamp(preBootTime)
 	}
 
-	if s.messageFilterTimestamp != nil && requestedTS.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
-		s.LogPrintf("executeMsg", "Set MessageFilterTimestamp attempt to move backward in time from %s", atomic.WhereAmIString(1))
-		return
+	if s.messageFilterTimestamp != nil && appliedTimestamp.GetTimeMilli() < s.messageFilterTimestamp.GetTimeMilli() {
+		//		s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) -> %s moving to current limit    %s", requestedTS.String(), appliedTimestamp.String(), s.messageFilterTimestamp.String())
+		appliedTimestamp.SetTimestamp(s.messageFilterTimestamp)
 	}
 
-	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", leaderTS, requestedTS.String())
-	s.messageFilterTimestamp = primitives.NewTimestampFromMilliseconds(requestedTS.GetTimeMilliUInt64())
+	//	s.LogPrintf("executeMsg", "SetMessageFilterTimestamp(%s) using %s ", requestedTS.String(), appliedTimestamp.String())
+	s.messageFilterTimestamp = appliedTimestamp
 }
 
 func (s *State) GotHeartbeat(heartbeatTS interfaces.Timestamp, dbheight uint32) {
@@ -1836,7 +1845,7 @@ func (s *State) GetNetworkBootStrapIdentity() (rval interfaces.IHash) {
 	return primitives.NewZeroHash()
 }
 
-// The identity for validating inMessages
+// The identity for validating messages
 func (s *State) GetNetworkSkeletonIdentity() (rval interfaces.IHash) {
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
@@ -1985,7 +1994,7 @@ func (s *State) SummaryHeader() string {
 		"DB ",
 		"PL  ",
 		" ",
-		"Min",
+		"Minute",
 		"DBState(ask/rply/drop/apply)",
 		"Msg",
 		"   Resend",
@@ -2278,7 +2287,7 @@ func (s *State) ProcessInvalidMsgQueue() {
 	s.InvalidMessagesMutex.Lock()
 	defer s.InvalidMessagesMutex.Unlock()
 	if len(s.InvalidMessages)+len(s.networkInvalidMsgQueue) > 2048 {
-		//Clearing old invalid inMessages
+		//Clearing old invalid messages
 		s.InvalidMessages = map[[32]byte]interfaces.IMsg{}
 	}
 
