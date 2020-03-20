@@ -12,6 +12,7 @@ import (
 	. "github.com/FactomProject/factomd/common/entryBlock/specialEntries"
 )
 
+// TestUnmarshalNilFEREntry checks that unmarshalling nil or the empty interface produce the correct errors
 func TestUnmarshalNilFEREntry(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -31,6 +32,7 @@ func TestUnmarshalNilFEREntry(t *testing.T) {
 	}
 }
 
+// TestMarshalUnmarshalFEREntry checks that the entry may be marshalled and unmarshalled correctly
 func TestMarshalUnmarshalFEREntry(t *testing.T) {
 	fe := new(FEREntry)
 	fe.Version = "1"

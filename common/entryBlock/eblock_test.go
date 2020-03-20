@@ -9,6 +9,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestUnmarshalNilEBlock checks that unmarshalling nil and the empty interface produce errors
 func TestUnmarshalNilEBlock(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -28,35 +29,42 @@ func TestUnmarshalNilEBlock(t *testing.T) {
 	}
 }
 
+// TestEBlockMarshal checks that an EBlock can be marshalled and unmarshalled properly
 func TestEBlockMarshal(t *testing.T) {
 	eb := newTestingEntryBlock()
 
+	// Marshal
 	p, err := eb.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 
+	// Unmarshal
 	eb2 := NewEBlock()
 	err = eb2.UnmarshalBinary(p)
 	if err != nil {
 		t.Error(err)
 	}
 
+	// Marshal it again
 	p2, err := eb2.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 
+	// Check the bytes are equal
 	if primitives.AreBytesEqual(p, p2) == false {
 		t.Logf("eb1 = %x\n", p)
 		t.Logf("eb2 = %x\n", p2)
 		t.Fail()
 	}
 
+	// Unmarshal it one more time
 	eb3, err := UnmarshalEBlock(p)
 	if err != nil {
 		t.Error(err)
 	}
+	// And remarshal it
 	p3, err := eb3.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -69,6 +77,7 @@ func TestEBlockMarshal(t *testing.T) {
 	}
 }
 
+// TestEBlockMassiveUnmarshal checks that a large (10k) entry can be marshalled and unmarshalled properly
 func TestEBlockMassiveUnmarshal(t *testing.T) {
 	eb := newTestingEntryBlock()
 
@@ -104,6 +113,7 @@ func TestEBlockMassiveUnmarshal(t *testing.T) {
 	}
 }
 
+// TestAddEBEntry checks that you can marshal and unmarshal a test object AFTER adding an entry block
 func TestAddEBEntry(t *testing.T) {
 	eb := newTestingEntryBlock()
 	e := newEntry()
@@ -122,6 +132,7 @@ func TestAddEBEntry(t *testing.T) {
 	}
 }
 
+// byteof returns a filled 32 byte array with the input byte copied 32 times
 func byteof(b byte) []byte {
 	r := make([]byte, 0, 32)
 	for i := 0; i < 32; i++ {
@@ -130,6 +141,7 @@ func byteof(b byte) []byte {
 	return r
 }
 
+//TestEntryBlockMisc checks miscellaineous functions of the entry block
 func TestEntryBlockMisc(t *testing.T) {
 	e := newEntryBlock()
 	hash, err := e.Hash()
@@ -176,6 +188,7 @@ func TestEntryBlockMisc(t *testing.T) {
 	}
 }
 
+// newTestingEntryBlock creates a new entry block for testing
 func newTestingEntryBlock() *EBlock {
 	// build an EBlock for testing
 	eb := NewEBlock()
@@ -209,6 +222,7 @@ func newTestingEntryBlock() *EBlock {
 	return eb
 }
 
+// newEntryBlock creates a new entry block for use in tests within this file
 func newEntryBlock() *EBlock {
 	e := NewEBlock()
 	entryStr := "4bf71c177e71504032ab84023d8afc16e302de970e6be110dac20adbf9a1974625f25d9375533b44505964af993212ef7c13314736b2c76a37c73571d89d8b21c6180f7430677d46d93a3e17b68e6a25dc89ecc092cee1459101578859f7f6969d171a092a1d04f067d55628b461c6a106b76b4bc860445f87b0052cdc5f2bfd000002d800001b080000000272d72e71fdee4984ecb30eedcc89cb171d1f5f02bf9a8f10a8b2cfbaf03efe1c0000000000000000000000000000000000000000000000000000000000000001"
@@ -222,6 +236,8 @@ func newEntryBlock() *EBlock {
 	}
 	return e
 }
+
+// TestSameAs checks that the IsSameAs function of two different blocks do not compare the same, and that the same block matches its clone
 func TestSameAs(t *testing.T) {
 	//block 1000
 	eblock1kbytes, _ := hex.DecodeString("df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e6041611c693d62887530c5420a48f2ea2d6038745fc493d6b1e531232805dd2149614ef537df0c73df748b12d508b4334fe8d2832a4cd6ea24f64a3363839bd0efa46e835bfed10ded0d756d7ccafd44830cc942799fca43f2505e9d024b0a9dd3c00000221000003e800000002b24d4ee9e2184673a4d7de6fdac1288ea00b7856940341122c34bd50a662340a0000000000000000000000000000000000000000000000000000000000000009")
@@ -251,12 +267,15 @@ func TestSameAs(t *testing.T) {
 	//fmt.Println(db1k1)
 }
 
+// TestEBlock is a helper structure for testing
 type TestEBlock struct {
-	Raw   string
-	KeyMR string
-	Hash  string
+	Raw   string // Raw string of the block
+	KeyMR string // Merkle Root
+	Hash  string // Hash of the block
 }
 
+// TestMarshalUnmarshalStaticEBlock checks an array of two test block strings can be decoded, unmarshalled, and re-marshalled to get the same
+// string, and its appropriate hashes
 func TestMarshalUnmarshalStaticEBlock(t *testing.T) {
 	ts := []TestEBlock{}
 
