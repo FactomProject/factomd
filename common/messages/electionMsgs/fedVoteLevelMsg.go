@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -317,12 +316,7 @@ func (m *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
 }
 
 func (m *FedVoteLevelMsg) GetServerID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FedVoteLevelMsg.GetServerID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FedVoteLevelMsg.GetServerID") }()
 
 	return m.Signer
 }
@@ -332,12 +326,7 @@ func (m *FedVoteLevelMsg) LogFields() log.Fields {
 }
 
 func (m *FedVoteLevelMsg) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FedVoteLevelMsg.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FedVoteLevelMsg.GetRepeatHash") }()
 
 	return m.GetMsgHash()
 }
@@ -345,12 +334,7 @@ func (m *FedVoteLevelMsg) GetRepeatHash() (rval interfaces.IHash) {
 // We have to return the hash of the underlying message.
 
 func (m *FedVoteLevelMsg) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FedVoteLevelMsg.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FedVoteLevelMsg.GetHash") }()
 
 	return m.GetMsgHash()
 }
@@ -360,12 +344,7 @@ func (m *FedVoteLevelMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *FedVoteLevelMsg) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FedVoteLevelMsg.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FedVoteLevelMsg.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
