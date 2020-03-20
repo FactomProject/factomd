@@ -173,6 +173,9 @@ func isCompilerVersionOK() bool {
 	if strings.Contains(runtime.Version(), "1.13") {
 		goodenough = true
 	}
+	if strings.Contains(runtime.Version(), "1.14") {
+		goodenough = true
+	}
 	return goodenough
 }
 
