@@ -468,6 +468,7 @@ func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IEle
 	s.apiQueue = NewAPIQueue(s, constants.INMSGQUEUE_HIGH)                  //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 50)                             //queue of Leadership inMessages
 	s.msgQueue = make(chan interfaces.IMsg, 50)                             //queue of Follower inMessages
+	s.dataQueue = make(chan interfaces.IMsg, 50)                            //queue of Missing Data Requests
 	s.prioritizedMsgQueue = make(chan interfaces.IMsg, 50)                  //a prioritized queue of Follower inMessages (from mmr.go)
 	s.MissingEntries = make(chan *MissingEntry, constants.INMSGQUEUE_HIGH)  //Entries I discover are missing from the database
 	s.UpdateEntryHash = make(chan *EntryUpdate, constants.INMSGQUEUE_HIGH)  //Handles entry hashes and updating Commit maps.
