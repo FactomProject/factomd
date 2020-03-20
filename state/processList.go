@@ -998,8 +998,8 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	TotalAcksInputs.Inc()
 
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
-	//
-	if !ack.Response && ack.LeaderChainID.IsSameAs(s.IdentityChainID) {
+	// When the ack is from the future, don't panic, when it's from the past honor older/newer than 120 seconds rule below
+	if !ack.Response && ack.LeaderChainID.IsSameAs(s.IdentityChainID) && ack.DBHeight <= s.LLeaderHeight {
 		now := s.GetTimestamp().GetTimeSeconds()
 		ackSeconds := ack.Timestamp.GetTimeSeconds()
 		if now-ackSeconds > 120 {
