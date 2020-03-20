@@ -22,10 +22,9 @@ var _ = state.MakeMap
 //General acknowledge message
 type TimeoutInternal struct {
 	msgbase.MessageBase
-	Name        string
-	SigType     bool // True for EOM, false for DBSig
-	DBHeight    int
-	MessageHash interfaces.IHash
+	Name     string
+	SigType  bool // True for EOM, false for DBSig
+	DBHeight int
 }
 
 var _ interfaces.IMsg = (*TimeoutInternal)(nil)
@@ -235,12 +234,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 }
 
 func (m *TimeoutInternal) GetServerID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("TimeoutInternal.GetServerID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "TimeoutInternal.GetServerID") }()
 
 	return nil
 }
@@ -250,26 +244,16 @@ func (m *TimeoutInternal) LogFields() log.Fields {
 }
 
 func (m *TimeoutInternal) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("TimeoutInternal.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "TimeoutInternal.GetRepeatHash") }()
 
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
 func (m *TimeoutInternal) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("TimeoutInternal.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "TimeoutInternal.GetHash") }()
 
-	return m.MessageHash
+	return m.GetMsgHash()
 }
 
 func (m *TimeoutInternal) GetTimestamp() interfaces.Timestamp {
