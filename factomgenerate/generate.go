@@ -316,6 +316,8 @@ func runcmd(commandline string) {
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
-	die(err)
+	if err != nil {
+		log.Fatal(err)
+	}
 	fmt.Println(out.String())
 }

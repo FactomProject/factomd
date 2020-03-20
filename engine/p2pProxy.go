@@ -11,15 +11,12 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/worker"
-
-	// "github.com/FactomProject/factomd/common/constants"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 )

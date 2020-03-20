@@ -3,11 +3,12 @@ package state
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/livefeed"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/FactomProject/factomd/modules/livefeed"
 
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	"github.com/FactomProject/factomd/common"

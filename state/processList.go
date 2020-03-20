@@ -22,8 +22,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util/atomic"
 
-	//"github.com/FactomProject/factomd/database/databaseOverlay"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -121,7 +119,6 @@ type VM struct {
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
-
 	if p == nil {
 		return
 	}
