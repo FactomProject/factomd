@@ -33,7 +33,7 @@ const (
 	AckStatusDBlockConfirmedString = "DBlockConfirmed"
 )
 
-// AckStatusString will return the status int to a human readable string
+// AckStatusString will convert the input status int to a human readable string
 func AckStatusString(status int) string {
 	switch status {
 	case AckStatusInvalid:
