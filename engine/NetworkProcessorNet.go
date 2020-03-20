@@ -281,7 +281,7 @@ func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
 	}
 }
 
-// FIXME: pubish event
+// FIXME: publish event rather than using nested state queue
 func DataQ(node *fnode.FactomNode, source string, msg interfaces.IMsg) {
 	q := node.State.DataMsgQueue()
 	node.State.LogMessage("DataQueue", fmt.Sprintf(source+", enqueue %v", len(q)), msg)
