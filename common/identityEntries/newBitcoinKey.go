@@ -13,7 +13,7 @@ import (
 )
 
 // ExpectedBitcoinKeyExternalIDLengths is a hardcoded slice containing the expected lengths of each entry in an external ID (the fields of NewBitcoinKeyStructure)
-var ExpectedBitcoinKeyExternalIDLengths = []int{1, 14, 32, 32, 32, 32}
+var ExpectedBitcoinKeyExternalIDLengths = []int{1, 15, 32, 1, 1, 20, 8, 33, 64}
 
 // NewBitcoinKeyStructure holds all the information for adding a new bitcoin key to a server subchain
 // https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#add-new-bitcoin-key
