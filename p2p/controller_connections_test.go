@@ -244,11 +244,16 @@ func Test_controller_listen(t *testing.T) {
 	n1.conf.BindIP = ep.IP
 	n1.conf.ListenPort = ep.Port
 
+	start := make(chan bool, 1)
 	done := make(chan bool, 1)
 	go func() {
+		start <- true
 		n1.controller.listen()
 		done <- true
 	}()
+
+	<-start
+	time.Sleep(time.Millisecond * 100)
 
 	con, err := net.Dial("tcp", ep.String())
 	if err != nil {
