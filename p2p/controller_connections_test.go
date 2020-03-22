@@ -246,7 +246,7 @@ func Test_controller_listen(t *testing.T) {
 
 	done := make(chan bool, 1)
 	go func() {
-		go n1.controller.listen()
+		n1.controller.listen()
 		done <- true
 	}()
 
