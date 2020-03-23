@@ -5,6 +5,7 @@ package testHelper
 import (
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/modules/livefeed"
 	"github.com/FactomProject/factomd/pubsub"
 	"github.com/FactomProject/factomd/simulation"
 	"os/exec"
@@ -95,6 +96,7 @@ func CreateAndPopulateTestState() *state.State {
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
 	s.LoadConfig("", "")
+	s.LiveFeedService = livefeed.NewLiveFeedService()
 
 	s.DirectoryBlockInSeconds = 20
 
