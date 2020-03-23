@@ -152,6 +152,7 @@ func NetStart(w *worker.Thread, p *globals.FactomParams, listenToStdin bool) {
 	}
 	startNetwork(w, p)
 	startFnodes(w)
+	startLiveFeed(w, p)
 	startWebserver(w)
 	startControlPanel(w)
 	simulation.StartSimControl(w, p.ListenTo, listenToStdin)
@@ -195,6 +196,7 @@ func initAnchors(s *state.State, reparse bool) {
 	}
 }
 
+// start live feed service (for fnode 0 only)
 func startLiveFeed(w *worker.Thread, p *globals.FactomParams) {
 	state0 := fnode.Get(0).State
 	config := state0.Cfg.(*util.FactomdConfig)
