@@ -949,7 +949,10 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.EOMLimit = len(s.LeaderPL.FedServers) // We add or remove server only on block boundaries
 	s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
-	s.Pub.BlkSeq.Write(&events.DBHT{DBHeight: s.LLeaderHeight, Minute: s.CurrentMinute})
+
+	if s.Pub != nil { // FIXME: should coordinate threads to start processing only after publish
+		s.Pub.BlkSeq.Write(&events.DBHT{DBHeight: s.LLeaderHeight, Minute: s.CurrentMinute})
+	}
 
 	s.Hold.ExecuteForNewHeight(s.LLeaderHeight, s.CurrentMinute) // execute held inMessages
 	s.Hold.Review()                                              // cleanup old inMessages
