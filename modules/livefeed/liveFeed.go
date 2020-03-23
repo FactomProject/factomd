@@ -12,8 +12,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func (*liveFeedService) ConfigSender(_ ...interface{}) {
+}
+
 type LiveFeedService interface {
 	Start(state StateEventServices, config *util.FactomdConfig, factomParams *globals.FactomParams)
+	ConfigSender(_ ...interface{})
 }
 
 type liveFeedService struct {
