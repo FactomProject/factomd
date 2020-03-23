@@ -14,6 +14,7 @@ type EventHandler interface {
 	Shutdown()
 	RegisterRoutes(router *mux.Router)
 	RegisterChannel(channel string, message func() *sse.Message, interval time.Duration)
+	Server() *sse.Server
 }
 
 type eventHandler struct {
@@ -23,8 +24,12 @@ type eventHandler struct {
 // NewEventHandler create new event handler to allow and handle subscriptions from the UI
 func NewEventHandler() EventHandler {
 	return &eventHandler{
-		server: sse.NewServer(nil),
+		server: sse.NewServer(&sse.Options{Logger: nil}), // NOTE: this disables// very verbose sse messages
 	}
+}
+
+func (handler *eventHandler) Server() *sse.Server {
+	return handler.server
 }
 
 // RegisterRoutes registers the routes with where channels will be available

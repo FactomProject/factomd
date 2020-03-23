@@ -73,9 +73,7 @@ func New(config *Config) {
 	webHandler := NewWebHandler(indexPage)
 	webHandler.RegisterRoutes(router)
 
-	server := sse.NewServer(nil)
-
-	eventHandler := &eventHandler{server: server}
+	eventHandler := NewEventHandler()
 	defer eventHandler.Shutdown()
 
 	eventHandler.RegisterRoutes(router)
@@ -122,7 +120,7 @@ func New(config *Config) {
 	controlPanel.ProcessListInfo.Subscribe(pubsub.GetPath(config.NodeName, events.Path.ProcessListInfo))
 	controlPanel.StateUpdate.Subscribe(pubsub.GetPath(config.NodeName, events.Path.StateUpdate))
 
-	go controlPanel.handleEvents(server)
+	go controlPanel.handleEvents(eventHandler.Server())
 
 	address := fmt.Sprintf("%s:%d", config.Host, config.Port)
 	webserver := &http.Server{Addr: address, Handler: router}
@@ -153,7 +151,7 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 					break
 				}
 
-				log.Printf("msg input: %s", data)
+				//log.Printf("msg input: %s", data)
 				message := sse.SimpleMessage(string(data))
 				server.SendMessage(URL_PREFIX+"general-events", message)
 			}
