@@ -97,12 +97,12 @@ func (s *Sub) SetFollowerMode() {
 }
 
 type Events struct {
-	Config              *events.LeaderConfig //
-	*events.DBHT                             // from move-to-ht
-	*events.Balance                          // REVIEW: does this relate to a specific VM
-	*events.Directory                        //
-	*events.Ack                              // record of last sent ack by leader
-	*events.AuthoritySet                     //
+	Config               *events.LeaderConfig //
+	*events.DBHT                              // from move-to-ht
+	*events.Balance                           // REVIEW: does this relate to a specific VM
+	*events.Directory                         //
+	*events.Ack                               // record of last sent ack by leader
+	*events.AuthoritySet                      //
 }
 
 func (l *Leader) Start(w *worker.Thread) {
@@ -280,14 +280,15 @@ blockLoop:
 		}
 		log.LogPrintf(l.logfile, "MinLoopStart: %v", true)
 	minLoop:
-		for { // could be counted 1..9 to account for min
+		for {
 			ok := worker.RunSteps(
 				l.processMin,
 				l.sendEOM,
-				l.waitForNewBlock,
 			)
 			if !ok {
 				break minLoop
+			} else {
+				l.waitForNewBlock()
 			}
 		}
 		log.LogPrintf(l.logfile, "MinLoopEnd: %v", true)
