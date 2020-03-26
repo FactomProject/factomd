@@ -1,7 +1,7 @@
 package controlpanel
 
 import (
-	"github.com/FactomProject/factomd/controlPanel/pages"
+	"github.com/FactomProject/factomd/modules/controlPanel/pages"
 	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"

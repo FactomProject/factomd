@@ -2,7 +2,7 @@ package controlpanel
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/controlPanel/pages"
+	"github.com/FactomProject/factomd/modules/controlPanel/pages"
 	"github.com/gorilla/mux"
 	"html/template"
 	"log"

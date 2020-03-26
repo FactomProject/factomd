@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/controlPanel/pages"
+	"github.com/FactomProject/factomd/modules/controlPanel/pages"
 	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/alexandrevicenzi/go-sse"

@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	controlpanel "github.com/FactomProject/factomd/controlPanel"
+	controlpanel "github.com/FactomProject/factomd/modules/controlPanel"
 	"github.com/FactomProject/factomd/modules/leader"
 	"os"
 	"reflect"
