@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 )
 
 // If you really want to make a subscriber outside the package, you can.

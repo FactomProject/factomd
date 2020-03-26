@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	. "github.com/FactomProject/factomd/pubsub"
+	. "github.com/FactomProject/factomd/modules/pubsub"
 )
 
 func TestRegistry_Subscribe(t *testing.T) {

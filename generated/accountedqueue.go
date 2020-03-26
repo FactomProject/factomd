@@ -11,7 +11,7 @@ import (
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/telemetry"
+	"github.com/FactomProject/factomd/modules/telemetry"
 )
 
 // End fileheader template

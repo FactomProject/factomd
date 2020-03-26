@@ -11,7 +11,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/messages"
 
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 	"go.uber.org/ratelimit"
 )
 

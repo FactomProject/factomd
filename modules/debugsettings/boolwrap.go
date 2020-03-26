@@ -1,7 +1,7 @@
 package debugsettings
 
 import (
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 )
 
 // Value subscriber has the basic necessary function implementations. All this does is add a wrapper with typing.

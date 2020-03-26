@@ -4,7 +4,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	. "github.com/FactomProject/factomd/pubsub"
+	. "github.com/FactomProject/factomd/modules/pubsub"
 	"testing"
 )
 

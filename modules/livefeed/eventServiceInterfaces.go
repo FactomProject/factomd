@@ -3,7 +3,7 @@ package livefeed
 import (
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 )
 
 type StateEventServices interface {

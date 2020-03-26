@@ -1,6 +1,6 @@
 package state
 
-import "github.com/FactomProject/factomd/telemetry"
+import "github.com/FactomProject/factomd/modules/telemetry"
 
 var (
 	// Entry Syncing Controller

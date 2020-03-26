@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 )
 
 // Absolute basic minimum

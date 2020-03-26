@@ -3,7 +3,7 @@ package controlpanel
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/testHelper"
 	"testing"
 	"time"

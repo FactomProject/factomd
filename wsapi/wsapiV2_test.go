@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/modules/registry"
 	"github.com/FactomProject/factomd/worker"
 
 	"github.com/stretchr/testify/assert"

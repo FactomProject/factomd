@@ -6,7 +6,7 @@ import (
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/generated"
-	"github.com/FactomProject/factomd/telemetry"
+	"github.com/FactomProject/factomd/modules/telemetry"
 )
 
 //FactomGenerate template accountedqueue typename Queue_IMsg type interfaces.IMsg import "github.com/FactomProject/factomd/common/interfaces"

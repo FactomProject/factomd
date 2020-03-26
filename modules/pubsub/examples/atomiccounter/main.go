@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 )
 
 // Atomic counter keeps all subscribers on the same level

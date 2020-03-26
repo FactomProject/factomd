@@ -2,7 +2,7 @@ package p2p
 
 import (
 	"github.com/FactomProject/factomd/modules/events"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/worker"
 )
 

@@ -5,10 +5,10 @@ package simulation
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/testHelper"
 
-	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/modules/registry"
 	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factom"

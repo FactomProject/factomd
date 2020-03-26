@@ -11,7 +11,7 @@ package databaseOverlay
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 	"os"
 	"sync"
 

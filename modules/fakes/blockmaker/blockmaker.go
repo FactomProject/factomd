@@ -3,7 +3,7 @@ package blockmaker
 import (
 	"time"
 
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 )
 
 // FakeBlockMaker will generate timestamps as if factom blocks are being

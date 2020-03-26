@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 
-	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/modules/registry"
 )
 
 // just load up and print out visualization of registered threads

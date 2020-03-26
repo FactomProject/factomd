@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 )
 
 const buffer int = 100

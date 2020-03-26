@@ -14,7 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
 	llog "github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/util/atomic"
 )
 

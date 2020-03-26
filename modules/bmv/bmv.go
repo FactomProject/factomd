@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/factomd/modules/debugsettings"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 )
 
 type BasicMessageValidator struct {

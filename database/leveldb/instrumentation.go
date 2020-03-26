@@ -1,7 +1,7 @@
 package leveldb
 
 import (
-	"github.com/FactomProject/factomd/telemetry"
+	"github.com/FactomProject/factomd/modules/telemetry"
 )
 
 var (

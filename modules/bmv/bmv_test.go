@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 
 	"github.com/FactomProject/factomd/modules/fakes/blockmaker"
 	"github.com/FactomProject/factomd/modules/fakes/msgmaker"

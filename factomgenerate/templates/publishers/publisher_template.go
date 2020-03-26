@@ -12,7 +12,7 @@ package publishers
 
 import (
 	. "github.com/FactomProject/factomd/common/pubsubtypes"
-	. "github.com/FactomProject/factomd/pubsub"
+	. "github.com/FactomProject/factomd/modules/pubsub"
 )
 
 //ϾendϿ

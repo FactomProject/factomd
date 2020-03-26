@@ -3,7 +3,7 @@ package log_test
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/modules/registry"
 
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/worker"

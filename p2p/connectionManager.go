@@ -9,7 +9,7 @@ package p2p
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 	"math/rand"
 )
 

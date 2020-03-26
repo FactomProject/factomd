@@ -6,7 +6,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/registry"
+	"github.com/FactomProject/factomd/modules/registry"
 	"github.com/FactomProject/factomd/worker"
 )
 

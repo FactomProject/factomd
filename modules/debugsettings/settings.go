@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 )
 
 var (

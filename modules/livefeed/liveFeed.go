@@ -5,9 +5,9 @@ import (
 	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/modules/livefeed/eventservices"
+	"github.com/FactomProject/factomd/modules/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub/subregistry"
 	"github.com/FactomProject/factomd/p2p"
-	"github.com/FactomProject/factomd/pubsub"
-	"github.com/FactomProject/factomd/pubsub/subregistry"
 	"github.com/FactomProject/factomd/util"
 	log "github.com/sirupsen/logrus"
 )

@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"github.com/FactomProject/factomd/generated"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/globals"

@@ -17,7 +17,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/modules/bmv"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/worker"
 )
 

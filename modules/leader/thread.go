@@ -7,7 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/events"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/worker"
 )

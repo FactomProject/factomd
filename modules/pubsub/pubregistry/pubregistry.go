@@ -2,7 +2,7 @@ package pubregistry
 
 import (
 	"github.com/FactomProject/factomd/modules/events"
-	"github.com/FactomProject/factomd/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub"
 )
 
 type PubRegistry struct {

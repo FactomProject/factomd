@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/messages"
-	. "github.com/FactomProject/factomd/pubsub"
+	. "github.com/FactomProject/factomd/modules/pubsub"
 )
 
 func logf(f string, a ...interface{}) {
