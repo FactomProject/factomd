@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/FactomProject/factomd/worker"
+	"github.com/FactomProject/factomd/modules/worker"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/gorilla/mux"

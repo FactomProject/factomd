@@ -29,10 +29,10 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/modules/registry"
+	"github.com/FactomProject/factomd/modules/worker"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
-	"github.com/FactomProject/factomd/worker"
 	"github.com/FactomProject/factomd/wsapi"
 
 	llog "github.com/FactomProject/factomd/log"

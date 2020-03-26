@@ -9,7 +9,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 
 	"github.com/FactomProject/factomd/modules/registry"
-	"github.com/FactomProject/factomd/worker"
+	"github.com/FactomProject/factomd/modules/worker"
 
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/primitives"

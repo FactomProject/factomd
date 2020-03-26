@@ -15,8 +15,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/fnode"
+	"github.com/FactomProject/factomd/modules/worker"
 	"github.com/FactomProject/factomd/p2p"
-	"github.com/FactomProject/factomd/worker"
 
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 )

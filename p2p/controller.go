@@ -19,7 +19,7 @@ import (
 	"unicode"
 
 	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/worker"
+	"github.com/FactomProject/factomd/modules/worker"
 
 	"github.com/FactomProject/factomd/common/primitives"
 )

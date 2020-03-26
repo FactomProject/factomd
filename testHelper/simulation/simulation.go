@@ -19,8 +19,8 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/modules/registry"
+	"github.com/FactomProject/factomd/modules/worker"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/worker"
 	"github.com/stretchr/testify/assert"
 )
 

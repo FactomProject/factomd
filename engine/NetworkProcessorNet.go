@@ -18,7 +18,7 @@ import (
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/modules/bmv"
 	"github.com/FactomProject/factomd/modules/pubsub"
-	"github.com/FactomProject/factomd/worker"
+	"github.com/FactomProject/factomd/modules/worker"
 )
 
 var _ = fmt.Print

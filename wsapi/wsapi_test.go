@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/modules/registry"
-	"github.com/FactomProject/factomd/worker"
+	"github.com/FactomProject/factomd/modules/worker"
 
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"

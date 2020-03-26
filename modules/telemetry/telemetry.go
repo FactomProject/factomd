@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/worker"
+	"github.com/FactomProject/factomd/modules/worker"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

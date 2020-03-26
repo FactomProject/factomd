@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/modules/registry"
-	"github.com/FactomProject/factomd/worker"
+	"github.com/FactomProject/factomd/modules/worker"
 
 	"github.com/stretchr/testify/assert"
 

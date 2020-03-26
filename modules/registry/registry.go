@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/worker"
+	"github.com/FactomProject/factomd/modules/worker"
 )
 
 // Index of all top-level threads

@@ -11,7 +11,7 @@ import (
 	"github.com/FactomProject/factomd/generated"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/modules/telemetry"
-	"github.com/FactomProject/factomd/worker"
+	"github.com/FactomProject/factomd/modules/worker"
 )
 
 type heldMessage struct {

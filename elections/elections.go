@@ -3,8 +3,8 @@ package elections
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/modules/query"
+	"github.com/FactomProject/factomd/modules/worker"
 	"github.com/FactomProject/factomd/queue"
-	"github.com/FactomProject/factomd/worker"
 	"reflect"
 	"time"
 

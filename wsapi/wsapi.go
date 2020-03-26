@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/worker"
+	"github.com/FactomProject/factomd/modules/worker"
 
 	"github.com/FactomProject/btcutil/certs"
 	"github.com/FactomProject/factomd/common/interfaces"

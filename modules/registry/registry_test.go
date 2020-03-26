@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/modules/registry"
-	"github.com/FactomProject/factomd/worker"
+	"github.com/FactomProject/factomd/modules/worker"
 )
 
 // add a sub thread that uses all callbacks

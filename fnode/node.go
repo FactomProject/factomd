@@ -10,8 +10,8 @@ import (
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/modules/worker"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/worker"
 )
 
 type root struct {
