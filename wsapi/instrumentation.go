@@ -3,7 +3,7 @@ package wsapi
 import "github.com/FactomProject/factomd/modules/telemetry"
 
 var (
-	GensisFblockCall = telemetry.NewCounter(
+	GenesisFlockCall = telemetry.NewCounter(
 		"factomd_wsapi_v2_gensis_fblock_count",
 		"Number of times the gensis Fblock is asked for",
 	)
