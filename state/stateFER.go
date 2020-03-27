@@ -18,57 +18,57 @@ import (
 )
 
 // Go through the factoid exchange rate chain and determine if an FER change should be scheduled
-func (this *State) ProcessRecentFERChainEntries() {
+func (s *State) ProcessRecentFERChainEntries() {
 	// Find the FER entry chain
-	FERChainHash, err := primitives.HexToHash(this.FERChainId)
+	FERChainHash, err := primitives.HexToHash(s.FERChainId)
 	if err != nil {
-		this.Println("The FERChainId couldn't be turned into a IHASH")
+		s.Println("The FERChainId couldn't be turned into a IHASH")
 		return
 	}
 
 	//  Get the first eblock from the FERChain
-	entryBlock, err := this.DB.FetchEBlockHead(FERChainHash)
+	entryBlock, err := s.DB.FetchEBlockHead(FERChainHash)
 	if err != nil {
-		//		packageLogger.Debugf("FER Chain head found to be nil %v", this.FERChainId)
-		// this.Println("Couldn't find the FER chain for id ", this.FERChainId)
+		//		packageLogger.Debugf("FER Chain head found to be nil %v", s.FERChainId)
+		// s.Println("Couldn't find the FER chain for id ", s.FERChainId)
 		return
 	}
 	if entryBlock == nil {
 		//		packageLogger.Debug("FER Chain head found to be nil")
-		// this.Println("FER Chain head found to be nil")
+		// s.Println("FER Chain head found to be nil")
 		return
 	}
 
-	this.Println("Checking last e block of FER chain with height of: ", entryBlock.GetHeader().GetDBHeight())
-	this.Println("Current block height: ", this.GetDBHeightComplete())
-	this.Println("BEFORE processing recent block: ")
-	this.Println("    FERChangePrice: ", this.FERChangePrice)
-	this.Println("    FERChangeHeight: ", this.FERChangeHeight)
-	this.Println("    FERPriority: ", this.FERPriority)
-	this.Println("    FERPrioritySetHeight: ", this.FERPrioritySetHeight)
-	this.Println("    FER current: ", this.GetFactoshisPerEC())
+	s.Println("Checking last e block of FER chain with height of: ", entryBlock.GetHeader().GetDBHeight())
+	s.Println("Current block height: ", s.GetDBHeightComplete())
+	s.Println("BEFORE processing recent block: ")
+	s.Println("    FERChangePrice: ", s.FERChangePrice)
+	s.Println("    FERChangeHeight: ", s.FERChangeHeight)
+	s.Println("    FERPriority: ", s.FERPriority)
+	s.Println("    FERPrioritySetHeight: ", s.FERPrioritySetHeight)
+	s.Println("    FER current: ", s.GetFactoshisPerEC())
 
 	// Check to see if a price change targets the next block
-	if this.FERChangeHeight == (this.GetDBHeightComplete())+1 {
-		this.FactoshisPerEC = this.FERChangePrice
-		this.FERChangePrice = 0
-		this.FERChangeHeight = 1
+	if s.FERChangeHeight == (s.GetDBHeightComplete())+1 {
+		s.FactoshisPerEC = s.FERChangePrice
+		s.FERChangePrice = 0
+		s.FERChangeHeight = 1
 	}
 
 	// Check for the need to clear the priority
-	// (this.GetDBHeightComplete() >= 12) is import because height is a uint and can't break logic if subtracted into false sub-zero
-	if (this.GetDBHeightComplete() >= 12) &&
-		(this.GetDBHeightComplete()-12) >= this.FERPrioritySetHeight {
-		this.FERPrioritySetHeight = 0
-		this.FERPriority = 0
+	// (s.GetDBHeightComplete() >= 12) is import because height is a uint and can't break logic if subtracted into false sub-zero
+	if (s.GetDBHeightComplete() >= 12) &&
+		(s.GetDBHeightComplete()-12) >= s.FERPrioritySetHeight {
+		s.FERPrioritySetHeight = 0
+		s.FERPriority = 0
 		// Now the next entry to come through with a priority of 1 or more will be considered
 	}
 
 	// Check last entry block method
-	if entryBlock.GetHeader().GetDBHeight() == this.GetDBHeightComplete()-1 {
+	if entryBlock.GetHeader().GetDBHeight() == s.GetDBHeightComplete()-1 {
 		entryHashes := entryBlock.GetEntryHashes()
 
-		// this.Println("Found FER entry hashes in a block as: ", entryHashes)
+		// s.Println("Found FER entry hashes in a block as: ", entryHashes)
 		// create a map of possible minute markers that may be found in the EBlock Body
 		mins := make(map[string]uint8)
 		for i := byte(0); i <= 10; i++ {
@@ -79,69 +79,69 @@ func (this *State) ProcessRecentFERChainEntries() {
 
 		// Loop through the hashes from the last blocks FER entries and evaluate them individually
 		for _, entryHash := range entryHashes {
-			// if this entryhash is a minute mark then continue
+			// if s entryhash is a minute mark then continue
 			if _, exist := mins[entryHash.String()]; exist {
 				continue
 			}
 
 			// Make sure the entry exists
-			anEntry, err := this.DB.FetchEntry(entryHash)
+			anEntry, err := s.DB.FetchEntry(entryHash)
 			if err != nil {
-				this.Println("Error during FetchEntryByHash: ", err)
+				s.Println("Error during FetchEntryByHash: ", err)
 				continue
 			}
 			if anEntry == nil {
-				this.Println("Nil entry during FetchEntryByHash: ", entryHash)
+				s.Println("Nil entry during FetchEntryByHash: ", entryHash)
 				continue
 			}
 
-			if !this.ExchangeRateAuthorityIsValid(anEntry) {
-				this.Println("Skipping non-authority FER chain entry", entryHash)
+			if !s.ExchangeRateAuthorityIsValid(anEntry) {
+				s.Println("Skipping non-authority FER chain entry", entryHash)
 				continue
 			}
 
 			entryContent := anEntry.GetContent()
-			// this.Println("Found content of an FER entry is:  ", string(entryContent))
+			// s.Println("Found content of an FER entry is:  ", string(entryContent))
 			ferEntry := new(specialEntries.FEREntry)
 			err = ferEntry.UnmarshalBinary(entryContent)
 			if err != nil {
-				this.Println("A FEREntry messgae didn't unmarshal correctly: ", err)
+				s.Println("A FEREntry messgae didn't unmarshal correctly: ", err)
 				continue
 			}
 
 			// Set it's resident height for validity checking
-			ferEntry.SetResidentHeight(this.GetDBHeightComplete())
+			ferEntry.SetResidentHeight(s.GetDBHeightComplete())
 
-			if (this.FerEntryIsValid(ferEntry)) && (ferEntry.Priority > this.FERPriority) {
-				this.Println(" Processing FER entry : ", string(entryContent))
-				this.FERPriority = ferEntry.GetPriority()
-				this.FERPrioritySetHeight = this.GetDBHeightComplete()
-				this.FERChangePrice = ferEntry.GetTargetPrice()
-				this.FERChangeHeight = ferEntry.GetTargetActivationHeight()
+			if (s.FerEntryIsValid(ferEntry)) && (ferEntry.Priority > s.FERPriority) {
+				s.Println(" Processing FER entry : ", string(entryContent))
+				s.FERPriority = ferEntry.GetPriority()
+				s.FERPrioritySetHeight = s.GetDBHeightComplete()
+				s.FERChangePrice = ferEntry.GetTargetPrice()
+				s.FERChangeHeight = ferEntry.GetTargetActivationHeight()
 
 				// Adjust the target if needed
-				if this.FERChangeHeight < (this.GetDBHeightComplete() + 2) {
-					this.FERChangeHeight = this.GetDBHeightComplete() + 2
+				if s.FERChangeHeight < (s.GetDBHeightComplete() + 2) {
+					s.FERChangeHeight = s.GetDBHeightComplete() + 2
 				}
 			} else {
-				this.Println(" Failed FER entry : ", string(entryContent))
+				s.Println(" Failed FER entry : ", string(entryContent))
 			}
 		}
 	}
 
-	this.Println("AFTER processing recent block: ")
-	this.Println("    FERChangePrice: ", this.FERChangePrice)
-	this.Println("    FERChangeHeight: ", this.FERChangeHeight)
-	this.Println("    FERPriority: ", this.FERPriority)
-	this.Println("    FERPrioritySetHeight: ", this.FERPrioritySetHeight)
-	this.Println("    FER current: ", this.GetFactoshisPerEC())
-	this.Println("----------------------------------")
+	s.Println("AFTER processing recent block: ")
+	s.Println("    FERChangePrice: ", s.FERChangePrice)
+	s.Println("    FERChangeHeight: ", s.FERChangeHeight)
+	s.Println("    FERPriority: ", s.FERPriority)
+	s.Println("    FERPrioritySetHeight: ", s.FERPrioritySetHeight)
+	s.Println("    FER current: ", s.GetFactoshisPerEC())
+	s.Println("----------------------------------")
 
 	return
 }
 
-func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
-	pubStr, err := factoid.PublicKeyStringToECAddressString(this.ExchangeRateAuthorityPublicKey)
+func (s *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
+	pubStr, err := factoid.PublicKeyStringToECAddressString(s.ExchangeRateAuthorityPublicKey)
 	if err != nil {
 		return false
 	}
@@ -158,7 +158,7 @@ func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 	copy(pub[:], authorityAddress[2:34])
 
 	// in case verify can't handle empty public key
-	if this.ExchangeRateAuthorityPublicKey == "" {
+	if s.ExchangeRateAuthorityPublicKey == "" {
 		return false
 	}
 	sig := new([64]byte)
@@ -178,7 +178,7 @@ func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 	return true
 }
 
-func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
+func (s *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	// fail if expired
 	if passedFEREntry.GetExpirationHeight() < passedFEREntry.GetResidentHeight() {
 		fmt.Println("FER Failed-fail if expired")
@@ -205,13 +205,13 @@ func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 }
 
 // Returns the higher of the current factoid exchange rate and what it knows will change in the future
-func (this *State) GetPredictiveFER() uint64 {
-	currentFER := this.GetFactoshisPerEC()
+func (s *State) GetPredictiveFER() uint64 {
+	currentFER := s.GetFactoshisPerEC()
 
-	if (this.FERChangeHeight == 0) || // Check to see if no change has been registered
-		(this.FERChangePrice <= currentFER) {
+	if (s.FERChangeHeight == 0) || // Check to see if no change has been registered
+		(s.FERChangePrice <= currentFER) {
 		return currentFER
 	}
 
-	return this.FERChangePrice
+	return s.FERChangePrice
 }

@@ -16,7 +16,7 @@ import (
 // 			1  -> Federated Signature
 //			0  -> Audit Signature
 //			-1 -> Neither Fed or Audit Signature
-func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte, dbheight uint32) (rval int, err error) {
+func (s *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte, dbheight uint32) (rval int, err error) {
 
 	//defer func() { // debug code
 	//	//st.LogMessage("executeMsg", "Signature Fail", msg)
@@ -56,13 +56,13 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 	//
 	//	}
 	//}() // end debug code
-	feds := st.GetFedServers(dbheight)
+	feds := s.GetFedServers(dbheight)
 	if feds == nil {
 		return -1, fmt.Errorf("Federated Servers are unknown at directory block height %d", dbheight)
 	}
 
 	for _, fed := range feds {
-		auth, _ := st.GetAuthority(fed.GetChainID())
+		auth, _ := s.GetAuthority(fed.GetChainID())
 		if auth == nil {
 			continue
 		}
@@ -72,12 +72,12 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 		}
 	}
 
-	auds := st.GetAuditServers(dbheight)
+	auds := s.GetAuditServers(dbheight)
 	if auds == nil {
 		return -1, fmt.Errorf("Audit Servers are unknown at directory block height %d", dbheight)
 	}
 	for _, aud := range auds {
-		auth, _ := st.GetAuthority(aud.GetChainID())
+		auth, _ := s.GetAuthority(aud.GetChainID())
 		if auth == nil {
 			continue
 		}
@@ -86,11 +86,11 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 			return 0, nil
 		}
 	}
-	if st.CurrentMinute == 0 {
+	if s.CurrentMinute == 0 {
 		// Also allow leaders who were demoted if we are in minute 0
-		feds := st.LeaderPL.StartingFedServers
+		feds := s.LeaderPL.StartingFedServers
 		for _, fed := range feds {
-			auth, _ := st.GetAuthority(fed.GetChainID())
+			auth, _ := s.GetAuthority(fed.GetChainID())
 			if auth == nil {
 				continue
 			}
@@ -109,19 +109,19 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 // 			1  -> Federated Signature
 //			0  -> Audit Signature
 //			-1 -> Neither Fed or Audit Signature
-func (st *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSignature, dbheight uint32) (int, error) {
+func (s *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSignature, dbheight uint32) (int, error) {
 	if sig == nil { // no signature = not valid
 		return -1, fmt.Errorf("Message contained no signature")
 	}
 
-	feds := st.GetFedServers(dbheight)
+	feds := s.GetFedServers(dbheight)
 	if feds == nil {
 		return 0, fmt.Errorf("Federated Servers are unknown at directory block height %d", dbheight)
 	}
-	auds := st.GetAuditServers(dbheight)
+	auds := s.GetAuditServers(dbheight)
 
 	for _, fed := range feds {
-		auth, _ := st.GetAuthority(fed.GetChainID())
+		auth, _ := s.GetAuthority(fed.GetChainID())
 		if auth == nil {
 			continue
 		}
@@ -137,7 +137,7 @@ func (st *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSi
 	}
 
 	for _, aud := range auds {
-		auth, _ := st.GetAuthority(aud.GetChainID())
+		auth, _ := s.GetAuthority(aud.GetChainID())
 		if auth == nil {
 			continue
 		}
@@ -154,11 +154,11 @@ func (st *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSi
 	//fmt.Println("WARNING: A signature failed to validate.")
 
 	// The checking pl for nil happens for unit testing
-	if st.CurrentMinute == 0 && st.LeaderPL != nil {
+	if s.CurrentMinute == 0 && s.LeaderPL != nil {
 		// Also allow leaders who were demoted if we are in minute 0
-		feds := st.LeaderPL.StartingFedServers
+		feds := s.LeaderPL.StartingFedServers
 		for _, fed := range feds {
-			auth, _ := st.GetAuthority(fed.GetChainID())
+			auth, _ := s.GetAuthority(fed.GetChainID())
 			if auth == nil {
 				continue
 			}
@@ -174,8 +174,8 @@ func (st *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSi
 		}
 	}
 
-	for i, f := range st.GetFedServers(st.LLeaderHeight) {
-		st.LogPrintf("executeMsg", "%d - %x", i, f.GetChainID().Bytes()[3:6])
+	for i, f := range s.GetFedServers(s.LLeaderHeight) {
+		s.LogPrintf("executeMsg", "%d - %x", i, f.GetChainID().Bytes()[3:6])
 	}
 
 	return -1, fmt.Errorf("%s", "Signature Key Invalid or not Federated Server Key")
@@ -209,8 +209,8 @@ func pkEq(a, b []byte) bool {
 //		0  ->  Audit
 // 		-1 ->  Not fed or audit
 //		-2 -> Not found
-func (st *State) GetAuthority(serverID interfaces.IHash) (*Authority, int) {
-	auth := st.IdentityControl.GetAuthority(serverID)
+func (s *State) GetAuthority(serverID interfaces.IHash) (*Authority, int) {
+	auth := s.IdentityControl.GetAuthority(serverID)
 	if auth == nil {
 		return nil, -2
 	}
@@ -220,8 +220,8 @@ func (st *State) GetAuthority(serverID interfaces.IHash) (*Authority, int) {
 
 // We keep a 2 block history of their keys, this is so if we change their key and need to verify
 // a message from 1 block ago, we still can. This function garbage collects old keys
-func (st *State) UpdateAuthSigningKeys(height uint32) {
-	for key, auth := range st.IdentityControl.Authorities {
+func (s *State) UpdateAuthSigningKeys(height uint32) {
+	for key, auth := range s.IdentityControl.Authorities {
 		chopOffIndex := 0 // Index of the keys we should chop off
 		for i, key := range auth.KeyHistory {
 			// Keeping 2 heights worth.
@@ -231,23 +231,23 @@ func (st *State) UpdateAuthSigningKeys(height uint32) {
 		}
 
 		if chopOffIndex > 0 {
-			if len(st.IdentityControl.Authorities[key].KeyHistory) == chopOffIndex+1 {
-				st.IdentityControl.Authorities[key].KeyHistory = nil
+			if len(s.IdentityControl.Authorities[key].KeyHistory) == chopOffIndex+1 {
+				s.IdentityControl.Authorities[key].KeyHistory = nil
 			} else {
 				// This could be a memory leak if the authority keeps updating his keys every block,
 				// but the line above sets to nil if there is only 1 item left, so it will eventually
 				// garbage collect the whole slice
-				st.IdentityControl.Authorities[key].KeyHistory = st.IdentityControl.Authorities[auth.AuthorityChainID.Fixed()].KeyHistory[chopOffIndex+1:]
+				s.IdentityControl.Authorities[key].KeyHistory = s.IdentityControl.Authorities[auth.AuthorityChainID.Fixed()].KeyHistory[chopOffIndex+1:]
 			}
 
 		}
 	}
 
-	st.RepairAuthorities()
+	s.RepairAuthorities()
 }
 
-func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
-	err := st.IdentityControl.ProcessABlockEntry(entry, st)
+func (s *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
+	err := s.IdentityControl.ProcessABlockEntry(entry, s)
 	if err != nil {
 		return err
 	}
@@ -255,8 +255,8 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 	return nil
 }
 
-func (st *State) GetAuthorityServerType(chainID interfaces.IHash) int { // 0 = Federated, 1 = Audit
-	auth := st.IdentityControl.GetAuthority(chainID)
+func (s *State) GetAuthorityServerType(chainID interfaces.IHash) int { // 0 = Federated, 1 = Audit
+	auth := s.IdentityControl.GetAuthority(chainID)
 	if auth == nil {
 		return -1
 	}
