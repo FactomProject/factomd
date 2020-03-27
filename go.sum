@@ -46,6 +46,8 @@ github.com/FactomProject/gocoding v0.0.0-20150814232539-59666ce39524 h1:394GwlJF
 github.com/FactomProject/gocoding v0.0.0-20150814232539-59666ce39524/go.mod h1:AtAVT8Uf+wlS9h/RK79oum1xym2r9UR5nb67zVEkq6Y=
 github.com/FactomProject/goleveldb v0.2.2-0.20170418171130-e7800c6976c5 h1:GIdre1zKgtyuc3VqjfyHZQNBj3yMO6HgWAvpO190LKg=
 github.com/FactomProject/goleveldb v0.2.2-0.20170418171130-e7800c6976c5/go.mod h1:35UcJZvsGJAgxqegkfDb5S78gTlx/Pypzy4rZfM1pQA=
+github.com/FactomProject/logrustash v0.0.0-20171005151533-9c7278ede46e h1:D/yNSYLSqUwukUw3115uW4RR+r0ftMUJFlcTC2e79pI=
+github.com/FactomProject/logrustash v0.0.0-20171005151533-9c7278ede46e/go.mod h1:ah6QOMU70BGkGZRLG1Irc7f+j6eDU11tzHCI+rdLcoA=
 github.com/FactomProject/netki-go-partner-client v0.0.0-20160324224126-426acb535e66 h1:H4nFZnW3EpbcefxbJAJxWCl7niO07QpKt8KeHtLwHoc=
 github.com/FactomProject/netki-go-partner-client v0.0.0-20160324224126-426acb535e66/go.mod h1:L+Od0CCfb8IzUbPM4UxLaERB1I6Bw/lD2UtzRM90pIw=
 github.com/FactomProject/seelog v0.0.0-20150116041118-313961b101eb h1:FsM8F3sVCpTW8p9dnWddlN/Exla/FoWzbW1nZCbVO7g=

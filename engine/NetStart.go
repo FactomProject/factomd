@@ -8,17 +8,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	controlpanel "github.com/FactomProject/factomd/modules/controlPanel"
-	"github.com/FactomProject/factomd/modules/leader"
 	"os"
 	"reflect"
 	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/modules/debugsettings"
-	"github.com/FactomProject/factomd/simulation"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/messages"
@@ -28,14 +23,19 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/fnode"
+	llog "github.com/FactomProject/factomd/log"
+	controlpanel "github.com/FactomProject/factomd/modules/controlPanel"
+	"github.com/FactomProject/factomd/modules/debugsettings"
+	"github.com/FactomProject/factomd/modules/leader"
 	"github.com/FactomProject/factomd/modules/registry"
 	"github.com/FactomProject/factomd/modules/worker"
 	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/simulation"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-
-	llog "github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/logrustash"
+	log "github.com/sirupsen/logrus"
 )
 
 var connectionMetricsChannel = make(chan interface{}, p2p.StandardChannelSize)
@@ -381,7 +381,10 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 	// TODO: Init any settings from the config
 	debugsettings.NewNode(node.State.GetFactomNodeName())
 
-	time.Sleep(10 * time.Millisecond)
+	node.State.Logger = log.WithFields(log.Fields{"node-name": node.State.GetFactomNodeName(), "identity": node.State.GetIdentityChainID().String()})
+	if p.UseLogstash {
+		hookLogstash(node.State, p.LogstashURL)
+	}
 
 	return node
 }
@@ -441,4 +444,20 @@ func AddNode() {
 	})
 	go p.Run()
 	p.WaitForRunning()
+}
+
+// enable output to logstash
+func hookLogstash(s *state.State, logStashURL string) error {
+	hook, err := logrustash.NewAsyncHook("tcp", logStashURL, "factomdLogs")
+	if err != nil {
+		fmt.Printf("Failed to connect to logstash %v", err)
+		return err
+	}
+
+	hook.ReconnectBaseDelay = time.Second // Wait for one second before first reconnect.
+	hook.ReconnectDelayMultiplier = 2
+	hook.MaxReconnectRetries = 10
+
+	s.Logger.Logger.Hooks.Add(hook)
+	return nil
 }

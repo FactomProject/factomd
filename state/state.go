@@ -10,23 +10,17 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/livefeed"
-	"github.com/FactomProject/factomd/modules/pubsub"
-	"github.com/FactomProject/factomd/modules/pubsub/pubregistry"
 	"os"
 	"reflect"
 	"regexp"
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/common/constants/runstate"
-	"github.com/FactomProject/factomd/modules/logging"
-	"github.com/FactomProject/factomd/queue"
-
 	"github.com/FactomProject/factomd/activations"
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -35,9 +29,15 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/FactomProject/factomd/modules/livefeed"
+	"github.com/FactomProject/factomd/modules/logging"
+	"github.com/FactomProject/factomd/modules/pubsub"
+	"github.com/FactomProject/factomd/modules/pubsub/pubregistry"
 	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/queue"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
+	log "github.com/sirupsen/logrus"
 )
 
 // loaded directly from factomParams
@@ -106,7 +106,8 @@ type StateConfig struct {
 type State struct {
 	common.Name
 	StateConfig
-	logging           *logging.LayerLogger
+	Logger            *log.Entry               // old logger used for logstash
+	logging           *logging.LayerLogger     // new file logger
 	Pub               *pubregistry.PubRegistry // Publisher hooks for this vm
 	RunState          runstate.RunState
 	NetworkController *p2p.Controller

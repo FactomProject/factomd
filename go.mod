@@ -13,6 +13,7 @@ require (
 	github.com/FactomProject/go-bip44 v0.0.0-20190306062959-b541a96d8da9 // indirect
 	github.com/FactomProject/go-simplejson v0.5.0 // indirect
 	github.com/FactomProject/goleveldb v0.2.2-0.20170418171130-e7800c6976c5
+	github.com/FactomProject/logrustash v0.0.0-20171005151533-9c7278ede46e
 	github.com/FactomProject/netki-go-partner-client v0.0.0-20160324224126-426acb535e66 // indirect
 	github.com/FactomProject/serveridentity v0.0.0-20180611231115-cf42d2aa8deb
 	github.com/FactomProject/snappy-go v0.0.0-20170202213131-f2f83b22c29e // indirect
