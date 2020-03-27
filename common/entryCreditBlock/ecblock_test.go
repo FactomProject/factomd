@@ -12,7 +12,6 @@ import (
 	ed "github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/go-spew/spew"
 )
 
 var _ = fmt.Sprint("testing")
@@ -144,8 +143,6 @@ func TestECBlockMarshal(t *testing.T) {
 		if err := ecb2.UnmarshalBinary(p); err != nil {
 			t.Error(err)
 		}
-		t.Log(spew.Sdump(ecb1))
-		t.Log(spew.Sdump(ecb2))
 		if q, err := ecb2.MarshalBinary(); err != nil {
 			t.Error(err)
 		} else if string(p) != string(q) {

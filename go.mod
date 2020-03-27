@@ -12,7 +12,6 @@ require (
 	github.com/FactomProject/go-bip39 v0.3.6-0.20161217174232-d1007fb78d9a
 	github.com/FactomProject/go-bip44 v0.0.0-20190306062959-b541a96d8da9 // indirect
 	github.com/FactomProject/go-simplejson v0.5.0 // indirect
-	github.com/FactomProject/go-spew v0.0.0-20160301052117-ddfaec9b42f5
 	github.com/FactomProject/goleveldb v0.2.2-0.20170418171130-e7800c6976c5
 	github.com/FactomProject/netki-go-partner-client v0.0.0-20160324224126-426acb535e66 // indirect
 	github.com/FactomProject/serveridentity v0.0.0-20180611231115-cf42d2aa8deb
@@ -37,7 +36,6 @@ require (
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/prometheus/client_golang v1.5.1
-	github.com/prometheus/client_model v0.2.0
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.4-0.20180915222204-8d114be902bc
