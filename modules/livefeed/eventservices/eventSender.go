@@ -6,18 +6,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"reflect"
+	"time"
+
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/modules/livefeed/eventconfig"
 	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/modules/pubsub"
+	"github.com/FactomProject/factomd/modules/telemetry"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/gogo/protobuf/proto"
-	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-	"net"
-	"reflect"
-	"time"
 )
 
 var eventSenderInstance *eventSender
@@ -50,12 +51,16 @@ type eventSender struct {
 	postponeSendingUntil      time.Time
 	connection                net.Conn
 	droppedFromQueuePublisher pubsub.IPublisher
-	eventsSentCounter         prometheus.Counter
 }
 
 func NewEventSender(config *util.FactomdConfig, factomParams *globals.FactomParams) EventSender {
 	return NewEventSenderTo(selectParameters(factomParams, config))
 }
+
+var eventsSentCounter = telemetry.NewCounter(
+	"factomd_livefeed_total_events_sent",
+	"Number of events that were send out to the receiver",
+)
 
 func NewEventSenderTo(params *EventServiceParams) EventSender {
 	if eventSenderInstance == nil {
@@ -63,10 +68,6 @@ func NewEventSenderTo(params *EventServiceParams) EventSender {
 			eventsSubscriber: pubsub.SubFactory.BEChannel(p2p.StandardChannelSize).Subscribe("/live-feed"),
 			params:           params,
 		}
-		eventSenderInstance.eventsSentCounter = prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "factomd_livefeed_total_events_sent",
-			Help: "Number of events that were send out to the receiver",
-		})
 		go eventSenderInstance.subscriberEventListener()
 	}
 	return eventSenderInstance
@@ -86,7 +87,7 @@ func (eventSender *eventSender) subscriberEventListener() {
 			event := payload.(*eventmessages.FactomEvent)
 			if eventSender.postponeSendingUntil.IsZero() || eventSender.postponeSendingUntil.Before(time.Now()) {
 				eventSender.sendEvent(event)
-				eventSender.eventsSentCounter.Inc()
+				eventsSentCounter.Inc()
 			}
 		}
 	}
@@ -96,7 +97,7 @@ func (eventSender *eventSender) sendEvent(event *eventmessages.FactomEvent) {
 	data, err := eventSender.marshallMessage(event)
 	if err != nil {
 		log.Errorf("An error occurred while serializing factom event of type %s: %v", reflect.TypeOf(event), err)
-		eventSender.eventsSentCounter.Inc()
+		eventsSentCounter.Inc()
 		return
 	}
 
@@ -123,7 +124,7 @@ func (eventSender *eventSender) sendEvent(event *eventmessages.FactomEvent) {
 	}
 
 	if !sendSuccessful {
-		eventSender.eventsSentCounter.Inc()
+		eventsSentCounter.Inc()
 		eventSender.postponeSendingUntil = time.Now().Add(dialRetryPostponeDuration)
 	}
 }

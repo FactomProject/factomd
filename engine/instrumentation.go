@@ -3,12 +3,6 @@ package engine
 import "github.com/FactomProject/factomd/modules/telemetry"
 
 var (
-	// Messages
-	RepeatMsgs = telemetry.NewCounter(
-		"factomd_state_msg_replay_toss_total",
-		"Number of repeated msgs.",
-	)
-
 	BroadInCastQueue = telemetry.NewGauge(
 		"factomd_state_broadcast_in_current",
 		"Number of msgs in broadcastin queue.",
