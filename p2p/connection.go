@@ -8,47 +8,47 @@ import (
 	"encoding/gob"
 	"fmt"
 	"hash/crc32"
-	"io"
 	"net"
 	"os"
 	"time"
 
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-
 	llog "github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/util/atomic"
+	log "github.com/sirupsen/logrus"
 )
 
 // conLogger is the general logger for all connection related logs. You can add additional fields,
 // or create more context loggers off of this
-//var conLogger = packageLogger.WithField("subpack", "connection")
+var conLogger = packageLogger.WithField("subpack", "connection")
 
 // Connection represents a single connection to another peer over the network. It communicates with the application
 // via two channels, send and receive.  These channels take structs of type ConnectionCommand or ConnectionParcel
 // (defined below).
 type Connection struct {
-	conn           net.Conn
-	Errors         chan error              // handle errors from connections.
-	Commands       chan *ConnectionCommand // handle connection commands
-	SendChannel    chan interface{}        // Send means "towards the network" SubChannel sends Parcels and ConnectionCommands
-	ReceiveChannel chan interface{}        // Read means "from the network" SubChannel receives Parcels and ConnectionCommands
-	ReceiveParcel  chan *Parcel            // Parcels to be handled.
-	// and as "address" for sending messages to specific nodes.
-	encoder         *gob.Encoder      // Wire format is gobs in this version, may switch to binary
-	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
-	peer            Peer              // the data structure representing the peer we are talking to. defined in peer.go
-	attempts        int               // reconnection attempts
-	TimeLastpacket  time.Time         // Time we last successfully received a packet or command.
-	timeLastAttempt time.Time         // time of last attempt to connect via dial
-	timeLastPing    time.Time         // time of last ping sent
-	timeLastUpdate  time.Time         // time of last peer update sent
-	timeLastStatus  time.Time         // last time we printed our status for debugging.
-	timeLastMetrics time.Time         // last time we updated metrics
-	state           uint8             // Current state of the connection. Private. Only communication
-	isOutGoing      bool              // We keep track of outgoing dial() vs incoming accept() connections
-	isPersistent    bool              // Persistent connections we always redail.
-	notes           string            // Notes about the connection, for debugging (eg: error)
-	metrics         ConnectionMetrics // Metrics about this connection
-
+	conn            net.Conn                //
+	Errors          chan error              // handle errors from connections.
+	Commands        chan *ConnectionCommand // handle connection commands
+	SendChannel     chan interface{}        // Send means "towards the network" Channel sends Parcels and ConnectionCommands
+	ReceiveChannel  chan interface{}        // Read means "from the network" Channel receives Parcels and ConnectionCommands
+	ReceiveParcel   chan *Parcel            // Parcels to be handled and as "address" for sending messages to specific nodes.
+	encoder         *gob.Encoder            // Wire format is gobs in this version, may switch to binary
+	decoder         *gob.Decoder            // Wire format is gobs in this version, may switch to binary
+	peer            Peer                    // the data structure representing the peer we are talking to. defined in peer.go
+	attempts        int                     // reconnection attempts
+	TimeLastpacket  time.Time               // Time we last successfully received a packet or command.
+	timeLastAttempt time.Time               // time of last attempt to connect via dial
+	timeLastPing    time.Time               // time of last ping sent
+	timeLastUpdate  time.Time               // time of last peer update sent
+	timeLastStatus  time.Time               // last time we printed our status for debugging.
+	timeLastMetrics time.Time               // last time we updated metrics
+	state           uint8                   // Current state of the connection. Private. Only communication
+	isOutGoing      bool                    // We keep track of outgoing dial() vs incoming accept() connections
+	isPersistent    bool                    // Persistent connections we always redail.
+	notes           string                  // Notes about the connection, for debugging (eg: error)
+	metrics         ConnectionMetrics       // Metrics about this connection
+	logger          *log.Entry              // logging
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does networking.
@@ -197,8 +197,8 @@ func (c *Connection) commonInit(peer Peer) {
 	p2pConnectionCommonInit.Inc() // Prometheus
 	c.state = ConnectionInitialized
 	c.peer = peer
-	//	//	//c.logger = conLogger.WithFields(c.peer.PeerLogFields())
-	//	//c.logger.Debug("Initializing connection")
+	c.logger = conLogger.WithFields(c.peer.PeerLogFields())
+	c.logger.Debug("Initializing connection")
 	c.Errors = make(chan error, StandardChannelSize)
 	c.Commands = make(chan *ConnectionCommand, StandardChannelSize)
 	c.SendChannel = make(chan interface{}, StandardChannelSize)
@@ -211,7 +211,7 @@ func (c *Connection) commonInit(peer Peer) {
 }
 
 func (c *Connection) Start() {
-	//	//c.logger.Debug("Starting connection")
+	c.logger.Debug("Starting connection")
 	go c.runLoop()
 }
 
@@ -230,13 +230,15 @@ func (c *Connection) runLoop() {
 	go c.processReceives()
 	p2pConnectionsRunLoop.Inc()
 	defer p2pConnectionsRunLoop.Dec()
+	var pstate uint8 = 255
 
 	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
 		time.Sleep(100 * time.Millisecond) // This can be a tight loop, don't want to starve the application
 		c.updateStats()                    // Update controller with metrics
 		c.handleNetErrors(false)
 		c.handleCommand()
-		//
+
+		var stateLogger = c.logger.WithField("current_state", connectionStateStrings[c.state])
 
 	parcelloop:
 		for {
@@ -250,15 +252,33 @@ func (c *Connection) runLoop() {
 			}
 		}
 
+		// log state changes on peers
+		if pstate != c.state {
+			switch c.state {
+			case ConnectionInitialized:
+				messages.LogPrintf("fnode0_peers.txt", "ConnectionInitialized(%s)", c.peer.Hash)
+			case ConnectionOnline:
+				messages.LogPrintf("fnode0_peers.txt", "ConnectionOnline(%s)", c.peer.Hash)
+			case ConnectionOffline:
+				messages.LogPrintf("fnode0_peers.txt", "ConnectionOffline(%s)", c.peer.Hash)
+			case ConnectionShuttingDown:
+				messages.LogPrintf("fnode0_peers.txt", "ConnectionShuttingDown(%s)", c.peer.Hash)
+			default:
+				messages.LogPrintf("fnode0_peers.txt", "ConnectionUnknownState(%s)", c.peer.Hash)
+			}
+			pstate = c.state
+		}
+
 		switch c.state {
 		case ConnectionInitialized:
 			p2pConnectionRunLoopInitialized.Inc()
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
-				//				stateLogger.WithField("quality_score", c.peer.QualityScore).Info("Shutting down connection due to not reaching minimum quality score")
+				stateLogger.WithField("quality_score", c.peer.QualityScore).Info("Shutting down connection due to not reaching minimum quality score")
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			} else {
-				c.dialLoop() // dialLoop dials until it connects or shuts down.
+				c.state = ConnectionOffline // We now view this as an offline connection
+				c.dialLoop()                // dialLoop dials until it connects or shuts down.
 			}
 		case ConnectionOnline:
 			p2pConnectionRunLoopOnline.Inc()
@@ -268,7 +288,7 @@ func (c *Connection) runLoop() {
 			}
 
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
-				//				stateLogger.WithField("quality_score", c.peer.QualityScore).Info("Shutting down connection due to not reaching minimum quality score")
+				stateLogger.WithField("quality_score", c.peer.QualityScore).Info("Shutting down connection due to not reaching minimum quality score")
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			}
@@ -277,21 +297,23 @@ func (c *Connection) runLoop() {
 			p2pConnectionRunLoopOffline.Inc()
 			switch {
 			case c.isOutGoing:
-				//stateLogger.Info("Connection offline, attempting redial")
+				stateLogger.Info("Connection offline, attempting redial")
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			default: // the connection dialed us, so we shutdown
 				c.goShutdown()
 			}
 		case ConnectionShuttingDown:
 			p2pConnectionRunLoopShutdown.Inc()
-			//			stateLogger.Debug("Connection is shutting down")
+			stateLogger.Debug("Connection is shutting down")
 			c.state = ConnectionClosed
 			BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionIsClosed})
 			return // ending runloop() goroutine
 		default:
-			//stateLogger.Error("runLoop() unknown state?")
+			stateLogger.Error("runLoop() unknown state?")
 		}
 	}
+	messages.LogPrintf("fnode0_peers.txt", "ConnectionClosed(%s)", c.peer.Hash)
+
 }
 
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.
@@ -301,6 +323,8 @@ func (c *Connection) dialLoop() {
 	defer p2pConnectionDialLoop.Dec()
 
 	for {
+		messages.LogPrintf("fnode0_peers.txt", "Dial(%s)", c.peer.Hash)
+
 		c.timeLastAttempt = time.Now()
 		if c.dial() {
 			c.goOnline()
@@ -311,7 +335,8 @@ func (c *Connection) dialLoop() {
 		case ConnectionOffline == c.state: // We were online with the peer at one point.
 			c.attempts++
 			if MaxNumberOfRedialAttempts < c.attempts {
-				////c.logger.Info("Cannot contact peer, shutting down")
+				c.logger.Info("Cannot contact peer, shutting down")
+				messages.LogPrintf("fnode0_peers.txt", "Giving up dialing(%s)", c.peer.Hash)
 				c.goShutdown()
 				return
 			}
@@ -338,7 +363,8 @@ func (c *Connection) dial() bool {
 
 // Called when we are online and connected to the peer.
 func (c *Connection) goOnline() {
-	//c.logger.Info("Connected to a remote peer")
+	messages.LogPrintf("fnode0_peers.txt", "goOnline(%s)", c.peer.Hash)
+	c.logger.Info("Connected to a remote peer")
 	p2pConnectionOnlineCall.Inc()
 	now := time.Now()
 	c.encoder = gob.NewEncoder(c.conn)
@@ -362,7 +388,8 @@ func (c *Connection) goOnline() {
 }
 
 func (c *Connection) goOffline() {
-	//	//c.logger.Debug("Going offline")
+	messages.LogPrintf("fnode0_peers.txt", "goOffline(%s) %s", c.peer.Hash, atomic.WhereAmIString(1))
+	c.logger.Debug("Going offline")
 	p2pConnectionOfflineCall.Inc()
 	if nil != c.conn {
 		defer c.conn.Close()
@@ -375,7 +402,8 @@ func (c *Connection) goOffline() {
 }
 
 func (c *Connection) goShutdown() {
-	//	//c.logger.Debug("Connection shutting down")
+	messages.LogPrintf("fnode0_peers.txt", "goShutdown(%s) %s", c.peer.Hash, atomic.WhereAmIString(1))
+	c.logger.Debug("Connection shutting down")
 	c.goOffline()
 	c.updatePeer()
 	if nil != c.conn {
@@ -432,52 +460,50 @@ func (c *Connection) handleCommand() {
 
 		switch command.Command {
 		case ConnectionShutdownNow:
-			//			//c.logger.Debugf("Connection(%s) shutting down due to ConnectionShutdownNow message.", c.peer.AddressPort())
+			c.logger.Debugf("Connection(%s) shutting down due to ConnectionShutdownNow message.", c.peer.AddressPort())
 			c.goShutdown()
 		case ConnectionUpdatingPeer: // at this level we're only updating the quality score, to pass on application level demerits
-			//			//c.logger.Debugf("handleCommand() ConnectionUpdatingPeer")
+			c.logger.Debugf("handleCommand() ConnectionUpdatingPeer")
 			peer := command.Peer
 			if peer.QualityScore < c.peer.QualityScore {
 				c.peer.QualityScore = peer.QualityScore
 			}
 		case ConnectionAdjustPeerQuality:
 			delta := command.Delta
-			//c.logger.Infof("handleCommand() ConnectionAdjustPeerQuality: Current Score: %d Delta: %d", c.peer.QualityScore, delta)
+			c.logger.Infof("handleCommand() ConnectionAdjustPeerQuality: Current Score: %d Delta: %d", c.peer.QualityScore, delta)
 			c.peer.QualityScore = c.peer.QualityScore + delta
 			if MinumumQualityScore > c.peer.QualityScore {
-				//				//c.logger.Debugf("handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.peer.QualityScore)
+				c.logger.Debugf("handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer()
-				//c.logger.Infof("Connection(%s) shutting down due to QualityScore %d being below MinumumQualityScore: %d.", c.peer.AddressPort(), c.peer.QualityScore, MinumumQualityScore)
+				c.logger.Infof("Connection(%s) shutting down due to QualityScore %d being below MinumumQualityScore: %d.", c.peer.AddressPort(), c.peer.QualityScore, MinumumQualityScore)
 				c.goShutdown()
 			}
 		case ConnectionGoOffline:
-			//			//c.logger.Debugf("handleCommand() disconnecting peer: %s goOffline command received", c.peer.PeerIdent())
+			c.logger.Debugf("handleCommand() disconnecting peer: %s goOffline command received", c.peer.PeerIdent())
 			c.goOffline()
 		default:
-			//c.logger.Errorf("handleCommand() unknown command?: %+v ", command)
+			c.logger.Errorf("handleCommand() unknown command?: %+v ", command)
 		}
 	default:
 	}
 }
 
 func (c *Connection) sendParcel(parcel Parcel) {
+	if parcel.Header.Type == TypeMessagePart {
+		messages.LogPrintf("fnode0_peers.txt", "sendParcel(%s) M-%s %d of %d", c.peer.Hash, parcel.Header.AppHash[:6], parcel.Header.PartNo+1, parcel.Header.PartsTotal)
+	} else {
+		messages.LogPrintf("fnode0_peers.txt", "sendParcel(%s) type %s", c.peer.Hash, parcel.MessageType())
+	}
 
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
-	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline * 500))
-
-	//deadline := time.Now().Add(NetworkDeadline)
-	//if len(parcel.Payload) > 1000*10 {
-	//	ms := (len(parcel.Payload) * NetworkDeadline.Seconds())/1000
-	//	deadline = time.Now().Add(time.Duration(ms)*time.Millisecond)
-	//}
-	//c.conn.SetWriteDeadline(deadline)
-	encode := c.encoder
-	err := encode.Encode(parcel)
+	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline))
+	err := c.encoder.Encode(parcel)
 	switch {
 	case nil == err:
 		c.metrics.BytesSent += parcel.Header.Length
 		c.metrics.MessagesSent += 1
 	default:
+		messages.LogPrintf("fnode0_peers.txt", "sendParcel(%s) M-%s", c.peer.Hash, parcel.Header.AppHash[:6], err.Error())
 		c.Errors <- err
 	}
 }
@@ -501,27 +527,37 @@ func (c *Connection) processReceives() {
 
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
 		for c.state == ConnectionOnline {
-			var message Parcel
+			var parcel Parcel
 
-			result := c.decoder.Decode(&message)
-			switch result {
-			case io.EOF: // nothing to decode
-				// TODO: This error is a starving loop. Does the error always mean the connection is closed?
-				// TODO: If so, we should pass it to the errors channel to kill this connection and stop reading.
-				// For now, just sleep to stop the starve
-				time.Sleep(500 * time.Millisecond)
-				continue
+			c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
+			err := c.decoder.Decode(&parcel)
+			switch err {
 			case nil: // successfully decoded
-				c.metrics.BytesReceived += message.Header.Length
+				if messages.CheckFileName("peers.txt") { // Debug only if log file enabled
+					if parcel.Header.Type == TypeMessagePart {
+						msg, err := messages.Unmarshal_Message(parcel.Payload)
+						if err == nil {
+							parcel.Header.AppHash = fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
+							parcel.Header.AppType = fmt.Sprintf("%d", msg.Type())
+							messages.LogPrintf("fnode0_peers.txt", "processReceives(%s) M-%s %d of %d", c.peer.Hash, parcel.Header.AppHash[:6], parcel.Header.PartNo+1, parcel.Header.PartsTotal)
+						} else {
+							messages.LogPrintf("fnode0_peers.txt", "counld not unmartial %s", err.Error())
+						}
+					}
+				}
+
+				c.metrics.BytesReceived += parcel.Header.Length
 				c.metrics.MessagesReceived += 1
-				message.Header.PeerAddress = c.peer.Address
-				c.ReceiveParcel <- &message
+				parcel.Header.PeerAddress = c.peer.Address
+				c.ReceiveParcel <- &parcel
 				c.TimeLastpacket = time.Now()
 			default: // error
-				c.Errors <- result
+				messages.LogPrintf("fnode0_peers.txt", "processReceives(%s) %s", c.peer.Hash, err.Error())
+				c.Errors <- err
+				time.Sleep(100 * time.Millisecond) // give some time to handle states
 			}
 		}
-		// If not online, give some time up to handle states that are not online, closed, or shuttingdown.
+		// If not online, give some time up to handle states that are not online, closed, or shutting down.
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -532,21 +568,15 @@ func (c *Connection) handleNetErrors(toss bool) {
 	for {
 		select {
 		case err := <-c.Errors:
-			nerr, isNetError := err.(net.Error)
-			switch {
-			case isNetError && nerr.Timeout(): /// buffer empty
-				return
-			default:
-				// Only go offline once per handleNetErrors call
-				if !toss && !done {
-					if err != nil {
-						//						//c.logger.WithField("func", "HandleNetErrors").Warnf("Going offline due to -- %s", err.Error())
-					}
-					c.goOffline()
+			// Only go offline once per handleNetErrors call
+			if !toss && !done {
+				if err != nil {
+					c.logger.WithField("func", "HandleNetErrors").Warnf("Going offline due to -- %s", err.Error())
 				}
-
-				done = true
+				messages.LogPrintf("fnode0_peers.txt", "handleNetErrors(%s) %s", c.peer.Hash, err.Error())
+				c.goOffline()
 			}
+			done = true
 		default:
 			return
 		}
@@ -569,28 +599,28 @@ func (c *Connection) handleParcel(parcel Parcel) {
 	validity := c.parcelValidity(parcel)
 	switch validity {
 	case InvalidDisconnectPeer:
-		//parcel.LogEntry().Debug("Connection.handleParcel()-InvalidDisconnectPeer")
-		//		//c.logger.Debugf("Connection.handleParcel() Disconnecting peer: %s", c.peer.PeerIdent())
+		parcel.LogEntry().Debug("Connection.handleParcel()-InvalidDisconnectPeer")
+		c.logger.Debugf("Connection.handleParcel() Disconnecting peer: %s", c.peer.PeerIdent())
 		c.attempts = MaxNumberOfRedialAttempts + 50 // so we don't redial invalid Peer
-		//c.logger.Infof("Connection(%s) shutting down due to InvalidDisconnectPeer result from parcel. Previous notes: %s.", c.peer.AddressPort(), c.notes)
+		c.logger.Infof("Connection(%s) shutting down due to InvalidDisconnectPeer result from parcel. Previous notes: %s.", c.peer.AddressPort(), c.notes)
 		c.goShutdown()
 		return
 	case InvalidPeerDemerit:
-		//parcel.LogEntry().Debug("Connection.handleParcel()-InvalidPeerDemerit")
-		//		//c.logger.Debug("Connection.handleParcel() got invalid message")
+		parcel.LogEntry().Debug("Connection.handleParcel()-InvalidPeerDemerit")
+		c.logger.Debug("Connection.handleParcel() got invalid message")
 		c.peer.demerit()
 		return
 	case ParcelValid:
-		//parcel.LogEntry().Debug("Connection.handleParcel()-ParcelValid")
-		c.peer.LastContact = time.Now() // We only update for valid messages (incluidng pings and heartbeats)
+		parcel.LogEntry().Debug("Connection.handleParcel()-ParcelValid")
+		c.peer.LastContact = time.Now() // We only update for valid messages (including pings and heartbeats)
 		c.attempts = 0                  // reset since we are clearly in touch now.
 		c.peer.merit()                  // Increase peer quality score.
-		//		//c.logger.Debugf("Connection.handleParcel() got ParcelValid %s", parcel.MessageType())
+		c.logger.Debugf("Connection.handleParcel() got ParcelValid %s", parcel.MessageType())
 		c.handleParcelTypes(parcel) // handles both network commands and application messages
 		return
 	default:
-		//parcel.LogEntry().Debug("Connection.handleParcel()-fatal")
-		//c.logger.Errorf("handleParcel() unknown parcelValidity?: %+v ", validity)
+		parcel.LogEntry().Debug("Connection.handleParcel()-fatal")
+		c.logger.Errorf("handleParcel() unknown parcelValidity?: %+v ", validity)
 		return
 	}
 }
@@ -603,39 +633,39 @@ const (
 )
 
 func (c *Connection) parcelValidity(parcel Parcel) uint8 {
-	//	//c.logger.Debugf("Connection.isValidParcel(%s)", parcel.MessageType())
+	c.logger.Debugf("Connection.isValidParcel(%s)", parcel.MessageType())
 	crc := crc32.Checksum(parcel.Payload, CRCKoopmanTable)
 	switch {
 	case parcel.Header.NodeID == NodeID: // We are talking to ourselves!
-		//parcel.LogEntry().Debug("Connection.isValidParcel()-loopback")
-		//		//c.logger.Warnf("Connection.isValidParcel(), failed due to loopback!: %+v", parcel.Header)
+		parcel.LogEntry().Debug("Connection.isValidParcel()-loopback")
+		c.logger.Warnf("Connection.isValidParcel(), failed due to loopback!: %+v", parcel.Header)
 		c.peer.QualityScore = MinumumQualityScore - 50 // Ban ourselves for a week
 		return InvalidDisconnectPeer
 	case parcel.Header.Network != CurrentNetwork:
-		//parcel.LogEntry().Debug("Connection.isValidParcel()-network")
-		//		//c.logger.Warnf("Connection.isValidParcel(), failed due to wrong network. Remote: %0x Us: %0x", parcel.Header.Network, CurrentNetwork)
+		parcel.LogEntry().Debug("Connection.isValidParcel()-network")
+		c.logger.Warnf("Connection.isValidParcel(), failed due to wrong network. Remote: %0x Us: %0x", parcel.Header.Network, CurrentNetwork)
 		return InvalidDisconnectPeer
 	case parcel.Header.Version < ProtocolVersionMinimum:
-		//parcel.LogEntry().Debug("Connection.isValidParcel()-version")
-		//		//c.logger.Warnf("Connection.isValidParcel(), failed due to wrong version: %+v", parcel.Header)
+		parcel.LogEntry().Debug("Connection.isValidParcel()-version")
+		c.logger.Warnf("Connection.isValidParcel(), failed due to wrong version: %+v", parcel.Header)
 		return InvalidDisconnectPeer
 	case parcel.Header.Length != uint32(len(parcel.Payload)):
-		//parcel.LogEntry().Debug("Connection.isValidParcel()-length")
-		//		//c.logger.Warnf("Connection.isValidParcel(), failed due to wrong length: %+v", parcel.Header)
+		parcel.LogEntry().Debug("Connection.isValidParcel()-length")
+		c.logger.Warnf("Connection.isValidParcel(), failed due to wrong length: %+v", parcel.Header)
 		return InvalidPeerDemerit
 	case parcel.Header.Crc32 != crc:
-		//parcel.LogEntry().Debug("Connection.isValidParcel()-checksum")
-		//		//c.logger.Warnf("Connection.isValidParcel(), failed due to bad checksum: %+v", parcel.Header)
+		parcel.LogEntry().Debug("Connection.isValidParcel()-checksum")
+		c.logger.Warnf("Connection.isValidParcel(), failed due to bad checksum: %+v", parcel.Header)
 		return InvalidPeerDemerit
 	default:
-		//parcel.LogEntry().Debug("Connection.isValidParcel()-ParcelValid")
+		parcel.LogEntry().Debug("Connection.isValidParcel()-ParcelValid")
 		return ParcelValid
 	}
 }
 func (c *Connection) handleParcelTypes(parcel Parcel) {
 	switch parcel.Header.Type {
 	case TypeAlert:
-		//c.logger.Error("!!!!!!!!!!!!!!!!!! Alert: Alert feature not implemented.")
+		c.logger.Error("!!!!!!!!!!!!!!!!!! Alert: Alert feature not implemented.")
 	case TypePing:
 		// Send Pong
 		pong := NewParcel(CurrentNetwork, []byte("Pong"))
@@ -660,7 +690,7 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		parcel.Header.NodeID = NodeID
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	default:
-		//		//c.logger.Warn("Got message of unknown type?")
+		c.logger.Warn("Got message of unknown type?")
 	}
 }
 
@@ -669,6 +699,7 @@ func (c *Connection) pingPeer() {
 	durationLastPing := time.Since(c.timeLastPing)
 	if PingInterval < durationLastContact && PingInterval < durationLastPing {
 		if MaxNumberOfRedialAttempts < c.attempts {
+			messages.LogPrintf("fnode0_peers.txt", "pingPeer(%s) no reply %s", c.peer.Hash)
 			c.goOffline()
 			return
 		} else {
@@ -694,7 +725,7 @@ func (c *Connection) updateStats() {
 		c.metrics.PeerType = c.peer.PeerTypeString()
 		c.metrics.ConnectionState = connectionStateStrings[c.state]
 		c.metrics.ConnectionNotes = c.notes
-		//		//c.logger.Debugf("updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.BytesSent, c.metrics.BytesReceived)
+		c.logger.Debugf("updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.BytesSent, c.metrics.BytesReceived)
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionUpdateMetrics, Metrics: c.metrics})
 	}
 }

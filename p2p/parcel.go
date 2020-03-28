@@ -8,16 +8,19 @@ import (
 	"bytes"
 	"fmt"
 	"hash/crc32"
+
+	"github.com/FactomProject/factomd/common/interfaces"
+	log "github.com/sirupsen/logrus"
 )
 
-//
-//var parcelLogger = packageLogger.WithField("subpack", "connection")
+var parcelLogger = packageLogger.WithField("subpack", "connection")
 
 // Parcel is the atomic level of communication for the p2p network.  It contains within it the necessary info for
 // the networking protocol, plus the message that the Application is sending.
 type Parcel struct {
 	Header  ParcelHeader
 	Payload []byte
+	msg     interfaces.IMsg `json:"-"` // Keep the message for debugging
 }
 
 // ParcelHeaderSize is the number of bytes in a parcel header
@@ -77,8 +80,18 @@ func NewParcel(network NetworkID, payload []byte) *Parcel {
 	parcel.UpdateHeader() // Updates the header with info about payload.
 	return parcel
 }
+func NewParcelMsg(network NetworkID, payload []byte, msg interfaces.IMsg) *Parcel {
+	header := new(ParcelHeader).Init(network)
+	header.AppHash = "NetworkMessage"
+	header.AppType = "Network"
+	parcel := new(Parcel).Init(*header)
+	parcel.Payload = payload
+	parcel.msg = msg      // Keep the message for debugging
+	parcel.UpdateHeader() // Updates the header with info about payload.
+	return parcel
+}
 
-func ParcelsForPayload(network NetworkID, payload []byte) []Parcel {
+func ParcelsForPayload(network NetworkID, payload []byte, msg interfaces.IMsg) []Parcel {
 	parcelCount := (len(payload) / MaxPayloadSize) + 1
 	parcels := make([]Parcel, parcelCount)
 
@@ -91,13 +104,12 @@ func ParcelsForPayload(network NetworkID, payload []byte) []Parcel {
 		} else {
 			end = len(payload)
 		}
-		parcel := NewParcel(network, payload[start:end])
+		parcel := NewParcelMsg(network, payload[start:end], msg)
 		parcel.Header.Type = TypeMessagePart
 		parcel.Header.PartNo = uint16(i)
 		parcel.Header.PartsTotal = uint16(parcelCount)
 		parcels[i] = *parcel
 	}
-
 	return parcels
 }
 
@@ -142,21 +154,21 @@ func (p *Parcel) UpdateHeader() {
 	p.Header.Length = uint32(len(p.Payload))
 }
 
-//func (p *Parcel) LogEntry() *log.Entry {
-//	return parcelLogger.WithFields(log.Fields{
-//		"network":     p.Header.Network.String(),
-//		"version":     p.Header.Version,
-//		"app_hash":    p.Header.AppHash,
-//		"app_type":    p.Header.AppType,
-//		"command":     CommandStrings[p.Header.Type],
-//		"length":      p.Header.Length,
-//		"target_peer": p.Header.TargetPeer,
-//		"crc32":       p.Header.Crc32,
-//		"node_id":     p.Header.NodeID,
-//		"part_no":     p.Header.PartNo + 1,
-//		"parts_total": p.Header.PartsTotal,
-//	})
-//}
+func (p *Parcel) LogEntry() *log.Entry {
+	return parcelLogger.WithFields(log.Fields{
+		"network":     p.Header.Network.String(),
+		"version":     p.Header.Version,
+		"app_hash":    p.Header.AppHash,
+		"app_type":    p.Header.AppType,
+		"command":     CommandStrings[p.Header.Type],
+		"length":      p.Header.Length,
+		"target_peer": p.Header.TargetPeer,
+		"crc32":       p.Header.Crc32,
+		"node_id":     p.Header.NodeID,
+		"part_no":     p.Header.PartNo + 1,
+		"parts_total": p.Header.PartsTotal,
+	})
+}
 
 func (p *Parcel) MessageType() string {
 	return (fmt.Sprintf("[%s]", CommandStrings[p.Header.Type]))

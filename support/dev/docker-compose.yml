@@ -3,9 +3,8 @@ version: "2"
 services:
     factomd_0:
         container_name: factomd_0
-        image: factominc/factomd:v6.6.0
-        #build: ../../
-        #image: factomproject/factomd:dev
+        build: ../../
+        image: factomproject/factomd:dev
         #build: ../../
         depends_on:
             - logstash
@@ -24,9 +23,8 @@ services:
 
     factomd_1:
         container_name: factomd_1
-        image: factominc/factomd:v6.6.0
-        #build: ../../
-        #image: factomproject/factomd:dev
+        build: ../../
+        image: factomproject/factomd:dev
         depends_on:
             - logstash
             - nginx
@@ -44,9 +42,8 @@ services:
 
     factomd_2:
         container_name: factomd_2
-        image: factominc/factomd:v6.6.0
-        #build: ../../
-        #image: factomproject/factomd:dev
+        build: ../../
+        image: factomproject/factomd:dev
         depends_on:
             - logstash
             - nginx

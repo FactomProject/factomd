@@ -189,7 +189,7 @@ func TestConnectionManagerGetRandomRegularSingle(t *testing.T) {
 
 	// we ask for 5 random nodes, while we have only 1 to draw from, but the
 	// function should still return the single one
-	random := cm.GetRandomRegular(5)
+	random := cm.GetRandomRegular(5, primitives.RandomHash().Fixed())
 
 	if len(random) != 1 {
 		t.Error("GetRandomRegular returned more than 1 connection")

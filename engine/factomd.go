@@ -5,34 +5,29 @@
 package engine
 
 import (
-	"fmt"
-	"runtime"
-
-	"github.com/FactomProject/factomd/modules/registry"
-	"github.com/FactomProject/factomd/modules/worker"
-
 	"bufio"
+	"fmt"
 	"io"
 	"net"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	. "github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/modules/registry"
+	"github.com/FactomProject/factomd/modules/worker"
+	log "github.com/sirupsen/logrus"
 )
 
 var _ = fmt.Print
 
-// winServiceMain is only invoked on Windows.  It detects when btcd is running
-// as a service and reacts accordingly.
-//var winServiceMain func() (bool, error)
-
 // packageLogger is the general logger for all engine related logs. You can add additional fields,
 // or create more context loggers off of this
-//var packageLogger = log.WithFields(log.Fields{"package": "engine"})
+var packageLogger = log.WithFields(log.Fields{"package": "engine"})
 
 // start the process
 func Run(params *FactomParams) {
