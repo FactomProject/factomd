@@ -14,7 +14,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
@@ -100,7 +99,7 @@ func TestEventService_ProcessEventsChannelNoSent(t *testing.T) {
 	redialSleepDuration = 1 * time.Millisecond
 	sendRetries = 1
 
-	eventQueue := make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize)
+	eventQueue := make(chan *eventmessages.FactomEvent, 5000)
 	eventService := &eventSender{
 		eventsOutQueue: eventQueue,
 		params: &EventServiceParams{
@@ -336,7 +335,7 @@ func TestEventService_ConnectAndShutdown(t *testing.T) {
 	}()
 
 	eventService := &eventSender{
-		eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
+		eventsOutQueue: make(chan *eventmessages.FactomEvent, 5000),
 		params: &EventServiceParams{
 			Protocol: "tcp",
 			Address:  address,
@@ -550,7 +549,7 @@ func BenchmarkEventService_Send(b *testing.B) {
 	}
 
 	eventService := &eventSender{
-		eventsOutQueue:          make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
+		eventsOutQueue:          make(chan *eventmessages.FactomEvent, 5000),
 		connection:              client,
 		params:                  params,
 		droppedFromQueueCounter: prometheus.NewCounter(prometheus.CounterOpts{}),

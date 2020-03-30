@@ -18,7 +18,7 @@ func TestIP2Location(t *testing.T) {
 		want    uint32
 		wantErr bool
 	}{
-		{"localhost", args{"localhost"}, 1, false},
+		//{"localhost", args{"localhost"}, 1, false}, // this could be either ipv4 or ipv6, disable it
 		{"localhost ipv4", args{"127.0.0.1"}, 2130706433, false},
 		{"min ip", args{"0.0.0.0"}, 0, false},
 		{"max ip", args{"255.255.255.255"}, 4294967295, false},

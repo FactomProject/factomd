@@ -16,7 +16,6 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
 
@@ -25,7 +24,7 @@ import (
 )
 
 func TestUpdateState(t *testing.T) {
-	eventQueue := make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize)
+	eventQueue := make(chan *eventmessages.FactomEvent, 5000)
 	mockSender := &mockEventSender{
 		eventsOutQueue:      eventQueue,
 		replayDuringStartup: true,
@@ -68,7 +67,7 @@ func TestUpdateState(t *testing.T) {
 }
 
 func TestAddToAndDeleteFromHolding(t *testing.T) {
-	eventQueue := make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize)
+	eventQueue := make(chan *eventmessages.FactomEvent, 5000)
 	mockSender := &mockEventSender{
 		eventsOutQueue:      eventQueue,
 		replayDuringStartup: true,
@@ -110,7 +109,7 @@ func TestAddToAndDeleteFromHolding(t *testing.T) {
 }
 
 func TestAddToProcessList(t *testing.T) {
-	eventQueue := make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize)
+	eventQueue := make(chan *eventmessages.FactomEvent, 5000)
 	mockSender := &mockEventSender{
 		eventsOutQueue:      eventQueue,
 		replayDuringStartup: true,
@@ -152,7 +151,7 @@ func TestAddToProcessList(t *testing.T) {
 }
 
 func TestEmitDirectoryBlockEventsFromHeightRange(t *testing.T) {
-	eventQueue := make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize)
+	eventQueue := make(chan *eventmessages.FactomEvent, 5000)
 	mockSender := &mockEventSender{
 		eventsOutQueue:      eventQueue,
 		replayDuringStartup: true,
@@ -185,7 +184,7 @@ func TestEmitDirectoryBlockEventsFromHeightRange(t *testing.T) {
 }
 
 func TestEmitDirectoryBlockStateEventsFromHeight(t *testing.T) {
-	eventQueue := make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize)
+	eventQueue := make(chan *eventmessages.FactomEvent, 5000)
 	mockSender := &mockEventSender{
 		eventsOutQueue:      eventQueue,
 		replayDuringStartup: true,
@@ -218,7 +217,7 @@ func TestEmitDirectoryBlockStateEventsFromHeight(t *testing.T) {
 }
 
 func TestEmitDirectoryBlockAnchorEvent(t *testing.T) {
-	eventQueue := make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize)
+	eventQueue := make(chan *eventmessages.FactomEvent, 5000)
 	mockSender := &mockEventSender{
 		eventsOutQueue:      eventQueue,
 		replayDuringStartup: true,
@@ -279,7 +278,7 @@ func TestExecuteMessage(t *testing.T) {
 	for name, testCase := range testCases {
 		t.Run(name, func(t *testing.T) {
 			// set mock service to receive events
-			eventQueue := make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize)
+			eventQueue := make(chan *eventmessages.FactomEvent, 5000)
 			mockSender := &mockEventSender{
 				eventsOutQueue:      eventQueue,
 				replayDuringStartup: true,
@@ -304,7 +303,7 @@ func TestExecuteMessage(t *testing.T) {
 }
 
 func TestEmitProcessListEvent(t *testing.T) {
-	eventQueue := make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize)
+	eventQueue := make(chan *eventmessages.FactomEvent, 5000)
 	mockSender := &mockEventSender{
 		eventsOutQueue:      eventQueue,
 		replayDuringStartup: true,
