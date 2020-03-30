@@ -887,7 +887,9 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 					DirectoryBlockHeader: dbstate.DirectoryBlock.GetHeader(),
 					Timestamp:            s.GetTimestamp(),
 				}
-				s.Pub.Directory.Write(&directory)
+				if s.Pub != nil {
+					s.Pub.Directory.Write(&directory)
+				}
 				s.LogPrintf("leader", "%v", directory)
 
 			}
