@@ -5,7 +5,6 @@ services:
         container_name: factomd_0
         build: ../../
         image: factomproject/factomd:dev
-        #build: ../../
         depends_on:
             - logstash
             - nginx
