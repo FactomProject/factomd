@@ -1,3 +1,9 @@
+/*
+
+This logger is not yet installed.
+Layered Logging is the newest log library for factomd.
+*/
+
 package logging
 
 import (

@@ -30,7 +30,6 @@ import (
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/modules/livefeed"
-	"github.com/FactomProject/factomd/modules/logging"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/modules/pubsub/pubregistry"
 	"github.com/FactomProject/factomd/p2p"
@@ -106,8 +105,8 @@ type StateConfig struct {
 type State struct {
 	common.Name
 	StateConfig
-	Logger            *log.Entry               // old logger used for logstash
-	logging           *logging.LayerLogger     // new file logger
+	Logger *log.Entry // old logger used for logstash
+	//logging           *logging.LayerLogger     // new file logger
 	Pub               *pubregistry.PubRegistry // Publisher hooks for this vm
 	RunState          runstate.RunState
 	NetworkController *p2p.Controller

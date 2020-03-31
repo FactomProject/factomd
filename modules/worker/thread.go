@@ -7,9 +7,6 @@ import (
 	"strings"
 
 	"github.com/FactomProject/factomd/common"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/modules/logging"
 )
 
 // callback handle
@@ -22,10 +19,8 @@ type InterruptHandler func(func())
 func New(parent *common.Name, name string) *Thread {
 	w := &Thread{}
 	w.Name.NameInit(parent, name, reflect.TypeOf(w).String())
-	w.Log = log.New(w)
-
-	w.logging = logging.NewLayerLogger(log.GlobalLogger, map[string]string{"fnode": w.GetPath()})
-
+	// REVIEW: Layered Logger is the newest log implementation
+	//w.logging = logging.NewLayerLogger(log.GlobalLogger, map[string]string{"fnode": w.GetPath()})
 	return w
 }
 
@@ -55,10 +50,9 @@ type IRegister interface {
 // worker process with structured callbacks
 // parent relation helps trace worker dependencies
 type Thread struct {
-	common.Name                // support hierarchical naming
-	log.ICaller                // interface to for some fields used by logger
-	Log         interfaces.Log // threaded logger
-	logging     *logging.LayerLogger
+	common.Name // support hierarchical naming
+	//log.ICaller                // interface to for some fields used by logger
+	//logging     *logging.LayerLogger
 
 	Register   IRegister // callbacks to register threads
 	PID        int       // process ID that this thread belongs to

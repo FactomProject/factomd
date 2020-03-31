@@ -7,7 +7,10 @@ package engine
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/modules/pubsub"
 	"os"
 	"reflect"
 	"sync"
@@ -200,8 +203,10 @@ func initAnchors(s *state.State, reparse bool) {
 func startLiveFeed(w *worker.Thread, p *globals.FactomParams) {
 	state0 := fnode.Get(0).State
 	config := state0.Cfg.(*util.FactomdConfig)
+
 	if config.LiveFeedAPI.EnableLiveFeedAPI || p.EnableLiveFeedAPI {
 		state0.LiveFeedService.Start(state0, config, p)
+		eventForward(w) // REVIEW: may want to make this optional
 	}
 }
 
@@ -460,4 +465,33 @@ func hookLogstash(s *state.State, logStashURL string) error {
 
 	s.Logger.Logger.Hooks.Add(hook)
 	return nil
+}
+
+// forward live feed events to logstash
+func eventForward(w *worker.Thread) {
+	w.Spawn("LiveFeed Logs", func(w *worker.Thread) {
+		threadLogger := log.WithFields(log.Fields{"thread": w.ID, "process": w.PID})
+		var feed *pubsub.SubChannel
+		w.OnReady(func() {
+			feed = pubsub.SubFactory.BEChannel(p2p.StandardChannelSize).Subscribe("/live-feed")
+		})
+		w.OnRun(func() {
+			for {
+				select {
+				case v, ok := <-feed.Updates:
+					if !ok {
+						return
+					}
+					evt := v.(*eventmessages.FactomEvent)
+					data, err := json.Marshal(evt.Event)
+					if err != nil {
+						continue
+					}
+					threadLogger.WithFields(
+						log.Fields{"Event": string(data)},
+					).Info(evt.EventSource)
+				}
+			}
+		})
+	})
 }
