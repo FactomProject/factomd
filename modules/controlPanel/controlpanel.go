@@ -177,7 +177,7 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 					break
 				}
 
-				log.Printf("balance changed: %s", data)
+				//log.Printf("balance changed: %s", data)
 				message := sse.SimpleMessage(string(data))
 				server.SendMessage(URL_PREFIX+"general-events", message)
 			}
@@ -189,7 +189,7 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 					break
 				}
 
-				log.Printf("directory block created: %s", data)
+				//log.Printf("directory block created: %s", data)
 				message := sse.SimpleMessage(string(data))
 				server.SendMessage(URL_PREFIX+"general-events", message)
 			}
@@ -201,7 +201,7 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 					break
 				}
 
-				log.Printf("end of minute ticker: %s", data)
+				//log.Printf("end of minute ticker: %s", data)
 				message := sse.SimpleMessage(string(data))
 				server.SendMessage(URL_PREFIX+"general-events", message)
 			}
@@ -212,7 +212,7 @@ func (controlPanel *controlPanel) handleEvents(server *sse.Server) {
 				break
 			}
 
-			log.Printf("connection metric: %s", data)
+			//log.Printf("connection metric: %s", data)
 			message := sse.SimpleMessage(string(data))
 			server.SendMessage(URL_PREFIX+"general-events", message)
 
