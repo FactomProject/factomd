@@ -12,6 +12,6 @@ scrape_configs:
     - job_name: factomd
       static_configs:
           - targets:
+              - 'factomd_0:9876'
               - 'factomd_1:9876'
               - 'factomd_2:9876'
-              - 'factomd_3:9876'

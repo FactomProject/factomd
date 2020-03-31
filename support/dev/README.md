@@ -89,9 +89,9 @@ monitoring the running factomd network.
 
 The Control Panel web UI for all 3 instances are mapped to the ports on the
 host machine, so they are available at the following addresses:
- * *factomd_1* - http://localhost:8090
- * *factomd_2* - http://localhost:8190
- * *factomd_3* - http://localhost:8290
+ * *factomd_0* - http://localhost:8090
+ * *factomd_1* - http://localhost:8190
+ * *factomd_2* - http://localhost:8290
 
 ### Logging
 
@@ -331,9 +331,9 @@ services, which serves the list of IP addresses for all the nodes, so that all
 instances connect to each other.
 
 The default assignment of IP addresses for *factomd* instances:
- * *factomd_1* - `10.7.0.1`
- * *factomd_2* - `10.7.0.2`
- * *factomd_3* - `10.7.0.3`
+ * *factomd_0* - `10.7.0.1`
+ * *factomd_1* - `10.7.0.2`
+ * *factomd_2* - `10.7.0.3`
 
 All other services present in the `factomd` docker network have their IPs
 assigned automatically in `10.7.1.0/24`.
