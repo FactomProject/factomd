@@ -206,7 +206,9 @@ func startLiveFeed(w *worker.Thread, p *globals.FactomParams) {
 
 	if config.LiveFeedAPI.EnableLiveFeedAPI || p.EnableLiveFeedAPI {
 		state0.LiveFeedService.Start(state0, config, p)
-		eventForward(w) // REVIEW: may want to make this optional
+		if p.UseLogstash {
+			eventForward(w)
+		}
 	}
 }
 
@@ -467,13 +469,13 @@ func hookLogstash(s *state.State, logStashURL string) error {
 	return nil
 }
 
-// forward live feed events to logstash
+// forward live feed events to logstash if
 func eventForward(w *worker.Thread) {
 	w.Spawn("LiveFeed Logs", func(w *worker.Thread) {
 		threadLogger := log.WithFields(log.Fields{"thread": w.ID, "process": w.PID})
 		var feed *pubsub.SubChannel
 		w.OnReady(func() {
-			feed = pubsub.SubFactory.BEChannel(p2p.StandardChannelSize).Subscribe("/live-feed")
+			feed = pubsub.SubFactory.Channel(p2p.StandardChannelSize).Subscribe("/live-feed")
 		})
 		w.OnRun(func() {
 			for {
@@ -485,7 +487,7 @@ func eventForward(w *worker.Thread) {
 					evt := v.(*eventmessages.FactomEvent)
 					data, err := json.Marshal(evt.Event)
 					if err != nil {
-						continue
+						panic(err)
 					}
 					threadLogger.WithFields(
 						log.Fields{"Event": string(data)},
