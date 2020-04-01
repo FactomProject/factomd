@@ -37,6 +37,7 @@ type P2PProxy struct {
 	BroadcastOut chan interface{} // FactomMessage ToNetwork from factomd
 	BroadcastIn  chan interface{} // FactomMessage FromNetwork for Factomd
 
+	Network     *p2p.Network
 	ToNetwork   chan interface{} // p2p.Parcel From p2pProxy to the p2p Controller
 	FromNetwork chan interface{} // p2p.Parcel Parcels from the network for the application
 
@@ -89,12 +90,12 @@ func (p *P2PProxy) BytesIn() int {
 	return p.bytesIn
 }
 
-func (p *P2PProxy) Initialize(fromName, toName string) interfaces.IPeer {
-	p.ToName = toName
-	p.FromName = fromName
-	p.logger = proxyLogger.WithField("node", fromName)
-	p.BroadcastOut = make(chan interface{}, p2p.StandardChannelSize)
-	p.BroadcastIn = make(chan interface{}, p2p.StandardChannelSize)
+func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
+	f.ToName = toName
+	f.FromName = fromName
+	f.logger = proxyLogger.WithField("node", fromName)
+	f.BroadcastOut = make(chan interface{}, 5000)
+	f.BroadcastIn = make(chan interface{}, 5000)
 
 	return p
 }
@@ -230,25 +231,17 @@ func (p *P2PProxy) StopProxy() {
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (p *P2PProxy) ManageOutChannel(w *worker.Thread) {
 	w.OnRun(func() {
-		for data := range p.BroadcastOut {
-			switch data.(type) {
-			case FactomMessage:
-				fmessage := data.(FactomMessage)
-				// Wrap it in a parcel and send it out channel ToNetwork.
-				parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message, fmessage.msg)
-				for _, parcel := range parcels {
-					if parcel.Header.Type != p2p.TypeMessagePart {
-						parcel.Header.Type = p2p.TypeMessage
-					}
-					parcel.Header.TargetPeer = fmessage.PeerHash
-					parcel.Header.AppHash = fmessage.AppHash
-					parcel.Header.AppType = fmessage.AppType
-					p2p.BlockFreeChannelSend(p.ToNetwork, parcel)
-				}
-			default:
-				p.logger.Errorf("Garbage on f.BrodcastOut. %+v", data)
-			}
+	for data := range f.BroadcastOut {
+		switch data.(type) {
+		case FactomMessage:
+			fmessage := data.(FactomMessage)
+			// Wrap it in a parcel and send it out channel ToNetwork.
+			parcel := p2p.NewParcel(fmessage.PeerHash, fmessage.Message)
+			f.Network.Send(parcel)
+		default:
+			f.logger.Errorf("Garbage on f.BrodcastOut. %+v", data)
 		}
+	}
 	})
 }
 
@@ -256,18 +249,35 @@ func (p *P2PProxy) ManageOutChannel(w *worker.Thread) {
 func (p *P2PProxy) ManageInChannel(w *worker.Thread) {
 	//	w.Init(p, "ManageInChannel")
 	w.OnRun(func() {
-		for data := range p.FromNetwork {
-			switch data.(type) {
-			case p2p.Parcel:
-				parcel := data.(p2p.Parcel)
-				message := FactomMessage{Message: parcel.Payload, PeerHash: parcel.Header.TargetPeer, AppHash: parcel.Header.AppHash, AppType: parcel.Header.AppType}
-				removed := p2p.BlockFreeChannelSend(p.BroadcastIn, message)
-				BroadInCastQueue.Inc()
-				BroadInCastQueue.Add(float64(-1 * removed))
-				BroadCastInQueueDrop.Add(float64(removed))
-			default:
-				p.logger.Errorf("Garbage on f.FromNetwork. %+v", data)
-			}
+	for parcel := range f.Network.Reader() {
+		message := FactomMessage{Message: parcel.Payload, PeerHash: parcel.Address, AppHash: "", AppType: ""}
+		removed := BlockFreeChannelSend(f.BroadcastIn, message)
+		BroadInCastQueue.Add(float64(-1 * removed))
+		BroadCastInQueueDrop.Add(float64(removed))
+	}
+}
+
+// BlockFreeChannelSend will remove things from the queue to make room for new messages if the queue is full.
+// This prevents channel blocking on full.
+//		Returns: The number of elements cleared from the channel to make room
+func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
+	removed := 0
+	highWaterMark := int(float64(cap(channel)) * 0.95)
+	clen := len(channel)
+	switch {
+	case highWaterMark < clen:
+		str, _ := primitives.EncodeJSONString(message)
+		proxyLogger.Warnf("nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, str)
+		for highWaterMark <= len(channel) { // Clear out some messages
+			removed++
+			<-channel
 		}
-	})
+		fallthrough
+	default:
+		select { // hits default if sending message would block.
+		case channel <- message:
+		default:
+		}
+	}
+	return removed
 }

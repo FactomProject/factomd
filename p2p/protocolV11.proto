@@ -1,0 +1,27 @@
+syntax = "proto3";
+package p2p;
+
+message V11Handshake {
+    uint32 Type = 1;
+    uint32 Network = 2;
+    uint32 Version = 3;
+    uint32 NodeID = 4;
+    string ListenPort = 5;
+    uint64 Loopback = 6;
+    repeated V11Endpoint Alternatives = 7;
+}
+
+message V11Endpoint {
+    string Host = 1;
+    string Port = 2;
+}
+
+message V11Msg {
+    uint32 Type = 1;
+    bytes Payload = 2;
+}
+
+message V11Share {
+    repeated V11Endpoint Share = 1;
+}
+

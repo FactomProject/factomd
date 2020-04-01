@@ -44,7 +44,7 @@ import (
 var connectionMetricsChannel = make(chan interface{}, p2p.StandardChannelSize)
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
-var p2pNetwork *p2p.Controller
+var network *p2p.Network
 var logPort string
 
 func init() {
@@ -298,15 +298,47 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}
 
-	p2p.NetworkDeadline = time.Duration(p.Deadline) * time.Millisecond
+	p2pconf.Network = networkID
+	p2pconf.SeedURL = seedURL
+	p2pconf.ListenPort = networkPort
+	p2pconf.Special = configPeers
 	simulation.BuildNetTopology(p)
 
 	// start a worker that publishes the connection metrics
 	connectionMetricsPublisher := p2p.NewMetricPublisher(s.FactomNodeName, connectionMetricsChannel)
 	connectionMetricsPublisher.Start(w)
 
-	if !p.EnableNet {
-		return
+	if p.EnableNet {
+		nodeName := fnodes[0].State.FactomNodeName
+		if 0 < p.NetworkPortOverride {
+			networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
+		}
+
+		if net, err := p2p.NewNetwork(p2pconf); err != nil {
+			fmt.Println(err)
+			panic("Unable to start p2p network")
+		} else {
+			network = net
+
+			network.SetMetricsHook(func(pm map[string]p2p.PeerMetrics) {
+				select {
+				case connectionMetricsChannel <- pm:
+				default:
+				}
+			})
+			network.Run()
+			fnodes[0].State.NetworkController = net
+
+			p2pProxy = new(P2PProxy).Init(nodeName, "P2P Network").(*P2PProxy)
+			p2pProxy.Network = network
+
+			fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
+			p2pProxy.StartProxy()
+
+			go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
+
+		}
+
 	}
 
 	if 0 < p.NetworkPortOverride {
