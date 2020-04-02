@@ -11,11 +11,12 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/events/eventconfig"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/modules/livefeed/eventconfig"
+	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/modules/pubsub"
+	"github.com/FactomProject/factomd/modules/telemetry"
 	"github.com/FactomProject/factomd/util"
 	"github.com/gogo/protobuf/proto"
-	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -41,17 +42,14 @@ type EventSender interface {
 	Shutdown()
 	IsSendStateChangeEvents() bool
 	ReplayDuringStartup() bool
-	GetEventQueue() chan *eventmessages.FactomEvent
-	IncreaseDroppedFromQueueCounter()
 }
 
 type eventSender struct {
-	params                  *EventServiceParams
-	eventsOutQueue          chan *eventmessages.FactomEvent
-	postponeSendingUntil    time.Time
-	connection              net.Conn
-	droppedFromQueueCounter prometheus.Counter
-	notSentCounter          prometheus.Counter
+	params                    *EventServiceParams
+	eventsSubscriber          *pubsub.SubChannel
+	postponeSendingUntil      time.Time
+	connection                net.Conn
+	droppedFromQueuePublisher pubsub.IPublisher
 }
 
 func NewEventSender(config *util.FactomdConfig, factomParams *globals.FactomParams) EventSender {
@@ -66,7 +64,7 @@ var eventsSentCounter = telemetry.NewCounter(
 func NewEventSenderTo(params *EventServiceParams) EventSender {
 	if eventSenderInstance == nil {
 		eventSenderInstance = &eventSender{
-			eventsSubscriber: pubsub.SubFactory.BEChannel(p2p.StandardChannelSize).Subscribe("/live-feed"),
+			eventsSubscriber: pubsub.SubFactory.BEChannel(5000).Subscribe("/live-feed"),
 			params:           params,
 		}
 		go eventSenderInstance.subscriberEventListener()

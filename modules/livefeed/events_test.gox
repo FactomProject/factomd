@@ -12,14 +12,9 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-<<<<<<< HEAD:modules/livefeed/events_test.gox
 	"github.com/FactomProject/factomd/modules/livefeed/eventconfig"
 	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/p2p"
-=======
-	"github.com/FactomProject/factomd/events/eventconfig"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
->>>>>>> 3a417bf47... Squashed commit of the following::events/events_test.go
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
 	"reflect"

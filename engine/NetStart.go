@@ -41,7 +41,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var connectionMetricsChannel = make(chan interface{}, p2p.StandardChannelSize)
+var connectionMetricsChannel = make(chan interface{}, 5000)
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
 var network *p2p.Network
@@ -78,8 +78,8 @@ func echoConfig(s *state.State, p *globals.FactomParams) {
 	echo("%20s %v\n", "balancehash", messages.AckBalanceHash)
 	echo("%20s %s\n", fmt.Sprintf("%s Salt", s.GetFactomNodeName()), s.Salt.String()[:16])
 	echo("%20s %v\n", "enablenet", p.EnableNet)
-	echo("%20s %v\n", "net incoming", p2p.MaxNumberIncomingConnections)
-	echo("%20s %v\n", "net outgoing", p2p.NumberPeersToConnect)
+	//echo("%20s %v\n", "net incoming", p2p.MaxNumberIncomingConnections)
+	//echo("%20s %v\n", "net outgoing", p2p.NumberPeersToConnect)
 	echo("%20s %v\n", "waitentries", p.WaitEntries)
 	echo("%20s %d\n", "node", p.ListenTo)
 	echo("%20s %s\n", "prefix", p.Prefix)
@@ -126,7 +126,7 @@ func interruptHandler() {
 	for _, node := range fnode.GetFnodes() {
 		node.State.ShutdownNode(0)
 	}
-	p2pNetwork.NetworkStop()
+	network.Stop()
 	fmt.Print("Waiting...\r\n")
 	time.Sleep(3 * time.Second)
 	os.Exit(0)
@@ -247,7 +247,8 @@ func startControlPanel(w *worker.Thread) {
 }
 
 func startNetwork(w *worker.Thread, p *globals.FactomParams) {
-	s := fnode.Get(0).State
+	node := fnode.Get(0)
+	s := node.State
 
 	// Modify Identities of simulated nodes
 	if fnode.Len() > 1 && len(s.Prefix) == 0 {
@@ -298,10 +299,15 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}
 
+	// FIXME: should this be relocated?
+	p2pconf := p2p.DefaultP2PConfiguration()
 	p2pconf.Network = networkID
 	p2pconf.SeedURL = seedURL
 	p2pconf.ListenPort = networkPort
 	p2pconf.Special = configPeers
+	p2pconf.ReadDeadline = time.Minute * 5
+	p2pconf.WriteDeadline = time.Minute * 5
+
 	simulation.BuildNetTopology(p)
 
 	// start a worker that publishes the connection metrics
@@ -309,17 +315,16 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 	connectionMetricsPublisher.Start(w)
 
 	if p.EnableNet {
-		nodeName := fnodes[0].State.FactomNodeName
+		nodeName := s.FactomNodeName
 		if 0 < p.NetworkPortOverride {
 			networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
 		}
 
-		if net, err := p2p.NewNetwork(p2pconf); err != nil {
+		var err error
+		if network, err = p2p.NewNetwork(p2pconf); err != nil {
 			fmt.Println(err)
 			panic("Unable to start p2p network")
 		} else {
-			network = net
-
 			network.SetMetricsHook(func(pm map[string]p2p.PeerMetrics) {
 				select {
 				case connectionMetricsChannel <- pm:
@@ -327,16 +332,13 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 				}
 			})
 			network.Run()
-			fnodes[0].State.NetworkController = net
+			s.NetworkController = network
 
-			p2pProxy = new(P2PProxy).Init(nodeName, "P2P Network").(*P2PProxy)
+			p2pProxy = new(P2PProxy).Initialize(nodeName, "P2P Network").(*P2PProxy)
 			p2pProxy.Network = network
 
-			fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-			p2pProxy.StartProxy()
-
-			go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
-
+			node.Peers = append(node.Peers, p2pProxy)
+			p2pProxy.StartProxy(w)
 		}
 
 	}
@@ -345,28 +347,9 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 		networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
 	}
 
-	ci := p2p.ControllerInit{
-		NodeName:                 s.FactomNodeName,
-		Port:                     networkPort,
-		PeersFile:                s.PeersFile,
-		Network:                  networkID,
-		Exclusive:                p.Exclusive,
-		ExclusiveIn:              p.ExclusiveIn,
-		SeedURL:                  seedURL,
-		ConfigPeers:              configPeers,
-		CmdLinePeers:             p.Peers,
-		ConnectionMetricsChannel: connectionMetricsChannel,
-	}
-
-	p2pNetwork = new(p2p.Controller).Initialize(ci)
-	s.NetworkController = p2pNetwork
-	p2pNetwork.NameInit(s, "p2pNetwork", reflect.TypeOf(p2pNetwork).String())
-	p2pNetwork.StartNetwork(w)
-
 	p2pProxy = new(P2PProxy).Initialize(s.FactomNodeName, "P2P Network").(*P2PProxy)
 	p2pProxy.NameInit(s, "p2pProxy", reflect.TypeOf(p2pProxy).String())
-	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
-	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
+	p2pProxy.Network = network
 	p2pProxy.StartProxy(w)
 }
 
@@ -501,13 +484,17 @@ func hookLogstash(s *state.State, logStashURL string) error {
 	return nil
 }
 
-// forward live feed events to logstash if
+// forward live feed events to logstash
+// NOTE set env var 'EVENTLOG' to enable
 func eventForward(w *worker.Thread) {
+	if _, enabled := os.LookupEnv("EVENTLOG"); !enabled {
+		return
+	}
 	w.Spawn("LiveFeed Logs", func(w *worker.Thread) {
 		threadLogger := log.WithFields(log.Fields{"thread": w.ID, "process": w.PID})
 		var feed *pubsub.SubChannel
 		w.OnReady(func() {
-			feed = pubsub.SubFactory.Channel(p2p.StandardChannelSize).Subscribe("/live-feed")
+			feed = pubsub.SubFactory.Channel(5000).Subscribe("/live-feed")
 		})
 		w.OnRun(func() {
 			for {
