@@ -13,7 +13,9 @@ GO_TEST="go test -v -timeout=10m -vet=off"
 
 # list modules for CI testing
 function listModules() {
-	glide nv | grep -v Utilities | grep -v log | grep -v pubsub | grep -v simulation | grep -v modules | grep -v elections | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v activations | grep -v netTest | grep -v factomgenerate | grep "\.\.\."
+	# FIXME: likely a cleaner way to exclude some packages
+	#glide nv | grep -v Utilities | grep -v log | grep -v pubsub | grep -v simulation | grep -v modules | grep -v elections | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v activations | grep -v netTest | grep -v factomgenerate | grep "\.\.\."
+	ls -l | grep ^d | awk '{ print("./"$9"/...") }' | grep -v Utilities | grep -v log | grep -v pubsub | grep -v simulation | grep -v modules | grep -v elections | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v activations | grep -v netTest | grep -v factomgenerate
 }
 
 # formatted list of simTest/<testname>
