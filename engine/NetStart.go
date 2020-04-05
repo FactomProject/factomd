@@ -336,21 +336,12 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 
 			p2pProxy = new(P2PProxy).Initialize(nodeName, "P2P Network").(*P2PProxy)
 			p2pProxy.Network = network
-
-			node.Peers = append(node.Peers, p2pProxy)
+			p2pProxy.NameInit(s, "p2pProxy", reflect.TypeOf(p2pProxy).String())
+			p2pProxy.Network = network
 			p2pProxy.StartProxy(w)
+			node.Peers = append(node.Peers, p2pProxy)
 		}
-
 	}
-
-	if 0 < p.NetworkPortOverride {
-		networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
-	}
-
-	p2pProxy = new(P2PProxy).Initialize(s.FactomNodeName, "P2P Network").(*P2PProxy)
-	p2pProxy.NameInit(s, "p2pProxy", reflect.TypeOf(p2pProxy).String())
-	p2pProxy.Network = network
-	p2pProxy.StartProxy(w)
 }
 
 func printGraphData(filename string, period int) {
