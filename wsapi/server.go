@@ -34,7 +34,6 @@ func InitServer(state interfaces.IState) *Server {
 	server := Server{State: state, router: router, tlsEnabled: tlsIsEnabled, certFile: certFile, keyFile: keyFile, Port: port}
 
 	if tlsIsEnabled {
-		router.Schemes("HTTPS")
 		wsLog.Info("Starting encrypted API server")
 		if !fileExists(keyFile) && !fileExists(certFile) {
 			err := genCertPair(certFile, keyFile, state.GetFactomdLocations())

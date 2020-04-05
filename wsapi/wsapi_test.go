@@ -9,18 +9,36 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
 	"github.com/stretchr/testify/assert"
 )
 
+func waitUntilStarted(t *testing.T, url string, limit time.Duration) {
+	transCfg := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
+	}
+	client := &http.Client{Transport: transCfg}
+
+	start := time.Now()
+	for time.Since(start) < limit {
+		_, err := client.Get(url)
+		if err == nil {
+			return
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+	t.Fatalf("unable to connect to %s in %s", url, limit)
+}
+
 func TestGetEndpoints(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	Start(state)
+	waitUntilStarted(t, "http://localhost:8088", time.Second*5)
 
 	cases := map[string]struct {
 		Method   string
@@ -62,6 +80,8 @@ func TestAuthenticatedUnauthorizedRequest(t *testing.T) {
 	state.SetPort(18088)
 	Start(state)
 
+	waitUntilStarted(t, "http://localhost:18088", time.Second*5)
+
 	cases := map[string]struct {
 		Method       string
 		Url          string
@@ -102,30 +122,18 @@ func body(content interface{}) io.Reader {
 	return body
 }
 
-// use the mock state to override the GetTlsInfo
-type MockState struct {
-	state.State
-	mockTlsInfo func() (bool, string, string)
-}
-
-func (s *MockState) GetTlsInfo() (bool, string, string) {
-	return s.mockTlsInfo()
-}
-
 func TestHTTPS(t *testing.T) {
 	certFile, pkFile, cleanup := testSetupCertificateFiles(t)
 	defer cleanup()
 
 	state := testHelper.CreateAndPopulateTestState()
 	state.SetPort(10443)
-	mState := &MockState{
-		State: *state,
-		mockTlsInfo: func() (bool, string, string) {
-			return true, pkFile, certFile
-		},
-	}
+	state.FactomdTLSEnable = true
+	state.FactomdTLSKeyFile = pkFile
+	state.FactomdTLSCertFile = certFile
 
-	Start(mState)
+	Start(state)
+	waitUntilStarted(t, "https://localhost:10443", time.Second*5)
 
 	url := "https://localhost:10443/v1/heights/"
 	transCfg := &http.Transport{
