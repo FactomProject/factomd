@@ -3,7 +3,7 @@
 # this script is specified as the 'tests' task in .circleci/config.yml
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)" # get dir containing this script
-cd $DIR                                                             # always from from script dir
+cd $DIR															 # always from from script dir
 
 # set error on return if any part of a pipe command fails
 set -o pipefail
@@ -14,8 +14,8 @@ GO_TEST="go test -v -timeout=10m -vet=off"
 # list modules for CI testing
 function listModules() {
 	# FIXME: likely a cleaner way to exclude some packages
-	#glide nv | grep -v Utilities | grep -v log | grep -v pubsub | grep -v simulation | grep -v modules | grep -v elections | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v activations | grep -v netTest | grep -v factomgenerate | grep "\.\.\."
-	ls -l | grep ^d | awk '{ print("./"$9"/...") }' | grep -v Utilities | grep -v log | grep -v pubsub | grep -v simulation | grep -v modules | grep -v elections | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v activations | grep -v netTest | grep -v factomgenerate
+	# replaces old glide nv command
+	ls -l | grep ^d | awk '{ print("./"$9"/...") }' | grep -v Utilities | grep -v log | grep -v pubsub | grep -v simulation | grep -v modules | grep -v elections | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v activations | grep -v netTest | grep -v factomgenerate | grep -v scripts | grep -v support
 }
 
 # formatted list of simTest/<testname>
@@ -175,11 +175,11 @@ function testSim() {
 }
 
 function writeTestList() {
-    > .circleci/ci_tests
+	> .circleci/ci_tests
 	for TST in ${TESTS[*]}; do
-        echo $TST >> .circleci/ci_tests
-    done
-    echo "Wrote .circleci/ci_tests"
+		echo $TST >> .circleci/ci_tests
+	done
+	echo "Wrote .circleci/ci_tests"
 }
 
 function main() {
@@ -189,11 +189,11 @@ function main() {
 	case $1 in
 
 	mklist)
-        # writelist of all tests to a file
-        # so full test run can be customized for a given build
-	    loadTestList full
-        writeTestList
-        ;;
+		# writelist of all tests to a file
+		# so full test run can be customized for a given build
+		loadTestList full
+                writeTestList
+		;;
 	gofmt)
 		# check all go files pass gofmt
 		testGoFmt

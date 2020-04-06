@@ -32,6 +32,11 @@ func RegisterMetric(handler interfaces.PollMetricHandler) {
 }
 
 func NewCounter(name string, help string) Counter {
+	defer func() {
+		if x := recover(); x != nil {
+			//fmt.Printf("Duplicate Counter name: %v help: %v", name, help)
+		}
+	}()
 	c := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: name,
 		Help: help,
