@@ -15,7 +15,6 @@ import (
 	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/modules/telemetry"
-	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/gogo/protobuf/proto"
 	log "github.com/sirupsen/logrus"
@@ -65,7 +64,7 @@ var eventsSentCounter = telemetry.NewCounter(
 func NewEventSenderTo(params *EventServiceParams) EventSender {
 	if eventSenderInstance == nil {
 		eventSenderInstance = &eventSender{
-			eventsSubscriber: pubsub.SubFactory.BEChannel(p2p.StandardChannelSize).Subscribe("/live-feed"),
+			eventsSubscriber: pubsub.SubFactory.BEChannel(5000).Subscribe("/live-feed"),
 			params:           params,
 		}
 		go eventSenderInstance.subscriberEventListener()

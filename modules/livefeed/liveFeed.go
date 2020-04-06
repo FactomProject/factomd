@@ -7,7 +7,6 @@ import (
 	"github.com/FactomProject/factomd/modules/livefeed/eventservices"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/modules/pubsub/subregistry"
-	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	log "github.com/sirupsen/logrus"
 )
@@ -35,7 +34,7 @@ type liveFeedService struct {
 
 func NewLiveFeedService() LiveFeedService {
 	liveFeedService := new(liveFeedService)
-	liveFeedService.factomEventPublisher = pubsub.PubFactory.Threaded(p2p.StandardChannelSize).Publish("/live-feed", pubsub.PubMultiWrap())
+	liveFeedService.factomEventPublisher = pubsub.PubFactory.Threaded(5000).Publish("/live-feed", pubsub.PubMultiWrap())
 	pubsub.SubFactory.PrometheusCounter("factomd_livefeed_total_events_published", "Number of events published by the factomd backend")
 	return liveFeedService
 }

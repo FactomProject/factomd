@@ -37,6 +37,7 @@ type P2PProxy struct {
 	BroadcastOut chan interface{} // FactomMessage ToNetwork from factomd
 	BroadcastIn  chan interface{} // FactomMessage FromNetwork for Factomd
 
+	Network     *p2p.Network
 	ToNetwork   chan interface{} // p2p.Parcel From p2pProxy to the p2p Controller
 	FromNetwork chan interface{} // p2p.Parcel Parcels from the network for the application
 
@@ -93,8 +94,8 @@ func (p *P2PProxy) Initialize(fromName, toName string) interfaces.IPeer {
 	p.ToName = toName
 	p.FromName = fromName
 	p.logger = proxyLogger.WithField("node", fromName)
-	p.BroadcastOut = make(chan interface{}, p2p.StandardChannelSize)
-	p.BroadcastIn = make(chan interface{}, p2p.StandardChannelSize)
+	p.BroadcastOut = make(chan interface{}, 5000)
+	p.BroadcastIn = make(chan interface{}, 5000)
 
 	return p
 }
@@ -127,17 +128,17 @@ func (p *P2PProxy) Send(msg interfaces.IMsg) error {
 		switch {
 		case !msg.IsPeer2Peer() && msg.IsFullBroadcast():
 			msgLogger.Debug("Sending full broadcast message")
-			message.PeerHash = p2p.FullBroadcastFlag
+			message.PeerHash = p2p.FullBroadcast
 		case !msg.IsPeer2Peer() && !msg.IsFullBroadcast():
 			msgLogger.Debug("Sending broadcast message")
-			message.PeerHash = p2p.BroadcastFlag
+			message.PeerHash = p2p.Broadcast
 		case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
 			msgLogger.Debug("Sending directed message to a random peer")
-			message.PeerHash = p2p.RandomPeerFlag
+			message.PeerHash = p2p.RandomPeer
 		default:
 			msgLogger.Debugf("Sending directed message to: %s", message.PeerHash)
 		}
-		p2p.BlockFreeChannelSend(p.BroadcastOut, message)
+		BlockFreeChannelSend(p.BroadcastOut, message)
 	}
 
 	return nil
@@ -201,18 +202,16 @@ func (p *P2PProxy) Len() int {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (p *P2PProxy) networkHousekeeping(w *worker.Thread) {
-	//	w.Init(p, "networkHousekeeping")
 	w.OnRun(func() {
 		for {
 			time.Sleep(1 * time.Second)
-			p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
+			p2pProxy.SetWeight(network.GetInfo().Peers)
 		}
-
 	})
 }
 
 func (p *P2PProxy) StartProxy(w *worker.Thread) {
-	{ // FIXME refactor
+	{ // FIXME refactor - REVIEW: is this still necessary?
 		node0 := fnode.Get(0)
 		node0.Peers = append(node0.Peers, p2pProxy)
 	}
@@ -235,16 +234,8 @@ func (p *P2PProxy) ManageOutChannel(w *worker.Thread) {
 			case FactomMessage:
 				fmessage := data.(FactomMessage)
 				// Wrap it in a parcel and send it out channel ToNetwork.
-				parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message, fmessage.msg)
-				for _, parcel := range parcels {
-					if parcel.Header.Type != p2p.TypeMessagePart {
-						parcel.Header.Type = p2p.TypeMessage
-					}
-					parcel.Header.TargetPeer = fmessage.PeerHash
-					parcel.Header.AppHash = fmessage.AppHash
-					parcel.Header.AppType = fmessage.AppType
-					p2p.BlockFreeChannelSend(p.ToNetwork, parcel)
-				}
+				parcel := p2p.NewParcel(fmessage.PeerHash, fmessage.Message)
+				p.Network.Send(parcel)
 			default:
 				p.logger.Errorf("Garbage on f.BrodcastOut. %+v", data)
 			}
@@ -254,20 +245,37 @@ func (p *P2PProxy) ManageOutChannel(w *worker.Thread) {
 
 // manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
 func (p *P2PProxy) ManageInChannel(w *worker.Thread) {
-	//	w.Init(p, "ManageInChannel")
 	w.OnRun(func() {
-		for data := range p.FromNetwork {
-			switch data.(type) {
-			case p2p.Parcel:
-				parcel := data.(p2p.Parcel)
-				message := FactomMessage{Message: parcel.Payload, PeerHash: parcel.Header.TargetPeer, AppHash: parcel.Header.AppHash, AppType: parcel.Header.AppType}
-				removed := p2p.BlockFreeChannelSend(p.BroadcastIn, message)
-				BroadInCastQueue.Inc()
-				BroadInCastQueue.Add(float64(-1 * removed))
-				BroadCastInQueueDrop.Add(float64(removed))
-			default:
-				p.logger.Errorf("Garbage on f.FromNetwork. %+v", data)
-			}
+		for parcel := range p.Network.Reader() {
+			message := FactomMessage{Message: parcel.Payload, PeerHash: parcel.Address, AppHash: "", AppType: ""}
+			removed := BlockFreeChannelSend(p.BroadcastIn, message)
+			BroadInCastQueue.Add(float64(-1 * removed))
+			BroadCastInQueueDrop.Add(float64(removed))
 		}
 	})
+}
+
+// BlockFreeChannelSend will remove things from the queue to make room for new messages if the queue is full.
+// This prevents channel blocking on full.
+//		Returns: The number of elements cleared from the channel to make room
+func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
+	removed := 0
+	highWaterMark := int(float64(cap(channel)) * 0.95)
+	clen := len(channel)
+	switch {
+	case highWaterMark < clen:
+		str, _ := primitives.EncodeJSONString(message)
+		proxyLogger.Warnf("nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, str)
+		for highWaterMark <= len(channel) { // Clear out some messages
+			removed++
+			<-channel
+		}
+		fallthrough
+	default:
+		select { // hits default if sending message would block.
+		case channel <- message:
+		default:
+		}
+	}
+	return removed
 }

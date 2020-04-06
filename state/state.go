@@ -109,7 +109,7 @@ type State struct {
 	//logging           *logging.LayerLogger     // new file logger
 	Pub               *pubregistry.PubRegistry // Publisher hooks for this vm
 	RunState          runstate.RunState
-	NetworkController *p2p.Controller
+	NetworkController *p2p.Network
 	Salt              interfaces.IHash
 	Cfg               interfaces.IFactomConfig
 	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
@@ -144,6 +144,7 @@ type State struct {
 	Starttime   time.Time
 	transCnt    int
 	lasttime    time.Time
+	longTps     float64
 	tps         float64
 	ResetTryCnt int
 	ResetCnt    int
@@ -194,7 +195,10 @@ type State struct {
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
 	dataQueue              chan interfaces.IMsg
-	prioritizedMsgQueue    chan interfaces.IMsg
+	// prioritizedMsgQueue contains messages we know we need for consensus. (missing from processlist)
+	//		Currently messages from MMR handling can be put in here to fast track
+	//		them to the front.
+	prioritizedMsgQueue chan interfaces.IMsg
 
 	ShutdownChan chan int // For gracefully halting Factom
 
@@ -346,6 +350,13 @@ type State struct {
 	ECBalancesPMutex      sync.Mutex
 	TempBalanceHash       interfaces.IHash
 	Balancehash           interfaces.IHash
+
+	// Web Services
+	Port int
+
+	// For Replay / journal
+	IsReplaying     bool
+	ReplayTimestamp interfaces.Timestamp
 
 	// State for the Entry Syncing process
 	EntrySyncState *EntrySync
@@ -672,7 +683,7 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) (rval in
 	defer func() {
 		if rval != nil && reflect.ValueOf(rval).IsNil() {
 			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("State.GetEBlockKeyMRFromEntryHash() saw an interface that was nil")
+			primitives.LogNilHashBug("State.GetEBlockKeyMRFromEntryHash() returned a nil for IHash")
 		}
 	}()
 	entry, err := s.DB.FetchEntry(entryHash)
@@ -1346,7 +1357,7 @@ func (s *State) UpdateState() (progress bool) {
 		ProcessLists.Str = ProcessLists.String()
 	}
 
-	if plbase <= dbheight { // TODO: This is where we have to fix the fact that syncing with dbstates can fail to transition to inMessages
+	if plbase <= dbheight { // TODO: This is where we have to fix the fact that syncing with dbstates can fail to transition to messages
 		if !s.Leader || s.RunLeader {
 			progress = ProcessLists.UpdateState(dbheight)
 		}
@@ -1470,12 +1481,7 @@ func (s *State) SetFactoshisPerEC(factoshisPerEC uint64) {
 }
 
 func (s *State) GetIdentityChainID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("State.GetIdentityChainID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "State.GetIdentityChainID") }()
 	return s.IdentityChainID
 }
 
@@ -1798,12 +1804,7 @@ func (s *State) GetNetworkID() uint32 {
 
 // The initial public key that can sign the first block
 func (s *State) GetNetworkBootStrapKey() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("State.GetNetworkBootStrapKey() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "State.GetNetworkBootStrapKey") }()
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
 		key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
@@ -1826,12 +1827,7 @@ func (s *State) GetNetworkBootStrapKey() (rval interfaces.IHash) {
 
 // The initial identity that can sign the first block
 func (s *State) GetNetworkBootStrapIdentity() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("State.GetNetworkBootStrapIdentity() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "State.GetNetworkBootStrapIdentity") }()
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
 		return primitives.NewZeroHash()
@@ -1852,12 +1848,7 @@ func (s *State) GetNetworkBootStrapIdentity() (rval interfaces.IHash) {
 
 // The identity for validating messages
 func (s *State) GetNetworkSkeletonIdentity() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("State.GetNetworkSkeletonIdentity() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "State.GetNetworkSkeletonIdentity") }()
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
 		id, _ := primitives.HexToHash("8888882690706d0d45d49538e64e7c76571d9a9b331256b5b69d9fd2d7f1f14a")
@@ -1877,12 +1868,7 @@ func (s *State) GetNetworkSkeletonIdentity() (rval interfaces.IHash) {
 }
 
 func (s *State) GetNetworkIdentityRegistrationChain() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("State.GetNetworkIdentityRegistrationChain() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "State.GetNetworkIdentityRegistrationChain") }()
 	id, _ := primitives.HexToHash("888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327")
 	return id
 }
@@ -1999,7 +1985,7 @@ func (s *State) SummaryHeader() string {
 		"DB ",
 		"PL  ",
 		" ",
-		"Minute",
+		"Min",
 		"DBState(ask/rply/drop/apply)",
 		"Msg",
 		"   Resend",
@@ -2031,12 +2017,13 @@ func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64
 	if shorttime >= time.Second*3 {
 		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
 		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
+		s.longTps = ((float64(delta) / float64(shorttime.Seconds())) + 31*s.longTps) / 32
 		s.lasttime = time.Now()
 		s.transCnt = total                     // transactions accounted for
 		InstantTransactionPerSecond.Set(s.tps) // Prometheus
 	}
 
-	return tps, s.tps
+	return s.longTps, s.tps
 }
 
 func (s *State) SetStringQueues() {
@@ -2370,7 +2357,7 @@ func (s *State) updateNetworkControllerConfig() {
 		panic(fmt.Sprintf("Invalid Network: %s", s.Network))
 	}
 
-	s.NetworkController.ReloadSpecialPeers(newPeersConfig)
+	s.NetworkController.SetSpecial(newPeersConfig)
 }
 
 // Check and Add a hash to the network replay filter
@@ -2393,6 +2380,7 @@ func (s *State) IsActive(id activations.ActivationType) bool {
 }
 
 func (s *State) PassOutputRegEx(RegEx *regexp.Regexp, RegExString string) {
+	s.LogPrintf("networkOutputs", "SetOutputRegEx to '%s'", RegExString)
 	s.OutputRegEx = RegEx
 	s.OutputRegExString = RegExString
 }
@@ -2402,6 +2390,7 @@ func (s *State) GetOutputRegEx() (*regexp.Regexp, string) {
 }
 
 func (s *State) PassInputRegEx(RegEx *regexp.Regexp, RegExString string) {
+	s.LogPrintf("networkInputs", "SetInputRegEx to '%s'", RegExString)
 	s.InputRegEx = RegEx
 	s.InputRegExString = RegExString
 }

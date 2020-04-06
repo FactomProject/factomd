@@ -19,7 +19,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -164,12 +163,14 @@ func (s *State) LoadConfigFromFile(filename string, networkFlag string) {
 		s.LogPrintf("AckChange", "Load IdentityChainID \"%v\"", s.IdentityChainID.String())
 	}
 
-	if cfg.App.P2PIncoming > 0 {
-		p2p.MaxNumberIncomingConnections = cfg.App.P2PIncoming
-	}
-	if cfg.App.P2POutgoing > 0 {
-		p2p.NumberPeersToConnect = cfg.App.P2POutgoing
-	}
+	/*
+		if cfg.App.P2PIncoming > 0 {
+			p2p.MaxNumberIncomingConnections = cfg.App.P2PIncoming
+		}
+		if cfg.App.P2POutgoing > 0 {
+			p2p.NumberPeersToConnect = cfg.App.P2POutgoing
+		}
+	*/
 }
 
 func (s *State) LoadConfigDefaults() {
@@ -310,12 +311,14 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	s.CheckChainHeads.CheckChainHeads = p.CheckChainHeads
 	s.CheckChainHeads.Fix = p.FixChainHeads
 
-	if p.P2PIncoming > 0 {
-		p2p.MaxNumberIncomingConnections = p.P2PIncoming
-	}
-	if p.P2POutgoing > 0 {
-		p2p.NumberPeersToConnect = p.P2POutgoing
-	}
+	/*
+		if p.P2PIncoming > 0 {
+			p2p.MaxNumberIncomingConnections = p.P2PIncoming
+		}
+		if p.P2POutgoing > 0 {
+			p2p.NumberPeersToConnect = p.P2POutgoing
+		}
+	*/
 
 	// Command line override if provided
 	switch p.ControlPanelSetting {

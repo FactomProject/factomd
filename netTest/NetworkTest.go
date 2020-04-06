@@ -66,9 +66,17 @@ func InitNetwork() {
 	exclusive := *exclusivePtr
 	exclusiveIn := *exclusiveInPtr
 	logPort = *logportPtr
-	p2p.NetworkDeadline = time.Duration(*deadlinePtr) * time.Millisecond
 	isp2p = *p2pPtr
 	size = *sizePtr * 1024
+
+	conf := p2p.DefaultP2PConfiguration()
+	conf.ListenPort = port
+	conf.PeerCacheFile = "peers.json"
+	conf.Network = 1
+	conf.SeedURL = ""
+	conf.Special = peers
+	conf.ReadDeadline = time.Duration(*deadlinePtr) * time.Millisecond
+	conf.WriteDeadline = time.Duration(*deadlinePtr) * time.Millisecond
 
 	os.Stderr.WriteString("\nnetTest is a standalone program that generates factomd messages (bounce and bounceResponse)\n ")
 	os.Stderr.WriteString("        and sends them to other nodes on the network.  This allows testing of the network\n ")
@@ -81,27 +89,22 @@ func InitNetwork() {
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %s\n", "peers", peers))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "exclusive", exclusive))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "exclusiveIn", exclusiveIn))
-	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "deadline", p2p.NetworkDeadline.Seconds()))
+	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "deadline", conf.ReadDeadline.Seconds()))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "p2p", isp2p))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %dk\n\n", "size", size/1024))
 
-	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
-	ci := p2p.ControllerInit{
-		Port:                     port,
-		PeersFile:                "peers.json",
-		Network:                  1,
-		Exclusive:                exclusive,
-		ExclusiveIn:              exclusiveIn,
-		SeedURL:                  "",
-		ConfigPeers:              peers,
-		ConnectionMetricsChannel: connectionMetricsChannel,
+	network, err := p2p.NewNetwork(conf)
+	if err != nil {
+		panic(err)
 	}
-	p2pNetwork := new(p2p.Controller).Initialize(ci)
-	p2pNetwork.StartNetwork()
+
+	if err := network.Run(); err != nil {
+		panic(err)
+	}
+
 	// Setup the proxy (Which translates from network parcels to Factom messages, handling addressing for directed messages)
-	p2pProxy = new(engine.P2PProxy).Initialize("testnode", "P2P Network").(*engine.P2PProxy)
-	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
-	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
+	p2pProxy = new(engine.P2PProxy).Init("testnode", "P2P Network").(*engine.P2PProxy)
+	p2pProxy.Network = network
 
 	p2pProxy.StartProxy()
 }
