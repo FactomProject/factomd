@@ -49,7 +49,7 @@ func BubbleSortUint32(arr []uint32) []uint32 {
 	return arr
 }
 
-// statusFedOrAudit returns true if the input status is a federated or audit server
+// statusIsFedOrAudit returns true if the input status is a federated or audit server
 func statusIsFedOrAudit(status uint8) bool {
 	if status == constants.IDENTITY_FEDERATED_SERVER ||
 		status == constants.IDENTITY_AUDIT_SERVER ||

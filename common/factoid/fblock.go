@@ -37,6 +37,7 @@ type FBlock struct {
 	// the NEXT period.  This entry may not exist.  The Coinbase transaction is considered
 	// to be in the first period.  Factom's periods will initially be a minute long, and
 	// there will be 10 of them.  This may change in the future.
+
 }
 
 var _ interfaces.IFBlock = (*FBlock)(nil)
@@ -153,7 +154,7 @@ func (b *FBlock) GetTransactions() []interfaces.ITransaction {
 	return b.Transactions
 }
 
-// GetNewInstance returns a copy of this Fblock
+// GetNewInstance returns an empty Fblock
 func (b FBlock) GetNewInstance() interfaces.IFBlock {
 	return new(FBlock)
 }
@@ -183,8 +184,7 @@ func (b *FBlock) MarshalTrans() (rval []byte, err error) {
 
 	for i, trans = range b.Transactions {
 
-		// Write the end of minute marker to the marshaled object before dealing with this transaction
-		// if the current transaction is the first transaction in the next period block
+		// Insert minute markers to close out the previous periods if this transaction starts a new period
 		for periodMark < len(b.endOfPeriod) &&
 			b.endOfPeriod[periodMark] > 0 && // Ignore if markers are not set
 			i == b.endOfPeriod[periodMark] { // This is the first transaction of a new minute mark
@@ -201,8 +201,7 @@ func (b *FBlock) MarshalTrans() (rval []byte, err error) {
 			return nil, err
 		}
 	}
-	// If there hasn't been an transactions in specific minute periods, then just write the minute mark for each
-	// period when this is true (since we've already looped through all the transactions in this FBlock above)
+	// Pads minute markers to guarantee 10 of them if no transactions took place in the later minutes
 	for periodMark < len(b.endOfPeriod) {
 		out.WriteByte(constants.MARKER)
 		periodMark++
@@ -427,14 +426,14 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 	return err
 }
 
-// GetChainID returns the hash of the hardcoded constants.FACTOID_CHAINID
+// GetChainID returns the hardcoded hash constants.FACTOID_CHAINID
 func (b *FBlock) GetChainID() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetChainID") }()
 
 	return primitives.NewHash(constants.FACTOID_CHAINID)
 }
 
-// GetKeyMR calculates the Key Merkle Root for this block by taking the sha256 of the concatonated:
+// GetKeyMR calculates the Key Merkle Root for this block by taking the sha256 of the concatenated:
 // Merkle root = sha256[ sha256(marshaled header), body Merkle root ]
 func (b *FBlock) GetKeyMR() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetKeyMR") }()
@@ -524,19 +523,19 @@ func (b *FBlock) GetBodyMR() (rval interfaces.IHash) {
 	return b.BodyMR
 }
 
-// GetPrevKeyMR returns the previous blocks Merkle root
+// GetPrevKeyMR returns the previous block's Merkle root
 func (b *FBlock) GetPrevKeyMR() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetPrevKeyMR") }()
 
 	return b.PrevKeyMR
 }
 
-// SetPrevKeyMR sets the previous blocks key Merkle root
+// SetPrevKeyMR sets the KeyMR pointing to the previous FBlock
 func (b *FBlock) SetPrevKeyMR(hash interfaces.IHash) {
 	b.PrevKeyMR = hash
 }
 
-// GetPrevLedgerKeyMR returns the previous blocks ledger key Merkle root
+// GetPrevLedgerKeyMR returns the previous block's ledger key Merkle root
 func (b *FBlock) GetPrevLedgerKeyMR() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "FBlock.GetPrevLedgerKeyMR") }()
 
@@ -574,7 +573,7 @@ func (b *FBlock) GetExchRate() uint64 {
 	return b.ExchRate
 }
 
-// ValidateTransaction checks that the transaction is valid, including signatures and balances
+// ValidateTransaction checks that the transaction is valid, including signatures
 func (b FBlock) ValidateTransaction(index int, trans interfaces.ITransaction) error {
 	// Calculate the fee due.
 	err := trans.Validate(index)
@@ -708,7 +707,7 @@ func (b FBlock) String() string {
 	return string(txt)
 }
 
-// CustomMarshalText marshals the Fblock to a custom text.  Largely a debugging thing.
+// CustomMarshalText marshals the FBlock to a custom text.  Largely a debugging thing.
 func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	var out primitives.Buffer
 

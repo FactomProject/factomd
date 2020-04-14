@@ -30,7 +30,7 @@ func RandomAddress() interfaces.IAddress {
 	return CreateAddress(h)
 }
 
-// CustomMarshalText writes the address to a custom string: "addr   <hexidecimal_address>"
+// CustomMarshalText writes the address to a custom string: "addr   <hexadecimal_address>"
 func (a *Address) CustomMarshalText() (text []byte, err error) {
 	var out primitives.Buffer
 	addr := hex.EncodeToString(a.Bytes())

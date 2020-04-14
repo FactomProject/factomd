@@ -55,7 +55,7 @@ func (r RCD_2) IsSameAs(rcd interfaces.IRCD) bool {
 }
 
 // UnmarshalBinary unmarshals the input data into this object
-func (r RCD_2) UnmarshalBinary(data []byte) error {
+func (r *RCD_2) UnmarshalBinary(data []byte) error {
 	_, err := r.UnmarshalBinaryData(data)
 	return err
 }

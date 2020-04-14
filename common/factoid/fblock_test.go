@@ -97,7 +97,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 	}
 }
 
-// TestBadFBlockUnmarshal checks that a corrupted hexidecimal string unmarshales into an FBlock with an error
+// TestBadFBlockUnmarshal checks that a corrupted hexadecimal string unmarshals into an FBlock with an error
 func TestBadFBlockUnmarshal(t *testing.T) {
 
 	t1 := TestFBlock{}

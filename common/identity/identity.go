@@ -137,7 +137,7 @@ func RandomIdentity() *Identity {
 	return id
 }
 
-// GetCoinbaseHumanReadable returns the coinbasae address in human readable format if it exists, else returns 'No Address"
+// GetCoinbaseHumanReadable returns the coinbase address in human readable format if it exists, else returns 'No Address"
 func (id *Identity) GetCoinbaseHumanReadable() string {
 	if id.CoinbaseAddress.IsZero() {
 		return "No Address"

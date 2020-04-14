@@ -8,7 +8,7 @@ package identityEntries
 // Constants for the prefix part of the identity secret and public keys
 const (
 	IdentityPrivateKeyPrefix1 = "4db6c9" // prefix of "sk1"
-	IdentityPrivateKeyPrefix2 = "4db6e7" // prifix of "sk2"
+	IdentityPrivateKeyPrefix2 = "4db6e7" // prefix of "sk2"
 	IdentityPrivateKeyPrefix3 = "4db705" // prefix of "sk3"
 	IdentityPrivateKeyPrefix4 = "4db723" // prefix of "sk4"
 

@@ -44,7 +44,7 @@ func (s *FactoidSignature) GetKey() []byte {
 	return s.Signature[32:]
 }
 
-// MarshalText encodes the signature to a hexidecimal string, then returns its bytes
+// MarshalText encodes the signature to a hexadecimal string, then returns its bytes
 func (s *FactoidSignature) MarshalText() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -82,7 +82,7 @@ func (s *FactoidSignature) SetSignature(sig []byte) error {
 	return nil
 }
 
-// GetSignature returns thte signature pointer
+// GetSignature returns the signature pointer
 func (s *FactoidSignature) GetSignature() *[constants.SIGNATURE_LENGTH]byte {
 	return &s.Signature
 }
@@ -93,7 +93,7 @@ func (s FactoidSignature) MarshalBinary() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-// CustomMarshalText returns a custom string " FactoidSignature: <hexidecimal_sig>\n"
+// CustomMarshalText returns a custom string " FactoidSignature: <hexadecimal_sig>\n"
 func (s FactoidSignature) CustomMarshalText() ([]byte, error) {
 	var out primitives.Buffer
 

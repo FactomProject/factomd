@@ -20,8 +20,8 @@ import (
  * RCD_1 Simple Signature
  **************************/
 
-// RCD_1 is a Redeem Condition Datastructure (RCD) of type 1, which is simply validating one address to ensure it signed
-// this transaction.
+// RCD_1 is a Redeem Condition Datastructure (RCD) of type 1, which
+// is used to validate single-address signing of data
 type RCD_1 struct {
 	PublicKey [constants.ADDRESS_LENGTH]byte
 	validSig  bool
@@ -39,7 +39,7 @@ func (r RCD_1) IsSameAs(rcd interfaces.IRCD) bool {
 }
 
 // UnmarshalBinary unmarshals the input data into this object
-func (r RCD_1) UnmarshalBinary(data []byte) error {
+func (r *RCD_1) UnmarshalBinary(data []byte) error {
 	_, err := r.UnmarshalBinaryData(data)
 	return err
 }
@@ -73,7 +73,7 @@ func (r RCD_1) String() string {
 	return string(txt)
 }
 
-// MarshalText returns the public key as a byte array
+// MarshalText returns a byte slice of the hexadecimal representation of the public key, not the public key itself
 func (r *RCD_1) MarshalText() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -117,7 +117,7 @@ func (r RCD_1) Clone() interfaces.IRCD {
 	return c
 }
 
-// GetAddress returns a new address created by sha256(sha256(public key))
+// GetAddress returns a new address created by sha256(sha256(rcd type + public key))
 func (r RCD_1) GetAddress() (interfaces.IAddress, error) {
 	data := []byte{1}
 	data = append(data, r.PublicKey[:]...)
@@ -165,7 +165,7 @@ func (r RCD_1) MarshalBinary() ([]byte, error) {
 	return out.DeepCopyBytes(), nil
 }
 
-// CustomMarshalText writes this RCD as a string "RCD 1: 1 <hexidecimal_public_key>\n" and returns its byte array
+// CustomMarshalText writes this RCD as a string "RCD 1: 1 <hexadecimal_public_key>\n" and returns its byte array
 func (r RCD_1) CustomMarshalText() (text []byte, err error) {
 	var out primitives.Buffer
 	out.WriteString("RCD 1: ")

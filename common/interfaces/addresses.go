@@ -18,15 +18,15 @@ type ITransAddress interface {
 	SetAmount(uint64)            // Set the amount associated with this transaction
 	GetAddress() IAddress        // Return the address associated with this transaction
 	SetAddress(IAddress)         // Set the address associated with this transaction
-	IsSameAs(ITransAddress) bool // Compares two ITransAddress's
+	IsSameAs(ITransAddress) bool // Compares two ITransAddresses
 
 	CustomMarshalTextInput() ([]byte, error)    // Convert this object into text bytes
 	CustomMarshalTextOutput() ([]byte, error)   // Convert this object into text bytes
 	CustomMarshalTextECOutput() ([]byte, error) // Convert this object into text bytes
 
-	StringInput() string    // Convert this object to a string
-	StringOutput() string   // Convert this object to a string
-	StringECOutput() string // Conver tthis object to a string
+	StringInput() string    // Convert this to a string
+	StringOutput() string   // Convert this to a string
+	StringECOutput() string // Convert this to a string
 
 	GetUserAddress() string // Returns the human readable address for this transaction
 	SetUserAddress(string)  // Sets the human readable address for this transaction

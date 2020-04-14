@@ -222,7 +222,7 @@ func (im *IdentityManager) ProcessIdentityEntryWithABlockUpdate(entry interfaces
 }
 
 // ApplyIdentityChainStructure updates or adds a new identity with the 4 secret keys and the block height creation associated with the chain id.
-// Will also register then identity if it hasn't been registered yet
+// Will also register the identity if it hasn't been registered yet
 func (im *IdentityManager) ApplyIdentityChainStructure(ic *IdentityChainStructure, chainID interfaces.IHash, dBlockHeight uint32) (bool, error) {
 	id := im.GetIdentity(chainID)
 	if id == nil {

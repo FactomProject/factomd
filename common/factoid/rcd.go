@@ -21,7 +21,7 @@ import (
  * Helper Functions
  ***********************/
 
-// UnmarshalBinaryAuth takes the input byte slice, determines whether its RCD 1 or 2, and
+// UnmarshalBinaryAuth takes the input byte slice, determines whether it's RCD 1 or 2, and
 // unmarshals it into a new RCD of that type
 func UnmarshalBinaryAuth(data []byte) (a interfaces.IRCD, newData []byte, err error) {
 	if data == nil || len(data) < 1 {

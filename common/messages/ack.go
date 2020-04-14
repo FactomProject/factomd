@@ -85,7 +85,7 @@ func (m *Ack) Type() byte {
 	return constants.ACK_MSG
 }
 
-// GetTimestamp returns this objects timestamp
+// GetTimestamp returns this object's timestamp
 func (m *Ack) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp.Clone()
 }

@@ -11,7 +11,7 @@ import (
 /****************************To addresses**************************************/
 /******************************************************************************/
 
-// PublicKeyStringToECAddressString converts a hexidecimal public key string to a base58 EC address string
+// PublicKeyStringToECAddressString converts a hexadecimal public key string to a base58 EC address string
 func PublicKeyStringToECAddressString(public string) (string, error) {
 	pubHex, err := hex.DecodeString(public)
 	if err != nil {
@@ -26,7 +26,7 @@ func PublicKeyStringToECAddressString(public string) (string, error) {
 	return primitives.ConvertECAddressToUserStr(add), nil
 }
 
-// PublicKeyStringToECAddress converts a hexidecimal public key string to an EC address
+// PublicKeyStringToECAddress converts a hexadecimal public key string to an EC address
 func PublicKeyStringToECAddress(public string) (interfaces.IAddress, error) {
 	pubHex, err := hex.DecodeString(public)
 	if err != nil {
@@ -40,7 +40,7 @@ func PublicKeyToECAddress(public []byte) (interfaces.IAddress, error) {
 	return NewAddress(public), nil
 }
 
-// PublicKeyStringToFactoidAddressString converts the input hexidecimal public key string to a base58 factoid address string
+// PublicKeyStringToFactoidAddressString converts the input hexadecimal public key string to a base58 factoid address string
 func PublicKeyStringToFactoidAddressString(public string) (string, error) {
 	pubHex, err := hex.DecodeString(public)
 	if err != nil {
@@ -64,7 +64,7 @@ func PublicKeyToFactoidAddress(public []byte) (interfaces.IAddress, error) {
 	return add, nil
 }
 
-// PublicKeyStringToFactoidAddress converts a hexidecimal public key string to a factoid address
+// PublicKeyStringToFactoidAddress converts a hexadecimal public key string to a factoid address
 func PublicKeyStringToFactoidAddress(public string) (interfaces.IAddress, error) {
 	pubHex, err := hex.DecodeString(public)
 	if err != nil {
@@ -78,7 +78,7 @@ func PublicKeyStringToFactoidAddress(public string) (interfaces.IAddress, error)
 	return add, nil
 }
 
-// PublicKeyStringToFactoidRCDAddress converts a hexidecimal public key string to a factoid RCD address
+// PublicKeyStringToFactoidRCDAddress converts a hexadecimal public key string to a factoid RCD address
 func PublicKeyStringToFactoidRCDAddress(public string) (interfaces.IRCD, error) {
 	pubHex, err := hex.DecodeString(public)
 	if err != nil {
@@ -92,8 +92,8 @@ func PublicKeyStringToFactoidRCDAddress(public string) (interfaces.IRCD, error) 
 /******************************Combined****************************************/
 /******************************************************************************/
 
-// HumanReadablePrivateKeyStringToEverythingString converts a human readable base58 private key string to a hexidecimal public key
-// string and a base58 factoid address string
+// HumanReadablePrivateKeyStringToEverythingString converts a human readable base58 private key string to a hexadecimal public key
+// string and a base58 factoid address string. If the input cannot be decoded, it returns an error.
 func HumanReadablePrivateKeyStringToEverythingString(private string) (string, string, string, error) {
 	priv, err := primitives.HumanReadableFactoidPrivateKeyToPrivateKeyString(private)
 	if err != nil {
@@ -102,8 +102,8 @@ func HumanReadablePrivateKeyStringToEverythingString(private string) (string, st
 	return PrivateKeyStringToEverythingString(priv)
 }
 
-// PrivateKeyStringToEverythingString converts a hexidecimal private key string to a hexidecimal public key string and
-// a base58 factoid address string
+// PrivateKeyStringToEverythingString converts a hexadecimal private key string to a hexadecimal public key string and
+// a base58 factoid address string. If the input cannot be decoded, it returns an error.
 func PrivateKeyStringToEverythingString(private string) (string, string, string, error) {
 	pub, err := primitives.PrivateKeyStringToPublicKeyString(private)
 	if err != nil {

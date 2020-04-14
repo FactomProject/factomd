@@ -56,7 +56,7 @@ func TestAddressEquals(t *testing.T) {
 	}
 }
 
-// TestFactoidAddresses creates a fake factoid address, converts it to a user string and back again, comparing the integrity of the address/string
+// TestFactoidAddress creates a Factiod address, converts it to a user string and back again, comparing the integrity of the address/string
 func TestFactoidAddresses(t *testing.T) {
 	addr := NewAddress(primitives.Sha([]byte("A fake address")).Bytes())
 
@@ -88,7 +88,7 @@ func TestFactoidAddresses(t *testing.T) {
 	}
 }
 
-// TestEntryCreditAddresses creates a fake EC address, converts it to a user string and back again, comparing the integrity of the address/string
+// TestEntryCreditAddresses creates an EC address, converts it to a user string and back again, comparing the integrity of the address/string
 func TestEntryCreditAddresses(t *testing.T) {
 	addr := NewAddress(primitives.Sha([]byte("A fake address")).Bytes())
 
@@ -122,8 +122,7 @@ func TestEntryCreditAddresses(t *testing.T) {
 	}
 }
 
-// TestAddressMisc checks that a hexidecimal string converted to address, will produce the same hexidecimal string when accessed
-// via the address member function String()
+// TestAddressMisc checks that the address String() function produces the right output
 func TestAddressMisc(t *testing.T) {
 	h, err := primitives.HexToHash("ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973")
 	if err != nil {

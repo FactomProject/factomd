@@ -49,7 +49,7 @@ type Authority struct {
 
 	KeyHistory      []HistoricKey       `json:"-"`               // Slice of old signing keys previously associated with this authority server along with the dbheight it was retired
 	Efficiency      uint16              `json:"efficiency"`      // The efficiency of this authority server in hundredths of a percent: 10000 = 100%
-	CoinbaseAddress interfaces.IAddress `json:"coinbaseaddress"` // The Factoid address payments are sent do for this server
+	CoinbaseAddress interfaces.IAddress `json:"coinbaseaddress"` // The Factoid address payments are sent to for this server
 }
 
 // NewAuthority returns a new Authority with hashes initialized to the zero hash, and an efficiency of 10000 (100%)

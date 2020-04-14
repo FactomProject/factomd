@@ -182,7 +182,7 @@ func (t *Transaction) SetTimestamp(ts interfaces.Timestamp) {
 }
 
 // SetSignatureBlock sets the 'ith' signature block to the input signature. If 'i' is larger than the length
-// of the available signature blocks, it appends empty signatures and finally inserts the input signature at the
+// of the available signature blocks, it pads empty signatures and finally inserts the input signature at the
 // 'ith' position
 func (t *Transaction) SetSignatureBlock(i int, sig interfaces.ISignatureBlock) {
 	for len(t.SigBlocks) <= i {
@@ -414,7 +414,7 @@ func (t Transaction) GetECOutputs() []interfaces.ITransAddress { return t.OutECs
 // GetRCDs returns the RCDs
 func (t Transaction) GetRCDs() []interfaces.IRCD { return t.RCDs }
 
-// GetSignatureBlocks returns the signature blocks FIX - why does it nil out extras? shouldn't something else handle adding these objects?
+// GetSignatureBlocks returns the signature blocks. Note: Function nils out extras for garbage collection purposes
 func (t *Transaction) GetSignatureBlocks() []interfaces.ISignatureBlock {
 	if len(t.SigBlocks) > len(t.Inputs) { // If too long, nil out
 		for i := len(t.Inputs); i < len(t.SigBlocks); i++ { // the extra entries, and
@@ -689,7 +689,7 @@ func (t *Transaction) AddECOutput(ecoutput interfaces.IAddress, amount uint64) {
 	t.clearCaches()
 }
 
-// CustomerMarshalText marshals the object to text.  Largely a debugging thing.
+// CustomMarshalText marshals the object to text.  Largely a debugging thing.
 func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 	data, err := t.MarshalBinary()
 	if err != nil {

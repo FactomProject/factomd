@@ -124,14 +124,14 @@ func newRCD_1() *RCD_1 {
 	return rcd.(*RCD_1)
 }
 
-// TestCheckSig checks that transaction pulled from the block chain has a valid signature, and that an invalid signature
+// TestCheckSig checks that a transaction pulled from the block chain has a valid signature, and that a purposefully corrupted signature will be flagged
 func TestCheckSig(t *testing.T) {
 	// Get a signed transaction	from the command:
 	// curl -X POST --data-binary '{"jsonrpc": "2.0", "id": 0, "method": "raw-data", "params":{"hash":"da0dd2a8dcc919d8628b91ded838026ebf784c70a2e220a1cfc8bd22e1b05706"}}' -H 'content-type:text/plain;' https://api.factomd.net/v2
 	hexstring := "02016ec7acf22a010001efe18ed800ac3a83e6ca84a2c647adc6a2b2004a5692832e46b0c9efaef09fcfe4bf7230860037399721298d77984585040ea61055377039a4c3f3e2cd48c46ff643d50fd64f0142e27026226eb70a07b07c8054f69f89d010e751d4fdd47feeaf5e56cc34971f4937a81c67010259667266c51461bdcc507b9696f61111e9cd7b721ff189cce2981db016ea74e5467dfd503c1123e65551b39f74c83111890b7692d01a08420c"
 	data, err := hex.DecodeString(hexstring)
 	if err != nil {
-		t.Errorf("TestCheckSig: error decoding hexidecimal string")
+		t.Errorf("TestCheckSig: error decoding hexadecimal string")
 	}
 
 	// Unmarshal the data into the transaction struct
@@ -151,7 +151,7 @@ func TestCheckSig(t *testing.T) {
 			if rcd.CheckSig(tx, sigb) == true {
 				t.Errorf("Corrupted Signature is claimed to be verified")
 			}
-			// Fix the signature so its back to original
+			// Fix the signature so it's back to original
 			badsig[0] = badsig[0] - 1
 			if rcd.CheckSig(tx, sigb) == false {
 				t.Errorf("Invalid signature for transaction")

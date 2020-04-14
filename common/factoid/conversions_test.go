@@ -30,7 +30,7 @@ Corresponding to public key: 8bee2930-cbe4772a-e5454c48-01d4ef36-6276f6e4-cc65ba
 
 */
 
-// TestPublicToAddress checks that a pupil key can convert to the proper factoid address
+// TestPublicToAddress checks that a public key can converted to the proper factoid address
 func TestPublicToAddress(t *testing.T) {
 	add, err := PublicKeyStringToFactoidAddressString("8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4")
 	if err != nil {

@@ -19,5 +19,5 @@ type BinaryMarshallable interface {
 // BinaryMarshallableAndCopyable represents an object which is binary marshallable/unmarshallable and copyable
 type BinaryMarshallableAndCopyable interface {
 	BinaryMarshallable                  // All of the above
-	New() BinaryMarshallableAndCopyable // Plust the copy piece
+	New() BinaryMarshallableAndCopyable // Plus the copy piece
 }

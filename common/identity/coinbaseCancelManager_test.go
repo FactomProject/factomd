@@ -235,7 +235,7 @@ func TestAddProposalRandom(t *testing.T) {
 	}
 }
 
-// TestAddProposalVector checks that the proposal list is properly sorted when new proposals are addedb
+// TestAddProposalVector checks that the proposal list is properly sorted when new proposals are added
 func TestAddProposalVector(t *testing.T) {
 	c := NewCoinbaseCancelManager(nil)
 	// Check 0

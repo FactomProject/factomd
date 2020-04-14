@@ -11,7 +11,7 @@ import (
 	. "github.com/FactomProject/factomd/common/identityEntries"
 )
 
-// TestNewCoinbaseAddressStruct checks a hardcoded external ID can be set into the coinbase address structure and obtain the correct chain ID
+// TestNewCoinbaseAddressStruct checks if a hardcoded external ID can be set into the coinbase address structure and obtain the correct chain ID
 func TestNewCoinbaseAddressStruct(t *testing.T) {
 	parts := []string{
 		"00",
