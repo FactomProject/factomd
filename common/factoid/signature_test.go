@@ -18,11 +18,13 @@ import (
 var _ = ed25519.Sign
 var _ = rand.New
 
+// Global signatures used for testing
 var sig1 [64]byte
 var sig2 [64]byte
 
 var s1, s2 interfaces.ISignature
 
+// TestUnmarshalNilFactoidSignature checks that unmarshalling nil and the empty interface result in proper errors
 func TestUnmarshalNilFactoidSignature(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -42,6 +44,7 @@ func TestUnmarshalNilFactoidSignature(t *testing.T) {
 	}
 }
 
+// TestSetup_Signature just sets up the global signatures (not a real test)
 func TestSetup_Signature(t *testing.T) {
 	sh11 := primitives.Sha([]byte("sig first half  one")).Bytes()
 	sh12 := primitives.Sha([]byte("sig second half one")).Bytes()
@@ -59,6 +62,7 @@ func TestSetup_Signature(t *testing.T) {
 	s2.SetSignature(sig2[:])
 }
 
+// TestNewED25519Signature checks that signatures can be set up in cononical form
 func TestNewED25519Signature(t *testing.T) {
 	testData := primitives.Sha([]byte("sig first half  one")).Bytes()
 	priv := testHelper.NewPrivKey(0)

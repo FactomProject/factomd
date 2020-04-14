@@ -13,13 +13,15 @@ import (
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
+// HistoricKey contains a public key previously associated with a specific authority server, along with the height it was retired
 type HistoricKey struct {
-	ActiveDBHeight uint32
-	SigningKey     primitives.PublicKey
+	ActiveDBHeight uint32               // Block height the old signing key was retired
+	SigningKey     primitives.PublicKey // Old signing key
 }
 
 var _ interfaces.BinaryMarshallable = (*HistoricKey)(nil)
 
+// RandomHistoricKey returns a new HistoricKey with random values
 func RandomHistoricKey() *HistoricKey {
 	hk := new(HistoricKey)
 
@@ -29,6 +31,7 @@ func RandomHistoricKey() *HistoricKey {
 	return hk
 }
 
+// IsSameAs returns true iff the input is identical this object
 func (e *HistoricKey) IsSameAs(b *HistoricKey) bool {
 	if e.ActiveDBHeight != b.ActiveDBHeight {
 		return false
@@ -40,6 +43,7 @@ func (e *HistoricKey) IsSameAs(b *HistoricKey) bool {
 	return true
 }
 
+// MarshalBinary marshals this object
 func (e *HistoricKey) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -61,6 +65,7 @@ func (e *HistoricKey) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinaryData unmarshals the input data into this object
 func (e *HistoricKey) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	newData = p
 	buf := primitives.NewBuffer(p)
@@ -79,6 +84,7 @@ func (e *HistoricKey) UnmarshalBinaryData(p []byte) (newData []byte, err error) 
 	return
 }
 
+// UnmarshalBinary unmarshals the input data into this object
 func (e *HistoricKey) UnmarshalBinary(p []byte) error {
 	_, err := e.UnmarshalBinaryData(p)
 	return err

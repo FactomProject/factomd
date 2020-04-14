@@ -14,6 +14,10 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// ExpectedCoinbaseCancelExternalIDLengths is a hardcoded slice containing the expected lengths of each entry in an external ID (the fields of NewCoinbaseCancelStruct)
+var ExpectedCoinbaseCancelExternalIDLengths = []int{1, 15, 32, 4, 4, 33, 64}
+
+// NewCoinbaseCancelStruct holds all the information for adding a coinbase cancel to a server subchain
 // https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#coinbase-cancel
 type NewCoinbaseCancelStruct struct {
 	//The message is a Factom Entry with several extIDs holding the various parts.
@@ -35,6 +39,7 @@ type NewCoinbaseCancelStruct struct {
 	Signature []byte
 }
 
+// DecodeNewCoinbaseCancelStructFromExtIDs returns a new object with values from the input external ID
 func DecodeNewCoinbaseCancelStructFromExtIDs(extIDs [][]byte) (*NewCoinbaseCancelStruct, error) {
 	nbsk := new(NewCoinbaseCancelStruct)
 	err := nbsk.DecodeFromExtIDs(extIDs)
@@ -44,10 +49,12 @@ func DecodeNewCoinbaseCancelStructFromExtIDs(extIDs [][]byte) (*NewCoinbaseCance
 	return nbsk, nil
 }
 
+// SetFunctionName sets the function name "Coinbase Cancel"
 func (ncas *NewCoinbaseCancelStruct) SetFunctionName() {
 	ncas.FunctionName = []byte("Coinbase Cancel")
 }
 
+// MarshalForSig marshals the object without its signature
 func (ncas *NewCoinbaseCancelStruct) MarshalForSig() []byte {
 	answer := []byte{}
 
@@ -65,6 +72,7 @@ func (ncas *NewCoinbaseCancelStruct) MarshalForSig() []byte {
 	return answer
 }
 
+// VerifySignature marshals the object without its signature and verifies the marshaled data with the signature, and verifies the input key
 func (ncas *NewCoinbaseCancelStruct) VerifySignature(key1 interfaces.IHash) error {
 	bin := ncas.MarshalForSig()
 	pk := new(primitives.PublicKey)
@@ -90,11 +98,12 @@ func (ncas *NewCoinbaseCancelStruct) VerifySignature(key1 interfaces.IHash) erro
 	return nil
 }
 
+// DecodeFromExtIDs places the information from the input external IDs into this object
 func (ncas *NewCoinbaseCancelStruct) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(extIDs))
 	}
-	if CheckExternalIDsLength(extIDs, []int{1, 15, 32, 4, 4, 33, 64}) == false {
+	if CheckExternalIDsLength(extIDs, ExpectedCoinbaseCancelExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 	ncas.Version = extIDs[0][0]
@@ -125,6 +134,7 @@ func (ncas *NewCoinbaseCancelStruct) DecodeFromExtIDs(extIDs [][]byte) error {
 	return nil
 }
 
+// ToExternalIDs returns a 2d byte slice of all the data in this object
 func (ncas *NewCoinbaseCancelStruct) ToExternalIDs() [][]byte {
 	extIDs := [][]byte{}
 
@@ -145,6 +155,7 @@ func (ncas *NewCoinbaseCancelStruct) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
+// GetChainID computes the chain ID associated with this object
 func (ncas *NewCoinbaseCancelStruct) GetChainID() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "NewCoinbaseCancelStruct.GetChainID") }()
 

@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestUnmarshalNilSignatureBlock checks that unmarshaling nil ore the empty interface results in proper errors
 func TestUnmarshalNilSignatureBlock(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -32,6 +33,8 @@ func TestUnmarshalNilSignatureBlock(t *testing.T) {
 	}
 }
 
+// TestSignatureBlock checks that a new single signature block can be created and its signature can be
+// used in a cononical form to sign data
 func TestSignatureBlock(t *testing.T) {
 	priv := testHelper.NewPrivKey(0)
 	testData, err := hex.DecodeString("00112233445566778899")

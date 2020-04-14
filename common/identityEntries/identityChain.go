@@ -12,7 +12,11 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#factom-identity-chain-creation
+// ExpectedIdentityChainExternalIDLengths is a hardcoded slice containing the expected lengths of each entry in an external ID (the fields of IdentityChainStructure)
+var ExpectedIdentityChainExternalIDLengths = []int{1, 14, 32, 32, 32, 32}
+
+// IdentityChainStructure contains all the elements for forming an identity on the Factom blockchain
+// https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#factom-identity-chain-creation
 type IdentityChainStructure struct {
 	//A Chain Name is constructed with 7 elements.
 	//The first element is a binary string 0 signifying the version.
@@ -20,7 +24,7 @@ type IdentityChainStructure struct {
 	//The second element is ASCII bytes "Identity Chain".
 	FunctionName []byte //"Identity Chain"
 	//The third element is the level 1 identity key in binary form.
-	Key1 interfaces.IHash
+	Key1 interfaces.IHash // Level 1 key is the lowest security online key
 	//Elements 4-6 are levels 2-4.
 	Key2 interfaces.IHash
 	Key3 interfaces.IHash
@@ -29,6 +33,7 @@ type IdentityChainStructure struct {
 	Nonce []byte
 }
 
+// DecodeIdentityChainStructureFromExtIDs returns a new object with values from the input external ID
 func DecodeIdentityChainStructureFromExtIDs(extIDs [][]byte) (*IdentityChainStructure, error) {
 	ics := new(IdentityChainStructure)
 	err := ics.DecodeFromExtIDs(extIDs)
@@ -38,11 +43,14 @@ func DecodeIdentityChainStructureFromExtIDs(extIDs [][]byte) (*IdentityChainStru
 	return ics, nil
 }
 
+// DecodeFromExtIDs sets the values from the input 2d byte slice into this object
 func (ics *IdentityChainStructure) DecodeFromExtIDs(extIDs [][]byte) error {
+	// An external id contains the 7 fields of the IdentityChainStructure
 	if len(extIDs) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(extIDs))
 	}
-	if CheckExternalIDsLength(extIDs[:6], []int{1, 14, 32, 32, 32, 32}) == false {
+	// Check each fields length matches the expected size
+	if CheckExternalIDsLength(extIDs[:6], ExpectedIdentityChainExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 	ics.Version = extIDs[0][0]
@@ -82,6 +90,7 @@ func (ics *IdentityChainStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	return nil
 }
 
+// ToExternalIDs returns a 2d byte slice of all the data in this object
 func (ics *IdentityChainStructure) ToExternalIDs() [][]byte {
 	extIDs := [][]byte{}
 
@@ -96,6 +105,7 @@ func (ics *IdentityChainStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
+// GetChainID computes the chain ID associated with this object
 func (ics *IdentityChainStructure) GetChainID() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "IdentityChainStructure.GetChainID") }()
 

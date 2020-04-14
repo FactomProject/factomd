@@ -10,6 +10,7 @@ import (
 	. "github.com/FactomProject/factomd/common/identity"
 )
 
+// TestAnchorSigningKeyMarshalUnmarshal checks that 1000 random signing keys are identical after they are marshaled and unmarshaled
 func TestAnchorSigningKeyMarshalUnmarshal(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		ask := RandomAnchorSigningKey()

@@ -25,6 +25,7 @@ type CoinbaseCancelManager struct {
 	im *IdentityManager
 }
 
+// NewCoinbaseCancelManager creates a new initialized object
 func NewCoinbaseCancelManager(im *IdentityManager) *CoinbaseCancelManager {
 	c := new(CoinbaseCancelManager)
 	c.Proposals = make(map[uint32]map[uint32]map[[32]byte]identityEntries.NewCoinbaseCancelStruct)
@@ -34,23 +35,23 @@ func NewCoinbaseCancelManager(im *IdentityManager) *CoinbaseCancelManager {
 	return c
 }
 
-// GC is garbage collecting old proposals
+// GC is garbage collecting old proposals by removing them from the manager
 //		dbheight is the current height.
-func (c *CoinbaseCancelManager) GC(dbheight uint32) {
+func (cm *CoinbaseCancelManager) GC(dbheight uint32) {
 	count := 0
 	// These are sorting in incrementing order.
-	for _, h := range c.ProposalsList {
-		// If you height a height that is greater than the height, break.
+	for _, h := range cm.ProposalsList {
+		// If the execution height in the proposals is greater than the current block height, break.
 		// These are still valid proposals
 		if h+constants.COINBASE_DECLARATION > dbheight {
 			break
 		}
-		delete(c.Proposals, h)
-		delete(c.AdminBlockRecord, h)
+		delete(cm.Proposals, h)
+		delete(cm.AdminBlockRecord, h)
 		count++
 	}
 	// Remove deleted items from sorted list
-	c.ProposalsList = append([]uint32{}, c.ProposalsList[count:]...)
+	cm.ProposalsList = append([]uint32{}, cm.ProposalsList[count:]...)
 
 }
 
@@ -74,7 +75,7 @@ func (cm *CoinbaseCancelManager) AddCancel(cc identityEntries.NewCoinbaseCancelS
 }
 
 // CanceledOutputs will return the indices of all indices to be canceled for a given descriptor height
-//		It will only return indicies not already marked as cancelled (in the admin block)
+//		It will only return indices not already marked as cancelled (in the admin block)
 //
 // This function is used in unit tests, not in factomd
 func (cm *CoinbaseCancelManager) CanceledOutputs(descriptorHeight uint32) []uint32 {

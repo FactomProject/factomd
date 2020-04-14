@@ -12,7 +12,11 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#add-new-matryoshka-hash
+// ExpectedMatryoshkaHashExternalIDLengths is a hardcoded slice containing the expected lengths of each entry in an external ID (the fields of NewMatryoshkaHashStructure)
+var ExpectedMatryoshkaHashExternalIDLengths = []int{1, 19, 32, 32, 8, 33, 64}
+
+// NewMatryoshkaHashStructure holds all the information for adding a new Matryoshka hash
+// https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#add-new-matryoshka-hash
 type NewMatryoshkaHashStructure struct {
 	//[0 (version)] [New Matryoshka Hash] [identity ChainID] [new SHA256 M-hash] [timestamp] [identity key preimage] [signature of version through timestamp]
 
@@ -32,6 +36,7 @@ type NewMatryoshkaHashStructure struct {
 	Signature []byte
 }
 
+// DecodeNewMatryoshkaHashStructureFromExtIDs returns a new object with values from the input external ID
 func DecodeNewMatryoshkaHashStructureFromExtIDs(extIDs [][]byte) (*NewMatryoshkaHashStructure, error) {
 	nmh := new(NewMatryoshkaHashStructure)
 	err := nmh.DecodeFromExtIDs(extIDs)
@@ -41,6 +46,7 @@ func DecodeNewMatryoshkaHashStructureFromExtIDs(extIDs [][]byte) (*NewMatryoshka
 	return nmh, nil
 }
 
+// MarshalForSig marshals the object without its signature
 func (nmh *NewMatryoshkaHashStructure) MarshalForSig() []byte {
 	answer := []byte{}
 	answer = append(answer, nmh.Version)
@@ -51,6 +57,7 @@ func (nmh *NewMatryoshkaHashStructure) MarshalForSig() []byte {
 	return answer
 }
 
+// VerifySignature marshals the object without its signature and verifies the marshaled data with the signature, and verifies the input key
 func (nmh *NewMatryoshkaHashStructure) VerifySignature(key1 interfaces.IHash) error {
 	bin := nmh.MarshalForSig()
 	pk := new(primitives.PublicKey)
@@ -76,11 +83,12 @@ func (nmh *NewMatryoshkaHashStructure) VerifySignature(key1 interfaces.IHash) er
 	return nil
 }
 
+// DecodeFromExtIDs places the information from the input external IDs into this object
 func (nmh *NewMatryoshkaHashStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(extIDs))
 	}
-	if CheckExternalIDsLength(extIDs, []int{1, 19, 32, 32, 8, 33, 64}) == false {
+	if CheckExternalIDsLength(extIDs, ExpectedMatryoshkaHashExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 	nmh.Version = extIDs[0][0]
@@ -114,6 +122,7 @@ func (nmh *NewMatryoshkaHashStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	return nil
 }
 
+// ToExternalIDs returns a 2d byte slice of all the data in this object
 func (nmh *NewMatryoshkaHashStructure) ToExternalIDs() [][]byte {
 	extIDs := [][]byte{}
 
@@ -128,6 +137,7 @@ func (nmh *NewMatryoshkaHashStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
+// GetChainID computes the chain ID associated with this object
 func (nmh *NewMatryoshkaHashStructure) GetChainID() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "NewMatryoshkaHashStructure.GetChainID") }()
 

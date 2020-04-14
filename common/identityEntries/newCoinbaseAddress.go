@@ -12,6 +12,10 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// ExpectedCoinbaseAddressExternalIDLengths is a hardcoded slice containing the expected lengths of each entry in an external ID (the fields of NewCoinbaseAddressStruct)
+var ExpectedCoinbaseAddressExternalIDLengths = []int{1, 16, 32, 32, 8, 33, 64}
+
+// NewCoinbaseAddressStruct holds all the information for adding a new coinbase address to a root Factom identity chain
 // https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#coinbase-address
 type NewCoinbaseAddressStruct struct {
 	//The message is a Factom Entry with several extIDs holding the various parts.
@@ -33,6 +37,7 @@ type NewCoinbaseAddressStruct struct {
 	Signature []byte
 }
 
+// DecodeNewNewCoinbaseAddressStructFromExtIDs returns a new object with values from the input external ID
 func DecodeNewNewCoinbaseAddressStructFromExtIDs(extIDs [][]byte) (*NewCoinbaseAddressStruct, error) {
 	nbsk := new(NewCoinbaseAddressStruct)
 	err := nbsk.DecodeFromExtIDs(extIDs)
@@ -42,10 +47,12 @@ func DecodeNewNewCoinbaseAddressStructFromExtIDs(extIDs [][]byte) (*NewCoinbaseA
 	return nbsk, nil
 }
 
+// SetFunctionName sets the function name "CoinbaseAddress"
 func (ncas *NewCoinbaseAddressStruct) SetFunctionName() {
 	ncas.FunctionName = []byte("Coinbase Address")
 }
 
+// MarshalForSig marshals the object without its signature
 func (ncas *NewCoinbaseAddressStruct) MarshalForSig() []byte {
 	answer := []byte{}
 
@@ -57,6 +64,7 @@ func (ncas *NewCoinbaseAddressStruct) MarshalForSig() []byte {
 	return answer
 }
 
+// VerifySignature marshals the object without its signature and verifies the marshaled data with the signature, and verifies the input key
 func (ncas *NewCoinbaseAddressStruct) VerifySignature(key1 interfaces.IHash) error {
 	bin := ncas.MarshalForSig()
 	pk := new(primitives.PublicKey)
@@ -82,11 +90,12 @@ func (ncas *NewCoinbaseAddressStruct) VerifySignature(key1 interfaces.IHash) err
 	return nil
 }
 
+// DecodeFromExtIDs places the information from the input external IDs into this object
 func (ncas *NewCoinbaseAddressStruct) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(extIDs))
 	}
-	if CheckExternalIDsLength(extIDs, []int{1, 16, 32, 32, 8, 33, 64}) == false {
+	if CheckExternalIDsLength(extIDs, ExpectedCoinbaseAddressExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 	ncas.Version = extIDs[0][0]
@@ -121,6 +130,7 @@ func (ncas *NewCoinbaseAddressStruct) DecodeFromExtIDs(extIDs [][]byte) error {
 	return nil
 }
 
+// ToExternalIDs returns a 2d byte slice of all the data in this object
 func (ncas *NewCoinbaseAddressStruct) ToExternalIDs() [][]byte {
 	extIDs := [][]byte{}
 
@@ -135,6 +145,7 @@ func (ncas *NewCoinbaseAddressStruct) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
+// GetChainID computes the chain ID associated with this object
 func (ncas *NewCoinbaseAddressStruct) GetChainID() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "NewCoinbaseAddressStruct.GetChainID") }()
 

@@ -31,6 +31,7 @@ var address2 = [constants.ADDRESS_LENGTH]byte{
 	0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c, 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00,
 }
 
+// TestAddressEquals checks that the IsSameAs function correctly compares addresses
 func TestAddressEquals(t *testing.T) {
 	a1 := new(Address)
 	a2 := new(Address)
@@ -55,6 +56,7 @@ func TestAddressEquals(t *testing.T) {
 	}
 }
 
+// TestFactoidAddress creates a Factiod address, converts it to a user string and back again, comparing the integrity of the address/string
 func TestFactoidAddresses(t *testing.T) {
 	addr := NewAddress(primitives.Sha([]byte("A fake address")).Bytes())
 
@@ -86,6 +88,7 @@ func TestFactoidAddresses(t *testing.T) {
 	}
 }
 
+// TestEntryCreditAddresses creates an EC address, converts it to a user string and back again, comparing the integrity of the address/string
 func TestEntryCreditAddresses(t *testing.T) {
 	addr := NewAddress(primitives.Sha([]byte("A fake address")).Bytes())
 
@@ -119,6 +122,7 @@ func TestEntryCreditAddresses(t *testing.T) {
 	}
 }
 
+// TestAddressMisc checks that the address String() function produces the right output
 func TestAddressMisc(t *testing.T) {
 	h, err := primitives.HexToHash("ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973")
 	if err != nil {

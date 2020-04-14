@@ -5,19 +5,20 @@ package identityEntries
 //TODO:
 //- Add conversion to human-readable private / public key
 
+// Constants for the prefix part of the identity secret and public keys
 const (
-	IdentityPrivateKeyPrefix1 = "4db6c9"
-	IdentityPrivateKeyPrefix2 = "4db6e7"
-	IdentityPrivateKeyPrefix3 = "4db705"
-	IdentityPrivateKeyPrefix4 = "4db723"
+	IdentityPrivateKeyPrefix1 = "4db6c9" // prefix of "sk1"
+	IdentityPrivateKeyPrefix2 = "4db6e7" // prefix of "sk2"
+	IdentityPrivateKeyPrefix3 = "4db705" // prefix of "sk3"
+	IdentityPrivateKeyPrefix4 = "4db723" // prefix of "sk4"
 
-	IdentityPublicKeyPrefix1 = "3fbeba"
-	IdentityPublicKeyPrefix2 = "3fbed8"
-	IdentityPublicKeyPrefix3 = "3fbef6"
-	IdentityPublicKeyPrefix4 = "3fbf14"
+	IdentityPublicKeyPrefix1 = "3fbeba" // prefix of "id1"
+	IdentityPublicKeyPrefix2 = "3fbed8" // prefix of "id2"
+	IdentityPublicKeyPrefix3 = "3fbef6" // prefix of "id3"
+	IdentityPublicKeyPrefix4 = "3fbf14" // prefix of "id4"
 )
 
-// Checking the external ids if they match the needed lengths
+// CheckExternalIDsLength checks that the fields of the external ids match the required lengths
 func CheckExternalIDsLength(extIDs [][]byte, lengths []int) bool {
 	if len(extIDs) != len(lengths) {
 		return false

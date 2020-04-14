@@ -8,6 +8,8 @@ import (
 	. "github.com/FactomProject/factomd/common/factoid"
 )
 
+// TestGetGenesisFBlockMainNet checks that the genesis block returned for the main network isn't corrupted and its
+// Merkle roots are correct
 func TestGetGenesisFBlockMainNet(t *testing.T) {
 	g := GetGenesisFBlock(constants.MAIN_NETWORK_ID)
 	if g == nil {
@@ -30,6 +32,7 @@ func TestGetGenesisFBlockMainNet(t *testing.T) {
 	}
 }
 
+// TestGetGenesisFBlockExchangeRate checks the exchange rate in the genesis block for each network type is correct
 func TestGetGenesisFBlockExchangeRate(t *testing.T) {
 	g := GetGenesisFBlock(constants.MAIN_NETWORK_ID)
 	if g == nil {

@@ -17,6 +17,7 @@ type EntryBlockSync struct {
 	BlocksToBeParsed []EntryBlockMarker
 }
 
+// RandomEntryBlockSync returns a new random EntryBlockSync with 0-9 EntryBlockMarkers
 func RandomEntryBlockSync() *EntryBlockSync {
 	s := NewEntryBlockSync()
 
@@ -30,6 +31,7 @@ func RandomEntryBlockSync() *EntryBlockSync {
 	return s
 }
 
+// NewEntryBlockSync returns a new object
 func NewEntryBlockSync() *EntryBlockSync {
 	e := new(EntryBlockSync)
 	e.Current = *NewEntryBlockMarker()
@@ -38,56 +40,58 @@ func NewEntryBlockSync() *EntryBlockSync {
 	return e
 }
 
-// Synced returns if fully synced (current == target)
-func (a *EntryBlockSync) Synced() bool {
-	return a.Current.IsSameAs(&a.Target)
+// Synced returns true if fully synced (current == target)
+func (e *EntryBlockSync) Synced() bool {
+	return e.Current.IsSameAs(&e.Target)
 }
 
 // NextEBlock returns the next eblock that is needed to be parsed
-func (a *EntryBlockSync) NextEBlock() *EntryBlockMarker {
-	if len(a.BlocksToBeParsed) == 0 {
+func (e *EntryBlockSync) NextEBlock() *EntryBlockMarker {
+	if len(e.BlocksToBeParsed) == 0 {
 		return nil
 	}
-	return &a.BlocksToBeParsed[0]
+	return &e.BlocksToBeParsed[0]
 }
 
-// BlockParsed indicates a block has been parsed. We update our current
-func (a *EntryBlockSync) BlockParsed(block EntryBlockMarker) {
-	if !a.BlocksToBeParsed[0].IsSameAs(&block) {
+// BlockParsed indicates a block has been parsed. We update our current block to the input
+func (e *EntryBlockSync) BlockParsed(block EntryBlockMarker) {
+	if !e.BlocksToBeParsed[0].IsSameAs(&block) {
 		panic("This block should be next in the list")
 	}
-	a.Current = block
-	a.BlocksToBeParsed = a.BlocksToBeParsed[1:]
+	e.Current = block
+	e.BlocksToBeParsed = e.BlocksToBeParsed[1:]
 }
 
-func (a *EntryBlockSync) AddNewHead(keymr interfaces.IHash, seq uint32, ht uint32, dblockTimestamp interfaces.Timestamp) {
-	a.AddNewHeadMarker(EntryBlockMarker{keymr, seq, ht, dblockTimestamp})
+// AddNewHead creates and adds a new EntryBlockMarker from the input parameters to the head (tail) of 'to be parsed' list
+func (e *EntryBlockSync) AddNewHead(keymr interfaces.IHash, seq uint32, ht uint32, dblockTimestamp interfaces.Timestamp) {
+	e.AddNewHeadMarker(EntryBlockMarker{keymr, seq, ht, dblockTimestamp})
 }
 
-// AddNewHead will add a new eblock to be parsed to the head (tail of list)
+// AddNewHeadMarker will add a new eblock to be parsed to the head (tail of list)
 //	Since the block needs to be parsed, it is the new target and added to the blocks to be parsed
-func (a *EntryBlockSync) AddNewHeadMarker(marker EntryBlockMarker) {
-	if marker.DBHeight < a.Target.DBHeight {
+func (e *EntryBlockSync) AddNewHeadMarker(marker EntryBlockMarker) {
+	if marker.DBHeight < e.Target.DBHeight {
 		return // Already added this target
 	}
-	a.BlocksToBeParsed = append(a.BlocksToBeParsed, marker)
-	a.Target = marker
+	e.BlocksToBeParsed = append(e.BlocksToBeParsed, marker)
+	e.Target = marker
 }
 
-func (a *EntryBlockSync) IsSameAs(b *EntryBlockSync) bool {
-	if !a.Current.IsSameAs(&b.Current) {
+// IsSameAs return true iff the input object is identical to this object
+func (e *EntryBlockSync) IsSameAs(b *EntryBlockSync) bool {
+	if !e.Current.IsSameAs(&b.Current) {
 		return false
 	}
-	if !a.Target.IsSameAs(&b.Target) {
-		return false
-	}
-
-	if len(a.BlocksToBeParsed) != len(b.BlocksToBeParsed) {
+	if !e.Target.IsSameAs(&b.Target) {
 		return false
 	}
 
-	for i := range a.BlocksToBeParsed {
-		if !a.BlocksToBeParsed[i].IsSameAs(&b.BlocksToBeParsed[i]) {
+	if len(e.BlocksToBeParsed) != len(b.BlocksToBeParsed) {
+		return false
+	}
+
+	for i := range e.BlocksToBeParsed {
+		if !e.BlocksToBeParsed[i].IsSameAs(&b.BlocksToBeParsed[i]) {
 			return false
 		}
 	}
@@ -95,6 +99,7 @@ func (a *EntryBlockSync) IsSameAs(b *EntryBlockSync) bool {
 	return true
 }
 
+// Clone makes an identical copy of this object
 func (e *EntryBlockSync) Clone() *EntryBlockSync {
 	b := new(EntryBlockSync)
 	b.Current = *e.Current.Clone()
@@ -108,6 +113,7 @@ func (e *EntryBlockSync) Clone() *EntryBlockSync {
 	return b
 }
 
+// MarshalBinary marshals this object
 func (e *EntryBlockSync) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -140,11 +146,13 @@ func (e *EntryBlockSync) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// UnmarshalBinary unmarshals the input data into this object
 func (e *EntryBlockSync) UnmarshalBinary(p []byte) error {
 	_, err := e.UnmarshalBinaryData(p)
 	return err
 }
 
+// UnmarshalBinaryData unmarshals the input data into this object
 func (e *EntryBlockSync) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	buf := primitives.NewBuffer(p)
 	newData = p
@@ -190,16 +198,20 @@ func (e *EntryBlockSync) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 	return
 }
 
+// EntryBlockMarkerList slice of EntryBlockMarkers
 type EntryBlockMarkerList []EntryBlockMarker
 
+// Len returns the length of this object
 func (p EntryBlockMarkerList) Len() int {
 	return len(p)
 }
 
+// Swap swaps the values stored at indices 'i' and 'j'
 func (p EntryBlockMarkerList) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
 
+// Less returns true if the object at 'i' is les than the object at 'j'
 func (p EntryBlockMarkerList) Less(i, j int) bool {
 	return p[i].Sequence < p[j].Sequence
 }
@@ -211,6 +223,7 @@ type EntryBlockMarker struct {
 	DblockTimestamp interfaces.Timestamp
 }
 
+// NewEntryBlockMarker returns a new entry block marker
 func NewEntryBlockMarker() *EntryBlockMarker {
 	e := new(EntryBlockMarker)
 	e.KeyMr = primitives.NewZeroHash()
@@ -218,6 +231,7 @@ func NewEntryBlockMarker() *EntryBlockMarker {
 	return e
 }
 
+// RandomEntryBlockMarker returns a new entry block marker with random initialized values
 func RandomEntryBlockMarker() *EntryBlockMarker {
 	m := NewEntryBlockMarker()
 	m.KeyMr = primitives.RandomHash()
@@ -225,22 +239,24 @@ func RandomEntryBlockMarker() *EntryBlockMarker {
 	return m
 }
 
-func (a *EntryBlockMarker) IsSameAs(b *EntryBlockMarker) bool {
-	if !a.KeyMr.IsSameAs(b.KeyMr) {
+// IsSameAs returns true iff the input object is identical
+func (e *EntryBlockMarker) IsSameAs(b *EntryBlockMarker) bool {
+	if !e.KeyMr.IsSameAs(b.KeyMr) {
 		return false
 	}
-	if a.Sequence != b.Sequence {
+	if e.Sequence != b.Sequence {
 		return false
 	}
-	if a.DBHeight != b.DBHeight {
+	if e.DBHeight != b.DBHeight {
 		return false
 	}
-	if !a.DblockTimestamp.IsSameAs(b.DblockTimestamp) {
+	if !e.DblockTimestamp.IsSameAs(b.DblockTimestamp) {
 		return false
 	}
 	return true
 }
 
+// Clone returns an identical copy of the this object
 func (e *EntryBlockMarker) Clone() *EntryBlockMarker {
 	b := new(EntryBlockMarker)
 	b.KeyMr = e.KeyMr.Copy()
@@ -250,6 +266,7 @@ func (e *EntryBlockMarker) Clone() *EntryBlockMarker {
 	return b
 }
 
+// MarshalBinary marshals this object
 func (e *EntryBlockMarker) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -281,17 +298,19 @@ func (e *EntryBlockMarker) MarshalBinary() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-// Returns the byte size when marshaled
+// Size returns the byte size when marshaled
 func (e *EntryBlockMarker) Size() int {
 	// If you count it, it's 46. However, PushIHash is actually 33 bytes. and PushTimestamp is actually 8, rather than 6.
 	return 49
 }
 
+// UnmarshalBinary unmarshals the input data into this object
 func (e *EntryBlockMarker) UnmarshalBinary(p []byte) error {
 	_, err := e.UnmarshalBinaryData(p)
 	return err
 }
 
+// UnmarshalBinaryData unmarshals the input data into this object
 func (e *EntryBlockMarker) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	buf := primitives.NewBuffer(p)
 	newData = p

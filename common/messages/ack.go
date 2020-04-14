@@ -22,7 +22,7 @@ import (
 // or create more context loggers off of this
 var packageLogger = log.WithFields(log.Fields{"package": "messages"})
 
-//General acknowledge message
+// Ack is a general acknowledge message
 type Ack struct {
 	msgbase.MessageBase
 	Timestamp   interfaces.Timestamp // Timestamp of Ack by Leader
@@ -47,21 +47,26 @@ type Ack struct {
 
 var _ interfaces.IMsg = (*Ack)(nil)
 var _ interfaces.Signable = (*Ack)(nil)
+
+// AckBalanceHash is a global variable which determines whether balance hashes are passed around. Default is
+// true, but can be overwritten on network startup
 var AckBalanceHash = true
 
+// GetRepeatHash returns the hash of the message, which is the sha256 of the marshaled object excluding its signature
 func (m *Ack) GetRepeatHash() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "Ack.GetRepeatHash") }()
 
 	return m.GetMsgHash()
 }
 
-// We have to return the hash of the underlying message.
+// GetHash returns the hash of the underlying message.
 func (m *Ack) GetHash() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "Ack.GetHash") }()
 
 	return m.MessageHash
 }
 
+// GetMsgHash returns the hash of the message, which is the sha256 of the marshaled object excluding its signature
 func (m *Ack) GetMsgHash() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "Ack.GetMsgHash") }()
 
@@ -75,14 +80,17 @@ func (m *Ack) GetMsgHash() (rval interfaces.IHash) {
 	return m.MsgHash
 }
 
+// Type returns this message type ACK_MSG
 func (m *Ack) Type() byte {
 	return constants.ACK_MSG
 }
 
+// GetTimestamp returns this object's timestamp
 func (m *Ack) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp.Clone()
 }
 
+// VerifySignature verifies the message is signed properly
 func (m *Ack) VerifySignature() (bool, error) {
 	return msgbase.VerifyMessage(m)
 }
@@ -146,10 +154,9 @@ func (m *Ack) Validate(s interfaces.IState) int {
 			if m.DBHeight == s.GetLLeaderHeight() && m.Minute < byte(s.GetCurrentMinute()) {
 				s.LogPrintf("executeMsg", "Hold, Not signed by a leader")
 				return 0
-			} else {
-				s.LogPrintf("executeMsg", "Drop, Not signed by a leader")
-				return -1
 			}
+			s.LogPrintf("executeMsg", "Drop, Not signed by a leader")
+			return -1
 		}
 	}
 
@@ -158,34 +165,38 @@ func (m *Ack) Validate(s interfaces.IState) int {
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
+// ComputeVMIndex is a no op function
 func (m *Ack) ComputeVMIndex(state interfaces.IState) {
 }
 
-// Execute the leader functions of the given message
+// LeaderExecute executes the leader functions of the given message
 // Leader, follower, do the same thing.
 func (m *Ack) LeaderExecute(state interfaces.IState) {
 	m.FollowerExecute(state)
 }
 
+// FollowerExecute executes the follower functions of the given message
+// Leader, follower, do the same thing.
 func (m *Ack) FollowerExecute(state interfaces.IState) {
 	state.FollowerExecuteAck(m)
 }
 
-// Acknowledgements do not go into the process list.
-func (e *Ack) Process(dbheight uint32, state interfaces.IState) bool {
+// Process panics if called. Acknowledgements do not go into the process list.
+func (m *Ack) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *Ack) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+// JSONByte returns the json encoded byte array
+func (m *Ack) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *Ack) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+// JSONString returns the json encoded string
+func (m *Ack) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
+// Sign signs this message with the input key
 func (m *Ack) Sign(key interfaces.Signer) error {
 	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
@@ -195,10 +206,12 @@ func (m *Ack) Sign(key interfaces.Signer) error {
 	return nil
 }
 
+// GetSignature returns the stored signature
 func (m *Ack) GetSignature() interfaces.IFullSignature {
 	return m.Signature
 }
 
+// UnmarshalBinaryData unmarshals the input data into this object
 func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -290,11 +303,13 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	return
 }
 
+// UnmarshalBinary unmarshals the input data into this object
 func (m *Ack) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
 
+// MarshalForSignature marshals this object excluding the signature
 func (m *Ack) MarshalForSignature() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -366,6 +381,7 @@ func (m *Ack) MarshalForSignature() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+// MarshalBinary marshals the object
 func (m *Ack) MarshalBinary() (data []byte, err error) {
 
 	if m.marshalCache != nil {
@@ -385,12 +401,13 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 			return nil, err
 		}
 		return append(resp, sigBytes...), nil
-	} else {
-		resp = append(resp, 0)
 	}
+	resp = append(resp, 0)
+
 	return resp, nil
 }
 
+// String returns this message as a string
 func (m *Ack) String() string {
 	return fmt.Sprintf("%6s-%27s -- Leader[%x] hash[%x]",
 		"ACK",
@@ -400,93 +417,95 @@ func (m *Ack) String() string {
 
 }
 
+// LogFields returns a map structure of important fields of the Ack
 func (m *Ack) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "ack", "dbheight": m.DBHeight, "vm": m.VMIndex,
 		"vmheight": m.Height, "server": m.LeaderChainID.String(),
 		"hash": m.GetHash().String()}
 }
 
-func (a *Ack) IsSameAs(b *Ack) bool {
-	if a == nil && b == nil {
+// IsSameAs returns true iff the input object is identical to this object
+func (m *Ack) IsSameAs(b *Ack) bool {
+	if m == nil && b == nil {
 		return true
 	}
 
-	if a == nil {
+	if m == nil {
 		return false
 	}
 
-	if a.VMIndex != b.VMIndex {
+	if m.VMIndex != b.VMIndex {
 		return false
 	}
 
-	if a.Minute != b.Minute {
+	if m.Minute != b.Minute {
 		return false
 	}
 
-	if a.DBHeight != b.DBHeight {
+	if m.DBHeight != b.DBHeight {
 		return false
 	}
 
-	if a.Height != b.Height {
+	if m.Height != b.Height {
 		return false
 	}
 
-	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
+	if m.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
-	if a.Salt != b.Salt {
+	if m.Salt != b.Salt {
 		return false
 	}
 
-	if a.SaltNumber != b.SaltNumber {
+	if m.SaltNumber != b.SaltNumber {
 		return false
 	}
 
-	if a.GetFullMsgHash().IsSameAs(b.GetFullMsgHash()) == false {
+	if m.GetFullMsgHash().IsSameAs(b.GetFullMsgHash()) == false {
 		return false
 	}
 
-	if a.MessageHash.IsSameAs(b.MessageHash) == false {
+	if m.MessageHash.IsSameAs(b.MessageHash) == false {
 		return false
 	}
 
-	if a.SerialHash.IsSameAs(b.SerialHash) == false {
+	if m.SerialHash.IsSameAs(b.SerialHash) == false {
 		return false
 	}
 
-	if a.DataAreaSize != b.DataAreaSize {
+	if m.DataAreaSize != b.DataAreaSize {
 		return false
 	}
 
-	if a.Signature != nil {
-		if a.Signature.IsSameAs(b.Signature) == false {
+	if m.Signature != nil {
+		if m.Signature.IsSameAs(b.Signature) == false {
 			return false
 		}
 	}
 
-	if a.LeaderChainID == nil && b.LeaderChainID != nil {
+	if m.LeaderChainID == nil && b.LeaderChainID != nil {
 		return false
 	}
-	if a.LeaderChainID != nil {
-		if a.LeaderChainID.IsSameAs(b.LeaderChainID) == false {
+	if m.LeaderChainID != nil {
+		if m.LeaderChainID.IsSameAs(b.LeaderChainID) == false {
 			return false
 		}
 	}
 
-	if a.BalanceHash == nil && b.BalanceHash != nil {
+	if m.BalanceHash == nil && b.BalanceHash != nil {
 		return false
 	}
 
-	if b.BalanceHash == nil && a.BalanceHash != nil {
+	if m.BalanceHash == nil && b.BalanceHash != nil {
 		return false
 	}
 
-	if a.BalanceHash == nil && b.BalanceHash == nil {
+	if m.BalanceHash == nil && b.BalanceHash == nil {
 		return true
 	}
 
-	if a.BalanceHash.Fixed() != b.BalanceHash.Fixed() {
+	if m.BalanceHash.Fixed() != b.BalanceHash.Fixed() {
 		return false
 	}
 

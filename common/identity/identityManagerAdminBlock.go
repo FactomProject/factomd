@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// ProcessABlockEntry processes the input admin block entry based on type
 func (im *IdentityManager) ProcessABlockEntry(entry interfaces.IABEntry, st interfaces.IState) error {
 	switch entry.Type() {
 	case constants.TYPE_REVEAL_MATRYOSHKA:
@@ -52,6 +53,7 @@ func (im *IdentityManager) ProcessABlockEntry(entry interfaces.IABEntry, st inte
 
 //}
 
+// ApplyCancelCoinbaseDescriptor transfers the cancel coinbase outputs from the entry into the identity manager
 func (im *IdentityManager) ApplyCancelCoinbaseDescriptor(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.CancelCoinbaseDescriptor)
 
@@ -70,12 +72,14 @@ func (im *IdentityManager) ApplyCancelCoinbaseDescriptor(entry interfaces.IABEnt
 	return nil
 }
 
+// ApplyRevealMatryoshkaHash is a no-op function
 func (im *IdentityManager) ApplyRevealMatryoshkaHash(entry interfaces.IABEntry) error {
 	//e:=entry.(*adminBlock.RevealMatryoshkaHash)
 	// Does nothing for authority right now
 	return nil
 }
 
+// ApplyAddReplaceMatryoshkaHash grabs the authority server from the entry's chain id, and sets its Matryoshka Hash to the entry's Matryoshka Hash
 func (im *IdentityManager) ApplyAddReplaceMatryoshkaHash(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.AddReplaceMatryoshkaHash)
 
@@ -89,12 +93,15 @@ func (im *IdentityManager) ApplyAddReplaceMatryoshkaHash(entry interfaces.IABEnt
 	return nil
 }
 
+// ApplyIncreaseServerCount increases the maximum authority server count by the amount in the input entry
 func (im *IdentityManager) ApplyIncreaseServerCount(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.IncreaseServerCount)
 	im.MaxAuthorityServerCount = im.MaxAuthorityServerCount + int(e.Amount)
 	return nil
 }
 
+// ApplyAddFederatedServer gets the authority server from the entry's chain id, and sets its status to a federated server. If no existing authority
+// server can be found, it adds a new authority server with the requisite properties
 func (im *IdentityManager) ApplyAddFederatedServer(entry interfaces.IABEntry, st interfaces.IState) error {
 	e := entry.(*adminBlock.AddFederatedServer)
 
@@ -122,6 +129,8 @@ func (im *IdentityManager) ApplyAddFederatedServer(entry interfaces.IABEntry, st
 	return nil
 }
 
+// ApplyAddAuditServer gets the authority server from the entry's chain id, and sets its status to an audit server. If no existing authority
+// server can be found, it adds a new authroity server with the requisite properties
 func (im *IdentityManager) ApplyAddAuditServer(entry interfaces.IABEntry, st interfaces.IState) error {
 	e := entry.(*adminBlock.AddAuditServer)
 	// New server. Check if the identity exists, and create it if it does not
@@ -149,6 +158,7 @@ func (im *IdentityManager) ApplyAddAuditServer(entry interfaces.IABEntry, st int
 	return nil
 }
 
+// ApplyRemoveFederatedServer removes the authority server and identity with the entry's chain id
 func (im *IdentityManager) ApplyRemoveFederatedServer(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.RemoveFederatedServer)
 	im.RemoveAuthority(e.IdentityChainID)
@@ -156,6 +166,8 @@ func (im *IdentityManager) ApplyRemoveFederatedServer(entry interfaces.IABEntry)
 	return nil
 }
 
+// ApplyAddFederatedServerSigningKey gets the authority server from the entry's chain id, and adds a new signing key to the authority, placing its
+// old signing key in its KeyHistory for posterity
 func (im *IdentityManager) ApplyAddFederatedServerSigningKey(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.AddFederatedServerSigningKey)
 
@@ -182,6 +194,7 @@ func (im *IdentityManager) ApplyAddFederatedServerSigningKey(entry interfaces.IA
 	return nil
 }
 
+// ApplyAddFederatedServerBitcoinAnchorKey adds the AnchorSigningKey to the federated server
 func (im *IdentityManager) ApplyAddFederatedServerBitcoinAnchorKey(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.AddFederatedServerBitcoinAnchorKey)
 
@@ -203,12 +216,11 @@ func (im *IdentityManager) ApplyAddFederatedServerBitcoinAnchorKey(entry interfa
 		if a.KeyLevel == ask.KeyLevel && a.KeyType == ask.KeyType {
 			if bytes.Compare(a.SigningKey[:], ask.SigningKey[:]) == 0 {
 				return nil // Key already exists in authority
-			} else {
-				// Overwrite
-				written = true
-				auth.AnchorKeys[i] = ask
-				break
 			}
+			// Overwrite
+			written = true
+			auth.AnchorKeys[i] = ask
+			break
 		}
 	}
 
@@ -220,11 +232,13 @@ func (im *IdentityManager) ApplyAddFederatedServerBitcoinAnchorKey(entry interfa
 	return nil
 }
 
+// ApplyServerFault is a no-op function
 func (im *IdentityManager) ApplyServerFault(entry interfaces.IABEntry) error {
 	//	e := entry.(*adminBlock.ServerFault)
 	return nil
 }
 
+// ApplyAddFactoidAddress processes the input admin block entry to add a Factoid address to an authority server
 func (im *IdentityManager) ApplyAddFactoidAddress(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.AddFactoidAddress)
 
@@ -239,6 +253,7 @@ func (im *IdentityManager) ApplyAddFactoidAddress(entry interfaces.IABEntry) err
 	return nil
 }
 
+// ApplyAddEfficiency processes the input admin block entry to change efficiency of an authority server
 func (im *IdentityManager) ApplyAddEfficiency(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.AddEfficiency)
 

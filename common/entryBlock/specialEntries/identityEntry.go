@@ -7,6 +7,7 @@ package specialEntries
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -90,7 +91,7 @@ func ValidateRegisterServerManagement(ent interfaces.IEBEntry) error {
 	if len(ent.ExternalIDs()) != 9 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(ent.ExternalIDs()))
 	}
-	if CheckExternalIDsLength(ent.ExternalIDs(), []int{1, 15, 32, 1, 1, 20, 8, 33, 64}) == false {
+	if CheckExternalIDsLength(ent.ExternalIDs(), identityEntries.ExpectedRegisterServerManagementExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 	return nil
@@ -101,7 +102,7 @@ func ValidateNewBlockSigningKey(ent interfaces.IEBEntry) error {
 	if len(ent.ExternalIDs()) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(ent.ExternalIDs()))
 	}
-	if CheckExternalIDsLength(ent.ExternalIDs(), []int{1, 21, 32, 32, 8, 33, 64}) == false {
+	if CheckExternalIDsLength(ent.ExternalIDs(), identityEntries.ExpectedBlockSigningKeyExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 	return nil
@@ -112,7 +113,7 @@ func ValidateNewBitcoinKey(ent interfaces.IEBEntry) error {
 	if len(ent.ExternalIDs()) != 9 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 9, got %v", len(ent.ExternalIDs()))
 	}
-	if CheckExternalIDsLength(ent.ExternalIDs(), []int{1, 15, 32, 1, 1, 20, 8, 33, 64}) == false {
+	if CheckExternalIDsLength(ent.ExternalIDs(), identityEntries.ExpectedBitcoinKeyExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 
@@ -124,7 +125,7 @@ func ValidateNewMatryoshkaHash(ent interfaces.IEBEntry) error {
 	if len(ent.ExternalIDs()) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(ent.ExternalIDs()))
 	}
-	if CheckExternalIDsLength(ent.ExternalIDs(), []int{1, 19, 32, 32, 8, 33, 64}) == false {
+	if CheckExternalIDsLength(ent.ExternalIDs(), identityEntries.ExpectedMatryoshkaHashExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 	return nil
@@ -135,7 +136,7 @@ func ValidateIdentityChain(ent interfaces.IEBEntry) error {
 	if len(ent.ExternalIDs()) != 6 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 6, got %v", len(ent.ExternalIDs()))
 	}
-	if CheckExternalIDsLength(ent.ExternalIDs(), []int{1, 14, 32, 32, 32, 32}) == false {
+	if CheckExternalIDsLength(ent.ExternalIDs(), identityEntries.ExpectedIdentityChainExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 
@@ -147,7 +148,7 @@ func ValidateServerManagement(ent interfaces.IEBEntry) error {
 	if len(ent.ExternalIDs()) != 4 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 4, got %v", len(ent.ExternalIDs()))
 	}
-	if CheckExternalIDsLength(ent.ExternalIDs()[:3], []int{1, 17, 32}) == false {
+	if CheckExternalIDsLength(ent.ExternalIDs()[:3], identityEntries.ExpectedServerManagementExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 

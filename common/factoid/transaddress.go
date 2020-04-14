@@ -20,15 +20,17 @@ import (
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
+// TransAddress contains an address associated with a transaction and a transaction amount
 type TransAddress struct {
-	Amount  uint64              `json:"amount"`
-	Address interfaces.IAddress `json:"address"`
+	Amount  uint64              `json:"amount"`  // The amount in factoshis
+	Address interfaces.IAddress `json:"address"` // The address for this transaction
 	// Not marshalled
-	UserAddress string `json:"useraddress"`
+	UserAddress string `json:"useraddress"` // Human readable address for this transaction
 }
 
 var _ interfaces.ITransAddress = (*TransAddress)(nil)
 
+// RandomTransAddress returns a new random TransAddress with a random amount
 func RandomTransAddress() interfaces.ITransAddress {
 	ta := new(TransAddress)
 	ta.Address = RandomAddress()
@@ -37,43 +39,51 @@ func RandomTransAddress() interfaces.ITransAddress {
 	return ta
 }
 
-func (t *TransAddress) SetUserAddress(v string) {
-	t.UserAddress = v
+// SetUserAddress sets the user address to the input
+func (ta *TransAddress) SetUserAddress(v string) {
+	ta.UserAddress = v
 }
 
-func (t *TransAddress) GetUserAddress() string {
-	return t.UserAddress
+// GetUserAddress returns the user address
+func (ta *TransAddress) GetUserAddress() string {
+	return ta.UserAddress
 }
 
-func (t *TransAddress) UnmarshalBinary(data []byte) error {
-	_, err := t.UnmarshalBinaryData(data)
+// UnmarshalBinary unmarshals the input data into this object
+func (ta *TransAddress) UnmarshalBinary(data []byte) error {
+	_, err := ta.UnmarshalBinaryData(data)
 	return err
 }
 
-func (e *TransAddress) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+// JSONByte returns the json encoded byte array
+func (ta *TransAddress) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(ta)
 }
 
-func (e *TransAddress) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+// JSONString returns the json encoded string
+func (ta *TransAddress) JSONString() (string, error) {
+	return primitives.EncodeJSONString(ta)
 }
 
-func (t *TransAddress) String() string {
-	str, _ := t.JSONString()
+// String returns this object as a string
+func (ta *TransAddress) String() string {
+	str, _ := ta.JSONString()
 	return str
 }
 
-func (t *TransAddress) IsSameAs(add interfaces.ITransAddress) bool {
-	if t.GetAmount() != add.GetAmount() {
+// IsSameAs returns true iff the input object is identical to this object
+func (ta *TransAddress) IsSameAs(add interfaces.ITransAddress) bool {
+	if ta.GetAmount() != add.GetAmount() {
 		return false
 	}
-	if t.GetAddress().IsSameAs(add.GetAddress()) == false {
+	if ta.GetAddress().IsSameAs(add.GetAddress()) == false {
 		return false
 	}
 	return true
 }
 
-func (t *TransAddress) UnmarshalBinaryData(data []byte) ([]byte, error) {
+// UnmarshalBinaryData unmrashals the input data into this object
+func (ta *TransAddress) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	//
 	if len(data) < 33 { // leading varint has to be one or more bytes and the address is 32
 		return nil, fmt.Errorf("Data source too short in TransAddress.UnmarshalBinaryData() an address: %d", len(data))
@@ -81,7 +91,7 @@ func (t *TransAddress) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
 	var err error
 
-	t.Amount, err = buf.PopVarInt()
+	ta.Amount, err = buf.PopVarInt()
 	if len(data) < 32 { // after the varint there have to be 32 bytes left but there may be some other struct following so longer is fine
 		return nil, fmt.Errorf("Data source too short in TransAddress.UnmarshalBinaryData() an address: %d", len(data))
 	}
@@ -89,8 +99,8 @@ func (t *TransAddress) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	t.Address = new(Address)
-	err = buf.PopBinaryMarshallable(t.Address)
+	ta.Address = new(Address)
+	err = buf.PopBinaryMarshallable(ta.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -98,50 +108,52 @@ func (t *TransAddress) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-// MarshalBinary.  'nuff said
-func (a TransAddress) MarshalBinary() ([]byte, error) {
+// MarshalBinary marshals the object
+func (ta TransAddress) MarshalBinary() ([]byte, error) {
 	buf := primitives.NewBuffer(nil)
-	err := buf.PushVarInt(a.Amount)
+	err := buf.PushVarInt(ta.Amount)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushBinaryMarshallable(a.Address)
+	err = buf.PushBinaryMarshallable(ta.Address)
 	if err != nil {
 		return nil, err
 	}
 	return buf.DeepCopyBytes(), nil
 }
 
-// Accessor. Default to a zero length string.  This is a debug
+// GetName defaults to a zero length string.  This is a debug
 // thing for looking out what we have built. Used by
 // CustomMarshalText
 func (ta TransAddress) GetName() string {
 	return ""
 }
 
-// Accessor.  Get the amount with this address.
+// GetAmount returns the transaction amount in factoshis for this address.
 func (ta TransAddress) GetAmount() uint64 {
 	return ta.Amount
 }
 
-// Accessor.  Get the amount with this address.
+// SetAmount sets the transaction amount in factoshis for this address.
 func (ta *TransAddress) SetAmount(amount uint64) {
 	ta.Amount = amount
 }
 
-// Accessor.  Get the raw address.  Could be an actual address,
+// GetAddress gets the raw address.  Could be an actual address,
 // or a hash of an authorization block.  See authorization.go
 func (ta TransAddress) GetAddress() interfaces.IAddress {
 	return ta.Address
 }
 
-// Accessor.  Get the raw address.  Could be an actual address,
+// SetAddress sets the raw address.  Could be an actual address,
 // or a hash of an authorization block.  See authorization.go
 func (ta *TransAddress) SetAddress(address interfaces.IAddress) {
 	ta.Address = address
 }
 
-// Make this into somewhat readable text.
+// CustomMarshalTextAll marshals the object into somewhat readable text. Input 'fct' bool tells the function
+// whether to interpret the address as an FCT address or an EC address. Input string 'label' is a user
+// defined debug string to help differentiate other TransAddress in string form
 func (ta TransAddress) CustomMarshalTextAll(fct bool, label string) ([]byte, error) {
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("   %8s:", label))
@@ -159,36 +171,44 @@ func (ta TransAddress) CustomMarshalTextAll(fct bool, label string) ([]byte, err
 	return out.DeepCopyBytes(), nil
 }
 
+// CustomMarshalText2 marshals the object as an FCT address with the input label
 func (ta TransAddress) CustomMarshalText2(label string) ([]byte, error) {
 	return ta.CustomMarshalTextAll(true, label)
 }
 
+// CustomMarshalTextEC2 marshals this object as an EC address with the input label
 func (ta TransAddress) CustomMarshalTextEC2(label string) ([]byte, error) {
 	return ta.CustomMarshalTextAll(false, label)
 }
 
+// CustomMarshalTextInput marshals the object as an FCT address with label 'input'
 func (ta TransAddress) CustomMarshalTextInput() ([]byte, error) {
 	return ta.CustomMarshalText2("input")
 }
 
+// StringInput marshals the object to a string as an FCT address with label 'input'
 func (ta TransAddress) StringInput() string {
 	b, _ := ta.CustomMarshalTextInput()
 	return string(b)
 }
 
+// CustomMarshalTextOutput marshals the object to a string as an FCT address with label 'output'
 func (ta TransAddress) CustomMarshalTextOutput() ([]byte, error) {
 	return ta.CustomMarshalText2("output")
 }
 
+// StringOutput marshals the object to a string as an FCT address with label 'output'
 func (ta TransAddress) StringOutput() string {
 	b, _ := ta.CustomMarshalTextOutput()
 	return string(b)
 }
 
+// CustomMarshalTextECOutput marshals this object as an EC address with label 'ecoutput'
 func (ta TransAddress) CustomMarshalTextECOutput() ([]byte, error) {
 	return ta.CustomMarshalTextEC2("ecoutput")
 }
 
+// StringECOutput marshals the object to a string as an EC address with label 'ecoutput'
 func (ta TransAddress) StringECOutput() string {
 	b, _ := ta.CustomMarshalTextECOutput()
 	return string(b)
@@ -198,6 +218,7 @@ func (ta TransAddress) StringECOutput() string {
  * Helper functions
  ******************************/
 
+// NewOutECAddress creates a new TransAddress with input EC address and amount
 func NewOutECAddress(address interfaces.IAddress, amount uint64) interfaces.ITransAddress {
 	ta := new(TransAddress)
 	ta.Amount = amount
@@ -206,6 +227,7 @@ func NewOutECAddress(address interfaces.IAddress, amount uint64) interfaces.ITra
 	return ta
 }
 
+// NewOutAddress creates a new TransAddress with input FCT address and amount
 func NewOutAddress(address interfaces.IAddress, amount uint64) interfaces.ITransAddress {
 	ta := new(TransAddress)
 	ta.Amount = amount
@@ -214,6 +236,7 @@ func NewOutAddress(address interfaces.IAddress, amount uint64) interfaces.ITrans
 	return ta
 }
 
+// NewInAddress creates a new TransAddress with input FCT address and amount
 func NewInAddress(address interfaces.IAddress, amount uint64) interfaces.ITransAddress {
 	ta := new(TransAddress)
 	ta.Amount = amount

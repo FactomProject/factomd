@@ -11,13 +11,13 @@ import (
 
 	"github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 
+// TestUnmarshalNilBinaryAuth checks that unmarshalling nil or the empty interface results in errors
 func TestUnmarshalNilBinaryAuth(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -36,32 +36,18 @@ func TestUnmarshalNilBinaryAuth(t *testing.T) {
 	}
 }
 
+// TestAuth2_Equals checks that each call to nextAuth2 produces a different return
 func TestAuth2_Equals(t *testing.T) {
-	a1 := nextAuth2_rcd()
+	a1 := nextAuth2()
 	a2 := a1
 
 	if a1.IsSameAs(a2) == false {
 		t.Errorf("Addresses are not equal")
 	}
 
-	a1 = nextAuth2_rcd()
+	a1 = nextAuth2()
 
 	if a1.IsSameAs(a2) == true {
 		t.Errorf("Addresses are equal")
 	}
-}
-
-func nextAuth2_rcd() interfaces.IRCD {
-	if r == nil {
-		r = rand.New(rand.NewSource(1))
-	}
-	n := r.Int()%4 + 1
-	m := r.Int()%4 + n
-	addresses := make([]interfaces.IAddress, m, m)
-	for j := 0; j < m; j++ {
-		addresses[j] = nextAddress()
-	}
-
-	rcd, _ := NewRCD_2(n, m, addresses)
-	return rcd
 }

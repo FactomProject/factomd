@@ -24,11 +24,13 @@ type Address struct {
 
 var _ interfaces.IAddress = (*Address)(nil)
 
+// RandomAddress returns a new random address
 func RandomAddress() interfaces.IAddress {
 	h := primitives.RandomHash()
 	return CreateAddress(h)
 }
 
+// CustomMarshalText writes the address to a custom string: "addr   <hexadecimal_address>"
 func (a *Address) CustomMarshalText() (text []byte, err error) {
 	var out primitives.Buffer
 	addr := hex.EncodeToString(a.Bytes())
@@ -37,12 +39,14 @@ func (a *Address) CustomMarshalText() (text []byte, err error) {
 	return out.DeepCopyBytes(), nil
 }
 
+// NewAddress creates a new address from the input
 func NewAddress(b []byte) interfaces.IAddress {
 	a := new(Address)
 	a.SetBytes(b)
 	return a
 }
 
+// CreateAddress converts the input hash into an address
 func CreateAddress(hash interfaces.IHash) interfaces.IAddress {
 	if hash == nil {
 		return NewAddress(nil)

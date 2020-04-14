@@ -11,6 +11,7 @@ import (
 	. "github.com/FactomProject/factomd/common/identityEntries"
 )
 
+// TestNewBitcoinKeyStructure checks a hardcoded external ID can be set into the bitcoin key structure and obtain the correct chain ID
 func TestNewBitcoinKeyStructure(t *testing.T) {
 	parts := []string{
 		"00",

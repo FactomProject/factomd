@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+// GetGenesisFBlock returns a hard coded genesis block for a network depending on the input network type
 func GetGenesisFBlock(netID uint32) interfaces.IFBlock {
 	block := new(FBlock)
 	var data []byte
