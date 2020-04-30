@@ -163,7 +163,7 @@ func DefaultP2PConfiguration() (c Configuration) {
 	c.ProtocolVersion = 10
 	c.ProtocolVersionMinimum = 9
 
-	c.ChannelCapacity = 50
+	c.ChannelCapacity = 1000
 
 	c.EnablePrometheus = true
 	return

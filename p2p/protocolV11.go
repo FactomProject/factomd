@@ -83,10 +83,8 @@ func (v11 *ProtocolV11) ReadHandshake() (*Handshake, error) {
 }
 
 func (v11 *ProtocolV11) readCheck(data []byte) error {
-	if n, err := v11.rw.Read(data); err != nil {
+	if _, err := io.ReadFull(v11.rw, data); err != nil {
 		return err
-	} else if n != len(data) {
-		return fmt.Errorf("unable to read buffer (%d of %d)", n, len(data))
 	}
 	return nil
 }
