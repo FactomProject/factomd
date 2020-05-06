@@ -267,6 +267,7 @@ type AddressRequest struct {
 
 type HeightRequest struct {
 	Height int64 `json:"height"`
+	NoRaw  bool  `json:"noraw,omitempty"`
 }
 
 type HeightOrHashRequest struct {
@@ -288,6 +289,7 @@ type HashRequest struct {
 
 type KeyMRRequest struct {
 	KeyMR string `json:"keymr"`
+	NoRaw bool   `json:"noraw,omitempty"`
 }
 
 type KeyRequest struct {
