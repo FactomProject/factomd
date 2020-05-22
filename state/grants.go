@@ -52,15 +52,15 @@ func GetHardCodedGrants() []HardGrant {
 
 			// Copy (and replace) the new grants to be tested here:
 			// Centis BV total: 1200 FCT (300 FCT * 2 months) + (600 FCT * 1 month) = 1200 FCT lowered upon request
-			HardGrant{31, 1200e8, validateAddress("FA2hvRaci9Kks9cLNkEUFcxzUJuUFaaAE1eWYLqa2qk1k9pVFVBp")},
+			HardGrant{11, 1200e8, validateAddress("FA2hvRaci9Kks9cLNkEUFcxzUJuUFaaAE1eWYLqa2qk1k9pVFVBp")},
 			// The 42nd Factoid total: 1800 FCT
-			HardGrant{31, 1800e8, validateAddress("FA3AEL2H9XZy3n199USs2poCEJBkK1Egy6JXhLehfLJjUYMKh1zS")},
+			HardGrant{11, 1800e8, validateAddress("FA3AEL2H9XZy3n199USs2poCEJBkK1Egy6JXhLehfLJjUYMKh1zS")},
 			// Factom, Inc. total: 1800 FCT
-			HardGrant{31, 1800e8, validateAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq")},
+			HardGrant{11, 1800e8, validateAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq")},
 			// Canonical Ledgers total: 1800 FCT
-			HardGrant{31, 1800e8, validateAddress("FA2PEXgRiPd14NzUP47XfVTgEnvjtLSebBZvnM8gM7cJAMuqWs89")},
+			HardGrant{11, 1800e8, validateAddress("FA2PEXgRiPd14NzUP47XfVTgEnvjtLSebBZvnM8gM7cJAMuqWs89")},
 			// DBGrow total: 1800 FCT
-			HardGrant{31, 1800e8, validateAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu")},
+			HardGrant{11, 1800e8, validateAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu")},
 		}
 	case "CUSTOM":
 		hardcodegrants = []HardGrant{}
@@ -1101,6 +1101,117 @@ func GetHardCodedGrants() []HardGrant {
 
 			// Bug bounty total: 37 FCT, remaining funds: 758 FCT
 			HardGrant{233201, 37e8, validateAddress("FA34H8r61Gt5wTNwgtaUHPvNpma4Kof39uJAYxJ5q9cwqKF2y9Kd")},
+			// --------------------------------------------------------
+
+			// ********************************
+			// **** Grant Round 2020-02 ****
+			// ********************************
+
+			// --------------------------------------------------------
+			// WB-Exchange Working Group -- 65000 FCT
+			// Exchange Working Group Funds
+
+			// Exchange Working Group total: 65000 FCT
+			HardGrant{246851, 65000e8, validateAddress("FA2H24T1NQCw7DJXkeHwoeyGDsP3eP8ZMdRkvxPBTjFtvqTTuPyv")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// David Chapman-Alex-Fillip H.-Factomize -- 10294 FCT
+			// Sale of the Factomize forum to the Factom Protocol and coding work.
+
+			// Alex total: 200 FCT
+			HardGrant{246851, 200e8, validateAddress("FA2tsEih6kyzNSBtbkzZ31HUGF8QQB7RPBFouBVfYyUZk24QkPr2")},
+
+			// Fillip H. total: 3000 FCT
+			HardGrant{246851, 3000e8, validateAddress("FA3X4yGXcxuuA9MkkBcqqapUbjc3c58odtceUwRoXtdgQkfBPJit")},
+
+			// Factomize total: 7094 FCT
+			HardGrant{246851, 7094e8, validateAddress("FA2aggCXMoymWQWfERZJ2RPq5pC4RiZosBYKu7vC6LFqrpZiQTXi")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Who -- 12000 FCT
+			// Core and General Development
+
+			// Who total: 12000 FCT
+			HardGrant{246851, 12000e8, validateAddress("FA3WALLETKpcjeneRfQiX8Gv5vQDSugmDTomfc8uahvVgoUiqX3o")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// CryptoLogic-The Factoid Authority-Crypto Logic-Bedrock Solutions-De Facto -- 2998 FCT
+			// Factom Open Node System
+
+			// The Factoid Authority total: 416 FCT
+			HardGrant{246851, 416e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
+
+			// Crypto Logic total: 416 FCT
+			HardGrant{246851, 416e8, validateAddress("FA29wMUjN38BVLbJs6dR6gHHdBys2mpo3wy565JCjquUQTGqNZfb")},
+
+			// Bedrock Solutions total: 1083 FCT
+			HardGrant{246851, 1083e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
+
+			// De Facto total: 1083 FCT
+			HardGrant{246851, 1083e8, validateAddress("FA2YeMbN8Z1SsT7Yqw6Np85kWwtFVg2CyJKMDFnuXTawWuWPtzvX")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Factom, Inc -- 3085 FCT
+			// Anchor Master  2020-06-09 - 2020-09-09
+
+			// Factom, Inc total: 3085 FCT
+			HardGrant{246851, 3085e8, validateAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Factom, Inc -- 900 FCT
+			// Oracle Master  2020-06-09 - 2020-09-09
+
+			// Factom, Inc total: 900 FCT
+			HardGrant{246851, 900e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Alex-Factoshi -- 3700 FCT
+			// Stats Daemon and Public API
+
+			// Factoshi total: 3700 FCT
+			HardGrant{246851, 3700e8, validateAddress("FA2tsEih6kyzNSBtbkzZ31HUGF8QQB7RPBFouBVfYyUZk24QkPr2")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Paul Bernier-LUCIAP -- 2300 FCT
+			// ChockaBlock: open-sourcing and upgrade
+
+			// LUCIAP total: 2300 FCT
+			HardGrant{246851, 2300e8, validateAddress("FA2UFABmvvckKCCTDEkArENKjD76VkgtVnm1ZhKF7Ep4bqjkgaFo")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Factom, Inc Nolan Bauer -- 10300 FCT
+			// Protocol Development 2020-06-09 - 2020-09-09
+
+			// Nolan Bauer total: 300 FCT
+			HardGrant{246851, 300e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
+
+			// Factom Inc. total: 10000 FCT
+			HardGrant{246851, 10000e8, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")},
+			// --------------------------------------------------------
+
+			// ********************************
+			// ** BUG Bounty payout 2020-02  **
+			// ********************************
+			// --------------------------------------------------------
+			// This grant is for the Bug Bounty program and pays out 3 submissions.
+			//
+			// BB-005 -- 118 FCT
+			// BB-006 + BB-007 -- 148 FCT
+			//
+			// Full details for core committee:
+			// https://docs.google.com/spreadsheets/d/15fo9PCNt4meJGSd-V9iZENAiPTUx7dLpd990tH1dADY/edit#gid=0
+
+			// Bug bounty total: 266 FCT, remaining funds: 492 FCT
+			HardGrant{246851, 118e8, validateAddress("FA3k4U8WqmF2WWZ1q7TwMP6PU1vBbY19gxqCZE6kLrjnT3JLdbJL")},
+			HardGrant{246851, 148e8, validateAddress("FA3SD1gth7zPFuYKu1gieDMRAoNMHuuSuVYMUvyApF6dYL3kGF7G")},
 			// --------------------------------------------------------
 
 		}
