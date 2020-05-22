@@ -1103,16 +1103,13 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{233201, 37e8, validateAddress("FA34H8r61Gt5wTNwgtaUHPvNpma4Kof39uJAYxJ5q9cwqKF2y9Kd")},
 			// --------------------------------------------------------
 
-
-
 			// ********************************
 			// **** Grant Round 2020-02 ****
 			// ********************************
 
-
 			// --------------------------------------------------------
 			// WB-Exchange Working Group -- 65000 FCT
-			// Exchange Working Group Funds 2020-04-21 - 2020-05-16
+			// Exchange Working Group Funds
 
 			// Exchange Working Group total: 65000 FCT
 			HardGrant{11, 65000e8, validateAddress("FA2H24T1NQCw7DJXkeHwoeyGDsP3eP8ZMdRkvxPBTjFtvqTTuPyv")},
@@ -1120,7 +1117,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// David Chapman-Alex-Fillip H.-Factomize -- 10294 FCT
-			// Sale of the Factomize forum to the Factom Protocol and coding work. 2020-04-21 - 2020-05-16
+			// Sale of the Factomize forum to the Factom Protocol and coding work.
 
 			// Alex total: 200 FCT
 			HardGrant{11, 200e8, validateAddress("FA2tsEih6kyzNSBtbkzZ31HUGF8QQB7RPBFouBVfYyUZk24QkPr2")},
@@ -1134,7 +1131,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// Who -- 12000 FCT
-			// Core and General Development 2020-04-21 - 2020-05-16
+			// Core and General Development
 
 			// Who total: 12000 FCT
 			HardGrant{11, 12000e8, validateAddress("FA3WALLETKpcjeneRfQiX8Gv5vQDSugmDTomfc8uahvVgoUiqX3o")},
@@ -1142,7 +1139,7 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// CryptoLogic-The Factoid Authority-Crypto Logic-Bedrock Solutions-De Facto -- 2998 FCT
-			// Factom Open Node System 2020-04-21 - 2020-05-16
+			// Factom Open Node System
 
 			// The Factoid Authority total: 416 FCT
 			HardGrant{11, 416e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
@@ -1158,24 +1155,24 @@ func GetHardCodedGrants() []HardGrant {
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
-			// Brian Deery-PaulSnow -- 3085 FCT
-			// Anchor Master 2020-04-21 - 2020-05-16
+			// Factom, Inc -- 3085 FCT
+			// Anchor Master  2020-06-09 - 2020-09-09
 
-			// PaulSnow total: 3085 FCT
+			// Factom, Inc total: 3085 FCT
 			HardGrant{11, 3085e8, validateAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx")},
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
-			// Brian Deery-PaulSnow -- 900 FCT
-			// Oracle Master 2020-04-21 - 2020-05-16
+			// Factom, Inc -- 900 FCT
+			// Oracle Master  2020-06-09 - 2020-09-09
 
-			// PaulSnow total: 900 FCT
+			// Factom, Inc total: 900 FCT
 			HardGrant{11, 900e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
 			// Alex-Factoshi -- 3700 FCT
-			// Stats Daemon and Public API 2020-04-21 - 2020-05-16
+			// Stats Daemon and Public API
 
 			// Factoshi total: 3700 FCT
 			HardGrant{11, 3700e8, validateAddress("FA2tsEih6kyzNSBtbkzZ31HUGF8QQB7RPBFouBVfYyUZk24QkPr2")},
@@ -1183,15 +1180,15 @@ func GetHardCodedGrants() []HardGrant {
 
 			// --------------------------------------------------------
 			// Paul Bernier-LUCIAP -- 2300 FCT
-			// ChockaBlock: open-sourcing and upgrade 2020-04-21 - 2020-05-16
+			// ChockaBlock: open-sourcing and upgrade
 
 			// LUCIAP total: 2300 FCT
 			HardGrant{11, 2300e8, validateAddress("FA2UFABmvvckKCCTDEkArENKjD76VkgtVnm1ZhKF7Ep4bqjkgaFo")},
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
-			// PaulSnow-Nolan Bauer-Factom Inc. -- 10300 FCT
-			// Protocol Development 2020-04-21 - 2020-05-16
+			// Factom, Inc Nolan Bauer -- 10300 FCT
+			// Protocol Development 2020-06-09 - 2020-09-09
 
 			// Nolan Bauer total: 300 FCT
 			HardGrant{11, 300e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
