@@ -1112,7 +1112,7 @@ func GetHardCodedGrants() []HardGrant {
 			// Exchange Working Group Funds
 
 			// Exchange Working Group total: 65000 FCT
-			HardGrant{11, 65000e8, validateAddress("FA2H24T1NQCw7DJXkeHwoeyGDsP3eP8ZMdRkvxPBTjFtvqTTuPyv")},
+			HardGrant{246851, 65000e8, validateAddress("FA2H24T1NQCw7DJXkeHwoeyGDsP3eP8ZMdRkvxPBTjFtvqTTuPyv")},
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
@@ -1120,13 +1120,13 @@ func GetHardCodedGrants() []HardGrant {
 			// Sale of the Factomize forum to the Factom Protocol and coding work.
 
 			// Alex total: 200 FCT
-			HardGrant{11, 200e8, validateAddress("FA2tsEih6kyzNSBtbkzZ31HUGF8QQB7RPBFouBVfYyUZk24QkPr2")},
+			HardGrant{246851, 200e8, validateAddress("FA2tsEih6kyzNSBtbkzZ31HUGF8QQB7RPBFouBVfYyUZk24QkPr2")},
 
 			// Fillip H. total: 3000 FCT
-			HardGrant{11, 3000e8, validateAddress("FA3X4yGXcxuuA9MkkBcqqapUbjc3c58odtceUwRoXtdgQkfBPJit")},
+			HardGrant{246851, 3000e8, validateAddress("FA3X4yGXcxuuA9MkkBcqqapUbjc3c58odtceUwRoXtdgQkfBPJit")},
 
 			// Factomize total: 7094 FCT
-			HardGrant{11, 7094e8, validateAddress("FA2aggCXMoymWQWfERZJ2RPq5pC4RiZosBYKu7vC6LFqrpZiQTXi")},
+			HardGrant{246851, 7094e8, validateAddress("FA2aggCXMoymWQWfERZJ2RPq5pC4RiZosBYKu7vC6LFqrpZiQTXi")},
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
@@ -1134,7 +1134,7 @@ func GetHardCodedGrants() []HardGrant {
 			// Core and General Development
 
 			// Who total: 12000 FCT
-			HardGrant{11, 12000e8, validateAddress("FA3WALLETKpcjeneRfQiX8Gv5vQDSugmDTomfc8uahvVgoUiqX3o")},
+			HardGrant{246851, 12000e8, validateAddress("FA3WALLETKpcjeneRfQiX8Gv5vQDSugmDTomfc8uahvVgoUiqX3o")},
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
@@ -1142,16 +1142,16 @@ func GetHardCodedGrants() []HardGrant {
 			// Factom Open Node System
 
 			// The Factoid Authority total: 416 FCT
-			HardGrant{11, 416e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
+			HardGrant{246851, 416e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
 
 			// Crypto Logic total: 416 FCT
-			HardGrant{11, 416e8, validateAddress("FA29wMUjN38BVLbJs6dR6gHHdBys2mpo3wy565JCjquUQTGqNZfb")},
+			HardGrant{246851, 416e8, validateAddress("FA29wMUjN38BVLbJs6dR6gHHdBys2mpo3wy565JCjquUQTGqNZfb")},
 
 			// Bedrock Solutions total: 1083 FCT
-			HardGrant{11, 1083e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
+			HardGrant{246851, 1083e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
 
 			// De Facto total: 1083 FCT
-			HardGrant{11, 1083e8, validateAddress("FA2YeMbN8Z1SsT7Yqw6Np85kWwtFVg2CyJKMDFnuXTawWuWPtzvX")},
+			HardGrant{246851, 1083e8, validateAddress("FA2YeMbN8Z1SsT7Yqw6Np85kWwtFVg2CyJKMDFnuXTawWuWPtzvX")},
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
@@ -1159,7 +1159,7 @@ func GetHardCodedGrants() []HardGrant {
 			// Anchor Master  2020-06-09 - 2020-09-09
 
 			// Factom, Inc total: 3085 FCT
-			HardGrant{11, 3085e8, validateAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx")},
+			HardGrant{246851, 3085e8, validateAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx")},
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
@@ -1167,7 +1167,7 @@ func GetHardCodedGrants() []HardGrant {
 			// Oracle Master  2020-06-09 - 2020-09-09
 
 			// Factom, Inc total: 900 FCT
-			HardGrant{11, 900e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
+			HardGrant{246851, 900e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
@@ -1175,7 +1175,7 @@ func GetHardCodedGrants() []HardGrant {
 			// Stats Daemon and Public API
 
 			// Factoshi total: 3700 FCT
-			HardGrant{11, 3700e8, validateAddress("FA2tsEih6kyzNSBtbkzZ31HUGF8QQB7RPBFouBVfYyUZk24QkPr2")},
+			HardGrant{246851, 3700e8, validateAddress("FA2tsEih6kyzNSBtbkzZ31HUGF8QQB7RPBFouBVfYyUZk24QkPr2")},
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
@@ -1183,7 +1183,7 @@ func GetHardCodedGrants() []HardGrant {
 			// ChockaBlock: open-sourcing and upgrade
 
 			// LUCIAP total: 2300 FCT
-			HardGrant{11, 2300e8, validateAddress("FA2UFABmvvckKCCTDEkArENKjD76VkgtVnm1ZhKF7Ep4bqjkgaFo")},
+			HardGrant{246851, 2300e8, validateAddress("FA2UFABmvvckKCCTDEkArENKjD76VkgtVnm1ZhKF7Ep4bqjkgaFo")},
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
@@ -1191,10 +1191,10 @@ func GetHardCodedGrants() []HardGrant {
 			// Protocol Development 2020-06-09 - 2020-09-09
 
 			// Nolan Bauer total: 300 FCT
-			HardGrant{11, 300e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
+			HardGrant{246851, 300e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
 
 			// Factom Inc. total: 10000 FCT
-			HardGrant{11, 10000e8, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")},
+			HardGrant{246851, 10000e8, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")},
 			// --------------------------------------------------------
 
 			// ********************************
@@ -1210,8 +1210,8 @@ func GetHardCodedGrants() []HardGrant {
 			// https://docs.google.com/spreadsheets/d/15fo9PCNt4meJGSd-V9iZENAiPTUx7dLpd990tH1dADY/edit#gid=0
 
 			// Bug bounty total: 266 FCT, remaining funds: 492 FCT
-			HardGrant{11, 118e8, validateAddress("FA3k4U8WqmF2WWZ1q7TwMP6PU1vBbY19gxqCZE6kLrjnT3JLdbJL")},
-			HardGrant{11, 148e8, validateAddress("FA3SD1gth7zPFuYKu1gieDMRAoNMHuuSuVYMUvyApF6dYL3kGF7G")},
+			HardGrant{246851, 118e8, validateAddress("FA3k4U8WqmF2WWZ1q7TwMP6PU1vBbY19gxqCZE6kLrjnT3JLdbJL")},
+			HardGrant{246851, 148e8, validateAddress("FA3SD1gth7zPFuYKu1gieDMRAoNMHuuSuVYMUvyApF6dYL3kGF7G")},
 			// --------------------------------------------------------
 
 		}
