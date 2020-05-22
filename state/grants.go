@@ -1200,6 +1200,22 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{11, 10000e8, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")},
 			// --------------------------------------------------------
 
+			// ********************************
+			// ** BUG Bounty payout 2020-02  **
+			// ********************************
+			// --------------------------------------------------------
+			// This grant is for the Bug Bounty program and pays out 3 submissions.
+			//
+			// BB-005 -- 118 FCT
+			// BB-006 + BB-007 -- 148 FCT
+			//
+			// Full details for core committee:
+			// https://docs.google.com/spreadsheets/d/15fo9PCNt4meJGSd-V9iZENAiPTUx7dLpd990tH1dADY/edit#gid=0
+
+			// Bug bounty total: 266 FCT, remaining funds: 492 FCT
+			HardGrant{11, 118e8, validateAddress("FA3k4U8WqmF2WWZ1q7TwMP6PU1vBbY19gxqCZE6kLrjnT3JLdbJL")},
+			HardGrant{11, 148e8, validateAddress("FA3SD1gth7zPFuYKu1gieDMRAoNMHuuSuVYMUvyApF6dYL3kGF7G")},
+			// --------------------------------------------------------
 
 		}
 
