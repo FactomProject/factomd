@@ -276,6 +276,10 @@ type HeightRequest struct {
 	NoRaw  bool  `json:"noraw,omitempty"`
 }
 
+func (hr *HeightRequest) IncludeRaw() bool {
+	return !hr.NoRaw
+}
+
 type ReplayRequest struct {
 	StartHeight uint32 `json:"startheight"`
 	EndHeight   uint32 `json:"endheight,omitempty"`
@@ -301,6 +305,10 @@ type HashRequest struct {
 type KeyMRRequest struct {
 	KeyMR string `json:"keymr"`
 	NoRaw bool   `json:"noraw,omitempty"`
+}
+
+func (kr *KeyMRRequest) IncludeRaw() bool {
+	return !kr.NoRaw
 }
 
 type KeyRequest struct {

@@ -481,7 +481,7 @@ func Test_ecBlockToResp(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			got, got1 := ECBlockToResp(tt.args.block, false)
+			got, got1 := ECBlockToResp(tt.args.block, true)
 			assert.True(t, reflect.DeepEqual(got, tt.want), "ecBlockToResp() got = %v, want %v", got, tt.want)
 			assert.True(t, reflect.DeepEqual(got1, tt.want1), "ecBlockToResp() got1 = %v, want %v", got1, tt.want1)
 		})

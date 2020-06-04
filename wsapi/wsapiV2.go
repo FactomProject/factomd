@@ -251,7 +251,7 @@ func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interf
 	}
 	resp.DBlock = b
 
-	if !heightRequest.NoRaw {
+	if heightRequest.IncludeRaw() {
 		raw, err := block.MarshalBinary()
 		if err != nil {
 			return nil, NewInternalError()
@@ -287,7 +287,7 @@ func HandleV2EntryCreditBlock(state interfaces.IState, params interface{}) (inte
 		return nil, NewBlockNotFoundError()
 	}
 
-	return ECBlockToResp(block, keymr.NoRaw)
+	return ECBlockToResp(block, keymr.IncludeRaw())
 }
 
 func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -310,15 +310,15 @@ func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (inter
 		return nil, NewBlockNotFoundError()
 	}
 
-	return ECBlockToResp(block, heightRequest.NoRaw)
+	return ECBlockToResp(block, heightRequest.IncludeRaw())
 }
 
-func ECBlockToResp(block interfaces.IEntryCreditBlock, noraw bool) (interface{}, *primitives.JSONError) {
+func ECBlockToResp(block interfaces.IEntryCreditBlock, includeRaw bool) (interface{}, *primitives.JSONError) {
 
 	resp := new(EntryCreditBlockResponse)
 	resp.ECBlock.Body = block.GetBody()
 	resp.ECBlock.Header = block.GetHeader()
-	if !noraw {
+	if includeRaw {
 		raw, err := block.MarshalBinary()
 		if err != nil {
 			return nil, NewInternalError()
@@ -363,7 +363,7 @@ func HandleV2FactoidBlock(state interfaces.IState, params interface{}) (interfac
 		return nil, NewBlockNotFoundError()
 	}
 
-	return fBlockToResp(block, keymr.NoRaw)
+	return fBlockToResp(block, keymr.IncludeRaw())
 }
 
 // Cached response for genesis fblock
@@ -398,7 +398,7 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 		return nil, NewBlockNotFoundError()
 	}
 
-	resp, jerr := fBlockToResp(block, heightRequest.NoRaw)
+	resp, jerr := fBlockToResp(block, heightRequest.IncludeRaw())
 	if jerr != nil {
 		return nil, jerr
 	}
@@ -411,7 +411,7 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 	return resp, nil
 }
 
-func fBlockToResp(block interfaces.IFBlock, noraw bool) (interface{}, *primitives.JSONError) {
+func fBlockToResp(block interfaces.IFBlock, includeRaw bool) (interface{}, *primitives.JSONError) {
 	resp := new(BlockHeightResponse)
 	b, err := ObjectToJStruct(block)
 	if err != nil {
@@ -432,7 +432,7 @@ func fBlockToResp(block interfaces.IFBlock, noraw bool) (interface{}, *primitive
 	}
 
 	resp.FBlock = b
-	if !noraw {
+	if includeRaw {
 		raw, err := block.MarshalBinary()
 		if err != nil {
 			return nil, NewInternalError()
@@ -473,7 +473,7 @@ func HandleV2AdminBlock(state interfaces.IState, params interface{}) (interface{
 		return nil, NewBlockNotFoundError()
 	}
 
-	return aBlockToResp(block, keymr.NoRaw)
+	return aBlockToResp(block, keymr.IncludeRaw())
 }
 
 func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -496,17 +496,17 @@ func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interf
 		return nil, NewBlockNotFoundError()
 	}
 
-	return aBlockToResp(block, heightRequest.NoRaw)
+	return aBlockToResp(block, heightRequest.IncludeRaw())
 }
 
-func aBlockToResp(block interfaces.IAdminBlock, noraw bool) (interface{}, *primitives.JSONError) {
+func aBlockToResp(block interfaces.IAdminBlock, includeRaw bool) (interface{}, *primitives.JSONError) {
 	resp := new(BlockHeightResponse)
 	b, err := ObjectToJStruct(block)
 	if err != nil {
 		return nil, NewInternalError()
 	}
 	resp.ABlock = b
-	if !noraw {
+	if includeRaw {
 		raw, err := block.MarshalBinary()
 		if err != nil {
 			return nil, NewInternalError()
