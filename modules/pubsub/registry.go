@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/DiSiqueira/GoTree"
+	gotree "github.com/DiSiqueira/GoTree"
 )
 
 var globalReg *Registry
@@ -52,7 +52,11 @@ func (r *Registry) FindPublisher(path string) IPublisher {
 	r.publock.RLock()
 	defer r.publock.RUnlock()
 
-	return r.Publishers[path]
+	pub, ok := r.Publishers[path]
+	if ok {
+		return pub
+	}
+	return nil
 }
 
 func (r *Registry) Register(path string, pub IPublisher) error {
