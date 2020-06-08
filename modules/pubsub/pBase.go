@@ -26,15 +26,17 @@ func (p *PubBase) SetLogger(log Log)   { p.Log = log }
 func (p PubBase) Logger() Log          { return p.Log }
 
 func (p *PubBase) Close() error {
-	p.Lock()
+	p.RLock()
 	for i := range p.Subscribers {
 		p.Subscribers[i].done()
 	}
-	p.Unlock()
+	p.RUnlock()
 	return nil
 }
 
 func (p *PubBase) NumberOfSubscribers() int {
+	p.RLock()
+	defer p.RUnlock()
 	return len(p.Subscribers)
 }
 
@@ -61,9 +63,11 @@ func (p *PubBase) Subscribe(subscriber IPubSubscriber) bool {
 }
 
 func (p *PubBase) Write(o interface{}) {
+	p.RLock()
 	for i := range p.Subscribers {
 		p.Subscribers[i].write(o)
 	}
+	p.RUnlock()
 }
 
 func (PubBase) Start() {
