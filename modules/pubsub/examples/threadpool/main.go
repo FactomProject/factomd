@@ -80,6 +80,7 @@ func Count(reg *pubsub.Registry) int64 {
 	// Add a context so we can externally bind to the Done().
 	// This is so we know when to read the value and exit.
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	// We only care about the count, the count subscriber just tracks the number
 	// of items written to it.
@@ -87,10 +88,8 @@ func Count(reg *pubsub.Registry) int64 {
 
 	// Wait for the subscriber to get called Done(), meaning all data is
 	// published.
-	select {
-	case <-ctx.Done():
-		return sub.Count()
-	}
+	<-ctx.Done()
+	return sub.Count()
 }
 
 func IsPrime(i int64) bool {
