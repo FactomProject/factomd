@@ -2,7 +2,6 @@ package registry
 
 import (
 	"fmt"
-	"runtime"
 	"sync"
 
 	"github.com/FactomProject/factomd/common"
@@ -95,8 +94,7 @@ func (p *process) bindCallbacks(w *worker.Thread, initHandler worker.Handle) {
 
 // Start a new root thread w/ coordinated start/stop callback hooks
 func (p *process) Register(initFunction worker.Handle) {
-	_, file, line, _ := runtime.Caller(1)
-	caller := fmt.Sprintf("%s:%v", file[worker.Prefix:], line)
+	caller := worker.PrettyCallerString()
 	r := p.addThread(common.NilName, "rootThread")
 	r.Caller = caller
 	r.ParentID = r.ID // root threads are their own parent
