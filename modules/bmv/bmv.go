@@ -48,7 +48,7 @@ type msgPub struct {
 	Types []byte
 }
 
-func NewBasicMessageValidator(nodeName string) *BasicMessageValidator {
+func NewBasicMessageValidator(nodeName string, replay *MsgReplay) *BasicMessageValidator {
 	b := new(BasicMessageValidator)
 	b.NodeName = nodeName
 
@@ -60,7 +60,7 @@ func NewBasicMessageValidator(nodeName string) *BasicMessageValidator {
 
 	b.rest = pubsub.PubFactory.Threaded(100).Publish(pubsub.GetPath(b.NodeName, "bmv", "rest"), pubsub.PubMultiWrap())
 
-	b.replay = NewMsgReplay(6)
+	b.replay = replay
 	return b
 }
 
