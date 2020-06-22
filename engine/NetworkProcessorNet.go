@@ -240,8 +240,14 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 	})
 }
 
-func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
-	for i := 0; i < 2; i++ { // 2 Basic message validators
+func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode, validators int) {
+	// grab block time for window size
+	blocktime := time.Seconds * time.Duration(fnode.State.GetDirectoryBlockInSeconds())
+
+	// one replay for all validators
+	replay := bmv.NewMsgReplay(6, blocktime)
+
+	for i := 0; i < validators; i++ { // 2 Basic message validators
 		parent.Spawn(fmt.Sprintf("BMV%d", i), func(w *worker.Thread) {
 			ctx, cancel := context.WithCancel(context.Background())
 			// w.Name is my parent?
@@ -249,7 +255,7 @@ func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
 			//w.Init(&parent.Name, "bmv")
 
 			// Run init conditions. Setup publishers
-			msgIn := bmv.NewBasicMessageValidator(fnode.State.GetFactomNodeName())
+			msgIn := bmv.NewBasicMessageValidator(fnode.State.GetFactomNodeName(), replay)
 
 			w.OnReady(func() {
 				// Subscribe to publishers

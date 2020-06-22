@@ -1,6 +1,7 @@
 package bmv
 
 import (
+	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -18,6 +19,9 @@ const (
 
 type MsgReplay struct {
 	Buckets    []map[[32]byte]time.Time
+	bucketsMtx sync.Mutex
+	bucketMtx  []sync.Mutex
+
 	BlockTimes []time.Time
 	window     int
 	blocktime  time.Duration // Minimum block time
@@ -29,7 +33,7 @@ type MsgReplay struct {
 // blocks, anything before the 0th bucket timestamp is expired. The 6th index is the current block.
 // The window corresponds to the number of blocks before the current. The 7th index is all future messages
 // that fall outside the current block.
-func NewMsgReplay(window int) *MsgReplay {
+func NewMsgReplay(window int, blocktime time.Duration) *MsgReplay {
 	m := new(MsgReplay)
 	m.Buckets = make([]map[[32]byte]time.Time, window+2, window+2)
 	for i := range m.Buckets {
@@ -38,7 +42,7 @@ func NewMsgReplay(window int) *MsgReplay {
 	// The future block time is unknown
 	m.BlockTimes = make([]time.Time, window+1, window+1)
 	m.window = window
-	m.blocktime = time.Minute * 10
+	m.blocktime = blocktime
 
 	return m
 }
@@ -101,7 +105,6 @@ func (m *MsgReplay) checkReplay(msg interfaces.IMsg, update bool) int {
 
 	if index == -1 {
 		// Msg is from the future or the current
-		// TODO: We should not assume 10min blocks
 		if mTime.Before(m.BlockTimes[m.window].Add(m.blocktime)) {
 			// Current
 			index = m.window
