@@ -26,8 +26,8 @@ var _ = fmt.Print
 func NetworkProcessorNet(w *worker.Thread, fnode *fnode.FactomNode) {
 	FromPeerToPeer(w, fnode)
 	stubs(w, fnode)
-	BasicMessageValidation(w, fnode)
-	sort(w, fnode) // TODO: Replace this service entirely
+	BasicMessageValidation(w, fnode, 2) // 2 validators
+	sort(w, fnode)                      // TODO: Replace this service entirely
 	w.Run("NetworkOutputs", func() { NetworkOutputs(fnode) })
 	w.Run("InvalidOutputs", func() { InvalidOutputs(fnode) })
 
@@ -242,12 +242,12 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 
 func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode, validators int) {
 	// grab block time for window size
-	blocktime := time.Seconds * time.Duration(fnode.State.GetDirectoryBlockInSeconds())
+	blocktime := time.Second * time.Duration(fnode.State.GetDirectoryBlockInSeconds())
 
 	// one replay for all validators
 	replay := bmv.NewMsgReplay(6, blocktime)
 
-	for i := 0; i < validators; i++ { // 2 Basic message validators
+	for i := 0; i < validators; i++ {
 		parent.Spawn(fmt.Sprintf("BMV%d", i), func(w *worker.Thread) {
 			ctx, cancel := context.WithCancel(context.Background())
 			// w.Name is my parent?

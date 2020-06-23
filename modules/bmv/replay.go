@@ -18,16 +18,19 @@ const (
 )
 
 type MsgReplay struct {
-	Buckets    []map[[32]byte]time.Time
-	bucketsMtx sync.Mutex
-	bucketMtx  []sync.Mutex
+	bucketsMtx sync.RWMutex // protects buckets and oldest
+	buckets    []*bucket
+	oldest     time.Time
 
-	BlockTimes []time.Time
-	window     int
-	blocktime  time.Duration // Minimum block time
+	// helper indices for readability
+	current int
+	future  int
+
+	blocktime time.Duration // Minimum block time
+
 }
 
-// MsgReplay is divided into blocks. The windows is the number of valid blocks.
+// MsgReplay is divided into blocks. The window is the number of valid blocks.
 //
 // If the window is 6, then there will be 8 buckets. The first 6 are the window of valid
 // blocks, anything before the 0th bucket timestamp is expired. The 6th index is the current block.
@@ -35,13 +38,12 @@ type MsgReplay struct {
 // that fall outside the current block.
 func NewMsgReplay(window int, blocktime time.Duration) *MsgReplay {
 	m := new(MsgReplay)
-	m.Buckets = make([]map[[32]byte]time.Time, window+2, window+2)
-	for i := range m.Buckets {
-		m.Buckets[i] = make(map[[32]byte]time.Time)
+	m.buckets = make([]*bucket, window+2, window+2)
+	for i := range m.buckets {
+		m.buckets[i] = newBucket()
 	}
-	// The future block time is unknown
-	m.BlockTimes = make([]time.Time, window+1, window+1)
-	m.window = window
+	m.current = window
+	m.future = window + 1
 	m.blocktime = blocktime
 
 	return m
@@ -49,30 +51,34 @@ func NewMsgReplay(window int, blocktime time.Duration) *MsgReplay {
 
 // Recenter sets the new center for the window to be valid around
 func (m *MsgReplay) Recenter(stamp time.Time) {
-	if stamp.Before(m.BlockTimes[m.window]) {
+	m.bucketsMtx.Lock()
+	defer m.bucketsMtx.Unlock()
+
+	if stamp.Before(m.oldest) {
 		return // We can't go backwards in time
 	}
 
 	// [0:window] == past
 	// [window]   == current
 	// [window+1] == future messages to be re-evaluated
-	copy(m.BlockTimes, m.BlockTimes[1:m.window+1])
-	m.BlockTimes[m.window] = stamp
 
-	copy(m.Buckets, m.Buckets[1:m.window])
-	m.Buckets[m.window] = make(map[[32]byte]time.Time)
+	copy(m.buckets, m.buckets[1:])
+	m.buckets[m.current].SetTime(stamp)
+	m.oldest = m.buckets[0].Time()
 
-	currentEnd := stamp.Add(m.blocktime)
-	for key, ts := range m.Buckets[m.window+1] {
-		if ts.Before(m.BlockTimes[m.window]) {
+	m.buckets[m.future] = newBucket()
+
+	estimatedEnd := stamp.Add(m.blocktime)
+	for key, ts := range m.Buckets[m.windows+1].data {
+		if ts.Before(m.BlockTimes[m.windows]) {
 			// The future msg falls behind the current block time.
 			// So shift it back into the prior block's.
-			m.Buckets[m.window-1][key] = ts
-			delete(m.Buckets[m.window+1], key)
-		} else if ts.Before(currentEnd) {
+			m.Buckets[m.windows-1].data[key] = ts
+			delete(m.Buckets[m.windows+1].data, key)
+		} else if ts.Before(estimatedEnd) {
 			// The future msg falls into the current block
-			m.Buckets[m.window][key] = ts
-			delete(m.Buckets[m.window+1], key)
+			m.Buckets[m.windows].data[key] = ts
+			delete(m.Buckets[m.windows+1].data, key)
 		}
 	}
 }
@@ -85,6 +91,8 @@ func (m *MsgReplay) UpdateReplay(msg interfaces.IMsg) int {
 }
 
 func (m *MsgReplay) checkReplay(msg interfaces.IMsg, update bool) int {
+	m.bucketsMtx.RLock()
+	defer m.bucketsMtx.RUnlock()
 	var index int = -1 // Index of the bucket to check against
 
 	// TODO: .GetTime() might be expensive? We should switch to time.Time in the msg so
@@ -105,24 +113,24 @@ func (m *MsgReplay) checkReplay(msg interfaces.IMsg, update bool) int {
 
 	if index == -1 {
 		// Msg is from the future or the current
-		if mTime.Before(m.BlockTimes[m.window].Add(m.blocktime)) {
+		if mTime.Before(m.BlockTimes[m.windows].Add(m.blocktime)) {
 			// Current
-			index = m.window
+			index = m.windows
 		} else {
 			// Future
 			// TODO: Handle future messages
-			index = m.window + 1
+			index = m.windows + 1
 			// return TimestampTooFuture
 		}
 	}
 
 	if index != -1 {
-		_, ok := m.Buckets[index][msg.GetRepeatHash().Fixed()]
+		_, ok := m.Buckets[index].data[msg.GetRepeatHash().Fixed()]
 		if ok {
 			return ReplayMsg
 		}
 		if update {
-			m.Buckets[index][msg.GetRepeatHash().Fixed()] = mTime
+			m.Buckets[index].data[msg.GetRepeatHash().Fixed()] = mTime
 			return MsgAdded // Added
 		}
 	}
