@@ -17,7 +17,7 @@ func newBucket() *bucket {
 	return b
 }
 
-func (b *bucket) Add(key [32]byte, time time.Time) {
+func (b *bucket) Set(key [32]byte, time time.Time) {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	b.data[key] = time
@@ -40,4 +40,21 @@ func (b *bucket) SetTime(t time.Time) {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	b.time = t
+}
+
+// Transfer takes another bucket and transfers all items from the other
+// bucket to b that happened before its time
+func (b *bucket) Transfer(other *bucket) {
+	b.mtx.Lock()
+	other.mtx.Lock()
+	defer b.mtx.Unlock()
+	defer other.mtx.Unlock()
+
+	// move items from other to us that belong here
+	for k, v := range other.data {
+		if v.Before(other.time) {
+			b.data[k] = v
+			delete(other.data, k)
+		}
+	}
 }
