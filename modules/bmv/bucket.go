@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// bucket is responsible for all messages between its time and the next bucket
 type bucket struct {
 	time time.Time
 	mtx  sync.RWMutex
@@ -17,12 +18,15 @@ func newBucket() *bucket {
 	return b
 }
 
+// Set assigns the given time to the given key
 func (b *bucket) Set(key [32]byte, time time.Time) {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	b.data[key] = time
 }
 
+// Get returns the time attached to the key and true, or zero time and false
+// if the key was not present
 func (b *bucket) Get(key [32]byte) (time.Time, bool) {
 	b.mtx.RLock()
 	defer b.mtx.RUnlock()
@@ -36,6 +40,8 @@ func (b *bucket) Time() time.Time {
 	defer b.mtx.RUnlock()
 	return b.time
 }
+
+// SetTime sets the cutoff time for this bucket
 func (b *bucket) SetTime(t time.Time) {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
@@ -43,7 +49,7 @@ func (b *bucket) SetTime(t time.Time) {
 }
 
 // Transfer takes another bucket and transfers all items from the other
-// bucket to b that happened before its time
+// bucket to b that don't belong there
 func (b *bucket) Transfer(other *bucket) {
 	b.mtx.Lock()
 	other.mtx.Lock()
