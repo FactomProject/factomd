@@ -85,12 +85,13 @@ func (m *MsgReplay) checkReplay(msg interfaces.IMsg, update bool) int {
 	//		this conversion is free.
 	mTime := msg.GetTimestamp().GetTime()
 
+	if mTime.Before(m.buckets[0].time) {
+		return TimestampExpired
+	}
+
 	// First see if the this msg is from the past
-	for i := range m.buckets {
+	for i := 1; i < m.future; i++ {
 		if mTime.Before(m.buckets[i].time) {
-			if i == 0 { // Too far in the past
-				return TimestampExpired
-			}
 			// Place the msg into the correct bucket
 			index = i - 1 // Bucket[i-1] is the right bucket
 			break

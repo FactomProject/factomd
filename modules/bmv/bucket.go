@@ -63,4 +63,13 @@ func (b *bucket) Transfer(other *bucket) {
 			delete(other.data, k)
 		}
 	}
+
+	// move items from us to other that belong there
+	for k, v := range b.data {
+		if !v.Before(other.time) {
+			other.data[k] = v
+			delete(b.data, k)
+		}
+	}
+
 }
