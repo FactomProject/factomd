@@ -51,20 +51,35 @@ func Test_bucket_Transfer(t *testing.T) {
 
 	const CASES = 32
 
-	keys := make([][32]byte, CASES*2)
-	times := make([]time.Time, CASES*2)
+	keys := make([][32]byte, CASES*4)
+	times := make([]time.Time, CASES*4)
 
-	// half above, half below
+	// these are ok in bucket B
 	for i := 0; i < CASES; i++ {
 		rand.Read(keys[i][:])
 		times[i] = threshold.Add(time.Duration(rand.Intn(60000)) * time.Millisecond)
 		B.Set(keys[i], times[i])
 	}
 
+	// these are BEFORE bucket b
 	for i := CASES; i < CASES*2; i++ {
 		rand.Read(keys[i][:])
 		times[i] = threshold.Add(time.Duration(rand.Intn(60000)) * -time.Millisecond)
 		B.Set(keys[i], times[i])
+	}
+
+	// these are ok in bucket A
+	for i := CASES * 2; i < CASES*3; i++ {
+		rand.Read(keys[i][:])
+		times[i] = threshold.Add(time.Duration(rand.Intn(60000)) * -time.Millisecond)
+		A.Set(keys[i], times[i])
+	}
+
+	// these are AFTER bucket A
+	for i := CASES * 3; i < CASES*4; i++ {
+		rand.Read(keys[i][:])
+		times[i] = threshold.Add(time.Duration(rand.Intn(60000)) * time.Millisecond)
+		A.Set(keys[i], times[i])
 	}
 
 	A.Transfer(B)
@@ -84,6 +99,24 @@ func Test_bucket_Transfer(t *testing.T) {
 		}
 		if _, ok := B.Get(keys[i]); ok {
 			t.Errorf("entry %d is erroneously in bucket B", i)
+		}
+	}
+
+	for i := CASES * 2; i < CASES*3; i++ {
+		if _, ok := A.Get(keys[i]); !ok {
+			t.Errorf("entry %d is not in bucket A", i)
+		}
+		if _, ok := B.Get(keys[i]); ok {
+			t.Errorf("entry %d is erroneously in bucket B", i)
+		}
+	}
+
+	for i := CASES * 3; i < CASES*4; i++ {
+		if _, ok := B.Get(keys[i]); !ok {
+			t.Errorf("entry %d is not in bucket B", i)
+		}
+		if _, ok := A.Get(keys[i]); ok {
+			t.Errorf("entry %d is erroneously in bucket A", i)
 		}
 	}
 
