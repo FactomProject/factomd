@@ -1766,55 +1766,41 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 	return resp
 }
 
-func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPendingTransaction {
+// GetPendingTransactions returns a list of transactions that will be included in the upcoming or future blocks
+func (s *State) GetPendingTransactions(params string) []interfaces.IPendingTransaction {
 	var flgFound bool
 
 	var currentHeightComplete = s.GetDBHeightComplete()
 	resp := make([]interfaces.IPendingTransaction, 0)
-	pls := s.ProcessLists.Lists
-	for _, pl := range pls {
-		if pl != nil {
-			// ignore old process lists
-			if pl.DBHeight > currentHeightComplete {
-				cb := pl.State.FactoidState.GetCurrentBlock()
-				ct := cb.GetTransactions()
-				for i, tran := range ct {
-					var tmp interfaces.IPendingTransaction
-					tmp.TransactionID = tran.GetSigHash()
-					if tran.GetBlockHeight() > 0 {
-						tmp.Status = constants.AckStatusDBlockConfirmedString
-					} else {
-						tmp.Status = constants.AckStatusACKString
-					}
-
-					tmp.Inputs = tran.GetInputs()
-					tmp.Outputs = tran.GetOutputs()
-					tmp.ECOutputs = tran.GetECOutputs()
-					if i > 0 {
-						ecrate := s.GetPredictiveFER()
-						ecrate, _ = tran.CalculateFee(ecrate)
-						tmp.Fees = ecrate
-					}
-
-					if params.(string) == "" {
-						flgFound = true
-					} else {
-						flgFound = tran.HasUserAddress(params.(string))
-					}
-					if flgFound == true {
-						//working through multiple process lists.  Is this transaction already in the list?
-						for _, pt := range resp {
-							if pt.TransactionID.String() == tmp.TransactionID.String() {
-								flgFound = false
-							}
-						}
-						//  flag was true to be added to the list and not already in the list
-						if flgFound == true {
-							resp = append(resp, tmp)
-						}
-					}
-				}
+	cb := s.GetFactoidState().GetCurrentBlock()
+	if cb.GetDBHeight() > currentHeightComplete {
+		for i, ta := range cb.GetTransactions() {
+			// don't return coinbase until the real timestamp is in
+			if i == 0 && !cb.IsCoinbasePatched() {
+				continue
 			}
+
+			if params != "" && !ta.HasUserAddress(params) {
+				continue
+			}
+
+			var tmp interfaces.IPendingTransaction
+			tmp.TransactionID = ta.GetSigHash()
+			tmp.DBHeight = cb.GetDBHeight()
+			if ta.GetBlockHeight() > 0 {
+				tmp.Status = constants.AckStatusDBlockConfirmedString
+			} else {
+				tmp.Status = constants.AckStatusACKString
+			}
+			tmp.Inputs = ta.GetInputs()
+			tmp.Outputs = ta.GetOutputs()
+			tmp.ECOutputs = ta.GetECOutputs()
+			if len(tmp.Inputs) > 0 {
+				ecrate := s.GetPredictiveFER()
+				ecrate, _ = ta.CalculateFee(ecrate)
+				tmp.Fees = ecrate
+			}
+			resp = append(resp, tmp)
 		}
 	}
 
@@ -1834,7 +1820,7 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			var tmp interfaces.IPendingTransaction
 			tmp.TransactionID = tempTran.GetSigHash()
 			tmp.Status = constants.AckStatusNotConfirmedString
-			flgFound = tempTran.HasUserAddress(params.(string))
+			flgFound = tempTran.HasUserAddress(params)
 			tmp.Inputs = tempTran.GetInputs()
 			tmp.Outputs = tempTran.GetOutputs()
 			tmp.ECOutputs = tempTran.GetECOutputs()

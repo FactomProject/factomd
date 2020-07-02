@@ -20,7 +20,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -2377,15 +2376,16 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LogPrintf("dbsig", "1st ProcessDBSig(): %10s DBSig dbht %d leaderheight %d VMIndex %d Timestamp %x %d, leadertimestamp = %x %d",
 				s.FactomNodeName, dbs.DBHeight, s.LLeaderHeight, dbs.VMIndex, dbs.GetTimestamp().GetTimeMilli(), dbs.GetTimestamp().GetTimeMilli(), s.LeaderTimestamp.GetTimeMilliUInt64(), s.LeaderTimestamp.GetTimeMilliUInt64())
 
-			cbtx := fs.GetCurrentBlock().(*factoid.FBlock).Transactions[0].(*factoid.Transaction)
-			foo := cbtx.MilliTimestamp
+			cb := fs.GetCurrentBlock()
+			cbtx := cb.GetTransactions()[0]
+			foo := cbtx.GetTimestamp().GetTimeMilliUInt64()
 			lts := s.LeaderTimestamp.GetTimeMilliUInt64()
 			s.LogPrintf("dbsig", "ProcessDBSig(): first  cbtx before %d dbsig %d lts %d", foo, dbsMilli, lts)
 
 			s.SetLeaderTimestamp(dbs.Timestamp) // SetLeaderTimestamp also updates the Message Timestamp filter
 
 			uInt64_3 := dbs.GetTimestamp().GetTimeMilliUInt64()
-			foo_3 := cbtx.MilliTimestamp
+			foo_3 := cbtx.GetTimestamp().GetTimeMilliUInt64()
 			lts_3 := s.LeaderTimestamp.GetTimeMilliUInt64()
 			s.LogPrintf("dbsig", "ProcessDBSig(): second cbtx before %d dbsig %d lts %d", foo_3, uInt64_3, lts_3)
 			s.LogPrintf("dbsig", "ProcessDBSig(): p cbtx %p dbsig %p lts %p", cbtx.GetTimestamp().(*primitives.Timestamp), dbs.GetTimestamp().(*primitives.Timestamp), s.LeaderTimestamp.(*primitives.Timestamp))
@@ -2395,9 +2395,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 			uInt64 := dbs.GetTimestamp().GetTimeMilliUInt64()
 
-			foo2 := cbtx.MilliTimestamp
-			cbtx.MilliTimestamp = dbsMilli
-			s.LogPrintf("dbsig", "ProcessDBSig(): cbtx before %d dbsig %d cbtx after %d", foo2, uInt64, cbtx.MilliTimestamp)
+			foo2 := cbtx.GetTimestamp().GetTimeMilliUInt64()
+			cb.PatchCoinbase(dbs.Timestamp)
+			s.LogPrintf("dbsig", "ProcessDBSig(): cbtx before %d dbsig %d cbtx after %d", foo2, uInt64, cbtx.GetTimestamp().GetTimeMilliUInt64())
 
 			txt, _ = cbtx.CustomMarshalText()
 			s.LogPrintf("dbsig", "ProcessDBSig(): coinbase after  %s", string(txt))
