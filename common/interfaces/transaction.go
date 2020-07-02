@@ -89,6 +89,7 @@ type ITransaction interface {
 
 type IPendingTransaction struct {
 	TransactionID IHash           `json:"transactionid"`
+	DBHeight      uint32          `json:"dbheight"`
 	Status        string          `json:"status"`
 	Inputs        []ITransAddress `json:"inputs"`
 	Outputs       []ITransAddress `json:"outputs"`

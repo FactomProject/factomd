@@ -1077,7 +1077,7 @@ func StartSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 				case 'j' == b[0]:
 					var fpl []interfaces.IPendingTransaction
 					if len(b) > 1 {
-						fpl = fnode.Get(ListenTo).State.GetPendingTransactions(b[1])
+						fpl = fnode.Get(ListenTo).State.GetPendingTransactions(b[1:])
 					} else {
 						fpl = fnode.Get(ListenTo).State.GetPendingTransactions("")
 					}
