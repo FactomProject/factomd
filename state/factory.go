@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FactomProject/factomd/modules/chainheadfix"
 	"github.com/FactomProject/factomd/modules/livefeed"
 
 	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
@@ -551,6 +552,10 @@ func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IEle
 	}
 
 	if s.CheckChainHeads.CheckChainHeads {
+		if err := chainheadfix.FindHeads(s.DB.(*databaseOverlay.Overlay), s.CheckChainHeads.Fix); err != nil {
+			panic(fmt.Errorf("chainheadfix encountered fatal error: %v\n", err))
+		}
+
 		if s.CheckChainHeads.Fix {
 			// Set dblock head to 184 if 184 is present and head is not 184
 			d, err := s.DB.FetchDBlockHead()
