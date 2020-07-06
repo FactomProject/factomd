@@ -51,6 +51,8 @@ type finder struct {
 	batchValues []interfaces.IHash
 }
 
+// retrieve the head struct for a chain id.
+// creates a new head if none is found.
 func (f *finder) get(id interfaces.IHash) *head {
 	f.headsMtx.Lock()
 	var ch *head
@@ -66,6 +68,9 @@ func (f *finder) get(id interfaces.IHash) *head {
 	return ch
 }
 
+// step 1
+// launches workers and writes all database heights to worker channel.
+// returns an error if the dblock height could not be determined.
 func (f *finder) gatherHeads(workers int) error {
 	head, err := f.db.FetchDBlockHead()
 	if err != nil {
@@ -88,6 +93,8 @@ func (f *finder) gatherHeads(workers int) error {
 	return nil
 }
 
+// step 2
+// launches workers and writes all known heads to worker channel.
 func (f *finder) checkHeads(workers int) {
 	f.wg.Add(workers)
 	for i := 0; i < workers; i++ {
@@ -102,19 +109,24 @@ func (f *finder) checkHeads(workers int) {
 	f.wg.Wait()
 }
 
+// run the algorithm with the specified number of workers.
 func (f *finder) run(workers int) error {
 	if workers < 1 {
 		workers = 1
 	}
 
 	start := time.Now()
+
+	// step 1
 	if err := f.gatherHeads(workers); err != nil {
 		return err
 	}
 	f.log.WithField("time", time.Since(start)).Info("chainheads gathered")
 
+	// step 2
 	f.checkHeads(workers)
 
+	// step 3
 	fixed := 0
 	if len(f.batchKeys) > 0 {
 		if err := f.db.SetChainHeads(f.batchKeys, f.batchValues); err != nil {
@@ -133,6 +145,8 @@ func (f *finder) run(workers int) error {
 	return nil
 }
 
+// worker routine for step 1.
+// grabs dblock from database for heights and updates the head.
 func (f *finder) gatherer() {
 	for h := range f.gather {
 		dblock, err := f.db.FetchDBlockByHeight(h)
@@ -149,6 +163,8 @@ func (f *finder) gatherer() {
 	f.wg.Done()
 }
 
+// worker routine for step 2.
+// takes max heads from step 1 and compares them to the database value. stores anomalies.
 func (f *finder) fixer() {
 	for ch := range f.fix {
 		head, err := f.db.FetchHeadIndexByChainID(ch.id)
