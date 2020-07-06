@@ -11,7 +11,6 @@ import (
 	"github.com/FactomProject/factomd/modules/chainheadfix"
 	"github.com/FactomProject/factomd/modules/livefeed"
 
-	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants/runstate"
@@ -552,10 +551,6 @@ func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IEle
 	}
 
 	if s.CheckChainHeads.CheckChainHeads {
-		if err := chainheadfix.FindHeads(s.DB.(*databaseOverlay.Overlay), s.CheckChainHeads.Fix); err != nil {
-			panic(fmt.Errorf("chainheadfix encountered fatal error: %v\n", err))
-		}
-
 		if s.CheckChainHeads.Fix {
 			// Set dblock head to 184 if 184 is present and head is not 184
 			d, err := s.DB.FetchDBlockHead()
@@ -576,10 +571,10 @@ func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IEle
 				}
 			}
 		}
-		correctChainHeads.FindHeads(s.DB.(*databaseOverlay.Overlay), correctChainHeads.CorrectChainHeadConfig{
-			PrintFreq: 5000,
-			Fix:       s.CheckChainHeads.Fix,
-		})
+
+		if err := chainheadfix.FindHeads(s.DB.(*databaseOverlay.Overlay), s.CheckChainHeads.Fix); err != nil {
+			panic(fmt.Errorf("chainheadfix encountered fatal error: %v\n", err))
+		}
 	}
 	if s.ExportData {
 		s.DB.SetExportData(s.ExportDataSubpath)
