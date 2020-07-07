@@ -11,6 +11,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// NOTE: This code has been deprecated but still exists as a standalone utility.
+// See modules/chainheadfix for the new version.
+
 type CorrectChainHeadConfig struct {
 	CheckFloating bool
 	Fix           bool
