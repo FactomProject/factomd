@@ -3,15 +3,16 @@ package controlpanel
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"sync"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/modules/controlPanel/pages"
 	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/alexandrevicenzi/go-sse"
 	"github.com/gorilla/mux"
-	"log"
-	"net/http"
-	"sync"
 )
 
 type controlPanel struct {
@@ -107,7 +108,7 @@ func New(config *Config) {
 	// controlPanel.MsgInputSubscription.Subscribe(pubsub.GetPath("FNode0", event.Path.LeaderMsgOut))
 
 	// network inputs
-	controlPanel.MsgInputSubscription.Subscribe(pubsub.GetPath(config.NodeName, "bmv", "rest"))
+	controlPanel.MsgInputSubscription.Subscribe(pubsub.GetPath(config.NodeName, "bmv", "output"))
 
 	// internal events
 	controlPanel.MovedToHeightSubscription.Subscribe(pubsub.GetPath(config.NodeName, events.Path.Seq))
