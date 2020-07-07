@@ -13,7 +13,7 @@ import (
 
 func TestMsgReplay_UpdateReplay(t *testing.T) {
 	initR := func() *MsgReplay {
-		r := NewMsgReplay(1)
+		r := NewMsgReplay(1, time.Minute)
 		// Add the 2 windows
 		r.Recenter(time.Now().Add(-60 * time.Second))
 		r.Recenter(time.Now())
