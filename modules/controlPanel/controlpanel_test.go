@@ -2,11 +2,12 @@ package controlpanel
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/testHelper"
-	"testing"
-	"time"
 )
 
 // test for live testing
@@ -16,7 +17,7 @@ func testControlPanelLive(t *testing.T) {
 	fnode.New(s)
 
 	// register the publisher to start the control panel
-	_ = pubsub.PubFactory.Threaded(5).Publish(pubsub.GetPath(s.FactomNodeName, "bmv", "rest"))
+	_ = pubsub.PubFactory.Threaded(5).Publish(pubsub.GetPath(s.FactomNodeName, "bmv", "output"))
 	p := pubsub.PubFactory.Threaded(5).Publish("test")
 	go p.Start()
 

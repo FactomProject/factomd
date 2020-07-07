@@ -46,7 +46,7 @@ func sort(parent *worker.Thread, fnode *fnode.FactomNode) {
 		sub := pubsub.SubFactory.Channel(50)
 
 		w.OnReady(func() {
-			sub.Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "rest"))
+			sub.Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "output"))
 		})
 
 		w.OnRun(func() {
@@ -95,7 +95,7 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 	// 		validators.
 	// TODO: Construct the proper setup and teardown of this publisher.
 	s := fnode.State
-	msgPub := pubsub.PubFactory.MsgSplit(100).Publish(s.GetFactomNodeName() + "/msgs")
+	msgPub := pubsub.PubFactory.MsgSplit(100).Publish(pubsub.GetPath(s.GetFactomNodeName(), "bmv", "input"))
 	go msgPub.Start()
 
 	// ackHeight is used in ignoreMsg to determine if we should ignore an acknowledgment
@@ -265,7 +265,7 @@ func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode, vali
 			w.OnRun(func() {
 				// TODO: Temporary print all messages out of bmv. We need to actually use them...
 				//go func() {
-				//	sub := pubsub.SubFactory.Channel(100).Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "rest"))
+				//	sub := pubsub.SubFactory.Channel(100).Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "output"))
 				//	for v := range sub.Channel() {
 				//		fmt.Println("MESSAGE -> ", v)
 				//	}

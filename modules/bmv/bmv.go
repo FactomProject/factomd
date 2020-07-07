@@ -19,8 +19,8 @@ type BasicMessageValidator struct {
 	// Anything before this timestamp is ignored
 	preBootFilter time.Time
 
-	// msgs is where all the incoming messages com from.
-	msgs *pubsub.SubChannel
+	// input is where all the incoming messages com from.
+	input *pubsub.SubChannel
 	// times is where each dblock's timestamp comes from for our time filter
 	times *pubsub.SubChannel
 
@@ -30,7 +30,7 @@ type BasicMessageValidator struct {
 	// The rest of the messages
 	// pubList []pubsub.IPublisher
 	// pubs    map[byte]pubsub.IPublisher
-	rest pubsub.IPublisher
+	output pubsub.IPublisher
 
 	replay *MsgReplay
 
@@ -52,13 +52,14 @@ func NewBasicMessageValidator(nodeName string, replay *MsgReplay) *BasicMessageV
 	b := new(BasicMessageValidator)
 	b.NodeName = nodeName
 
-	b.msgs = pubsub.SubFactory.Channel(100)  //.Subscribe("path?")
-	b.times = pubsub.SubFactory.Channel(100) //.Subscribe("path?")
+	// subscribed in b.Subscribe()
+	b.input = pubsub.SubFactory.Channel(100)
+	b.times = pubsub.SubFactory.Channel(100)
 	b.bootTime = time.Now()
 	// 20min grace period
 	b.preBootFilter = b.bootTime.Add(-20 * time.Minute)
 
-	b.rest = pubsub.PubFactory.Threaded(100).Publish(pubsub.GetPath(b.NodeName, "bmv", "rest"), pubsub.PubMultiWrap())
+	b.output = pubsub.PubFactory.Threaded(100).Publish(pubsub.GetPath(b.NodeName, "bmv", "output"), pubsub.PubMultiWrap())
 
 	b.replay = replay
 	return b
@@ -66,7 +67,7 @@ func NewBasicMessageValidator(nodeName string, replay *MsgReplay) *BasicMessageV
 
 func (b *BasicMessageValidator) Subscribe() {
 	// TODO: Find actual paths
-	b.msgs = b.msgs.Subscribe(pubsub.GetPath(b.NodeName, "msgs"))
+	b.input = b.input.Subscribe(pubsub.GetPath(b.NodeName, "bmv", "input"))
 	b.times = b.times.Subscribe(pubsub.GetPath(b.NodeName, "blocktime"))
 
 	sub := debugsettings.GetSettings(b.NodeName).InputRegexC()
@@ -76,11 +77,11 @@ func (b *BasicMessageValidator) Subscribe() {
 }
 
 func (b *BasicMessageValidator) ClosePublishing() {
-	_ = b.rest.Close()
+	_ = b.output.Close()
 }
 
 func (b *BasicMessageValidator) Run(ctx context.Context) {
-	go b.rest.Start()
+	go b.output.Start()
 	for {
 		select {
 		case <-ctx.Done():
@@ -91,7 +92,7 @@ func (b *BasicMessageValidator) Run(ctx context.Context) {
 			}
 		case blockTime := <-b.times.Updates:
 			b.replay.Recenter(blockTime.(time.Time))
-		case data := <-b.msgs.Updates:
+		case data := <-b.input.Updates:
 			msg, ok := data.(interfaces.IMsg)
 			if !ok {
 				continue
@@ -133,7 +134,7 @@ func (b *BasicMessageValidator) Run(ctx context.Context) {
 }
 
 func (b *BasicMessageValidator) Write(msg interfaces.IMsg) {
-	b.rest.Write(msg)
+	b.output.Write(msg)
 }
 
 // TODO: The prior regex check also included state like leader height and minute. Those were stripped. Is that ok?
