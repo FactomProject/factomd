@@ -840,7 +840,8 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		// update cached values that change with height
 		s.dbheights <- int(dbheight) // Notify MMR process we have moved on...
 
-		s.CurrentMinuteStartTime = time.Now().UnixNano()
+		blockstart := time.Now()
+		s.CurrentMinuteStartTime = blockstart.UnixNano()
 		s.CurrentBlockStartTime = s.CurrentMinuteStartTime
 
 		// If an we added or removed servers or elections tool place in minute 9, our lists will be unsorted. Fix that
@@ -889,6 +890,9 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			}
 		}
 		callUpdateState = true
+
+		// let blocktime know a new block started
+		s.Blocktime.Write(blockstart)
 
 		// Expire old commits and stuff ...
 		s.Commits.Cleanup(s)
