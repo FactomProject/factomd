@@ -7,12 +7,13 @@ package state
 import (
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/events"
 	"hash"
 	"os"
 	"reflect"
 	"sort"
 	"time"
+
+	"github.com/FactomProject/factomd/modules/events"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -401,7 +402,7 @@ func (s *State) Process() (progress bool) {
 					s.IgnoreDone = true
 				}
 				events.EmitNodeMessageF(s, events.NodeMessageCode_SYNCED, events.Level_INFO,
-					"Node %s has finished syncing up it's database", s.GetFactomNodeName())
+					"Node %s has finished syncing up its database", s.GetFactomNodeName())
 			}
 		}
 	} else if s.IgnoreMissing {
