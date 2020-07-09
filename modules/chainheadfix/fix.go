@@ -77,6 +77,11 @@ func (f *finder) gatherHeads(workers int) error {
 		return err
 	}
 
+	// empty database
+	if head == nil {
+		return nil
+	}
+
 	f.wg.Add(workers)
 	for i := 0; i < workers; i++ {
 		go f.gatherer()
