@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"net"
 	"sync"
@@ -18,6 +19,8 @@ type Peer struct {
 	conn    net.Conn
 	metrics ReadWriteCollector
 	prot    Protocol
+
+	resend *PeerResend
 
 	// current state, read only "constants" after the handshake
 	IsIncoming bool
@@ -74,6 +77,10 @@ func newPeer(net *Network, id uint32, ep Endpoint, conn net.Conn, protocol Proto
 	p.IsIncoming = incoming
 	p.connected = time.Now()
 
+	if net.conf.PeerResend {
+		p.resend = NewPeerResend(net.conf.PeerResendBuckets, net.conf.PeerResendInterval)
+	}
+
 	go p.sendLoop()
 	go p.readLoop()
 	go p.statLoop()
@@ -85,6 +92,9 @@ func newPeer(net *Network, id uint32, ep Endpoint, conn net.Conn, protocol Proto
 func (p *Peer) Stop() {
 	p.stopper.Do(func() {
 		p.logger.Debug("Stopping peer")
+		if p.resend != nil {
+			p.resend.Stop()
+		}
 		close(p.stop) // stops sendLoop and readLoop and statLoop
 		p.conn.Close()
 		// sendLoop closes p.send in defer
@@ -170,6 +180,10 @@ func (p *Peer) readLoop() {
 			if msg.IsApplicationMessage() {
 				p.net.prom.AppReceived.Inc()
 			}
+		}
+
+		if p.resend != nil && msg.IsApplicationMessage() {
+			p.resend.Add(sha1.Sum(msg.Payload))
 		}
 
 		msg.Address = p.Hash // always set sender = peer
