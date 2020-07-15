@@ -218,16 +218,13 @@ func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	defer m.sigMtx.Unlock()
 	m.sigCache = false
 	m.validSignatures = nil
-	m.Signatures = new(factoid.FullSignatureBlock)
 
-	for len(newData) > 32+64 {
-		sig := new(primitives.Signature)
-		newData, err = sig.UnmarshalBinaryData(newData)
-		if err != nil {
-			return nil, err
-		}
-		m.Signatures.AddSignature(sig)
+	m.Signatures = new(factoid.FullSignatureBlock)
+	newData, err = m.Signatures.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
 	}
+
 	return
 }
 
@@ -275,11 +272,13 @@ func (m *AddServerMsg) MarshalBinary() (rval []byte, err error) {
 	}
 	buf.Write(data)
 
-	data, err = m.Signatures.MarshalBinary()
-	if err != nil {
-		return nil, err
+	if m.Signatures != nil {
+		data, err = m.Signatures.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(data)
 	}
-	buf.Write(data)
 
 	return buf.DeepCopyBytes(), nil
 }

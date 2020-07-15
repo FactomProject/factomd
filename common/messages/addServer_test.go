@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -79,12 +80,12 @@ func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	valid, err := addserv.VerifySignature()
+	valid, err := addserv.VerifySignatures()
 	if err != nil {
 		t.Error(err)
 	}
-	if valid == false {
-		t.Error("Signature is not valid")
+	if len(valid) != len(addserv.GetSignatures()) {
+		t.Error("Some signatures not valid")
 	}
 
 	addserv2, err := msgsupport.UnmarshalMessage(hex)
@@ -105,12 +106,12 @@ func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
 		t.Errorf("AddServer messages are not identical")
 	}
 
-	valid, err = addserv2.(*AddServerMsg).VerifySignature()
+	valid, err = addserv2.(*AddServerMsg).VerifySignatures()
 	if err != nil {
 		t.Error(err)
 	}
-	if valid == false {
-		t.Error("Signature is not valid")
+	if len(valid) != len(addserv2.(*AddServerMsg).GetSignatures()) {
+		t.Error("Signatures 2 are not valid")
 	}
 }
 
@@ -119,6 +120,7 @@ func newAddServer() *AddServerMsg {
 	addserv.Timestamp = primitives.NewTimestampNow()
 	addserv.ServerChainID = primitives.Sha([]byte("FNode0"))
 	addserv.ServerType = 0
+	addserv.Signatures = factoid.NewFullSignatureBlock()
 	return addserv
 }
 
@@ -129,7 +131,7 @@ func newSignedAddServer() *AddServerMsg {
 	if err != nil {
 		panic(err)
 	}
-	err = addserv.Sign(key)
+	err = addserv.AddSignature(key)
 	if err != nil {
 		panic(err)
 	}
