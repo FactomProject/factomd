@@ -108,7 +108,6 @@ type State struct {
 	Logger *log.Entry // old logger used for logstash
 	//logging           *logging.LayerLogger     // new file logger
 	Pub               *pubregistry.PubRegistry // Publisher hooks for this vm
-	Blocktime         pubsub.IPublisher
 	RunState          runstate.RunState
 	NetworkController *p2p.Network
 	Salt              interfaces.IHash

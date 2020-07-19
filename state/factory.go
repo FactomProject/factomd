@@ -10,7 +10,6 @@ import (
 
 	"github.com/FactomProject/factomd/modules/chainheadfix"
 	"github.com/FactomProject/factomd/modules/livefeed"
-	"github.com/FactomProject/factomd/modules/pubsub"
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants"
@@ -440,9 +439,6 @@ func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IEle
 	}
 
 	fmt.Printf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
-
-	s.Blocktime = pubsub.PubFactory.Threaded(10).Publish(pubsub.GetPath(s.GetFactomNodeName(), "blocktime"))
-	go s.Blocktime.Start()
 
 	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We can't start as a leader until we know we are upto date
 	s.RunLeader = false
