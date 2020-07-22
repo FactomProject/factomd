@@ -727,7 +727,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					os.Stderr.WriteString(fmt.Sprintln("Could not remove server,", err.Error()))
 					break
 				}
-				err = msg.(*messages.RemoveServerMsg).Sign(priv)
+				err = msg.(*messages.RemoveServerMsg).AddSignature(priv)
 				if err != nil {
 					os.Stderr.WriteString(fmt.Sprintln("Could not remove server,", err.Error()))
 					break
