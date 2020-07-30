@@ -6,6 +6,7 @@ package messages
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"os"
@@ -147,7 +148,7 @@ func (e *RemoveServerMsg) JSONString() (string, error) {
 }
 
 func (m *RemoveServerMsg) AddSignature(key interfaces.Signer) error {
-	data, err := m.MarshalForSignature()
+	data, err := m.MarshalForKambani()
 	if err != nil {
 		return err
 	}
@@ -170,7 +171,7 @@ func (m *RemoveServerMsg) VerifySignatures() ([]interfaces.IFullSignature, error
 		return m.validSignatures, nil
 	}
 
-	data, err := m.MarshalForSignature()
+	data, err := m.MarshalForKambani()
 	if err != nil {
 		return nil, err
 	}
@@ -268,6 +269,17 @@ func (m *RemoveServerMsg) MarshalForSignature() (rval []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, uint8(m.ServerType))
 
 	return buf.DeepCopyBytes(), nil
+}
+
+func (m *RemoveServerMsg) MarshalForKambani() ([]byte, error) {
+	data, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	// transform to kambani compatible format
+	data = []byte(fmt.Sprintf("%x", data))
+	datahash := sha256.Sum256(data)
+	return datahash[:], nil
 }
 
 func (m *RemoveServerMsg) MarshalBinary() (rval []byte, err error) {
