@@ -522,6 +522,8 @@ func (s *State) Initialize(o common.NamedObject, electionFactory interfaces.IEle
 	s.StatesWaiting = NewStatesWaiting()
 	s.StatesReceived = NewStatesReceived()
 
+	s.ControlPanelChannel = make(chan DisplayState, 20)
+
 	switch s.NodeMode {
 	case "FULL":
 		s.Leader = false

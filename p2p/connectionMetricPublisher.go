@@ -11,10 +11,10 @@ type MetricPublisher interface {
 }
 type metricPublisher struct {
 	publisher                pubsub.IPublisher
-	connectionMetricsChannel chan interface{}
+	connectionMetricsChannel chan map[string]PeerMetrics
 }
 
-func NewMetricPublisher(factomNodeName string, connectionMetricChannel chan interface{}) MetricPublisher {
+func NewMetricPublisher(factomNodeName string, connectionMetricChannel chan map[string]PeerMetrics) MetricPublisher {
 	publisher := pubsub.PubFactory.Threaded(5).Publish(pubsub.GetPath(factomNodeName, events.Path.ConnectionMetrics))
 	go publisher.Start()
 	return &metricPublisher{

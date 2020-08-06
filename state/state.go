@@ -454,6 +454,11 @@ type State struct {
 	MissingMessageResponseHandler *MissingMessageResponseCache
 	ChainCommits                  Last100
 	Reveals                       Last100
+
+	// old control panel
+	ControlPanelDataRequest bool
+	LastDisplayState        *DisplayState
+	ControlPanelChannel     chan DisplayState
 }
 
 var _ interfaces.IState = (*State)(nil)

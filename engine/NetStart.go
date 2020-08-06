@@ -9,12 +9,15 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/modules/pubsub"
 	"os"
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/FactomProject/factomd/controlPanel"
+	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/modules/pubsub"
+	"github.com/FactomProject/factomd/p2p"
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants"
@@ -27,12 +30,10 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/fnode"
 	llog "github.com/FactomProject/factomd/log"
-	controlpanel "github.com/FactomProject/factomd/modules/controlPanel"
 	"github.com/FactomProject/factomd/modules/debugsettings"
 	"github.com/FactomProject/factomd/modules/leader"
 	"github.com/FactomProject/factomd/modules/registry"
 	"github.com/FactomProject/factomd/modules/worker"
-	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/simulation"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
@@ -41,7 +42,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var connectionMetricsChannel = make(chan interface{}, 5000)
+var connectionMetricsChannel = make(chan map[string]p2p.PeerMetrics, 5000)
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
 var network *p2p.Network
@@ -226,23 +227,25 @@ func startWebserver(w *worker.Thread) {
 func startControlPanel(w *worker.Thread) {
 	state0 := fnode.Get(0).State
 	w.Run("controlpanel", func() {
-		controlPanelConfig := &controlpanel.Config{
-			Port:       state0.ControlPanelPort,
-			TLSEnabled: state0.FactomdTLSEnable,
-			CertFile:   state0.FactomdTLSCertFile,
-			KeyFile:    state0.FactomdTLSKeyFile,
+		controlPanel.ServeControlPanel(state0.ControlPanelChannel, state0, connectionMetricsChannel, network, Build, state0.FactomNodeName)
 
-			NodeName:   state0.FactomNodeName,
-			BuildNumer: Build,
-			Version:    FactomdVersion,
+		/*		controlPanelConfig := &controlpanel.Config{
+					Port:       state0.ControlPanelPort,
+					TLSEnabled: state0.FactomdTLSEnable,
+					CertFile:   state0.FactomdTLSCertFile,
+					KeyFile:    state0.FactomdTLSKeyFile,
 
-			CompleteHeight: state0.EntryDBHeightComplete,
-			LeaderHeight:   state0.LLeaderHeight,
+					NodeName:   state0.FactomNodeName,
+					BuildNumer: Build,
+					Version:    FactomdVersion,
 
-			IdentityChainID: state0.GetIdentityChainID().String(),
-			PublicKey:       state0.GetServerPublicKeyString(),
-		}
-		controlpanel.New(controlPanelConfig)
+					CompleteHeight: state0.EntryDBHeightComplete,
+					LeaderHeight:   state0.LLeaderHeight,
+
+					IdentityChainID: state0.GetIdentityChainID().String(),
+					PublicKey:       state0.GetServerPublicKeyString(),
+				}
+				controlpanel.New(controlPanelConfig)*/
 	})
 }
 
