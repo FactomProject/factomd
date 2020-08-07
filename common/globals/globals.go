@@ -93,6 +93,7 @@ type FactomParams struct {
 	EventSendStateChange     bool
 	EventBroadcastContent    string
 	EventReplayDuringStartup bool
+	PersistentReconnect      bool
 }
 
 /****************************************************************

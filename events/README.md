@@ -23,6 +23,7 @@ EventFormat                           = protobuf
 EventSendStateChange                  = false
 EventBroadcastContent                 = OnRegistration 
 EventReplayDuringStartup              = false
+PersistentReconnect                   = false
 ```
 
 Here is an overview of these options:

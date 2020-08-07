@@ -103,7 +103,7 @@ func (eventSender *eventSender) sendEvent(event *eventmessages.FactomEvent) {
 
 	// retry sending event ... times
 	sendSuccessful := false
-	for retry := 0; retry < sendRetries && !sendSuccessful; retry++ {
+	for retry := 0; (eventSender.params.PersistentReconnect || retry < sendRetries) && !sendSuccessful; retry++ {
 		if err = eventSender.connect(); err != nil {
 			log.Errorf("An error occurred while connecting to receiver %s: %v, retry %d", eventSender.params.Address, err, retry)
 			time.Sleep(redialSleepDuration)

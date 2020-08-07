@@ -117,6 +117,7 @@ type FactomdConfig struct {
 		EventReplayDuringStartup bool
 		EventSendStateChange     bool
 		EventBroadcastContent    string
+		PersistentReconnect      bool
 	}
 }
 
@@ -250,7 +251,8 @@ EventSenderPort                       = 8040
 EventFormat                           = protobuf
 EventReplayDuringStartup              = false
 EventSendStateChange                  = false
-EventBroadcastContent                 = once 
+EventBroadcastContent                 = once
+PersistentReconnect                   = false
 `
 
 func (s *FactomdConfig) String() string {
@@ -329,6 +331,7 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    EventBroadcastContent    %v", s.LiveFeedAPI.EventBroadcastContent))
 	out.WriteString(fmt.Sprintf("\n    EventSendStateChange     %v", s.LiveFeedAPI.EventSendStateChange))
 	out.WriteString(fmt.Sprintf("\n    EventReplayDuringStartup %v", s.LiveFeedAPI.EventReplayDuringStartup))
+	out.WriteString(fmt.Sprintf("\n    PersistentReconnect      %v", s.LiveFeedAPI.PersistentReconnect))
 
 	return out.String()
 }
