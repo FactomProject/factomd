@@ -6,7 +6,6 @@ package messages
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -48,23 +47,13 @@ func (a *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
 }
 
 func (m *FactoidTransaction) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FactoidTransaction.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FactoidTransaction.GetRepeatHash") }()
 
 	return m.Transaction.GetSigHash()
 }
 
 func (m *FactoidTransaction) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FactoidTransaction.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FactoidTransaction.GetHash") }()
 
 	if m.hash == nil {
 		m.SetFullMsgHash(m.Transaction.GetFullHash())
@@ -80,12 +69,7 @@ func (m *FactoidTransaction) GetHash() (rval interfaces.IHash) {
 }
 
 func (m *FactoidTransaction) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("FactoidTransaction.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "FactoidTransaction.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()

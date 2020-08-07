@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -35,34 +34,19 @@ var _ interfaces.IMsg = (*RemoveServerMsg)(nil)
 var _ interfaces.Signable = (*RemoveServerMsg)(nil)
 
 func (m *RemoveServerMsg) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("RemoveServerMsg.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "RemoveServerMsg.GetRepeatHash") }()
 
 	return m.GetMsgHash()
 }
 
 func (m *RemoveServerMsg) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("RemoveServerMsg.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "RemoveServerMsg.GetHash") }()
 
 	return m.GetMsgHash()
 }
 
 func (m *RemoveServerMsg) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("RemoveServerMsg.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "RemoveServerMsg.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()

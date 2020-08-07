@@ -24,9 +24,9 @@ func GetHardCodedGrants() []HardGrant {
 	case "LOCAL":
 		hardcodegrants = []HardGrant{
 			// waiting for "real-ish" data from brian
-			HardGrant{21, 2, validateAddress("FA3oajkmHMfqkNMMShmqpwDThzMCuVrSsBwiXM2kYFVRz3MzxNAJ")}, // Pay Clay 2
-			HardGrant{31, 4, validateAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET")}, // Pay Bob 4
-			HardGrant{21, 3, validateAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET")}, // Pay Bob 3
+			HardGrant{41, 2, validateAddress("FA3oajkmHMfqkNMMShmqpwDThzMCuVrSsBwiXM2kYFVRz3MzxNAJ")}, // Pay Clay 2
+			HardGrant{51, 4, validateAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET")}, // Pay Bob 4
+			HardGrant{41, 3, validateAddress("FA3Ga2XcaheS5NgQ3q22gBpLgE6tXmPu1GhjdU2FsdN2QPMzKJET")}, // Pay Bob 3
 
 			// Note to future grant implementers.  To test the grants that you have coded up on mainnet before deployment on your local machine use this procedure.
 			// - Code all the grants and add them to the MAIN section. Use the correct activation height, where Height % 25 = 1
@@ -42,6 +42,13 @@ func GetHardCodedGrants() []HardGrant {
 			// - Switch to the second simnode by pressing 1 <enter> in the simulator console
 			// - Check you are on the second node by pressing s <enter> to print out the summary.  It should show "1 f FNode01" to indicate focus is on the new simnode.  This means you are viewing that control panel now.
 			// - Refersh the control panel and make sure that it downloads the blockchain and is keeping up with the first simnode and is not stalled on either of the grant blocks.
+
+			// - Note, if set to 11, then there may be an extra payout at block 151
+			//   the TESTNET_COINBASE_PERIOD has a activation height of 25 for local net instead of maxint so after block 25 the
+			//   COINBASE_DECLARATION is changed to 140 so at height 151 we look back 140 blocks and get the grants at height 11
+			//   and pay them out a second time. Perhaps we should handle that differently somehow on any future activation
+			//   heights that change the COINBASE constants. The bug is TESTNET_COINBASE_PERIOD should never activate for local
+			//   networks since it is intended to only apply to test nets.
 
 			// Copy (and replace) the new grants to be tested here:
 			// Centis BV total: 1200 FCT (300 FCT * 2 months) + (600 FCT * 1 month) = 1200 FCT lowered upon request
@@ -788,6 +795,425 @@ func GetHardCodedGrants() []HardGrant {
 			// Kompendium total: 2400 FCT
 			HardGrant{207326, 2400e8, validateAddress("FA3KMPNX8AKdY3tjyKMzZ5cAkqUv97d3QqkJeQnVXk6PXSVgArnr")},
 			// --------------------------------------------------------
+
+			// ********************************
+			// **** Grant Round 2019-04 ****
+			// ********************************
+
+			// --------------------------------------------------------
+			// Samuel Vanderwaal-Brian Deery-Nolan Bauer-Nic R-The 42nd Factoid AS-Centis BV -- 9000 FCT
+			// Guide Compensation 2019-09-07 to 2019-12-07
+
+			// Factom, Inc. total: 1800 FCT
+			HardGrant{221126, 1800e8, validateAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq")},
+
+			// Nolan Bauer total: 1800 FCT
+			HardGrant{221126, 1800e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
+
+			// Nic R total: 1800 FCT
+			HardGrant{221126, 1800e8, validateAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu")},
+
+			// The 42nd Factoid AS total: 1800 FCT
+			HardGrant{221126, 1800e8, validateAddress("FA3AEL2H9XZy3n199USs2poCEJBkK1Egy6JXhLehfLJjUYMKh1zS")},
+
+			// Centis BV total: 1800 FCT
+			HardGrant{221126, 1800e8, validateAddress("FA2hvRaci9Kks9cLNkEUFcxzUJuUFaaAE1eWYLqa2qk1k9pVFVBp")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Factom Inc. -- 900 FCT
+			// Oracle Master Dec 9 2019 - March 9, 2020
+
+			// Factom Inc. total: 900 FCT
+			HardGrant{221126, 900e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Factom Inc. -- 660 FCT
+			// Anchor Master Dec 9 2019 - March 9, 2020
+
+			// Factom Inc. total: 660 FCT
+			HardGrant{221126, 660e8, validateAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// David Chapman-Factomize -- 15769 FCT
+			// Core and General Development 2019-12-01 - 2020-02-29
+
+			// Factomize total: 15769 FCT
+			HardGrant{221126, 15769e8, validateAddress("FA3nsSjUy5uSkqMEug8t3VcehZn5w2ciSMpgqFEEsMRwMrHoa9k3")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// CryptoLogic-The Factoid Authority-Crypto Logic-Bedrock Solutions-De Facto -- 1956 FCT
+			// Factom Open Node Continuity 2019-12-01 - 2020-02-29
+
+			// The Factoid Authority total: 326 FCT
+			HardGrant{221126, 326e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
+
+			// Crypto Logic total: 326 FCT
+			HardGrant{221126, 326e8, validateAddress("FA29wMUjN38BVLbJs6dR6gHHdBys2mpo3wy565JCjquUQTGqNZfb")},
+
+			// Bedrock Solutions total: 652 FCT
+			HardGrant{221126, 652e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
+
+			// De Facto total: 652 FCT
+			HardGrant{221126, 652e8, validateAddress("FA2YeMbN8Z1SsT7Yqw6Np85kWwtFVg2CyJKMDFnuXTawWuWPtzvX")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Nolan Bauer-factomatic-David Kuiper-Factom Inc. -- 34740 FCT
+			// Protocol Development Dec 9 2019 - March 9, 2020
+
+			// Nolan Bauer total: 300 FCT
+			HardGrant{221126, 300e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
+
+			// factomatic total: 300 FCT
+			HardGrant{221126, 300e8, validateAddress("FA2944TXTDQKdJDp3TLSANjgMjwK2pQnTSkzE3kQcHWKetCCphcH")},
+
+			// David Kuiper total: 300 FCT
+			HardGrant{221126, 300e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
+
+			// Factom Inc. total: 33840 FCT
+			HardGrant{221126, 33840e8, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Samuel Vanderwaal-Exchange Committee -- 5000 FCT
+			// Legal Fees Reimbursement
+
+			// Exchange Committee total: 5000 FCT
+			HardGrant{221126, 5000e8, validateAddress("FA2fVnbYw3Hr1MCJWktLnGDrYiLnW2HwDBDVRpp3Q355jJRDwvCs")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// David Chapman-Factomize -- 12069 FCT
+			// ANO Promotion / Demotion System 2019-12-01 - 2020-02-29
+
+			// Factomize total: 12069 FCT
+			HardGrant{221126, 12069e8, validateAddress("FA3nsSjUy5uSkqMEug8t3VcehZn5w2ciSMpgqFEEsMRwMrHoa9k3")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// mboender-Sphereon -- 14909 FCT
+			// Core Development Continuation 2019-12-02 - 2020-02-28
+
+			// Sphereon total: 14909 FCT
+			HardGrant{221126, 14909e8, validateAddress("FA3igxrULYqL5w4oq9vXwWzWURtvejfYh64iPZaeRqZfLpFdkFgD")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Samuel Vanderwaal-Exchange Committee -- 175 FCT
+			// G Suite Service
+
+			// Exchange Committee total: 175 FCT
+			HardGrant{221126, 175e8, validateAddress("FA2kd7iAuCrR2GTV39UMaBTphzvQZYVYmvLJYGsjoJRjEGoVNQFd")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Devon Katz-Canonical Ledgers-DBGrow -- 5448 FCT
+			// FAT Development 4 - Continuation 2019-12-01 - 2020-02-01
+
+			// Canonical Ledgers total: 2980 FCT
+			HardGrant{221126, 2980e8, validateAddress("FA2xccSAfhGm5k4tPaXF9741xkQ52drWjoJodQhpPxDxepdqasMM")},
+
+			// DBGrow total: 2468 FCT
+			HardGrant{221126, 2468e8, validateAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// David Chapman-Motion Factory-Factomize -- 800 FCT
+			// PegNet Explainer Video Backpay Grant
+
+			// Motion Factory total: 800 FCT
+			HardGrant{221126, 800e8, validateAddress("FA3cRbg1CAzBvXpp8v3AfGuxzjePDbwqGr71MvLNanTX2QKDF1Cz")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Valentin Ganev-Factomatic -- 5500 FCT
+			// Python DID library
+
+			// Factomatic total: 5500 FCT
+			HardGrant{221126, 5500e8, validateAddress("FA2QuNHNxgJBZyPggxkU8C16YReA4xFFxUvAGpu9azF3TaZg46SF")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Cody B -- 950 FCT
+			// Discord Daily Digest Screenshot (Continuation) 2019-11-01 - 2020-01-31
+
+			// Cody B total: 950 FCT
+			HardGrant{221126, 950e8, validateAddress("FA2WvyDhuKerk3RyVeSiTUonmcn7RuPRJGFQB6oCfroSys7NW3q2")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Jason Gregoire-Kompendium -- 730 FCT
+			// [Back-pay] Further Development of Open API – Client Library & Server Expansion
+
+			// Kompendium total: 730 FCT
+			HardGrant{221126, 730e8, validateAddress("FA3KMPNX8AKdY3tjyKMzZ5cAkqUv97d3QqkJeQnVXk6PXSVgArnr")},
+			// --------------------------------------------------------
+
+			// ********************************
+			// ** BUG Bounty payout 2019-04  **
+			// ********************************
+			// --------------------------------------------------------
+			// Niels Klomp -- Core committee -- 205 FCT
+			// This grant is for the Bug Bounty program and pays out 3 submissions, BB-001, BB-002 and BB-003
+			// Payout will go to the following addresses, with a managed intermediary address.
+			// (Not all exchanges support coinbase transactions)
+			//
+			// BB-001 -- 17 FCT  -- FA3ShvrkkVrCWGGiGqmAPykhLHhuZZtetUYBTYEss4KPsm5c7G6c
+			// BB-002 -- 17 FCT  -- FA29JkXWYzwgLpQcrqSPsouy23AMgbrQcr6PTbAu6Q2tGXNveL4P
+			// BB-003 -- 171 FCT -- FA23fEJadueuxf8SsohpnDj3QYmZQ7mpMjWrFb1GHTQhByyDYMxe
+			//
+			// Full details for core committee:
+			// https://docs.google.com/spreadsheets/d/15fo9PCNt4meJGSd-V9iZENAiPTUx7dLpd990tH1dADY/edit#gid=0
+
+			// Bug bounty total: 205 FCT, remaining funds: 795 FCT
+			HardGrant{221126, 205e8, validateAddress("FA22J4Age2aLKRw1cKQckTPzK6Wpb6GCKKdYv6dp7SVsxzGyNqy4")},
+			// --------------------------------------------------------
+
+			// ********************************
+			// **** Grant Round 2020-01 ****
+			// ********************************
+
+			// --------------------------------------------------------
+			// Samuel Vanderwaal-Brian Deery-Nolan Bauer-Nic R-The 42nd Factoid AS-Centis BV -- 9000 FCT
+			// Guide Compensation 2019-12-07 - 2020-03-06
+
+			// Brian Deery total: 1800 FCT
+			HardGrant{233201, 1800e8, validateAddress("FA2teRURMYTdYAA97zdh7rZDkxNtR1nhjryo34aaskjYqsqRSwZq")},
+
+			// Nolan Bauer total: 1800 FCT
+			HardGrant{233201, 1800e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
+
+			// Nic R total: 1800 FCT
+			HardGrant{233201, 1800e8, validateAddress("FA3HSuFo9Soa5ZnG82JHqyKiRi4Pw17LxPTo9AsCaFNLCGkXkgsu")},
+
+			// The 42nd Factoid AS total: 1800 FCT
+			HardGrant{233201, 1800e8, validateAddress("FA3AEL2H9XZy3n199USs2poCEJBkK1Egy6JXhLehfLJjUYMKh1zS")},
+
+			// Centis BV total: 1800 FCT
+			HardGrant{233201, 1800e8, validateAddress("FA2hvRaci9Kks9cLNkEUFcxzUJuUFaaAE1eWYLqa2qk1k9pVFVBp")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// PaulSnow-Factom Inc. -- 900 FCT
+			// Oracle Master 2020-03-09 - 2020-06-09
+
+			// Factom Inc. total: 900 FCT
+			HardGrant{233201, 900e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// PaulSnow-Factom Inc. -- 660 FCT
+			// Anchor Master 2020-03-09 - 2020-06-09
+
+			// Factom Inc. total: 660 FCT
+			HardGrant{233201, 660e8, validateAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// David Chapman-Factomize -- 19524 FCT
+			// Core and General Development 2020-03-01 - 2020-05-31
+
+			// Factomize total: 19524 FCT
+			HardGrant{233201, 19524e8, validateAddress("FA3nsSjUy5uSkqMEug8t3VcehZn5w2ciSMpgqFEEsMRwMrHoa9k3")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Julian Fletcher-Taylor-Exchange Committee -- 30000 FCT
+			// Exchange Working Group - 001 2020-03-01 - 2020-06-01
+
+			// Exchange Committee total: 30000 FCT
+			HardGrant{233201, 30000e8, validateAddress("FA2FrnimQdtuqkB7MFgemGy1RBYNnqZMNEmQ5TAsb5TrkbSNebdm")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// PaulSnow-Nolan Bauer-factomatic-David Kuiper-Factom Inc. -- 34950 FCT
+			// Protocol Development 2020-03-09 - 2020-06-09
+
+			// Nolan Bauer total: 300 FCT
+			HardGrant{233201, 300e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
+
+			// factomatic total: 300 FCT
+			HardGrant{233201, 300e8, validateAddress("FA2944TXTDQKdJDp3TLSANjgMjwK2pQnTSkzE3kQcHWKetCCphcH")},
+
+			// David Kuiper total: 300 FCT
+			HardGrant{233201, 300e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
+
+			// Factom Inc. total: 34050 FCT
+			HardGrant{233201, 34050e8, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// CryptoLogic-The Factoid Authority-Crypto Logic-Bedrock Solutions-De Facto -- 2700 FCT
+			// Factom Open Node Continuity 2020-03-01 - 2020-05-31
+
+			// The Factoid Authority total: 375 FCT
+			HardGrant{233201, 375e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
+
+			// Crypto Logic total: 375 FCT
+			HardGrant{233201, 375e8, validateAddress("FA29wMUjN38BVLbJs6dR6gHHdBys2mpo3wy565JCjquUQTGqNZfb")},
+
+			// Bedrock Solutions total: 975 FCT
+			HardGrant{233201, 975e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
+
+			// De Facto total: 975 FCT
+			HardGrant{233201, 975e8, validateAddress("FA2YeMbN8Z1SsT7Yqw6Np85kWwtFVg2CyJKMDFnuXTawWuWPtzvX")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// David Chapman-Factomize -- 1064 FCT
+			// Factomize Forum Software Upgrade 2020-03-01 - 2020-03-16
+
+			// Factomize total: 1064 FCT
+			HardGrant{233201, 1064e8, validateAddress("FA3nsSjUy5uSkqMEug8t3VcehZn5w2ciSMpgqFEEsMRwMrHoa9k3")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Valentin Ganev-Factomatic -- 8500 FCT
+			// Kambani Extension Backpay 2020-02-03 - 2020-02-03
+
+			// Factomatic total: 8500 FCT
+			HardGrant{233201, 8500e8, validateAddress("FA2QuNHNxgJBZyPggxkU8C16YReA4xFFxUvAGpu9azF3TaZg46SF")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Matt York -- 900 FCT
+			// IPFS-bridge 2020-02-01 - 2020-05-01
+
+			// Matt York total: 900 FCT
+			HardGrant{233201, 900e8, validateAddress("FA3PTnet6yGwnCkprszYYfHtwqymqQQWKfFjoRkavxSda15VNtwY")},
+			// --------------------------------------------------------
+
+			// ********************************
+			// ** BUG Bounty payout 2020-01  **
+			// ********************************
+			// --------------------------------------------------------
+			// Niels Klomp -- Core committee -- 37 FCT
+			// This grant is for the Bug Bounty program and pays out 1 submission, BB-004.
+			//
+			// BB-004 -- 37 FCT  -- FA34H8r61Gt5wTNwgtaUHPvNpma4Kof39uJAYxJ5q9cwqKF2y9Kd
+			//
+			// Full details for core committee:
+			// https://docs.google.com/spreadsheets/d/15fo9PCNt4meJGSd-V9iZENAiPTUx7dLpd990tH1dADY/edit#gid=0
+
+			// Bug bounty total: 37 FCT, remaining funds: 758 FCT
+			HardGrant{233201, 37e8, validateAddress("FA34H8r61Gt5wTNwgtaUHPvNpma4Kof39uJAYxJ5q9cwqKF2y9Kd")},
+			// --------------------------------------------------------
+
+			// ********************************
+			// **** Grant Round 2020-02 ****
+			// ********************************
+
+			// --------------------------------------------------------
+			// WB-Exchange Working Group -- 65000 FCT
+			// Exchange Working Group Funds
+
+			// Exchange Working Group total: 65000 FCT
+			HardGrant{246851, 65000e8, validateAddress("FA2H24T1NQCw7DJXkeHwoeyGDsP3eP8ZMdRkvxPBTjFtvqTTuPyv")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// David Chapman-Alex-Fillip H.-Factomize -- 10294 FCT
+			// Sale of the Factomize forum to the Factom Protocol and coding work.
+
+			// Alex total: 200 FCT
+			HardGrant{246851, 200e8, validateAddress("FA2tsEih6kyzNSBtbkzZ31HUGF8QQB7RPBFouBVfYyUZk24QkPr2")},
+
+			// Fillip H. total: 3000 FCT
+			HardGrant{246851, 3000e8, validateAddress("FA3X4yGXcxuuA9MkkBcqqapUbjc3c58odtceUwRoXtdgQkfBPJit")},
+
+			// Factomize total: 7094 FCT
+			HardGrant{246851, 7094e8, validateAddress("FA2aggCXMoymWQWfERZJ2RPq5pC4RiZosBYKu7vC6LFqrpZiQTXi")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Who -- 12000 FCT
+			// Core and General Development
+
+			// Who total: 12000 FCT
+			HardGrant{246851, 12000e8, validateAddress("FA3WALLETKpcjeneRfQiX8Gv5vQDSugmDTomfc8uahvVgoUiqX3o")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// CryptoLogic-The Factoid Authority-Crypto Logic-Bedrock Solutions-De Facto -- 2998 FCT
+			// Factom Open Node System
+
+			// The Factoid Authority total: 416 FCT
+			HardGrant{246851, 416e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
+
+			// Crypto Logic total: 416 FCT
+			HardGrant{246851, 416e8, validateAddress("FA29wMUjN38BVLbJs6dR6gHHdBys2mpo3wy565JCjquUQTGqNZfb")},
+
+			// Bedrock Solutions total: 1083 FCT
+			HardGrant{246851, 1083e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
+
+			// De Facto total: 1083 FCT
+			HardGrant{246851, 1083e8, validateAddress("FA2YeMbN8Z1SsT7Yqw6Np85kWwtFVg2CyJKMDFnuXTawWuWPtzvX")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Factom, Inc -- 3085 FCT
+			// Anchor Master  2020-06-09 - 2020-09-09
+
+			// Factom, Inc total: 3085 FCT
+			HardGrant{246851, 3085e8, validateAddress("FA3jySUFtLXb1VdAJJ5NRVNYEtZ4EBSkDB7yn6LuKGQ4P1ntARhx")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Factom, Inc -- 900 FCT
+			// Oracle Master  2020-06-09 - 2020-09-09
+
+			// Factom, Inc total: 900 FCT
+			HardGrant{246851, 900e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Alex-Factoshi -- 3700 FCT
+			// Stats Daemon and Public API
+
+			// Factoshi total: 3700 FCT
+			HardGrant{246851, 3700e8, validateAddress("FA2tsEih6kyzNSBtbkzZ31HUGF8QQB7RPBFouBVfYyUZk24QkPr2")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Paul Bernier-LUCIAP -- 2300 FCT
+			// ChockaBlock: open-sourcing and upgrade
+
+			// LUCIAP total: 2300 FCT
+			HardGrant{246851, 2300e8, validateAddress("FA2UFABmvvckKCCTDEkArENKjD76VkgtVnm1ZhKF7Ep4bqjkgaFo")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Factom, Inc Nolan Bauer -- 10300 FCT
+			// Protocol Development 2020-06-09 - 2020-09-09
+
+			// Nolan Bauer total: 300 FCT
+			HardGrant{246851, 300e8, validateAddress("FA2oecgJW3XWnXzHhQQoULmMeKC97uAgHcPd4kEowTb3csVkbDc9")},
+
+			// Factom Inc. total: 10000 FCT
+			HardGrant{246851, 10000e8, validateAddress("FA3LwCDE3ZdFkr9nE1Keb5JcHgwXVWpEHydshT1x2qKFdvZELVQz")},
+			// --------------------------------------------------------
+
+			// ********************************
+			// ** BUG Bounty payout 2020-02  **
+			// ********************************
+			// --------------------------------------------------------
+			// This grant is for the Bug Bounty program and pays out 3 submissions.
+			//
+			// BB-005 -- 118 FCT
+			// BB-006 + BB-007 -- 148 FCT
+			//
+			// Full details for core committee:
+			// https://docs.google.com/spreadsheets/d/15fo9PCNt4meJGSd-V9iZENAiPTUx7dLpd990tH1dADY/edit#gid=0
+
+			// Bug bounty total: 266 FCT, remaining funds: 492 FCT
+			HardGrant{246851, 118e8, validateAddress("FA3k4U8WqmF2WWZ1q7TwMP6PU1vBbY19gxqCZE6kLrjnT3JLdbJL")},
+			HardGrant{246851, 148e8, validateAddress("FA3SD1gth7zPFuYKu1gieDMRAoNMHuuSuVYMUvyApF6dYL3kGF7G")},
+			// --------------------------------------------------------
+
 		}
 
 	default:

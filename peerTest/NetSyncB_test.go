@@ -1,8 +1,9 @@
 package simtest
 
 import (
-	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
+
+	. "github.com/FactomProject/factomd/testHelper"
 )
 
 /*

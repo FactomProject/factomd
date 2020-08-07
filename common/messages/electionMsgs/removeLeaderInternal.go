@@ -6,7 +6,6 @@ package electionMsgs
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -21,11 +20,10 @@ import (
 //General acknowledge message
 type RemoveLeaderInternal struct {
 	msgbase.MessageBase
-	NName       string
-	ServerID    interfaces.IHash // Hash of message acknowledged
-	DBHeight    uint32           // Directory Block Height that owns this ack
-	Height      uint32           // Height of this ack in this process list
-	MessageHash interfaces.IHash
+	NName    string
+	ServerID interfaces.IHash // Hash of message acknowledged
+	DBHeight uint32           // Directory Block Height that owns this ack
+	Height   uint32           // Height of this ack in this process list
 }
 
 var _ interfaces.IMsg = (*RemoveLeaderInternal)(nil)
@@ -54,12 +52,7 @@ func (m *RemoveLeaderInternal) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *RemoveLeaderInternal) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("RemoveLeaderInternal.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "RemoveLeaderInternal.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
@@ -90,12 +83,7 @@ func (m *RemoveLeaderInternal) ElectionProcess(state interfaces.IState, elect in
 }
 
 func (m *RemoveLeaderInternal) GetServerID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("RemoveLeaderInternal.GetServerID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "RemoveLeaderInternal.GetServerID") }()
 
 	return m.ServerID
 }
@@ -105,26 +93,17 @@ func (m *RemoveLeaderInternal) LogFields() log.Fields {
 }
 
 func (m *RemoveLeaderInternal) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("RemoveLeaderInternal.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "RemoveLeaderInternal.GetRepeatHash") }()
 
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
 func (m *RemoveLeaderInternal) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("RemoveLeaderInternal.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "RemoveLeaderInternal.GetHash") }()
 
-	return m.MessageHash
+	return m.GetMsgHash()
+
 }
 
 func (m *RemoveLeaderInternal) GetTimestamp() interfaces.Timestamp {

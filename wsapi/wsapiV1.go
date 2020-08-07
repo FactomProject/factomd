@@ -64,7 +64,7 @@ func checkHttpPasswordOkV1(writer http.ResponseWriter, request *http.Request) bo
 		}
 	} else {
 		wsLog.Errorf("failed to get state from request: %s", err)
-		writer.WriteHeader(http.StatusOK)
+		writer.WriteHeader(http.StatusBadRequest)
 		return false
 	}
 	return true

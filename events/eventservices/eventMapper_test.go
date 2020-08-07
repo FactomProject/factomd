@@ -2,6 +2,9 @@ package eventservices_test
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -15,8 +18,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func TestDirectoryBlockMapping(t *testing.T) {

@@ -41,7 +41,7 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 	state, err := GetState(request)
 	if err != nil {
 		wsLog.Errorf("failed to extract port from request: %s", err)
-		writer.WriteHeader(http.StatusOK)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -520,7 +520,7 @@ func HandleV2Error(writer http.ResponseWriter, j *primitives.JSON2Request, jErr 
 	}
 	resp.Error = jErr
 
-	writer.WriteHeader(http.StatusOK)
+	writer.WriteHeader(http.StatusBadRequest)
 	_, err := writer.Write([]byte(resp.String()))
 	if err != nil {
 		wsLog.Errorf("failed to write error response: %v", err)
@@ -1624,7 +1624,16 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 			eInfo.VmIndex = &vm
 			eInfo.FedIndex = &electing
 			eInfo.FedID = e.GetFedID().String()
-			eInfo.Round = &e.GetRound()[electing]
+			// bugfix for https://github.com/FactomProject/factomd/issues/947
+			// the round slice is frequently truncated to zero-length and the default
+			// behavior is to zero-pad it on demand
+			round := e.GetRound()
+			if electing < len(round) {
+				eInfo.Round = &round[electing]
+			} else {
+				zero := 0 // backward compatibility for any consumer that relied on this being present
+				eInfo.Round = &zero
+			}
 		}
 	}
 	resp.ElectionInfo = eInfo

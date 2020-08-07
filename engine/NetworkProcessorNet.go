@@ -7,6 +7,7 @@ package engine
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -26,40 +27,6 @@ func NetworkProcessorNet(fnode *FactomNode) {
 }
 
 func Peers(fnode *FactomNode) {
-	saltReplayFilterOn := true
-
-	crossBootIgnore := func(amsg interfaces.IMsg) bool {
-		// If we are not syncing, we may ignore some old messages if we are rebooting based on salts
-		if saltReplayFilterOn {
-			//var ack *messages.Ack
-			//switch amsg.Type() {
-			//case constants.MISSING_MSG_RESPONSE:
-			//	mmrsp := amsg.(*messages.MissingMsgResponse)
-			//	if mmrsp.Ack == nil {
-			//		return false
-			//	}
-			//	ack = mmrsp.Ack.(*messages.Ack)
-			//case constants.ACK_MSG:
-			//	ack = amsg.(*messages.Ack)
-			//case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
-			//	dbs := amsg.(*messages.DirectoryBlockSignature)
-			//	if dbs.Ack == nil {
-			//		return false
-			//	}
-			//	ack = dbs.Ack.(*messages.Ack)
-			//}
-
-			if amsg.Type() == constants.ACK_MSG && amsg != nil {
-				ack := amsg.(*messages.Ack)
-				if replaySalt := fnode.State.CrossReplay.ExistOldSalt(ack.Salt); replaySalt {
-					return true
-				}
-			}
-
-		}
-
-		return false
-	}
 
 	// ackHeight is used in ignoreMsg to determine if we should ignore an acknowledgment
 	ackHeight := uint32(0)
@@ -116,13 +83,15 @@ func Peers(fnode *FactomNode) {
 
 	for {
 		now := fnode.State.GetTimestamp()
-		if now.GetTimeSeconds()-fnode.State.BootTime > int64(constants.CROSSBOOT_SALT_REPLAY_DURATION.Seconds()) {
-			saltReplayFilterOn = false
-		}
 		cnt := 0
 
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
+
+			if msg.GetRepeatHash() == nil || reflect.ValueOf(msg.GetRepeatHash()).IsNil() || msg.GetMsgHash() == nil || reflect.ValueOf(msg.GetMsgHash()).IsNil() { // Do not send pokemon messages
+				fnode.State.LogMessage("badEvents", "PokeMon seen on APIQueue", msg)
+				continue
+			}
 
 			if globals.Params.FullHashesLog {
 				primitives.Loghash(msg.GetMsgHash())
@@ -196,10 +165,17 @@ func Peers(fnode *FactomNode) {
 					// Receive is not blocking; nothing to do, we get a nil.
 					break // move to next peer
 				}
+				msg.SetReceivedTime(preReceiveTime)
+
 				if err != nil {
 					fnode.State.LogPrintf("NetworkInputs", "error on receive from %v: %v", peer.GetNameFrom(), err)
 					// TODO: Maybe we should check the error type and/or count errors and change status to offline?
 					break // move to next peer
+				}
+
+				if msg.GetRepeatHash() == nil || reflect.ValueOf(msg.GetRepeatHash()).IsNil() || msg.GetMsgHash() == nil || reflect.ValueOf(msg.GetMsgHash()).IsNil() { // Do not send pokemon messages
+					fnode.State.LogMessage("badEvents", fmt.Sprintf("PokeMon seen on Peer %s", peer.GetNameFrom()), msg)
+					continue
 				}
 
 				if globals.Params.FullHashesLog {
@@ -210,7 +186,6 @@ func Peers(fnode *FactomNode) {
 
 				if fnode.State.LLeaderHeight < fnode.State.DBHeightAtBoot+2 {
 					s := fnode.State
-					// Allow 20 minute grace period
 					if s.GetMessageFilterTimestamp() != nil && msg.GetTimestamp().GetTimeMilli() < s.GetMessageFilterTimestamp().GetTimeMilli() {
 						fnode.State.LogMessage("NetworkInputs", "Drop, too old", msg)
 						continue
@@ -246,12 +221,6 @@ func Peers(fnode *FactomNode) {
 				hash := repeatHash.Fixed()
 				timestamp := msg.GetTimestamp()
 
-				tsv := fnode.State.Replay.IsTSValidAndUpdateState(constants.TIME_TEST, hash, timestamp, now)
-				if !tsv {
-					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, TS invalid", msg)
-					continue
-				}
-
 				ignore := ignoreMsg(msg)
 				if ignore {
 					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, ignoreMsg()", msg)
@@ -265,14 +234,6 @@ func Peers(fnode *FactomNode) {
 				//	//fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
 				//	continue
 				//}
-
-				rv := fnode.State.Replay.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, hash, timestamp, now)
-				if !rv {
-					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, NETWORK_REPLAY", msg)
-					RepeatMsgs.Inc()
-					//fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
-					continue
-				}
 
 				regex, _ := fnode.State.GetInputRegEx()
 
@@ -323,10 +284,17 @@ func Peers(fnode *FactomNode) {
 					msg.SetNoResend(true)
 				}
 
-				msg.SetNetwork(true)
-				if !crossBootIgnore(msg) {
-					sendToExecute(msg, fnode, fromPeer)
+				// This should be the last check before sendtoexecute because it adds the message to the replay
+				// as a side effect
+				rv := fnode.State.Replay.IsTSValidAndUpdateState(constants.NETWORK_REPLAY, hash, timestamp, now)
+				if !rv {
+					fnode.State.LogMessage("NetworkInputs", fromPeer+" Drop, NETWORK_REPLAY", msg)
+					RepeatMsgs.Inc()
+					//fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
+					continue
 				}
+				msg.SetNetwork(true)
+				sendToExecute(msg, fnode, fromPeer)
 			} // For a peer read up to 100 messages {...}
 		} // for each peer {...}
 		if cnt == 0 {
@@ -547,7 +515,7 @@ func MissingData(fnode *FactomNode) {
 	q := fnode.State.DataMsgQueue()
 	for {
 		select {
-		case msg := <- q:
+		case msg := <-q:
 			fnode.State.LogMessage("DataQueue", fmt.Sprintf("dequeue %v", len(q)), msg)
 			msg.(*messages.MissingData).SendResponse(fnode.State)
 		}

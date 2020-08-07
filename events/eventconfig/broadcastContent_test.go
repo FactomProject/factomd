@@ -3,8 +3,9 @@ package eventconfig
 import (
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBroadcastContent_Parse(t *testing.T) {

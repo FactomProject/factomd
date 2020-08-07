@@ -7,7 +7,6 @@ package electionMsgs
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -25,12 +24,11 @@ import (
 //General acknowledge message
 type EomSigInternal struct {
 	msgbase.MessageBase
-	NName       string
-	SigType     bool             // True of EOM, False if DBSig
-	ServerID    interfaces.IHash // Hash of message acknowledged
-	DBHeight    uint32           // Directory Block Height that owns this ack
-	Height      uint32           // Height of this ack in this process list
-	MessageHash interfaces.IHash
+	NName    string
+	SigType  bool             // True of EOM, False if DBSig
+	ServerID interfaces.IHash // Hash of message acknowledged
+	DBHeight uint32           // Directory Block Height that owns this ack
+	Height   uint32           // Height of this ack in this process list
 }
 
 var _ interfaces.IMsg = (*EomSigInternal)(nil)
@@ -72,12 +70,7 @@ func (m *EomSigInternal) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *EomSigInternal) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EomSigInternal.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EomSigInternal.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
@@ -226,12 +219,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 }
 
 func (m *EomSigInternal) GetServerID() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EomSigInternal.GetServerID() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EomSigInternal.GetServerID") }()
 
 	return m.ServerID
 }
@@ -241,26 +229,16 @@ func (m *EomSigInternal) LogFields() log.Fields {
 }
 
 func (m *EomSigInternal) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EomSigInternal.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EomSigInternal.GetRepeatHash") }()
 
 	return m.GetMsgHash()
 }
 
 // We have to return the hash of the underlying message.
 func (m *EomSigInternal) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EomSigInternal.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EomSigInternal.GetHash") }()
 
-	return m.MessageHash
+	return m.GetMsgHash()
 }
 
 func (m *EomSigInternal) GetTimestamp() interfaces.Timestamp {

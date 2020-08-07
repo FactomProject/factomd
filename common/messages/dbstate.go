@@ -10,7 +10,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
-	"reflect"
+
+	"github.com/FactomProject/factomd/activations"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -110,23 +111,13 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 }
 
 func (m *DBStateMsg) GetRepeatHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DBStateMsg.GetRepeatHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DBStateMsg.GetRepeatHash") }()
 
 	return m.DirectoryBlock.GetHash()
 }
 
 func (m *DBStateMsg) GetHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DBStateMsg.GetHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DBStateMsg.GetHash") }()
 
 	//	data, _ := m.MarshalBinary()
 	//	return primitives.Sha(data)
@@ -136,12 +127,7 @@ func (m *DBStateMsg) GetHash() (rval interfaces.IHash) {
 }
 
 func (m *DBStateMsg) GetMsgHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("DBStateMsg.GetMsgHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "DBStateMsg.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
@@ -211,6 +197,64 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 				//Key does not match checkpoint
 				return -1
 			}
+		}
+	}
+
+	startingFeds := state.GetFedServers(dbheight - 1)
+	startingFedsCount := len(startingFeds)
+	startingFedsRemaining := startingFedsCount
+	newFedsAdded := 0
+	var containsServerChainID func([]interfaces.IServer, interfaces.IHash) bool
+	containsServerChainID = func(haystack []interfaces.IServer, needle interfaces.IHash) bool {
+		for _, hay := range haystack {
+			if needle.IsSameAs(hay.GetChainID()) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, adminEntry := range m.AdminBlock.GetABEntries() {
+		switch adminEntry.Type() {
+		case constants.TYPE_ADD_FED_SERVER:
+			// Double check the entry is a real add fed server message
+			ad, ok := adminEntry.(*adminBlock.AddFederatedServer)
+			if !ok {
+				continue
+			}
+			if containsServerChainID(startingFeds, ad.IdentityChainID) {
+				startingFedsRemaining++
+			} else {
+				newFedsAdded++
+			}
+		case constants.TYPE_REMOVE_FED_SERVER:
+			// Double check the entry is a real remove fed server message
+			ad, ok := adminEntry.(*adminBlock.RemoveFederatedServer)
+			if !ok {
+				continue
+			}
+			// See if this was one of our starting leaders
+			if containsServerChainID(startingFeds, ad.IdentityChainID) {
+				startingFedsRemaining--
+			}
+		case constants.TYPE_ADD_AUDIT_SERVER:
+			// This could be a demotion, so we need to reduce the fedcount
+			ad, ok := adminEntry.(*adminBlock.AddAuditServer)
+			if !ok {
+				continue
+			}
+			// See if this was one of our starting leaders
+			if containsServerChainID(startingFeds, ad.IdentityChainID) {
+				startingFedsRemaining--
+			}
+		}
+	}
+
+	if startingFedsCount > 1 && startingFedsRemaining < (startingFedsRemaining+newFedsAdded)/2+1 {
+		if state.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+			state.AddStatus("DBStateMsg.Validate() FAIL: the block's starting feds no longer have a majority")
+			return -1
+		} else {
+			state.AddStatus("DBStateMsg.Validate() WARN: replaced more than half of all feds")
 		}
 	}
 

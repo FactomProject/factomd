@@ -16,6 +16,7 @@ import (
 	"os"
 	"reflect"
 	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -38,17 +39,43 @@ var _ encoding.TextMarshaler = (*Hash)(nil)
 
 // ZeroHash is a zero hash
 var ZeroHash interfaces.IHash = NewHash(constants.ZERO_HASH)
-
+var mutex sync.Mutex
 var noRepeat map[string]int = make(map[string]int)
 
-func LogNilHashBug(msg string) {
-	whereAmI := atomic.WhereAmIString(2)
-	noRepeat[whereAmI]++
+var nilHashLog *bufio.Writer
 
-	if noRepeat[whereAmI]%100 == 1 {
+func LogNilHashBug(msg string) {
+
+	whereAmI := atomic.WhereAmIString(2)
+	mutex.Lock()
+	noRepeat[whereAmI]++
+	c := noRepeat[whereAmI]
+	mutex.Unlock()
+	if c%100 == 1 {
 		fmt.Fprintf(os.Stderr, "%s. Called from %s\n", msg, whereAmI)
 	}
+	if nilHashLog == nil {
+		f, err := os.Create("nilhashes.txt")
+		if err != nil {
+			panic(err)
+		}
+		nilHashLog = bufio.NewWriter(f)
+		fmt.Fprintln(nilHashLog, time.Now().String())
+	}
 
+	fmt.Fprintf(nilHashLog, "%s. Called from %s\n", msg, whereAmI)
+	nilHashLog.Flush()
+
+}
+
+func CheckNil(h interfaces.IHash, caller string) (rval interfaces.IHash) {
+	if h == nil {
+		LogNilHashBug(caller + "() returned a nil for IHash")
+	} else if reflect.ValueOf(h).IsNil() {
+		LogNilHashBug(caller + "() returned an interface  nil")
+		return nil // convert an interface that is nil to a nil interface
+	}
+	return h
 }
 
 // IsHashNil returns true if receiver is nil, or the hash is zero
@@ -65,12 +92,7 @@ func RandomHash() interfaces.IHash {
 
 // Copy returns a copy of this Hash
 func (h *Hash) Copy() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			LogNilHashBug("Hash.Copy() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = CheckNil(rval, "Hash.Copy") }()
 	nh := new(Hash)
 	err := nh.SetBytes(h.Bytes())
 	if err != nil {
@@ -313,11 +335,11 @@ func Loghashfixed(h [32]byte) {
 	}
 	if globals.Hashlog == nil {
 		f, err := os.Create("fullhashes.txt")
-		globals.Hashlog = bufio.NewWriter(f)
-		f.WriteString(time.Now().String() + "\n")
 		if err != nil {
 			panic(err)
 		}
+		globals.Hashlog = bufio.NewWriter(f)
+		f.WriteString(time.Now().String() + "\n")
 	}
 	globals.HashMutex.Lock()
 	defer globals.HashMutex.Unlock()

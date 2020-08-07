@@ -6,9 +6,11 @@ package engine
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/events"
 	"runtime"
 
+	"github.com/FactomProject/factomd/events"
+
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	. "github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -55,7 +57,7 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	state0.SetLeaderTimestamp(state0.TimestampAtBoot)
 	// build a timestamp 20 minutes before boot so we will accept messages from nodes who booted before us.
 	preBootTime := new(primitives.Timestamp)
-	preBootTime.SetTimeMilli(state0.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
+	preBootTime.SetTimeMilli(state0.TimestampAtBoot.GetTimeMilli() - constants.PreBootWindow*60*1000)
 	state0.SetMessageFilterTimestamp(preBootTime)
 	state0.EFactory = new(electionMsgs.ElectionsFactory)
 	state0.EventService = events.NewEventService()

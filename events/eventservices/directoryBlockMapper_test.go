@@ -1,12 +1,13 @@
 package eventservices
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestMapDirectoryBlock(t *testing.T) {

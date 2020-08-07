@@ -8,11 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"math"
 	"os"
 	"reflect"
 	"sort"
 	"time"
 
+	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -99,14 +101,6 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 
 var FilterTimeLimit = int64(Range * 60 * 2 * 1000000000) // Filter hold two hours of messages, one in the past one in the future
 
-func (s *State) GetFilterTimeNano() int64 {
-	t := s.GetMessageFilterTimestamp().GetTime().UnixNano() // this is the start of the filter
-	if t == 0 {
-		panic("got 0 time")
-	}
-	return t
-}
-
 // this is the common validation to all messages. they must not be a reply, they must not be out size the time window
 // for the replay filter.
 func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int) {
@@ -132,7 +126,7 @@ func (s *State) Validate(msg interfaces.IMsg) (validToSend int, validToExec int)
 
 	if constants.NeedsAck(msg.Type()) {
 		// Make sure we don't put in an old ack'd message (outside our repeat filter range)
-		filterTime := s.GetFilterTimeNano()
+		filterTime := s.GetMessageFilterTimestamp().GetTime().UnixNano()
 		if filterTime == 0 {
 			panic("got 0 time")
 		}
@@ -1668,9 +1662,41 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
 	as, ok := addServerMsg.(*messages.AddServerMsg)
+
+	pl := s.LeaderPL
+	startingFeds := pl.StartingFedServers
+	startingFedsCount := len(startingFeds)
+	if startingFedsCount > 1 {
+		if as.ServerType == 0 {
+			// only bother checking counts if this wasn't one of the starting feds
+			if !containsServerWithChainID(startingFeds, as.ServerChainID) {
+				newFedsAdded, startingFedsRemoved := pl.CountFederatedServersAddedAndRemoved()
+				startingFedsRemaining := startingFedsCount - startingFedsRemoved
+				if startingFedsRemaining < (startingFedsRemaining+newFedsAdded+1)/2+1 {
+					if s.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+						s.LogPrintf("process", "Failed to process AddServerMessage: by adding %s as a new fed, the block's starting feds no longer have a majority", as.ServerChainID.String()[:10])
+						return true
+					}
+				}
+			}
+		} else if as.ServerType == 1 {
+			// only bother checking counts if this was one of the starting feds
+			if containsServerWithChainID(startingFeds, as.ServerChainID) {
+				newFedsAdded, startingFedsRemoved := pl.CountFederatedServersAddedAndRemoved()
+				startingFedsRemaining := startingFedsCount - startingFedsRemoved
+				if startingFedsRemaining-1 < (startingFedsRemaining+newFedsAdded-1)/2+1 {
+					if s.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+						s.LogPrintf("process", "Failed to process AddServerMessage: by demoting %s to an audit, the block's starting feds no longer have a majority", as.ServerChainID.String()[:10])
+						return true
+					}
+				}
+			}
+		}
+	}
+
 	if ok && !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
 		s.LogPrintf("process", "Failed to add %x as server type %d", as.ServerChainID.Bytes()[3:6], as.ServerType)
-		return true // If it fails it will never work so just move along.
+		// REVIEW: should this return false?
 	}
 	return true
 }
@@ -1692,6 +1718,24 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 	if len(s.LeaderPL.FedServers) < 2 && rs.ServerType == 0 {
 		return true
 	}
+
+	// TODO: add a condition where this is not checked until above a certain block height (there might be old blocks that fail this rule)
+	// check that the starting feds will still have a majority after this removal
+	pl := s.LeaderPL
+	startingFedsCount := len(pl.StartingFedServers)
+	if startingFedsCount > 1 && rs.ServerType == 0 && containsServerWithChainID(pl.StartingFedServers, rs.ServerChainID) {
+		newFedsAdded, startingFedsRemoved := pl.CountFederatedServersAddedAndRemoved()
+		startingFedsRemaining := startingFedsCount - startingFedsRemoved
+		if startingFedsRemaining-1 < (startingFedsRemaining+newFedsAdded-1)/2+1 {
+			if s.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+				s.LogPrintf("process", "Failed to process RemoveServerMessage: by removing %s as a server, the block's starting feds no longer have a majority", rs.ServerChainID.String()[:10])
+				return true
+			} else {
+				s.LogPrintf("process", "WARN by removing %s as a server, the block's starting feds no longer have a majority", rs.ServerChainID.String()[:10])
+			}
+		}
+	}
+
 	s.LeaderPL.AdminBlock.RemoveFederatedServer(rs.ServerChainID)
 
 	return true
@@ -2125,6 +2169,23 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			e.ChainID,
 		)
 		s.electionsQueue.Enqueue(InMsg)
+
+		// Prometheus metrics to analyze timing delays
+		msgDelay := e.GetReceivedTime().Sub(e.Timestamp.GetTime())
+		LeaderSyncMsgDelay.WithLabelValues(e.ChainID.String()).Set(msgDelay.Seconds())
+		// Grab the ack (should always work)
+		if vm.Height < len(vm.ListAck) { // This shouldn't fail...
+			ack := vm.ListAck[vm.Height]
+			if ack != nil && ack.GetHash() != nil && ack.GetHash().IsSameAs(e.GetMsgHash()) {
+				// Measure Ack delay
+				ackDelay := ack.GetReceivedTime().Sub(ack.Timestamp.GetTime())
+				LeaderSyncAckDelay.WithLabelValues(e.ChainID.String()).Set(ackDelay.Seconds())
+
+				// Measure Pair Delay. The delay between the msg and ack
+				pairDelay := ack.GetReceivedTime().Sub(e.GetReceivedTime())
+				LeaderSyncAckPairDelay.WithLabelValues(e.ChainID.String()).Set(math.Abs(pairDelay.Seconds()))
+			}
+		}
 
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Process Once: !e.Processed(%v) SigType: %s", s.FactomNodeName, e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
@@ -2754,12 +2815,7 @@ func (s *State) GetDirectoryBlock() interfaces.IDirectoryBlock {
 }
 
 func (s *State) GetNewHash() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("State.GetNewHash() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "State.GetNewHash") }()
 	return new(primitives.Hash)
 }
 

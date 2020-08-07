@@ -7,7 +7,6 @@ package entryBlock
 import (
 	"encoding/hex"
 	"fmt"
-	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -15,26 +14,27 @@ import (
 
 // EBlockBody is the series of Hashes that form the Entry Block Body.
 type EBlockBody struct {
-	EBEntries []interfaces.IHash `json:"ebentries"`
+	EBEntries []interfaces.IHash `json:"ebentries"` // Array of entries from a single chain id associated with this entry block
 }
 
 var _ interfaces.Printable = (*EBlockBody)(nil)
 var _ interfaces.IEBlockBody = (*EBlockBody)(nil)
 
-func (a *EBlockBody) IsSameAs(b interfaces.IEBlockBody) bool {
-	if a == nil || b == nil {
-		if a == nil && b == nil {
+// IsSameAs returns true iff th einput object is the same as this object
+func (e *EBlockBody) IsSameAs(b interfaces.IEBlockBody) bool {
+	if e == nil || b == nil {
+		if e == nil && b == nil {
 			return true
 		}
 		return false
 	}
 
 	bEBEntries := b.GetEBEntries()
-	if len(a.EBEntries) != len(bEBEntries) {
+	if len(e.EBEntries) != len(bEBEntries) {
 		return false
 	}
-	for i := range a.EBEntries {
-		if a.EBEntries[i].IsSameAs(bEBEntries[i]) == false {
+	for i := range e.EBEntries {
+		if e.EBEntries[i].IsSameAs(bEBEntries[i]) == false {
 			return false
 		}
 	}
@@ -52,26 +52,24 @@ func NewEBlockBody() *EBlockBody {
 // MR calculates the Merkle Root of the Entry Block Body. See func
 // primitives.BuildMerkleTreeStore(hashes []interfaces.IHash) (merkles []interfaces.IHash) in common/merkle.go.
 func (e *EBlockBody) MR() (rval interfaces.IHash) {
-	defer func() {
-		if rval != nil && reflect.ValueOf(rval).IsNil() {
-			rval = nil // convert an interface that is nil to a nil interface
-			primitives.LogNilHashBug("EBlockBody.MR() saw an interface that was nil")
-		}
-	}()
+	defer func() { rval = primitives.CheckNil(rval, "EBlockBody.MR") }()
 
 	mrs := primitives.BuildMerkleTreeStore(e.EBEntries)
-	r := mrs[len(mrs)-1]
+	r := mrs[len(mrs)-1] // Remember, Merkle root is the last of the hashes
 	return r
 }
 
+// JSONByte returns the json encoded byte array
 func (e *EBlockBody) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
+// JSONString returns the json encoded byte string
 func (e *EBlockBody) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
+// String returns this object as a string
 func (e *EBlockBody) String() string {
 	var out primitives.Buffer
 	for _, eh := range e.EBEntries {
@@ -80,6 +78,7 @@ func (e *EBlockBody) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
+// GetEBEntries returns the hash array associated with the entry block
 func (e *EBlockBody) GetEBEntries() []interfaces.IHash {
 	return e.EBEntries[:]
 }
