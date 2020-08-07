@@ -36,6 +36,7 @@ func TestEventServiceParameters_OverrideParameters(t *testing.T) {
 		false,
 		false,
 		"never",
+		false,
 	)
 	factomParams := &globals.FactomParams{
 		EnableLiveFeedAPI:        true,
@@ -47,6 +48,7 @@ func TestEventServiceParameters_OverrideParameters(t *testing.T) {
 		EventReplayDuringStartup: true,
 		EventSendStateChange:     true,
 		EventBroadcastContent:    "always",
+		PersistentReconnect:      true,
 	}
 
 	testParams := selectParameters(factomParams, config)
@@ -58,6 +60,7 @@ func TestEventServiceParameters_OverrideParameters(t *testing.T) {
 	assert.True(t, testParams.ReplayDuringStartup)
 	assert.True(t, testParams.SendStateChangeEvents)
 	assert.Equal(t, eventconfig.BroadcastAlways, testParams.BroadcastContent)
+	assert.True(t, testParams.PersistentReconnect)
 }
 
 func TestEventServiceParameters_ConfigParameters(t *testing.T) {
@@ -70,6 +73,7 @@ func TestEventServiceParameters_ConfigParameters(t *testing.T) {
 		true,
 		true,
 		"never",
+		true,
 	)
 	factomParams := &globals.Params
 
@@ -82,6 +86,7 @@ func TestEventServiceParameters_ConfigParameters(t *testing.T) {
 	assert.True(t, testParams.ReplayDuringStartup)
 	assert.True(t, testParams.SendStateChangeEvents)
 	assert.Equal(t, eventconfig.BroadcastNever, testParams.BroadcastContent)
+	assert.True(t, testParams.PersistentReconnect)
 }
 
 func TestEventServiceParameters_ParseBroadcastError(t *testing.T) {
@@ -95,6 +100,7 @@ func TestEventServiceParameters_ParseBroadcastError(t *testing.T) {
 		EventReplayDuringStartup: true,
 		EventSendStateChange:     true,
 		EventBroadcastContent:    "alwayss",
+		PersistentReconnect:      false,
 	}
 	params := selectParameters(factomParams, config)
 	assert.Equal(t, eventconfig.BroadcastOnce, params.BroadcastContent)
@@ -110,13 +116,14 @@ func TestEventServiceParameters_ParseBroadcastErrorOverride(t *testing.T) {
 		true,
 		true,
 		"nevers",
+		false,
 	)
 	factomParams := &globals.Params
 	params := selectParameters(factomParams, config)
 	assert.Equal(t, eventconfig.BroadcastOnce, params.BroadcastContent)
 }
 
-func buildBaseConfig(enable bool, protocol string, address string, port int, format string, replay bool, stateChange bool, broadcast string) *util.FactomdConfig {
+func buildBaseConfig(enable bool, protocol string, address string, port int, format string, replay bool, stateChange bool, broadcast string, persistentReconnect bool) *util.FactomdConfig {
 	return &util.FactomdConfig{
 		LiveFeedAPI: struct {
 			EnableLiveFeedAPI        bool
@@ -128,6 +135,7 @@ func buildBaseConfig(enable bool, protocol string, address string, port int, for
 			EventReplayDuringStartup bool
 			EventSendStateChange     bool
 			EventBroadcastContent    string
+			PersistentReconnect      bool
 		}{
 			EnableLiveFeedAPI:        enable,
 			EventReceiverProtocol:    protocol,
@@ -138,6 +146,7 @@ func buildBaseConfig(enable bool, protocol string, address string, port int, for
 			EventReplayDuringStartup: replay,
 			EventSendStateChange:     stateChange,
 			EventBroadcastContent:    broadcast,
+			PersistentReconnect:      persistentReconnect,
 		},
 	}
 }
