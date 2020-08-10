@@ -313,9 +313,9 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 
 	simulation.BuildNetTopology(p)
 
-	// start a worker that publishes the connection metrics
+	/*// start a worker that publishes the connection metrics
 	connectionMetricsPublisher := p2p.NewMetricPublisher(s.FactomNodeName, connectionMetricsChannel)
-	connectionMetricsPublisher.Start(w)
+	connectionMetricsPublisher.Start(w)*/
 
 	if p.EnableNet {
 		nodeName := s.FactomNodeName
