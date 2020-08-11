@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/DiSiqueira/GoTree"
+	gotree "github.com/DiSiqueira/GoTree"
 )
 
 var globalReg *Registry
@@ -48,6 +48,8 @@ func NewRegistry() *Registry {
 	return p
 }
 
+// FindPublisher returns the publisher attached to the given path.
+// Returns nil if no publisher is found.
 func (r *Registry) FindPublisher(path string) IPublisher {
 	r.publock.RLock()
 	defer r.publock.RUnlock()
@@ -110,19 +112,14 @@ func globalSubscribeWith(path string, sub IPubSubscriber, wrappers ...ISubscribe
 
 func globalPublishWith(path string, p IPublisher, wrappers ...IPublisherWrapper) IPublisher {
 	if len(wrappers) > 0 {
-		// Check the first
-		if _, ok := wrappers[0].(*PubMultiWrapper); ok && (0) != len(wrappers)-1 {
-			panic("A mutli must always be the last wrapper")
+		for i, wrap := range wrappers {
+			if _, ok := wrap.(*PubMultiWrapper); ok && i != len(wrappers)-1 {
+				panic("The multiwrapper must always be the last wrapper")
+			}
+			p = wrap.Wrap(p)
 		}
 
-		newpub := wrappers[0].Wrap(p)
-		for i, wrap := range wrappers[1:] {
-			if _, ok := wrap.(*PubMultiWrapper); ok && (i+1) != len(wrappers)-1 {
-				panic("A mutli must always be the last wrapper")
-			}
-			newpub = wrap.Wrap(newpub)
-		}
-		return newpub.Publish(path)
+		return p.(IPublisherWrapper).Publish(path) // type safety guaranteed by parameters
 	}
 
 	// No wrappers

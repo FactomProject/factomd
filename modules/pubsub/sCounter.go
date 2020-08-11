@@ -21,7 +21,7 @@ func NewSubCounter() *SubCounter {
 
 // Pub Side
 
-func (s *SubCounter) write(o interface{}) {
+func (s *SubCounter) write(_ interface{}) {
 	s.Lock()
 	s.totalCount++
 	s.Unlock()

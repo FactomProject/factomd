@@ -15,8 +15,6 @@ func main() {
 	// This code finds the total number of prime numbers <= max
 	max := int64(1e5)
 
-	reg := pubsub.NewRegistry()
-
 	// One person publishes the work on a round robin basis
 	robinPub := pubsub.PubFactory.RoundRobin(buffer).Publish("/source")
 	go robinPub.Start() // The writer is threaded
@@ -47,7 +45,7 @@ func main() {
 
 	// Print the results. Count will wait for agg to be closed, then print the
 	// count of things published to agg.
-	fmt.Printf("%d primes found\n", Count(reg))
+	fmt.Printf("%d primes found\n", Count())
 }
 
 func PrimeWorker() {
@@ -76,7 +74,7 @@ func PrimeWorker() {
 	}
 }
 
-func Count(reg *pubsub.Registry) int64 {
+func Count() int64 {
 	// Add a context so we can externally bind to the Done().
 	// This is so we know when to read the value and exit.
 	ctx, cancel := context.WithCancel(context.Background())
@@ -87,10 +85,8 @@ func Count(reg *pubsub.Registry) int64 {
 
 	// Wait for the subscriber to get called Done(), meaning all data is
 	// published.
-	select {
-	case <-ctx.Done():
-		return sub.Count()
-	}
+	<-ctx.Done()
+	return sub.Count()
 }
 
 func IsPrime(i int64) bool {
