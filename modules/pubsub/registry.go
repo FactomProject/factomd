@@ -48,15 +48,13 @@ func NewRegistry() *Registry {
 	return p
 }
 
+// FindPublisher returns the publisher attached to the given path.
+// Returns nil if no publisher is found.
 func (r *Registry) FindPublisher(path string) IPublisher {
 	r.publock.RLock()
 	defer r.publock.RUnlock()
 
-	pub, ok := r.Publishers[path]
-	if ok {
-		return pub
-	}
-	return nil
+	return r.Publishers[path]
 }
 
 func (r *Registry) Register(path string, pub IPublisher) error {
