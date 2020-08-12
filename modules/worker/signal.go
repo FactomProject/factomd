@@ -28,7 +28,9 @@ var addHandlerChannel = make(chan func())
 // interruptChannel and invokes the registered interruptCallbacks accordingly.
 // It also listens for callback registration.  It must be run as a goroutine.
 func mainInterruptHandler() {
-	defer os.Exit(0) // LIFO, this comes last
+	// In Go the defer statements are executed in LIFO order, guaranteeing that
+	// os.Exit will be called last, after all the `defer handler()` have been executed
+	defer os.Exit(0)
 
 	for {
 		select {
