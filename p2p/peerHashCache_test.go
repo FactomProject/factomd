@@ -7,12 +7,11 @@ import (
 	"time"
 )
 
-func _newTestPeerResend(buckets int, interval time.Duration) *PeerResend {
-	pr := new(PeerResend)
-	pr.interval = interval
-	pr.buckets = make([]*PRBucket, buckets)
+func _newTestPeerHashCache(buckets int, interval time.Duration) *PeerHashCache {
+	pr := new(PeerHashCache)
+	pr.buckets = make([]*phcBucket, buckets)
 	for i := 0; i < buckets; i++ {
-		pr.buckets[i] = newPRBucket()
+		pr.buckets[i] = newphcBucket()
 	}
 	pr.stopper = make(chan interface{}, 1)
 	return pr
@@ -24,8 +23,8 @@ func rhash(l int) [sha1.Size]byte {
 	return sha1.Sum(r)
 }
 
-func TestPRBucket(t *testing.T) {
-	bucket := newPRBucket()
+func TestPhcBucket(t *testing.T) {
+	bucket := newphcBucket()
 
 	testset := make([][sha1.Size]byte, 128)
 	for i := range testset {
@@ -56,9 +55,9 @@ func TestPRBucket(t *testing.T) {
 	}
 }
 
-func TestPRBucket_MultiThreaded_Try(t *testing.T) {
+func TestPhcBucket_MultiThreaded_Try(t *testing.T) {
 
-	pr := _newTestPeerResend(16, time.Hour)
+	pr := _newTestPeerHashCache(16, time.Hour)
 
 	done := make(chan bool, 8)
 	testroutine := func() {
@@ -86,10 +85,10 @@ func TestPRBucket_MultiThreaded_Try(t *testing.T) {
 	}
 }
 
-func TestPRBucket_MultiThreaded_Cleanup(t *testing.T) {
+func TestPhcBucket_MultiThreaded_Cleanup(t *testing.T) {
 	testpl := sha1.Sum([]byte{0xff, 0x00, 0x00})
 
-	pr := _newTestPeerResend(1, time.Hour)
+	pr := _newTestPeerHashCache(1, time.Hour)
 
 	pr.Add(testpl)
 	pr.dropOldestBucket()
@@ -98,7 +97,7 @@ func TestPRBucket_MultiThreaded_Cleanup(t *testing.T) {
 		t.Errorf("single bucket didn't get cleaned properly")
 	}
 
-	pr = _newTestPeerResend(2, time.Hour)
+	pr = _newTestPeerHashCache(2, time.Hour)
 
 	pr.Add(testpl)
 	pr.dropOldestBucket()
@@ -112,7 +111,7 @@ func TestPRBucket_MultiThreaded_Cleanup(t *testing.T) {
 		t.Errorf("double bucket didn't get cleaned properly")
 	}
 
-	pr = NewPeerResend(3, time.Millisecond*50)
+	pr = NewPeerHashCache(3, time.Millisecond*50)
 
 	pr.Add(testpl)
 

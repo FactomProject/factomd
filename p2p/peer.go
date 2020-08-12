@@ -20,7 +20,7 @@ type Peer struct {
 	metrics ReadWriteCollector
 	prot    Protocol
 
-	resend *PeerResend
+	resend *PeerHashCache
 
 	// current state, read only "constants" after the handshake
 	IsIncoming bool
@@ -77,8 +77,8 @@ func newPeer(net *Network, id uint32, ep Endpoint, conn net.Conn, protocol Proto
 	p.IsIncoming = incoming
 	p.connected = time.Now()
 
-	if net.conf.PeerResend {
-		p.resend = NewPeerResend(net.conf.PeerResendBuckets, net.conf.PeerResendInterval)
+	if net.conf.PeerResendFilter {
+		p.resend = NewPeerHashCache(net.conf.PeerResendBuckets, net.conf.PeerResendInterval)
 	}
 
 	go p.sendLoop()

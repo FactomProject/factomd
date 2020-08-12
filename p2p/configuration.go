@@ -121,9 +121,9 @@ type Configuration struct {
 
 	EnablePrometheus bool // Enable prometheus logging. Disable if you run multiple instances
 
-	// PeerResend turns on tracking of application parcels to preventing sending the same
-	// application parcel to peers who already sent it
-	PeerResend bool
+	// PeerResend turns on tracking of application parcels to prevent sending the same
+	// application parcel to peers who already sent it to us
+	PeerResendFilter bool
 	// PeerResendBuckets controls the number of buckets to keep. The coverage of Resend messages
 	// equals Buckets * time.Duration
 	PeerResendBuckets int
@@ -175,7 +175,7 @@ func DefaultP2PConfiguration() (c Configuration) {
 	c.ChannelCapacity = 1000
 
 	c.EnablePrometheus = true
-	c.PeerResend = true
+	c.PeerResendFilter = true
 	c.PeerResendBuckets = 3
 	c.PeerResendInterval = time.Second * 20
 	return

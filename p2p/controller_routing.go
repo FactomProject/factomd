@@ -18,7 +18,7 @@ func (c *controller) route() {
 			switch parcel.Address {
 			case FullBroadcast:
 				var selection []*Peer
-				if c.net.conf.PeerResend {
+				if c.net.conf.PeerResendFilter {
 					selection = c.selectNoResendPeers(parcel.Payload)
 				} else {
 					selection = c.peers.Slice()
@@ -29,7 +29,7 @@ func (c *controller) route() {
 
 			case Broadcast:
 				var selection []*Peer
-				if c.net.conf.PeerResend {
+				if c.net.conf.PeerResendFilter {
 					selection = c.selectNoResendPeers(parcel.Payload)
 				} else {
 					selection = c.peers.Slice()
