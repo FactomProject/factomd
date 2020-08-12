@@ -12,11 +12,13 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 )
 
 // interruptChannel is used to receive SIGINT (Ctrl+C) signals.
 var interruptChannel chan os.Signal
+var once sync.Once
 
 // addHandlerChannel is used to add an interrupt handler to the list of handlers
 // to be invoked on SIGINT (Ctrl+C) signals.
@@ -26,60 +28,40 @@ var addHandlerChannel = make(chan func())
 // interruptChannel and invokes the registered interruptCallbacks accordingly.
 // It also listens for callback registration.  It must be run as a goroutine.
 func mainInterruptHandler() {
-	// interruptCallbacks is a list of callbacks to invoke when a
-	// SIGINT (Ctrl+C) is received.
-	var interruptCallbacks []func()
-
-	// isShutdown is a flag which is used to indicate whether or not
-	// the shutdown signal has already been received and hence any future
-	// attempts to add a new interrupt handler should invoke them
-	// immediately.
-	var isShutdown bool
+	// In Go the defer statements are executed in LIFO order, guaranteeing that
+	// os.Exit will be called last, after all the `defer handler()` have been executed
+	defer os.Exit(0)
 
 	for {
 		select {
 		case <-interruptChannel:
-			// Ignore more than one shutdown signal.
-			if isShutdown {
-				fmt.Println("Ctrl+C Already being processed!")
-				continue
-			}
-			isShutdown = true
-			fmt.Println("Received SIGINT (Ctrl+C).  Shutting down...")
-
-			// Run handlers in LIFO order.
-			for i := range interruptCallbacks {
-				idx := len(interruptCallbacks) - 1 - i
-				callback := interruptCallbacks[idx]
-				callback()
-			}
-
+			fmt.Println("Received SIGINT (Ctrl+C). Shutting down...")
+			return
 		case handler := <-addHandlerChannel:
-			// The shutdown signal has already been received, so
-			// just invoke and new handlers immediately.
-			if isShutdown {
-				handler()
-			}
-
-			interruptCallbacks = append(interruptCallbacks, handler)
+			defer handler()
 		}
 	}
+}
+
+// Create the channel and start the main interrupt handler which invokes
+// all other callbacks and exits if not already done.
+func startHandler() {
+	once.Do(func() {
+		interruptChannel = make(chan os.Signal, 1)
+		signal.Notify(interruptChannel, os.Interrupt)
+		go mainInterruptHandler()
+	})
 }
 
 // AddInterruptHandler adds a handler to call when a SIGINT (Ctrl+C) is
 // received.
 func AddInterruptHandler(handler func()) {
-	// Create the channel and start the main interrupt handler which invokes
-	// all other callbacks and exits if not already done.
-	if interruptChannel == nil {
-		interruptChannel = make(chan os.Signal, 1)
-		signal.Notify(interruptChannel, os.Interrupt)
-		go mainInterruptHandler()
-	}
-
+	startHandler()
 	addHandlerChannel <- handler
 }
 
+// SendSigInt adds a SIGINT to the intterupt handler
 func SendSigInt() {
+	startHandler()
 	interruptChannel <- syscall.SIGINT
 }
