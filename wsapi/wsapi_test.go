@@ -18,21 +18,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func waitUntilStarted(t *testing.T, url string, limit time.Duration) {
+func waitUntilStarted(t *testing.T, url string, timeout time.Duration) {
 	transCfg := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
 	}
 	client := &http.Client{Transport: transCfg}
 
 	start := time.Now()
-	for time.Since(start) < limit {
+	for time.Since(start) < timeout {
 		_, err := client.Get(url)
 		if err == nil {
 			return
 		}
 		time.Sleep(time.Millisecond * 100)
 	}
-	t.Fatalf("unable to connect to %s in %s", url, limit)
+	t.Fatalf("unable to connect to %s in %s", url, timeout)
 }
 
 func TestGetEndpoints(t *testing.T) {
