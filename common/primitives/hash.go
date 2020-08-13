@@ -78,14 +78,6 @@ func CheckNil(h interfaces.IHash, caller string) (rval interfaces.IHash) {
 	return h
 }
 
-func CheckNilInterface(h interfaces.IHash, caller string) (rval interfaces.IHash) {
-	if h != nil && reflect.ValueOf(h).IsNil() {
-		LogNilHashBug(caller + "() returned an interface  nil")
-		return nil // convert an interface that is nil to a nil interface
-	}
-	return h
-}
-
 // IsHashNil returns true if receiver is nil, or the hash is zero
 func (h *Hash) IsHashNil() bool {
 	return h == nil || reflect.ValueOf(h).IsNil()

@@ -71,7 +71,8 @@ func (e *MinuteNumber) GetHash() (rval interfaces.IHash) {
 
 // GetSigHash always returns nil
 func (e *MinuteNumber) GetSigHash() (rval interfaces.IHash) {
-	defer func() { rval = primitives.CheckNilInterface(rval, "MinuteNumber.GetSigHash") }()
+	// reenable if this function is implemented
+	// defer func() { rval = primitives.CheckNil(rval, "MinuteNumber.GetSigHash") }()
 
 	return nil
 }
