@@ -121,7 +121,7 @@ type Configuration struct {
 
 	EnablePrometheus bool // Enable prometheus logging. Disable if you run multiple instances
 
-	// PeerResend turns on tracking of application parcels to prevent sending the same
+	// PeerResendFilter turns on tracking of application parcels to prevent sending the same
 	// application parcel to peers who already sent it to us
 	PeerResendFilter bool
 	// PeerResendBuckets controls the number of buckets to keep. The coverage of Resend messages
