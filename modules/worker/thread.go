@@ -77,23 +77,36 @@ const (
 )
 
 // KLUDGE: duplicated from atomic
-var Prefix int // index to trim the file paths to just the interesting parts
+var prefix int // index to trim the file paths to just the interesting parts
 
 func init() {
 	_, fn, _, _ := runtime.Caller(0)
-	end := strings.Index(fn, "factomd/") + len("factomd")
-	s := fn[0:end]
-	_ = s
-	Prefix = end
+	if pos := strings.Index(fn, "factomd/"); pos > -1 { // found
+		prefix = pos + len("factomd")
+	} else {
+		prefix = 0
+	}
+}
+
+// PrettyCallerString returns a file:line string of the parent of parent function
+func PrettyCallerString() string {
+	_, file, line, ok := runtime.Caller(2) // parent of parent
+	if !ok {
+		file = "unknown"
+		line = -1
+	}
+
+	if strings.Contains(file, "factomd/") {
+		file = file[prefix:]
+	}
+	return fmt.Sprintf("%s:%d", file, line)
 }
 
 // convenience wrapper starts a closure in a sub-thread
 // useful for situations where only Run callback is needed
 // can be thought of as 'leaves' of the thread runtime dependency graph
 func (r *Thread) Run(name string, runFunc func()) {
-	_, file, line, _ := runtime.Caller(1)
-	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
-
+	caller := PrettyCallerString()
 	r.Spawn(name, func(w *Thread) {
 		w.Caller = caller
 		w.OnRun(runFunc)
@@ -103,9 +116,7 @@ func (r *Thread) Run(name string, runFunc func()) {
 // Spawn a child thread and register callbacks
 // this is useful to bind functions to Init/Run/Stop callbacks
 func (r *Thread) Spawn(name string, initFunction Handle) {
-	_, file, line, _ := runtime.Caller(1)
-	caller := fmt.Sprintf("%s:%v", file[Prefix:], line)
-
+	caller := PrettyCallerString()
 	r.Register.Thread(r, name, func(w *Thread) {
 		w.Caller = caller
 		initFunction(w)
