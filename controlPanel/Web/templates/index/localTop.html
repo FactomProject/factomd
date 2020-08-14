@@ -1,0 +1,78 @@
+{{define "localTop"}}
+        <section id="local">
+            <div class="row">
+                <div class="columns">
+                    <small><span id="server-status"></span></small>
+                    <h1 style="width:100%;">{{if .NodeName}}{{.NodeName}}{{else}}YOUR NODE{{end}} <small>v{{.Version}}</small><small style="float:right;">Git Build: {{.GitBuild}}</small></h1> 
+                    <!-- <small onclick="nextNode()"><a>Next Node</a></small>, <small>Current:<span id="current-node-number">0</span></small> -->
+                </div>
+            </div>
+            <div class="row">
+                <div class="large-3 medium-4 small-12 columns">
+                    <div class="metric">
+                        <label for="nodeHeight">Your Block Height:</label>
+                        <input type="text" id="nodeHeight" name="nodeHeight" disabled="true" value="-">
+                    </div>
+                    <div class="metric">
+                        <label for="syncFirst">Node Sync Status (1st pass):</label>
+                        <div id="syncFirst" class="progress" role="progressbar" tabindex="0" aria-valuenow="20" aria-valuemin="0" aria-valuetext="100 percent" aria-valuemax="100">
+                            <span class="progress-meter" style="width: 100%">
+                                <p id="testing" class="progress-meter-text">100% Synced (0 of 0)</p>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="metric">
+                        <label for="syncSecond">Node Sync Status (2nd pass):</label>
+                        <div id="syncSecond" class="progress" role="progressbar" tabindex="0" aria-valuenow="20" aria-valuemin="0" aria-valuetext="84 percent" aria-valuemax="100">
+                            <span class="progress-meter" style="width: 84%">
+                                <p class="progress-meter-text">100% Synced (0 of 0)</p>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="metric">
+                        <div class="row">
+                            <div class="small-6 columns">
+                                <label for="serverfedcount">Federated</label>
+                                <input type="text" id="serverfedcount" name="serverfedcount" disabled="true" value="-">
+                            </div>
+                            <div class="small-6 columns">
+                                <label for="serveraudcount">Audit</label>
+                                <input type="text" id="serveraudcount" name="" disabled="true" value="-">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="large-8 medium-7 small-12 columns">
+                    <div class="metric">
+                        <label for="peerList"><span id="totalPeerCount"></span> Connections:</label>
+                        <table id="peerList">
+                            <thead>
+                                <tr>
+                                    <th id="peer-ip">IP <img width="10" class="sorting-img hide" id="peer-ip-sort-img" /></th>
+                                    <th>Prot.</th>
+                                    <th id="peer-duration">Time <img width="10" class="sorting-img hide" id="peer-duration-sort-img" /></th>
+                                    <th id="peer-down">Down <img width="10" class="sorting-img hide" id="peer-down-sort-img" /></th>
+                                    <th id="peer-up">Up <img width="10" class="sorting-img hide" id="peer-up-sort-img" /></th>
+                                    <th id="peer-received">Received <img width="10" class="sorting-img hide" id="peer-received-sort-img" /></th>
+                                    <th id="peer-sent">Sent <img width="10" class="sorting-img hide" id="peer-sent-sort-img" /></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td class="ucase">Total</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td id="speed-down">0 B/s</td>
+                                    <td id="speed-up">0 B/s</td>
+                                    <td id="data-down">0 MB</td>
+                                    <td id="data-up">0 MB</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+{{end}}

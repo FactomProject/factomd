@@ -453,6 +453,11 @@ type State struct {
 	MissingMessageResponseHandler *MissingMessageResponseCache
 	ChainCommits                  Last100
 	Reveals                       Last100
+
+	// old control panel
+	ControlPanelDataRequest bool
+	LastDisplayState        *DisplayState
+	ControlPanelChannel     chan DisplayState
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -1364,6 +1369,9 @@ func (s *State) UpdateState() (progress bool) {
 	}
 
 	s.SetString()
+	if s.ControlPanelDataRequest {
+		s.CopyStateToControlPanel()
+	}
 
 	// Update our TPS every ~ 3 seconds at the earliest
 	if s.lasttime.Before(time.Now().Add(-3 * time.Second)) {
