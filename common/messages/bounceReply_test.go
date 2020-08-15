@@ -7,7 +7,7 @@ package messages_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/messages"
+	. "github.com/PaulSnow/factom2d/common/messages"
 )
 
 func TestUnmarshalNilBounceReply(t *testing.T) {

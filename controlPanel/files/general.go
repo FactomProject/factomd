@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FactomProject/factomd/controlPanel/files/statics"
-	"github.com/FactomProject/factomd/controlPanel/files/templates"
+	"github.com/PaulSnow/factom2d/controlPanel/files/statics"
+	"github.com/PaulSnow/factom2d/controlPanel/files/templates"
 )
 
 // This is the general handler. The files are split into two categories to speed

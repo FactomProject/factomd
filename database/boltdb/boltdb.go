@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 
 	"github.com/FactomProject/bolt"
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 // This database stores and retrieves interfaces.IBlock instances.  To do that, it

@@ -8,8 +8,8 @@ import (
 	"encoding/hex"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/identityEntries"
-	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/PaulSnow/factom2d/common/identityEntries"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func TestNewMatryoshkaHashStructure(t *testing.T) {

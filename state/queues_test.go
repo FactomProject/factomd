@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	. "github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
+	. "github.com/PaulSnow/factom2d/state"
 )
 
 var _ = fmt.Println

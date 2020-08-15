@@ -14,13 +14,13 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/FactomProject/factomd/activations"
-	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/activations"
+	"github.com/PaulSnow/factom2d/common/adminBlock"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 var FACTOID_CHAINID_HASH = primitives.NewHash(constants.FACTOID_CHAINID)

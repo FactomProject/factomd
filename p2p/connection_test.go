@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/FactomProject/factomd/p2p"
+	. "github.com/PaulSnow/factom2d/p2p"
 )
 
 func TestParcelString(t *testing.T) {

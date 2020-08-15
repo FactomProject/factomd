@@ -1,9 +1,9 @@
 package state
 
 import (
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
 )
 
 type MsgHeight struct {

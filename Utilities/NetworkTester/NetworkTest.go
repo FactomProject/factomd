@@ -13,11 +13,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/engine"
-	"github.com/FactomProject/factomd/p2p"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/engine"
+	"github.com/PaulSnow/factom2d/p2p"
 )
 
 var p2pProxy *engine.P2PProxy

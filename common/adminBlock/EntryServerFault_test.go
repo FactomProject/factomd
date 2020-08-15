@@ -3,9 +3,9 @@ package adminBlock_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/testHelper"
+	. "github.com/PaulSnow/factom2d/common/adminBlock"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestServerFaultGetHash(t *testing.T) {

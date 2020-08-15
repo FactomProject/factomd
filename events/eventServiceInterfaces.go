@@ -1,8 +1,8 @@
 package events
 
 import (
-	"github.com/FactomProject/factomd/common/constants/runstate"
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/constants/runstate"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 type StateEventServices interface {

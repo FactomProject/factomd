@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factom"
-	. "github.com/FactomProject/factomd/testHelper"
+	. "github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestSimWallet(t *testing.T) {

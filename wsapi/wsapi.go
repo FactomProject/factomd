@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/FactomProject/btcutil/certs"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 var Servers map[string]*Server

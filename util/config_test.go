@@ -3,7 +3,7 @@ package util_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/util"
+	. "github.com/PaulSnow/factom2d/util"
 	"gopkg.in/gcfg.v1"
 )
 

@@ -7,7 +7,7 @@ package primitives_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/primitives"
+	. "github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func TestErrors(t *testing.T) {

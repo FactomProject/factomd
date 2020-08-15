@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants/runstate"
+	"github.com/PaulSnow/factom2d/common/constants/runstate"
 	log "github.com/sirupsen/logrus"
 )
 

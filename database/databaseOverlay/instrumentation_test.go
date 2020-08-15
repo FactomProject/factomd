@@ -3,7 +3,7 @@ package databaseOverlay_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/database/databaseOverlay"
+	. "github.com/PaulSnow/factom2d/database/databaseOverlay"
 )
 
 func TestInstrumentation(t *testing.T) {

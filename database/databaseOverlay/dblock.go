@@ -11,10 +11,10 @@ package databaseOverlay
 import (
 	"sort"
 
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/util"
+	"github.com/PaulSnow/factom2d/common/directoryBlock"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/util"
 )
 
 // ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB

@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/FactomProject/factomd/activations"
-	"github.com/FactomProject/factomd/common/constants/runstate"
+	"github.com/PaulSnow/factom2d/activations"
+	"github.com/PaulSnow/factom2d/common/constants/runstate"
 )
 
 type DBStateSent struct {

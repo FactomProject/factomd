@@ -4,11 +4,11 @@ import (
 	//"fmt"
 	"os"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/hybridDB"
-	"github.com/FactomProject/factomd/database/mapdb"
-	"github.com/FactomProject/factomd/util"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/database/databaseOverlay"
+	"github.com/PaulSnow/factom2d/database/hybridDB"
+	"github.com/PaulSnow/factom2d/database/mapdb"
+	"github.com/PaulSnow/factom2d/util"
 )
 
 //DBInit

@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/FactomProject/factomd/events"
+	"github.com/PaulSnow/factom2d/events"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/constants/runstate"
-	. "github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/constants/runstate"
+	. "github.com/PaulSnow/factom2d/common/globals"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/state"
 
 	"bufio"
 	"io"
@@ -27,7 +27,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/common/messages/electionMsgs"
+	"github.com/PaulSnow/factom2d/common/messages/electionMsgs"
 	log "github.com/sirupsen/logrus"
 )
 

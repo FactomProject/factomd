@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives/random"
-	. "github.com/FactomProject/factomd/database/hybridDB"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
+	. "github.com/PaulSnow/factom2d/database/hybridDB"
 )
 
 type TestData struct {

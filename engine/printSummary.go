@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/globals"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/globals"
 )
 
 func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {

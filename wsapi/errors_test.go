@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/wsapi"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	. "github.com/PaulSnow/factom2d/wsapi"
 )
 
 func getResp(err *primitives.JSONError) string {

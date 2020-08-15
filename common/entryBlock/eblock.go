@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	llog "github.com/FactomProject/factomd/log"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	llog "github.com/PaulSnow/factom2d/log"
 )
 
 // EBlock is the Entry Block. It holds the hashes of the Entries and its Merkle

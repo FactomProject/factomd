@@ -1,9 +1,9 @@
 package eventservices
 
 import (
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/PaulSnow/factom2d/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/events/eventmessages/generated/eventmessages"
 )
 
 func mapEntryCreditBlock(block interfaces.IEntryCreditBlock) *eventmessages.EntryCreditBlock {

@@ -3,10 +3,10 @@ package eventservices
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/events/eventconfig"
-	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/util"
+	"github.com/PaulSnow/factom2d/common/globals"
+	"github.com/PaulSnow/factom2d/events/eventconfig"
+	"github.com/PaulSnow/factom2d/log"
+	"github.com/PaulSnow/factom2d/util"
 )
 
 type EventServiceParams struct {

@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
 )
 
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md

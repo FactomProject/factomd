@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
 )
 

@@ -9,8 +9,8 @@ import (
 
 	"bytes"
 
-	. "github.com/FactomProject/factomd/common/identity"
-	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/PaulSnow/factom2d/common/identity"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func TestMarshalEntryBlockSync(t *testing.T) {

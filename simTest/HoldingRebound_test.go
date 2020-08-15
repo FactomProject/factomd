@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/FactomProject/factom"
-	"github.com/FactomProject/factomd/state"
-	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/state"
+	. "github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestHoldingRebound(t *testing.T) {

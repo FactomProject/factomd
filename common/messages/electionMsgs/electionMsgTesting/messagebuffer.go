@@ -3,8 +3,8 @@ package electionMsgTesting
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages/electionMsgs"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages/electionMsgs"
 )
 
 // MessageBuffer will manage all messages in the message list

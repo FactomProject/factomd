@@ -3,8 +3,8 @@ package longtest
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/state"
-	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/state"
+	. "github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestTripleElections(t *testing.T) {

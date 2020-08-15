@@ -12,13 +12,13 @@ import (
 
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/entryBlock/specialEntries"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/common/directoryBlock"
+	"github.com/PaulSnow/factom2d/common/entryBlock"
+	"github.com/PaulSnow/factom2d/common/entryBlock/specialEntries"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/database/databaseOverlay"
+	"github.com/PaulSnow/factom2d/state"
 )
 
 var _ = fmt.Print

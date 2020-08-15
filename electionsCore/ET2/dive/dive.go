@@ -5,8 +5,8 @@ import (
 	"encoding/gob"
 	"fmt"
 
-	"github.com/FactomProject/factomd/electionsCore/controller"
-	"github.com/FactomProject/factomd/electionsCore/election"
+	"github.com/PaulSnow/factom2d/electionsCore/controller"
+	"github.com/PaulSnow/factom2d/electionsCore/election"
 
 	"crypto/sha256"
 
@@ -15,10 +15,10 @@ import (
 	"flag"
 	"math/rand"
 
-	. "github.com/FactomProject/factomd/electionsCore/ET2/directedmessage"
-	. "github.com/FactomProject/factomd/electionsCore/ET2/mirrors"
-	"github.com/FactomProject/factomd/electionsCore/messages"
-	"github.com/FactomProject/factomd/electionsCore/primitives"
+	. "github.com/PaulSnow/factom2d/electionsCore/ET2/directedmessage"
+	. "github.com/PaulSnow/factom2d/electionsCore/ET2/mirrors"
+	"github.com/PaulSnow/factom2d/electionsCore/messages"
+	"github.com/PaulSnow/factom2d/electionsCore/primitives"
 	"github.com/dustin/go-humanize"
 )
 

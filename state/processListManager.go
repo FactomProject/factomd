@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 var _ = fmt.Print

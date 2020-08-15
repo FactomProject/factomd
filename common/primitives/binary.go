@@ -10,10 +10,10 @@ import (
 	"os"
 
 	"github.com/FactomProject/ed25519"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
 
-	llog "github.com/FactomProject/factomd/log"
+	llog "github.com/PaulSnow/factom2d/log"
 )
 
 // AreBytesEqual returns true iff the lengths and byte values of the input []byte arrays are equal

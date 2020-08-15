@@ -11,12 +11,12 @@ package state
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	. "github.com/FactomProject/factomd/common/identity"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/directoryBlock"
+	. "github.com/PaulSnow/factom2d/common/identity"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 var ControlPanelAllowedSize int = 2

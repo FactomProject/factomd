@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
 
-	llog "github.com/FactomProject/factomd/log"
+	llog "github.com/PaulSnow/factom2d/log"
 	log "github.com/sirupsen/logrus"
 )
 

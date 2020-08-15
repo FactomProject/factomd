@@ -1,8 +1,8 @@
 package dictionary
 
 import (
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/common"
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/names"
+	. "github.com/PaulSnow/factom2d/electionsCore/interpreter/common"
+	. "github.com/PaulSnow/factom2d/electionsCore/interpreter/names"
 )
 
 type DictionaryEnrty struct {

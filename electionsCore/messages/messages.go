@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"strings"
 
-	. "github.com/FactomProject/factomd/electionsCore/errorhandling"
-	"github.com/FactomProject/factomd/electionsCore/imessage"
-	. "github.com/FactomProject/factomd/electionsCore/primitives"
+	. "github.com/PaulSnow/factom2d/electionsCore/errorhandling"
+	"github.com/PaulSnow/factom2d/electionsCore/imessage"
+	. "github.com/PaulSnow/factom2d/electionsCore/primitives"
 )
 
 var Nothing NoMessage

@@ -10,11 +10,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/testHelper"
-	. "github.com/FactomProject/factomd/wsapi"
+	"github.com/PaulSnow/factom2d/common/globals"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/state"
+	"github.com/PaulSnow/factom2d/testHelper"
+	. "github.com/PaulSnow/factom2d/wsapi"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -3,9 +3,9 @@ package controller
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/electionsCore/imessage"
-	"github.com/FactomProject/factomd/electionsCore/messages"
-	"github.com/FactomProject/factomd/electionsCore/primitives"
+	"github.com/PaulSnow/factom2d/electionsCore/imessage"
+	"github.com/PaulSnow/factom2d/electionsCore/messages"
+	"github.com/PaulSnow/factom2d/electionsCore/primitives"
 )
 
 // MessageBuffer will manage all messages in the message list

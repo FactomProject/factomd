@@ -7,9 +7,9 @@ package receipts_test
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/receipts"
-	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	. "github.com/PaulSnow/factom2d/receipts"
+	. "github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestCreateFullReceipt(t *testing.T) {

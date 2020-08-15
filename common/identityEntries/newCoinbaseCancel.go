@@ -9,9 +9,9 @@ import (
 
 	"encoding/binary"
 
-	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/entryBlock"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 // https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#coinbase-cancel

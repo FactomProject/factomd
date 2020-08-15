@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/adminBlock"
+	"github.com/PaulSnow/factom2d/common/directoryBlock"
+	"github.com/PaulSnow/factom2d/common/entryBlock"
+	"github.com/PaulSnow/factom2d/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/common/primitives"
 
-	llog "github.com/FactomProject/factomd/log"
+	llog "github.com/PaulSnow/factom2d/log"
 )
 
 // Can take a directory block and package all the data into a file to be torrented.

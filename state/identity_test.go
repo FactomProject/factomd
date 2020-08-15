@@ -9,9 +9,9 @@ package state_test
 
 //"time"
 
-//"github.com/FactomProject/factomd/common/messages"
+//"github.com/PaulSnow/factom2d/common/messages"
 
-//. "github.com/FactomProject/factomd/state"
+//. "github.com/PaulSnow/factom2d/state"
 
 // This is a test from disk database, do no have as part of unit tests.
 //func TestLoadIdentity(t *testing.T) {

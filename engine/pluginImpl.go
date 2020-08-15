@@ -6,7 +6,7 @@ package engine
 import (
 	"net/rpc"
 
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 	"github.com/hashicorp/go-plugin"
 )
 

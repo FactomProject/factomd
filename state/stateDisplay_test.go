@@ -7,11 +7,11 @@ package state_test
 import (
 	"testing"
 
-	//"github.com/FactomProject/factomd/common/constants"
-	//"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/messages/electionMsgs"
-	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/util"
+	//"github.com/PaulSnow/factom2d/common/constants"
+	//"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/common/messages/electionMsgs"
+	"github.com/PaulSnow/factom2d/state"
+	"github.com/PaulSnow/factom2d/util"
 )
 
 var _ = util.ReadConfig

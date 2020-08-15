@@ -11,9 +11,9 @@ import (
 
 	"container/list"
 
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/common/directoryBlock"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/state"
 )
 
 // Made the lists generic so a test can be run on all of them

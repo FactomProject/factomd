@@ -17,17 +17,17 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/identity"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/controlPanel"
-	elections2 "github.com/FactomProject/factomd/elections"
-	"github.com/FactomProject/factomd/p2p"
-	"github.com/FactomProject/factomd/wsapi"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/globals"
+	"github.com/PaulSnow/factom2d/common/identity"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/controlPanel"
+	elections2 "github.com/PaulSnow/factom2d/elections"
+	"github.com/PaulSnow/factom2d/p2p"
+	"github.com/PaulSnow/factom2d/wsapi"
 )
 
 var _ = fmt.Print

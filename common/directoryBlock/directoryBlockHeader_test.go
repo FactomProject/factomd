@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/PaulSnow/factom2d/common/directoryBlock"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func TestUnmarshalNilDBlockHeader(t *testing.T) {

@@ -11,11 +11,11 @@ package databaseOverlay_test
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
-	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/mapdb"
-	"github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/common/directoryBlock/dbInfo"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	. "github.com/PaulSnow/factom2d/database/databaseOverlay"
+	"github.com/PaulSnow/factom2d/database/mapdb"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestSaveLoadDirBlockInfo(t *testing.T) {

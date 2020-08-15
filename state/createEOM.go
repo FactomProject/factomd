@@ -1,8 +1,8 @@
 package state
 
 import (
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
 )
 
 func (s *State) CreateEOM(force bool, m interfaces.IMsg, vmIdx int) (eom *messages.EOM, ack interfaces.IMsg) {

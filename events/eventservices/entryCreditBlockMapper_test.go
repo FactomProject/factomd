@@ -3,7 +3,7 @@ package eventservices
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/entryCreditBlock"
 	"github.com/stretchr/testify/assert"
 )
 

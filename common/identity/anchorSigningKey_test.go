@@ -7,7 +7,7 @@ package identity_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/identity"
+	. "github.com/PaulSnow/factom2d/common/identity"
 )
 
 func TestAnchorSigningKeyMarshalUnmarshal(t *testing.T) {

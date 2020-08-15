@@ -8,8 +8,8 @@ import (
 	"encoding/hex"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/PaulSnow/factom2d/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 // TestUnmarshalNilECBlockHeader checks that when unmarshalling nil or the empty interface, appropriate errors are thrown

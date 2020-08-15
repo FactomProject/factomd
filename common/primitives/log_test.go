@@ -12,10 +12,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/FactomProject/factomd/anchor"
+	"github.com/PaulSnow/factom2d/anchor"
 
-	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	. "github.com/PaulSnow/factom2d/common/primitives"
 )
 
 // captureOutput redirects screen prints to a string for ease of testing

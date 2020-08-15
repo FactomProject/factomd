@@ -3,7 +3,7 @@ package log_test
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/log"
+	"github.com/PaulSnow/factom2d/log"
 )
 
 func TestLogPrintf(t *testing.T) {

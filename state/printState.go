@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/FactomProject/factomd/common/globals"
+	"github.com/PaulSnow/factom2d/common/globals"
 )
 
 var cntsMutex sync.Mutex

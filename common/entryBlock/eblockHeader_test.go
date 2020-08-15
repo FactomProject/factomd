@@ -9,7 +9,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/entryBlock"
+	. "github.com/PaulSnow/factom2d/common/entryBlock"
 )
 
 // TestUnmarshalNilEBlockHeader checks that unmarshalling the nil or empty interface throws the appropriate errors

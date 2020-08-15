@@ -1,8 +1,8 @@
 package util
 
 import (
-	//"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
-	. "github.com/FactomProject/factomd/common/interfaces"
+	//"github.com/PaulSnow/factom2d/common/directoryBlock/dbInfo"
+	. "github.com/PaulSnow/factom2d/common/interfaces"
 
 	"bytes"
 )

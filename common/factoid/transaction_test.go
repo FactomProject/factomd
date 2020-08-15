@@ -11,10 +11,10 @@ import (
 	"testing"
 
 	"github.com/FactomProject/ed25519"
-	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/common/constants"
+	. "github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 // Random first "address".  It isn't a real one, but one we are using for now.

@@ -1,6 +1,6 @@
 package state
 
-import "github.com/FactomProject/factomd/common/interfaces"
+import "github.com/PaulSnow/factom2d/common/interfaces"
 
 // InMsgMSGQueue counts incoming and outgoing messages for inmsg queue
 type InMsgMSGQueue chan interfaces.IMsg

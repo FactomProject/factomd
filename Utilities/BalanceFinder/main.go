@@ -7,12 +7,12 @@ import (
 
 	"strconv"
 
-	"github.com/FactomProject/factomd/Utilities/tools"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/Utilities/tools"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/state"
 )
 
 var CheckFloating bool

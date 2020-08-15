@@ -7,7 +7,7 @@ import (
 	"math"
 	"os"
 
-	"github.com/FactomProject/factomd/common/globals"
+	"github.com/PaulSnow/factom2d/common/globals"
 )
 
 type ActivationType int

@@ -3,8 +3,8 @@ package blockExtractor_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/database/blockExtractor"
-	"github.com/FactomProject/factomd/testHelper"
+	. "github.com/PaulSnow/factom2d/database/blockExtractor"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestTest(t *testing.T) {

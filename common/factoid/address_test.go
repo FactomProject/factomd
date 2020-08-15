@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	"github.com/FactomProject/ed25519"
-	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/constants"
+	. "github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 var _ = ed25519.Sign

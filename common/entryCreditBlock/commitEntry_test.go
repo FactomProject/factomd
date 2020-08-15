@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/PaulSnow/factom2d/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 // TestUnmarshalNilCommitEntry checks that unmarshaling nil or the empty interface throws the appropriate errors

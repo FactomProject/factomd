@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/engine"
-	"github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	. "github.com/PaulSnow/factom2d/engine"
+	"github.com/PaulSnow/factom2d/state"
 )
 
 func TestMessageLoging(t *testing.T) {

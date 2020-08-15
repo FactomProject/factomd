@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
-	"github.com/FactomProject/factomd/testHelper"
+	. "github.com/PaulSnow/factom2d/common/directoryBlock/dbInfo"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestMarshalUnmarshal(t *testing.T) {

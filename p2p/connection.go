@@ -12,11 +12,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/common/primitives"
 
-	llog "github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/util/atomic"
+	llog "github.com/PaulSnow/factom2d/log"
+	"github.com/PaulSnow/factom2d/util/atomic"
 	log "github.com/sirupsen/logrus"
 )
 

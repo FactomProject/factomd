@@ -3,8 +3,8 @@ package adminBlock_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/constants"
+	. "github.com/PaulSnow/factom2d/common/adminBlock"
+	"github.com/PaulSnow/factom2d/common/constants"
 )
 
 func TestIncreaseServerCountGetHash(t *testing.T) {

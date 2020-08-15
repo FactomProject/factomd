@@ -11,8 +11,8 @@ import (
 
 	"math/rand"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages/msgsupport"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages/msgsupport"
 )
 
 var _ = fmt.Print

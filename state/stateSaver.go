@@ -11,8 +11,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 type StateSaverStruct struct {

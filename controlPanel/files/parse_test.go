@@ -4,7 +4,7 @@ import (
 	"testing"
 	"text/template"
 
-	. "github.com/FactomProject/factomd/controlPanel/files"
+	. "github.com/PaulSnow/factom2d/controlPanel/files"
 )
 
 func TestCustomParseGlob(t *testing.T) {

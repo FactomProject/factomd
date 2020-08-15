@@ -9,12 +9,12 @@
 package databaseOverlay_test
 
 import (
-	//"github.com/FactomProject/factomd/common/primitives"
+	//"github.com/PaulSnow/factom2d/common/primitives"
 
-	. "github.com/FactomProject/factomd/common/entryBlock"
-	. "github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/mapdb"
-	"github.com/FactomProject/factomd/testHelper"
+	. "github.com/PaulSnow/factom2d/common/entryBlock"
+	. "github.com/PaulSnow/factom2d/database/databaseOverlay"
+	"github.com/PaulSnow/factom2d/database/mapdb"
+	"github.com/PaulSnow/factom2d/testHelper"
 
 	"testing"
 )

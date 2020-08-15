@@ -3,7 +3,7 @@ package primitives_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/electionsCore/primitives"
+	. "github.com/PaulSnow/factom2d/electionsCore/primitives"
 )
 
 func TestIsLeader(t *testing.T) {

@@ -1,6 +1,6 @@
 package messages
 
-import "github.com/FactomProject/factomd/electionsCore/primitives"
+import "github.com/PaulSnow/factom2d/electionsCore/primitives"
 
 func GetSigner(msg interface{}) primitives.Identity {
 	switch msg.(type) {

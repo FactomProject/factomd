@@ -3,7 +3,7 @@ package p2p
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func TestConnectionManagerGettingByHash(t *testing.T) {

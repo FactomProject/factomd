@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/controlPanel"
+	. "github.com/PaulSnow/factom2d/controlPanel"
 )
 
 var _ = fmt.Sprintf("")

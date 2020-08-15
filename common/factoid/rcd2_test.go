@@ -8,8 +8,8 @@ import (
 	"math/rand"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 func TestUnmarshalNilRCD_2(t *testing.T) {

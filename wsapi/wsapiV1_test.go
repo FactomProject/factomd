@@ -6,17 +6,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/receipts"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/receipts"
 	"github.com/stretchr/testify/assert"
 
 	"io/ioutil"
 	"net/http"
 
-	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/testHelper"
-	. "github.com/FactomProject/factomd/wsapi"
+	"github.com/PaulSnow/factom2d/common/entryBlock"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/testHelper"
+	. "github.com/PaulSnow/factom2d/wsapi"
 )
 
 func TestHandleGetRaw(t *testing.T) {

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/FactomProject/factomd/controlPanel"
-	"github.com/FactomProject/factomd/p2p"
+	. "github.com/PaulSnow/factom2d/controlPanel"
+	"github.com/PaulSnow/factom2d/p2p"
 )
 
 var _ = fmt.Sprintf("")

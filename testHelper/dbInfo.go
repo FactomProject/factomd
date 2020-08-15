@@ -1,7 +1,7 @@
 package testHelper
 
 import (
-	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
+	"github.com/PaulSnow/factom2d/common/directoryBlock/dbInfo"
 )
 
 func CreateTestDirBlockInfo(prev *dbInfo.DirBlockInfo) *dbInfo.DirBlockInfo {

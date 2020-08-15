@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/globals"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 func makeExpected(grants []HardGrant) []interfaces.ITransAddress {

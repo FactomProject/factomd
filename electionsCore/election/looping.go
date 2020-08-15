@@ -6,7 +6,7 @@ import (
 
 	"fmt"
 
-	"github.com/FactomProject/factomd/electionsCore/primitives"
+	"github.com/PaulSnow/factom2d/electionsCore/primitives"
 )
 
 func (d *Display) DetectIllegalVotes() (loops int) {

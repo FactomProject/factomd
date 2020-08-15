@@ -1,10 +1,10 @@
 package databaseOverlay
 
 import (
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func (db *Overlay) SavePaidFor(entry, ecEntry interfaces.IHash) error {

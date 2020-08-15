@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/primitives"
+	. "github.com/PaulSnow/factom2d/electionsCore/interpreter/primitives"
 )
 
 func TestPrimitives(t *testing.T) {

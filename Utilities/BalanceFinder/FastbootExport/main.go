@@ -8,9 +8,9 @@ import (
 
 	"os"
 
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/state"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 func main() {

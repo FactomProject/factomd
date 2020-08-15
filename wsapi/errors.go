@@ -5,7 +5,7 @@
 package wsapi
 
 import (
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 /*

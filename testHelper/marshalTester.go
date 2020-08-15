@@ -5,8 +5,8 @@ import (
 
 	"bytes"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
 )
 
 // TestMarshaling will test a marshing and unmarshal operation. Do the comparison of equality yourself. Extrabytes adds a random number

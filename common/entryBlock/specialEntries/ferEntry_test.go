@@ -7,9 +7,9 @@ package specialEntries_test
 import (
 	"testing"
 
-	//"github.com/FactomProject/factomd/common/interfaces"
-	//"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/common/entryBlock/specialEntries"
+	//"github.com/PaulSnow/factom2d/common/interfaces"
+	//"github.com/PaulSnow/factom2d/common/primitives"
+	. "github.com/PaulSnow/factom2d/common/entryBlock/specialEntries"
 )
 
 // TestUnmarshalNilFEREntry checks that unmarshalling nil or the empty interface produce the correct errors

@@ -15,9 +15,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
 )
 
 type TransAddress struct {

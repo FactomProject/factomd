@@ -6,4 +6,4 @@ package messages_test
 
 //"testing"
 
-//. "github.com/FactomProject/factomd/common/messages"
+//. "github.com/PaulSnow/factom2d/common/messages"

@@ -5,7 +5,7 @@ import (
 
 	"path/filepath"
 
-	"github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/state"
 	survey "gopkg.in/AlecAivazis/survey.v1"
 )
 

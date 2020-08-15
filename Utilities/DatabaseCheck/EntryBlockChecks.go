@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/engine"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/engine"
 )
 
 const level string = "level"

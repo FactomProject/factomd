@@ -3,7 +3,7 @@ package entryCreditBlock_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/entryCreditBlock"
+	. "github.com/PaulSnow/factom2d/common/entryCreditBlock"
 )
 
 // TestUnmarshalNilMinuteNumber checks that unmarshalling nil or the empty interface results in the appropriate errors

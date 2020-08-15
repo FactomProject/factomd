@@ -1,10 +1,10 @@
 package eventservices
 
 import (
-	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/adminBlock"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
-import "github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+import "github.com/PaulSnow/factom2d/events/eventmessages/generated/eventmessages"
 
 func MapAdminBlock(block interfaces.IAdminBlock) *eventmessages.AdminBlock {
 	var keyMRBytes []byte = nil

@@ -5,9 +5,9 @@ import (
 	//"fmt"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/testHelper"
-	. "github.com/FactomProject/factomd/wsapi"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/testHelper"
+	. "github.com/PaulSnow/factom2d/wsapi"
 )
 
 func TestDecodeTransactionToHashes(t *testing.T) {

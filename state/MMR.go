@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
 )
 
 // NonBlockingChannelAdd will only add to the channel if the action is non-blocking

@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 func GetTimeMilli() uint64 {

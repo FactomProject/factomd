@@ -11,11 +11,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/primitives/random"
-	llog "github.com/FactomProject/factomd/log"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
+	llog "github.com/PaulSnow/factom2d/log"
 )
 
 // An Entry is the element which carries user data to be stored in the blockchain

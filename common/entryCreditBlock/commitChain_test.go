@@ -8,8 +8,8 @@ import (
 	"fmt"
 
 	ed "github.com/FactomProject/ed25519"
-	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/PaulSnow/factom2d/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 // TestUnmarshalNilCommitChain checks that unmarshalling nil or the empty interface results in the appropriate errors

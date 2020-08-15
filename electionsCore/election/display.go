@@ -6,9 +6,9 @@ import (
 
 	"sync"
 
-	"github.com/FactomProject/factomd/electionsCore/imessage"
-	"github.com/FactomProject/factomd/electionsCore/messages"
-	"github.com/FactomProject/factomd/electionsCore/primitives"
+	"github.com/PaulSnow/factom2d/electionsCore/imessage"
+	"github.com/PaulSnow/factom2d/electionsCore/messages"
+	"github.com/PaulSnow/factom2d/electionsCore/primitives"
 )
 
 // Display is a 2D array containing all the votes seen by all leaders

@@ -19,13 +19,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives/random"
-	"github.com/FactomProject/factomd/util/atomic"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/globals"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
+	"github.com/PaulSnow/factom2d/util/atomic"
 
-	llog "github.com/FactomProject/factomd/log"
+	llog "github.com/PaulSnow/factom2d/log"
 )
 
 // Hash is a convenient fixed []byte type created at the hash length

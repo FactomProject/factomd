@@ -7,7 +7,7 @@ package primitives
 import (
 	"math"
 
-	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
 )
 
 // RandomVarInt returns a random variable integer

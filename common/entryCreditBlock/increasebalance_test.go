@@ -3,8 +3,8 @@ package entryCreditBlock_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/PaulSnow/factom2d/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 // TestIncreaseBalanceMarshalUnmarshal checks that an increase balance object can be marshalled and unmarshalled correctly

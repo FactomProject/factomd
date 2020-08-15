@@ -1,10 +1,10 @@
 package eventservices
 
 import (
-	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/PaulSnow/factom2d/common/entryBlock"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/events/eventmessages/generated/eventmessages"
 )
 
 func mapCommitEntryEvent(entityState eventmessages.EntityState, commitEntryMsg *messages.CommitEntryMsg) *eventmessages.FactomEvent_EntryCommit {

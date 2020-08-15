@@ -7,7 +7,7 @@ package specialEntries
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md

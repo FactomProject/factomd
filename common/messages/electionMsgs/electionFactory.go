@@ -1,8 +1,8 @@
 package electionMsgs
 
 import (
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/state"
 )
 
 type ElectionsFactory struct{}

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	llog "github.com/FactomProject/factomd/log"
+	llog "github.com/PaulSnow/factom2d/log"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FactomProject/factomd/common/primitives"
-	llog "github.com/FactomProject/factomd/log"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	llog "github.com/PaulSnow/factom2d/log"
 )
 
 var _ = fmt.Sprint

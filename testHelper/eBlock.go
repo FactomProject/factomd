@@ -5,11 +5,11 @@ package testHelper
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/anchor"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/anchor"
+	"github.com/PaulSnow/factom2d/common/directoryBlock"
+	"github.com/PaulSnow/factom2d/common/entryBlock"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func CreateTestEntryBlock(p interfaces.IEntryBlock) (*entryBlock.EBlock, []*entryBlock.Entry) {

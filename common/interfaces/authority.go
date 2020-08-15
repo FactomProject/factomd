@@ -5,7 +5,7 @@
 package interfaces
 
 import (
-	"github.com/FactomProject/factomd/common/constants"
+	"github.com/PaulSnow/factom2d/common/constants"
 )
 
 type IAuthority interface {

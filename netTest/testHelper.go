@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/FactomProject/factomd/p2p"
-	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/p2p"
+	"github.com/PaulSnow/factom2d/state"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 type remoteNode struct {

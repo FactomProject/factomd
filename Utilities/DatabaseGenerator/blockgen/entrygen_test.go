@@ -3,7 +3,7 @@ package blockgen_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/Utilities/DatabaseGenerator/blockgen"
+	. "github.com/PaulSnow/factom2d/Utilities/DatabaseGenerator/blockgen"
 )
 
 func TestRange(t *testing.T) {

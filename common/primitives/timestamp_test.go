@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/primitives"
+	. "github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func TestUnmarshalNilTimestamp(t *testing.T) {

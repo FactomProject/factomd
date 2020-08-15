@@ -13,16 +13,16 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/controlPanel/files"
-	"github.com/FactomProject/factomd/p2p"
-	"github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/directoryBlock"
+	"github.com/PaulSnow/factom2d/common/globals"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/controlPanel/files"
+	"github.com/PaulSnow/factom2d/p2p"
+	"github.com/PaulSnow/factom2d/state"
 
-	llog "github.com/FactomProject/factomd/log"
+	llog "github.com/PaulSnow/factom2d/log"
 )
 
 // Initiates control panel variables and controls the http requests

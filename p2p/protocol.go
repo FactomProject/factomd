@@ -10,7 +10,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 var prLogger = packageLogger.WithField("subpack", "protocol")

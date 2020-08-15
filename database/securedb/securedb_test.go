@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	//	"github.com/FactomProject/factomd/common/primitives"
-	//"github.com/FactomProject/factomd/common/primitives/random"
-	. "github.com/FactomProject/factomd/database/securedb"
+	//	"github.com/PaulSnow/factom2d/common/primitives"
+	//"github.com/PaulSnow/factom2d/common/primitives/random"
+	. "github.com/PaulSnow/factom2d/database/securedb"
 )
 
 // Basic DB interactions are tested from the generic tester. This checks the encryption

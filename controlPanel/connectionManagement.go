@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/p2p"
+	"github.com/PaulSnow/factom2d/p2p"
 )
 
 var AllConnections *ConnectionsMap

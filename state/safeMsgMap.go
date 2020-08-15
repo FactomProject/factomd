@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/util/atomic"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/util/atomic"
 )
 
 var _ = fmt.Println

@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	. "github.com/FactomProject/factomd/testHelper"
+	. "github.com/PaulSnow/factom2d/testHelper"
 )
 
 // authority node configuration

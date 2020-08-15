@@ -3,11 +3,11 @@ package state
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/globals"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 type HardGrant struct {
@@ -209,7 +209,7 @@ func GetHardCodedGrants() []HardGrant {
 			// Factom, Inc 004 -- Oracle Master
 			// 300 FCT per month for three months + 600 FCT that was failed to be issued last grant round due to
 			// a clerical issue = 1500 FCT
-			// See: https://github.com/FactomProject/factomd/blob/v6.0.0/state/grants.go#L78, where only 300 FCT
+			// See: https://github.com/PaulSnow/factom2d/blob/v6.0.0/state/grants.go#L78, where only 300 FCT
 			// are issued instead of the full 900 FCT for the three month period of last grant round
 			HardGrant{168576, 1500e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
 

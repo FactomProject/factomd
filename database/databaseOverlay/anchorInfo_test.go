@@ -7,8 +7,8 @@ package databaseOverlay_test
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/anchor"
-	"github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/anchor"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestRebuildDirBlockInfo(t *testing.T) {

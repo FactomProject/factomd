@@ -9,10 +9,10 @@
 package databaseOverlay_test
 
 import (
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	. "github.com/PaulSnow/factom2d/testHelper"
 
 	"testing"
 )

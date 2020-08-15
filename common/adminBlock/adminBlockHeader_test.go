@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/adminBlock"
+	. "github.com/PaulSnow/factom2d/common/adminBlock"
 )
 
 var _ = fmt.Print

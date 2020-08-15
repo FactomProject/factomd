@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/FactomProject/factomd/engine"
-	"github.com/FactomProject/factomd/wsapi"
+	"github.com/PaulSnow/factom2d/engine"
+	"github.com/PaulSnow/factom2d/wsapi"
 )
 
 const defaultTestPort = 8080

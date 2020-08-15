@@ -16,8 +16,8 @@ package state
 // 	BenchmarkCompetingQueues-4     	 1000000	      1302 ns/op
 
 import (
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 
 	"github.com/prometheus/client_golang/prometheus"
 )

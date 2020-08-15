@@ -13,12 +13,12 @@ import (
 
 	"bytes"
 
-	"github.com/FactomProject/factomd/common/identity"
-	"github.com/FactomProject/factomd/common/identityEntries"
-	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/PaulSnow/factom2d/common/identity"
+	"github.com/PaulSnow/factom2d/common/identityEntries"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
 )
 
-//import . "github.com/FactomProject/factomd/common/identity"
+//import . "github.com/PaulSnow/factom2d/common/identity"
 
 func TestIdentityManagerMarshal(t *testing.T) {
 	for i := 0; i < 100; i++ {

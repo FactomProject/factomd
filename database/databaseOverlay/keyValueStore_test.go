@@ -3,9 +3,9 @@ package databaseOverlay_test
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/common/primitives/random"
-	. "github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
+	. "github.com/PaulSnow/factom2d/database/databaseOverlay"
+	"github.com/PaulSnow/factom2d/database/mapdb"
 )
 
 func TestSaveLoadDatabaseEntryHeight(t *testing.T) {

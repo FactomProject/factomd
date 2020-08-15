@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/FactomProject/factomd/Utilities/tools"
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/Utilities/tools"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 var CheckFloating bool

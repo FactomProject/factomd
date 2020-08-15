@@ -8,7 +8,7 @@ package state
 // Each state has its own set of keys that need to match the ones in the
 // identity to properly test identities/authorities
 import (
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func (s *State) SimSetNewKeys(p *primitives.PrivateKey) {

@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/primitives"
+	. "github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func TestJsonString(t *testing.T) {

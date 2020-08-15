@@ -1,8 +1,8 @@
 package messages
 
 import (
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/log"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/log"
 )
 
 /*

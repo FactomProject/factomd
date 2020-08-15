@@ -3,14 +3,14 @@ package events
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/constants/runstate"
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/events/eventinput"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/events/eventservices"
-	"github.com/FactomProject/factomd/util"
+	"github.com/PaulSnow/factom2d/common/constants/runstate"
+	"github.com/PaulSnow/factom2d/common/globals"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/events/eventinput"
+	"github.com/PaulSnow/factom2d/events/eventmessages/generated/eventmessages"
+	"github.com/PaulSnow/factom2d/events/eventservices"
+	"github.com/PaulSnow/factom2d/util"
 )
 
 type EventService interface {

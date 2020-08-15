@@ -3,7 +3,7 @@ package identity
 import (
 	"encoding/binary"
 
-	"github.com/FactomProject/factomd/common/constants"
+	"github.com/PaulSnow/factom2d/common/constants"
 )
 
 const (

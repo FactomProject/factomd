@@ -2,7 +2,7 @@
 
 package main
 
-import "github.com/FactomProject/factomd/electionsCore/ET2/divefromfilecli/cmd"
+import "github.com/PaulSnow/factom2d/electionsCore/ET2/divefromfilecli/cmd"
 
 func main() {
 	cmd.Execute()

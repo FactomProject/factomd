@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/events/eventconfig"
-	"github.com/FactomProject/factomd/events/eventinput"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/events/eventconfig"
+	"github.com/PaulSnow/factom2d/events/eventinput"
+	"github.com/PaulSnow/factom2d/events/eventmessages/generated/eventmessages"
 	"github.com/gogo/protobuf/types"
 )
 

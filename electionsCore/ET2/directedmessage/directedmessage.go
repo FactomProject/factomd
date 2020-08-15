@@ -1,6 +1,6 @@
 package directedmessage
 
-import "github.com/FactomProject/factomd/electionsCore/imessage"
+import "github.com/PaulSnow/factom2d/electionsCore/imessage"
 
 type DirectedMessage struct {
 	LeaderIdx int

@@ -7,8 +7,8 @@ package identityEntries_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/identityEntries"
-	"github.com/FactomProject/factomd/common/primitives/random"
+	. "github.com/PaulSnow/factom2d/common/identityEntries"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
 )
 
 func TestCheckExternalIDsLength(t *testing.T) {

@@ -9,8 +9,8 @@ import (
 	"math/rand"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/primitives/random"
+	. "github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
 )
 
 func TestUnmarshalNilVarInt(t *testing.T) {

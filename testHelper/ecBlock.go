@@ -3,11 +3,11 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
-	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/util"
+	"github.com/PaulSnow/factom2d/common/entryBlock"
+	"github.com/PaulSnow/factom2d/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/util"
 )
 
 func createECEntriesfromBlocks(fBlock interfaces.IFBlock, eBlocks []*entryBlock.EBlock, height int) []interfaces.IECBlockEntry {

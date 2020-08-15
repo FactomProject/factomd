@@ -8,8 +8,8 @@ import (
 	"math"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/primitives/random"
+	. "github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
 )
 
 func TestPushPopInt64(t *testing.T) {

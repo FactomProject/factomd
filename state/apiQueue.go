@@ -1,7 +1,7 @@
 package state
 
 import (
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 // APIMSGQueue counts incoming and outgoing messages for API queue

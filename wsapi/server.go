@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 )

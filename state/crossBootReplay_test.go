@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/primitives/random"
-	. "github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
+	. "github.com/PaulSnow/factom2d/state"
 )
 
 var _ = fmt.Printf

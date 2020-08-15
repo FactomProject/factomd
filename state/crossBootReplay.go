@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/database/boltdb"
-	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/database/boltdb"
+	"github.com/PaulSnow/factom2d/database/mapdb"
 )
 
 var _ = fmt.Println

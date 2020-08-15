@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/util/atomic"
+	"github.com/PaulSnow/factom2d/common/globals"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/state"
+	"github.com/PaulSnow/factom2d/util/atomic"
 )
 
 var _ = fmt.Print

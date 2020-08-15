@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/identity"
-	"github.com/FactomProject/factomd/common/identityEntries"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/constants"
+	. "github.com/PaulSnow/factom2d/common/identity"
+	"github.com/PaulSnow/factom2d/common/identityEntries"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func TestCancelTally(t *testing.T) {

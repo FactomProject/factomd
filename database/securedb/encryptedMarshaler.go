@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	llog "github.com/FactomProject/factomd/log"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	llog "github.com/PaulSnow/factom2d/log"
 )
 
 type EncryptedMarshaler struct {

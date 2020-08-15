@@ -9,7 +9,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/identityEntries"
+	. "github.com/PaulSnow/factom2d/common/identityEntries"
 )
 
 func TestLinkEntryCreditKeyStructure(t *testing.T) {

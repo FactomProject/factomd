@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/testHelper"
+	. "github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestMultiple7Election(t *testing.T) {

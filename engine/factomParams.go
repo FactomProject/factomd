@@ -14,10 +14,10 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/elections"
-	"github.com/FactomProject/factomd/p2p"
+	. "github.com/PaulSnow/factom2d/common/globals"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/elections"
+	"github.com/PaulSnow/factom2d/p2p"
 )
 
 func init() {

@@ -5,8 +5,8 @@ import "time"
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/engine"
-	. "github.com/FactomProject/factomd/testHelper"
+	. "github.com/PaulSnow/factom2d/engine"
+	. "github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestSetupANetwork(t *testing.T) {

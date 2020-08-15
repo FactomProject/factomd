@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/factoid"
+	"github.com/PaulSnow/factom2d/common/constants"
+	. "github.com/PaulSnow/factom2d/common/factoid"
 )
 
 func TestGetGenesisFBlockMainNet(t *testing.T) {

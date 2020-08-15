@@ -8,7 +8,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/identityEntries"
+	. "github.com/PaulSnow/factom2d/common/identityEntries"
 )
 
 func TestServerManagementStructure(t *testing.T) {

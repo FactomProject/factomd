@@ -7,12 +7,12 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/common"
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/dictionary"
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/names"
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/stack"
+	. "github.com/PaulSnow/factom2d/electionsCore/interpreter/common"
+	. "github.com/PaulSnow/factom2d/electionsCore/interpreter/dictionary"
+	. "github.com/PaulSnow/factom2d/electionsCore/interpreter/names"
+	. "github.com/PaulSnow/factom2d/electionsCore/interpreter/stack"
 
-	llog "github.com/FactomProject/factomd/log"
+	llog "github.com/PaulSnow/factom2d/log"
 )
 
 type Interpreter struct {

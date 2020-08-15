@@ -13,7 +13,7 @@ import (
 
 	"bytes"
 
-	. "github.com/FactomProject/factomd/common/identityEntries"
+	. "github.com/PaulSnow/factom2d/common/identityEntries"
 )
 
 func TestRegisterFactomIdentityStructure(t *testing.T) {

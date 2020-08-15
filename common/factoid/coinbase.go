@@ -4,7 +4,7 @@
 
 package factoid
 
-import "github.com/FactomProject/factomd/common/interfaces"
+import "github.com/PaulSnow/factom2d/common/interfaces"
 
 var adrs []interfaces.IAddress
 var amount uint64 = 5000000000 // One Factoid (remember, fixed point math!

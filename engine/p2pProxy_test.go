@@ -3,7 +3,7 @@ package engine_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/engine"
+	. "github.com/PaulSnow/factom2d/engine"
 )
 
 func TestFactomMessage(t *testing.T) {

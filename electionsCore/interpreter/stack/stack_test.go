@@ -3,7 +3,7 @@ package stack_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/stack"
+	. "github.com/PaulSnow/factom2d/electionsCore/interpreter/stack"
 )
 
 func TestStack(t *testing.T) {

@@ -12,18 +12,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/PaulSnow/factom2d/events/eventmessages/generated/eventmessages"
 
-	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/util/atomic"
+	"github.com/PaulSnow/factom2d/common/adminBlock"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/directoryBlock"
+	"github.com/PaulSnow/factom2d/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/util/atomic"
 
-	//"github.com/FactomProject/factomd/database/databaseOverlay"
+	//"github.com/PaulSnow/factom2d/database/databaseOverlay"
 
 	log "github.com/sirupsen/logrus"
 )

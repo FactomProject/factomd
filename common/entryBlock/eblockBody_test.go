@@ -6,4 +6,4 @@ package entryBlock_test
 
 //"testing"
 
-//. "github.com/FactomProject/factomd/common/entryBlock"
+//. "github.com/PaulSnow/factom2d/common/entryBlock"

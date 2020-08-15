@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/FactomProject/factomd/electionsCore/ET2/mirrors"
+	. "github.com/PaulSnow/factom2d/electionsCore/ET2/mirrors"
 )
 
 func makeH(s string) [32]byte {

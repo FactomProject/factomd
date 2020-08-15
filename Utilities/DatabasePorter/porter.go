@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	//"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/util"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	//"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/database/databaseOverlay"
+	"github.com/PaulSnow/factom2d/util"
 )
 
 var cfg *util.FactomdConfig

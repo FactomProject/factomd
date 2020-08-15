@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/FactomProject/factomd/common/identity"
+	. "github.com/PaulSnow/factom2d/common/identity"
 )
 
 func TestCheckTimestamp(t *testing.T) {

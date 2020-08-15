@@ -7,8 +7,8 @@ package entryCreditBlock
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 // ECBlockBody contains all the entry information for the EC block. The entries will be one of 5 types:

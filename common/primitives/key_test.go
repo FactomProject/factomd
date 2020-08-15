@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/FactomProject/ed25519"
-	. "github.com/FactomProject/factomd/common/primitives"
+	. "github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func TestInit(t *testing.T) {

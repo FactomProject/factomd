@@ -1,8 +1,8 @@
 package testHelper
 
 import (
-	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/adminBlock"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func CreateTestAdminBlock(prev *adminBlock.AdminBlock) *adminBlock.AdminBlock {

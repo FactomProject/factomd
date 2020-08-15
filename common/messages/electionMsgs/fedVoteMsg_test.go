@@ -7,10 +7,10 @@ package electionMsgs_test
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/common/messages"
-	. "github.com/FactomProject/factomd/common/messages/electionMsgs"
-	"github.com/FactomProject/factomd/common/messages/msgsupport"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/messages"
+	. "github.com/PaulSnow/factom2d/common/messages/electionMsgs"
+	"github.com/PaulSnow/factom2d/common/messages/msgsupport"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func TestUnmarshalfolunteerAudit_test(t *testing.T) {

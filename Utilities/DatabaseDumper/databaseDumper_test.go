@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestTest(t *testing.T) {

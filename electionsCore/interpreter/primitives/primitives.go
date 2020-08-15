@@ -5,10 +5,10 @@ import (
 
 	"fmt"
 
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/common"
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/dictionary"
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/interpreter"
-	. "github.com/FactomProject/factomd/electionsCore/interpreter/names"
+	. "github.com/PaulSnow/factom2d/electionsCore/interpreter/common"
+	. "github.com/PaulSnow/factom2d/electionsCore/interpreter/dictionary"
+	. "github.com/PaulSnow/factom2d/electionsCore/interpreter/interpreter"
+	. "github.com/PaulSnow/factom2d/electionsCore/interpreter/names"
 )
 
 type Primitives struct {

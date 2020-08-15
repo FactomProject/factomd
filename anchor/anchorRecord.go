@@ -13,8 +13,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 // AnchorRecord is used to construct the anchor chain. The Factom Protocol writes an anchor into

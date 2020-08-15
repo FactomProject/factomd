@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/primitives/random"
-	"github.com/FactomProject/factomd/p2p"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
+	"github.com/PaulSnow/factom2d/p2p"
 )
 
 func BenchmarkBroadcastWithSliceBuild(b *testing.B) {

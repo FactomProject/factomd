@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/FactomProject/ed25519"
-	. "github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/testHelper"
+	. "github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestUnmarshalNilSignatureBlock(t *testing.T) {

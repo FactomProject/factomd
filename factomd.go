@@ -12,8 +12,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants/runstate"
-	. "github.com/FactomProject/factomd/engine"
+	"github.com/PaulSnow/factom2d/common/constants/runstate"
+	. "github.com/PaulSnow/factom2d/engine"
 )
 
 func main() {

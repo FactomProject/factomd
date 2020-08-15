@@ -5,8 +5,8 @@ import (
 	"crypto/subtle"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/primitives/random"
-	. "github.com/FactomProject/factomd/database/securedb"
+	"github.com/PaulSnow/factom2d/common/primitives/random"
+	. "github.com/PaulSnow/factom2d/database/securedb"
 )
 
 func TestGetKey(t *testing.T) {

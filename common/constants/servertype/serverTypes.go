@@ -1,7 +1,7 @@
 package servertype
 
 import (
-	"github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/state"
 )
 
 // ServerType is a string which describes which type of server it is

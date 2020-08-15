@@ -7,7 +7,7 @@ package state_test
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestSetAndGetUseTorrent(t *testing.T) {

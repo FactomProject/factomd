@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/FactomProject/factomd/util"
+	"github.com/PaulSnow/factom2d/util"
 )
 
 var nodeIDs [10]string = [10]string{

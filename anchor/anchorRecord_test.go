@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/anchor"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/testHelper"
+	. "github.com/PaulSnow/factom2d/anchor"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	. "github.com/PaulSnow/factom2d/testHelper"
 )
 
 // TestMarshalUnmarshalAnchorRecord unmarshals a test string into an AnchorRecord and marshals it back to a []byte

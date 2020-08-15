@@ -3,11 +3,11 @@ package hybridDB
 import (
 	"sync"
 
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 
-	"github.com/FactomProject/factomd/database/boltdb"
-	"github.com/FactomProject/factomd/database/leveldb"
-	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/PaulSnow/factom2d/database/boltdb"
+	"github.com/PaulSnow/factom2d/database/leveldb"
+	"github.com/PaulSnow/factom2d/database/mapdb"
 )
 
 type HybridDB struct {

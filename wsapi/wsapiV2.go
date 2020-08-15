@@ -15,17 +15,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FactomProject/factomd/anchor"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
-	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/receipts"
+	"github.com/PaulSnow/factom2d/anchor"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/directoryBlock/dbInfo"
+	"github.com/PaulSnow/factom2d/common/entryBlock"
+	"github.com/PaulSnow/factom2d/common/entryCreditBlock"
+	"github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/globals"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/receipts"
 )
 
 const API_VERSION string = "2.0"
@@ -1624,7 +1624,7 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 			eInfo.VmIndex = &vm
 			eInfo.FedIndex = &electing
 			eInfo.FedID = e.GetFedID().String()
-			// bugfix for https://github.com/FactomProject/factomd/issues/947
+			// bugfix for https://github.com/PaulSnow/factom2d/issues/947
 			// the round slice is frequently truncated to zero-length and the default
 			// behavior is to zero-pad it on demand
 			round := e.GetRound()

@@ -7,8 +7,8 @@ package state_test
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/common/constants"
+	. "github.com/PaulSnow/factom2d/state"
 )
 
 func TestGenerateGenesisBlocks(t *testing.T) {

@@ -3,7 +3,7 @@ package databaseOverlay
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 func (db *Overlay) FetchFactoidTransaction(hash interfaces.IHash) (interfaces.ITransaction, error) {

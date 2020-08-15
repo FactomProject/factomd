@@ -11,17 +11,17 @@ import (
 	"text/template"
 
 	"github.com/FactomProject/btcutil/base58"
-	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/controlPanel/files"
-	"github.com/FactomProject/factomd/util"
-	"github.com/FactomProject/factomd/wsapi"
+	"github.com/PaulSnow/factom2d/common/adminBlock"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/controlPanel/files"
+	"github.com/PaulSnow/factom2d/util"
+	"github.com/PaulSnow/factom2d/wsapi"
 
 	"strings"
 
-	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/PaulSnow/factom2d/common/factoid"
 )
 
 var _ = htemp.HTMLEscaper("sdf")

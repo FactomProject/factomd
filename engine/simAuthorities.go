@@ -17,13 +17,13 @@ import (
 
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
-	"github.com/FactomProject/factomd/common/entryBlock"
-	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/common/identityEntries"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/wsapi"
+	"github.com/PaulSnow/factom2d/common/entryBlock"
+	"github.com/PaulSnow/factom2d/common/globals"
+	"github.com/PaulSnow/factom2d/common/identityEntries"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/state"
+	"github.com/PaulSnow/factom2d/wsapi"
 	"github.com/FactomProject/serveridentity/identity"
 )
 

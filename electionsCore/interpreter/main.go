@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	//"github.com/FactomProject/factomd/electionsCore/interpreter/interpreter"
-	"github.com/FactomProject/factomd/electionsCore/controller"
+	//"github.com/PaulSnow/factom2d/electionsCore/interpreter/interpreter"
+	"github.com/PaulSnow/factom2d/electionsCore/controller"
 )
 
 import "flag"

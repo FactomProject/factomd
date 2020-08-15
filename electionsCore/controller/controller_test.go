@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/electionsCore/controller"
-	. "github.com/FactomProject/factomd/electionsCore/errorhandling"
+	. "github.com/PaulSnow/factom2d/electionsCore/controller"
+	. "github.com/PaulSnow/factom2d/electionsCore/errorhandling"
 )
 
 func TestSimpleController(t *testing.T) {

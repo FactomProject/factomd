@@ -9,11 +9,11 @@ import (
 	"testing"
 
 	"github.com/FactomProject/ed25519"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/messages/msgsupport"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	. "github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/common/messages/msgsupport"
 )
 
 func TestUnmarshalNilFactoidTransaction(t *testing.T) {

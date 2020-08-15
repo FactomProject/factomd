@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	. "github.com/FactomProject/factomd/electionsCore/ET2/divefromfile"
+	. "github.com/PaulSnow/factom2d/electionsCore/ET2/divefromfile"
 	"github.com/spf13/cobra"
 )
 

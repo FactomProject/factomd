@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/FactomProject/ed25519"
-	. "github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 func TestUnmarshalNilRCD_1(t *testing.T) {

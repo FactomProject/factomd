@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/database/blockExtractor"
-	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/util"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	. "github.com/PaulSnow/factom2d/database/blockExtractor"
+	"github.com/PaulSnow/factom2d/state"
+	"github.com/PaulSnow/factom2d/util"
 )
 
 const level string = "level"

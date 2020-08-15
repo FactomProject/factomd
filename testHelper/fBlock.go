@@ -5,9 +5,9 @@ package testHelper
 import (
 	"encoding/hex"
 
-	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
 )
 
 func CreateTestFactoidBlock(prev interfaces.IFBlock) interfaces.IFBlock {

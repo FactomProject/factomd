@@ -5,9 +5,9 @@ import (
 
 	"strings"
 
-	. "github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/testHelper"
+	. "github.com/PaulSnow/factom2d/common/adminBlock"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestAddAuditServerGetHash(t *testing.T) {

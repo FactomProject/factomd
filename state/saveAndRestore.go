@@ -11,11 +11,11 @@ import (
 	"os"
 	"sort"
 
-	"github.com/FactomProject/factomd/common/factoid"
-	. "github.com/FactomProject/factomd/common/identity"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/util/atomic"
+	"github.com/PaulSnow/factom2d/common/factoid"
+	. "github.com/PaulSnow/factom2d/common/identity"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/util/atomic"
 )
 
 // Because we have to go back to a previous state should the network be partitioned and we are on a separate

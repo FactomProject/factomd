@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
+	"github.com/PaulSnow/factom2d/common/constants"
 )
 
 // StartTorrentSyncing is an endless loop that uses torrents to sync missing blocks

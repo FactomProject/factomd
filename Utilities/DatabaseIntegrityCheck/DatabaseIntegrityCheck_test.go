@@ -4,10 +4,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/leveldb"
-	"github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/database/databaseOverlay"
+	"github.com/PaulSnow/factom2d/database/leveldb"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestCheckDatabaseFromDBO(t *testing.T) {

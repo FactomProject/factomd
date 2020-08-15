@@ -8,7 +8,7 @@ import (
 	"math"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/primitives/random"
+	. "github.com/PaulSnow/factom2d/common/primitives/random"
 )
 
 // TestRandUInt64Between checks that over N calls to the UInt64 random number generator, they all fall between [min,max)

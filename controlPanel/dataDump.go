@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/globals"
-	dd "github.com/FactomProject/factomd/controlPanel/dataDumpFormatting"
+	"github.com/PaulSnow/factom2d/common/globals"
+	dd "github.com/PaulSnow/factom2d/controlPanel/dataDumpFormatting"
 )
 
 type DataDump struct {

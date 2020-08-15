@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"os"
 
-	// "github.com/FactomProject/factomd/common/constants"
+	// "github.com/PaulSnow/factom2d/common/constants"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/p2p"
+	"github.com/PaulSnow/factom2d/common/constants"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/p2p"
 
-	"github.com/FactomProject/factomd/common/messages/msgsupport"
+	"github.com/PaulSnow/factom2d/common/messages/msgsupport"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -3,8 +3,8 @@ package messages
 import (
 	//"testing"
 
-	// . "github.com/FactomProject/factomd/electionsCore/errorhandling"
-	. "github.com/FactomProject/factomd/electionsCore/primitives"
+	// . "github.com/PaulSnow/factom2d/electionsCore/errorhandling"
+	. "github.com/PaulSnow/factom2d/electionsCore/primitives"
 )
 
 // string to identity

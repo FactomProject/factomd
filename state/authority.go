@@ -7,9 +7,9 @@ package state
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/constants"
-	. "github.com/FactomProject/factomd/common/identity"
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/constants"
+	. "github.com/PaulSnow/factom2d/common/identity"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 // Checks the signature of a message. Returns an int based on who signed it:

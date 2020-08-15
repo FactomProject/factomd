@@ -5,12 +5,12 @@ import (
 	//"crypto/sha256"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/database/securedb"
-	"github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	. "github.com/PaulSnow/factom2d/database/securedb"
+	"github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestEncryptedMarshaler(t *testing.T) {

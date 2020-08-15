@@ -1,7 +1,7 @@
 package state
 
 import (
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 type Last100 struct {

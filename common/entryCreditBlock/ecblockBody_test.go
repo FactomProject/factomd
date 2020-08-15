@@ -6,4 +6,4 @@ package entryCreditBlock_test
 
 //"testing"
 
-//. "github.com/FactomProject/factomd/common/entryCreditBlock"
+//. "github.com/PaulSnow/factom2d/common/entryCreditBlock"

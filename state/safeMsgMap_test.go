@@ -7,9 +7,9 @@ package state_test
 import (
 	"testing"
 
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	. "github.com/PaulSnow/factom2d/state"
 )
 
 func TestSafeMsgMag(t *testing.T) {

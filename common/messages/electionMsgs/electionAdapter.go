@@ -4,21 +4,21 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/interfaces"
-	primitives2 "github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/electionsCore/election"
-	"github.com/FactomProject/factomd/electionsCore/imessage"
-	"github.com/FactomProject/factomd/electionsCore/primitives"
-	"github.com/FactomProject/factomd/state"
+	"github.com/PaulSnow/factom2d/common/interfaces"
+	primitives2 "github.com/PaulSnow/factom2d/common/primitives"
+	"github.com/PaulSnow/factom2d/electionsCore/election"
+	"github.com/PaulSnow/factom2d/electionsCore/imessage"
+	"github.com/PaulSnow/factom2d/electionsCore/primitives"
+	"github.com/PaulSnow/factom2d/state"
 
-	// "github.com/FactomProject/factomd/common/messages/electionMsgs"
-	"github.com/FactomProject/factomd/elections"
+	// "github.com/PaulSnow/factom2d/common/messages/electionMsgs"
+	"github.com/PaulSnow/factom2d/elections"
 
-	//"github.com/FactomProject/factomd/state"
+	//"github.com/PaulSnow/factom2d/state"
 
-	"github.com/FactomProject/factomd/electionsCore/messages"
+	"github.com/PaulSnow/factom2d/electionsCore/messages"
 
-	llog "github.com/FactomProject/factomd/log"
+	llog "github.com/PaulSnow/factom2d/log"
 )
 
 // ElectionAdapter is used to drive the election package, abstracting away factomd

@@ -1,8 +1,8 @@
 package eventservices
 
 import (
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/PaulSnow/factom2d/common/messages"
+	"github.com/PaulSnow/factom2d/events/eventmessages/generated/eventmessages"
 )
 
 func mapCommitChain(entityState eventmessages.EntityState, commitChainMsg *messages.CommitChainMsg) *eventmessages.FactomEvent_ChainCommit {

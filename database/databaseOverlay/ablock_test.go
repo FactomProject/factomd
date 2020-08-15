@@ -9,14 +9,14 @@
 package databaseOverlay_test
 
 import (
-	. "github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/testHelper"
-	//"github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/PaulSnow/factom2d/common/adminBlock"
+	"github.com/PaulSnow/factom2d/testHelper"
+	//"github.com/PaulSnow/factom2d/common/interfaces"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	. "github.com/PaulSnow/factom2d/database/databaseOverlay"
+	"github.com/PaulSnow/factom2d/database/mapdb"
 )
 
 func TestSaveLoadABlockHead(t *testing.T) {

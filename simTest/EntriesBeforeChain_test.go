@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 
 	"github.com/FactomProject/factom"
-	. "github.com/FactomProject/factomd/testHelper"
+	. "github.com/PaulSnow/factom2d/testHelper"
 	"github.com/stretchr/testify/assert"
 )
 

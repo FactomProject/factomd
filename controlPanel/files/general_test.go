@@ -3,7 +3,7 @@ package files_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/controlPanel/files"
+	. "github.com/PaulSnow/factom2d/controlPanel/files"
 )
 
 func TestOpen(t *testing.T) {

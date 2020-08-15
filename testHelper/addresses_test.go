@@ -4,9 +4,9 @@ import (
 	//"encoding/hex"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/PaulSnow/factom2d/common/factoid"
+	"github.com/PaulSnow/factom2d/common/primitives"
+	. "github.com/PaulSnow/factom2d/testHelper"
 )
 
 func TestRCDAddress(t *testing.T) {

@@ -7,7 +7,7 @@ package state_test
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/state"
+	. "github.com/PaulSnow/factom2d/state"
 )
 
 func TestMissingEntryBlockMarshalUnmarshal(t *testing.T) {
