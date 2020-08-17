@@ -143,7 +143,8 @@ func (c *Entry) DatabasePrimaryIndex() (rval interfaces.IHash) {
 
 // DatabaseSecondaryIndex always returns nil (ie, no secondary index)
 func (c *Entry) DatabaseSecondaryIndex() (rval interfaces.IHash) {
-	defer func() { rval = primitives.CheckNil(rval, "Entry.DatabaseSecondaryIndex") }()
+	// reenable if this function is implemented
+	// defer func() { rval = primitives.CheckNil(rval, "Entry.DatabaseSecondaryIndex") }()
 
 	return nil
 }
