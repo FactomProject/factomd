@@ -140,7 +140,7 @@ func (l *HoldingList) isMsgStale(msg interfaces.IMsg) (res bool) {
 
 	switch msg.Type() {
 	case constants.EOM_MSG:
-		if uint32(msg.(*messages.EOM).DBHeight)*10+uint32(msg.(*messages.EOM).Minute) < l.s.GetLLeaderHeight()*10+uint32(l.s.CurrentMinute) {
+		if uint32(msg.(*messages.EOB).DBHeight)*10+uint32(msg.(*messages.EOB).Minute) < l.s.GetLLeaderHeight()*10+uint32(l.s.CurrentMinute) {
 			res = true
 		}
 	case constants.ACK_MSG:

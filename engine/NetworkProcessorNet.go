@@ -246,7 +246,7 @@ func Peers(fnode *FactomNode) {
 					}
 
 					if mm, ok := msg.(*messages.MissingMsgResponse); ok {
-						if eom, ok := mm.MsgResponse.(*messages.EOM); ok {
+						if eom, ok := mm.MsgResponse.(*messages.EOB); ok {
 							t2 := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, eom.String())
 							messageResult := regex.MatchString(t2)
 							if messageResult {
@@ -398,7 +398,7 @@ func NetworkOutputs(fnode *FactomNode) {
 			}
 
 			if mm, ok := msg.(*messages.MissingMsgResponse); ok {
-				if eom, ok := mm.MsgResponse.(*messages.EOM); ok {
+				if eom, ok := mm.MsgResponse.(*messages.EOB); ok {
 					t2 := fmt.Sprintf("%7d-:-%d %s", fnode.State.LLeaderHeight, fnode.State.CurrentMinute, eom.String())
 					messageResult := regex.MatchString(t2)
 					if messageResult {

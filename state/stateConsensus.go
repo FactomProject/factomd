@@ -578,7 +578,7 @@ func (s *State) ExpireHolding() {
 			continue // If the message has expired, don't hold or execute
 		}
 
-		eom, ok := v.(*messages.EOM)
+		eom, ok := v.(*messages.EOB)
 		if ok {
 			if int(eom.DBHeight)*10+int(eom.Minute) < int(s.LLeaderHeight)*10+s.CurrentMinute {
 				s.ExpireCnt++
@@ -1018,7 +1018,7 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
-	eom, ok := m.(*messages.EOM)
+	eom, ok := m.(*messages.EOB)
 	if !ok {
 		return
 	}
@@ -1491,7 +1491,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		s.repost(m, 1) // Do not drop the message, we only generate 1 local eom per height/min, let validate drop it
 		return
 	}
-	eom := m.(*messages.EOM)
+	eom := m.(*messages.EOB)
 
 	// Put the System Height and Serial Hash into the EOM
 	eom.SysHeight = uint32(pl.System.Height)
@@ -1976,7 +1976,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 // TODO: Should fault the server if we don't have the proper sequence of EOM messages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	TotalProcessEOMs.Inc()
-	e := msg.(*messages.EOM)
+	e := msg.(*messages.EOB)
 	// plog := consenLogger.WithFields(log.Fields{"func": "ProcessEOM", "msgheight": e.DBHeight, "lheight": s.GetLeaderHeight(), "min", e.Minute})
 	pl := s.ProcessLists.Get(dbheight)
 	vmIndex := msg.GetVMIndex()

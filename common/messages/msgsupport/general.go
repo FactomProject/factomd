@@ -29,7 +29,7 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 func CreateMsg(messageType byte) interfaces.IMsg {
 	switch messageType {
 	case constants.EOM_MSG:
-		return new(messages.EOM)
+		return new(messages.EOB)
 	case constants.ACK_MSG:
 		return new(messages.Ack)
 	case constants.COMMIT_CHAIN_MSG:

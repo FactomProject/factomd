@@ -112,7 +112,7 @@ func (s *State) ValidatorLoop() {
 
 			currentMinute := s.CurrentMinute
 
-			eom := new(messages.EOM)
+			eom := new(messages.EOB)
 			eom.Timestamp = s.GetTimestamp()
 			eom.ChainID = s.GetIdentityChainID()
 			{

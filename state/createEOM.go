@@ -5,12 +5,12 @@ import (
 	"github.com/PaulSnow/factom2d/common/messages"
 )
 
-func (s *State) CreateEOM(force bool, m interfaces.IMsg, vmIdx int) (eom *messages.EOM, ack interfaces.IMsg) {
+func (s *State) CreateEOM(force bool, m interfaces.IMsg, vmIdx int) (eom *messages.EOB, ack interfaces.IMsg) {
 
-	if m == nil || m.(*messages.EOM) == nil {
-		eom = new(messages.EOM)
+	if m == nil || m.(*messages.EOB) == nil {
+		eom = new(messages.EOB)
 	} else {
-		eom = m.(*messages.EOM)
+		eom = m.(*messages.EOB)
 	}
 
 	eom.Timestamp = s.GetTimestamp()

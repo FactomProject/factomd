@@ -18,7 +18,7 @@ import (
 )
 
 // eLogger is for EOM Messages and extends packageLogger
-var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
+var eLogger = packageLogger.WithFields(log.Fields{"message": "EOB"})
 
 type EOB struct {
 	msgbase.MessageBase
@@ -39,10 +39,10 @@ type EOB struct {
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
-var _ interfaces.Signable = (*EOM)(nil)
-var _ interfaces.IMsg = (*EOM)(nil)
+var _ interfaces.Signable = (*EOB)(nil)
+var _ interfaces.IMsg = (*EOB)(nil)
 
-func (a *EOM) IsSameAs(b *EOM) bool {
+func (a *EOB) IsSameAs(b *EOB) bool {
 	if b == nil {
 		return false
 	}
@@ -77,12 +77,12 @@ func (a *EOM) IsSameAs(b *EOM) bool {
 	return true
 }
 
-func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
+func (e *EOB) Process(dbheight uint32, state interfaces.IState) bool {
 	return state.ProcessEOM(dbheight, e)
 }
 
 // Fix EOM hash to match and not have the sig so duplicates are not generated.
-func (m *EOM) GetRepeatHash() (rval interfaces.IHash) {
+func (m *EOB) GetRepeatHash() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "EOM.GetRepeatHash") }()
 
 	if m.RepeatHash == nil {
@@ -95,14 +95,14 @@ func (m *EOM) GetRepeatHash() (rval interfaces.IHash) {
 	return m.RepeatHash
 }
 
-func (m *EOM) GetHash() (rval interfaces.IHash) {
-	defer func() { rval = primitives.CheckNil(rval, "EOM.GetHash") }()
+func (m *EOB) GetHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "EOB.GetHash") }()
 
 	return m.GetMsgHash()
 }
 
-func (m *EOM) GetMsgHash() (rval interfaces.IHash) {
-	defer func() { rval = primitives.CheckNil(rval, "EOM.GetMsgHash") }()
+func (m *EOB) GetMsgHash() (rval interfaces.IHash) {
+	defer func() { rval = primitives.CheckNil(rval, "EOB.GetMsgHash") }()
 
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()
@@ -114,14 +114,14 @@ func (m *EOM) GetMsgHash() (rval interfaces.IHash) {
 	return m.MsgHash
 }
 
-func (m *EOM) GetTimestamp() interfaces.Timestamp {
+func (m *EOB) GetTimestamp() interfaces.Timestamp {
 	if m.Timestamp == nil {
 		m.Timestamp = new(primitives.Timestamp)
 	}
 	return m.Timestamp.Clone()
 }
 
-func (m *EOM) Type() byte {
+func (m *EOB) Type() byte {
 	return constants.EOM_MSG
 }
 
@@ -129,7 +129,7 @@ func (m *EOM) Type() byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *EOM) Validate(state interfaces.IState) int {
+func (m *EOB) Validate(state interfaces.IState) int {
 	if m.IsLocal() {
 		return 1
 	}
@@ -146,7 +146,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
 	if !found {
-		return -1 // Only EOM from federated servers are valid.
+		return -1 // Only EOB from federated servers are valid.
 	}
 
 	// Check signature
@@ -165,7 +165,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 		return -1
 	}
 	// if !eomSigned {
-	// 	state.Logf("warning", "[EOM Validate (2)] Failed to verify signature. Msg: %s", err.Error(), m.String())
+	// 	state.Logf("warning", "[EOB Validate (2)] Failed to verify signature. Msg: %s", err.Error(), m.String())
 	// 	return -1
 	// }
 	return 1
@@ -173,27 +173,27 @@ func (m *EOM) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *EOM) ComputeVMIndex(state interfaces.IState) {
+func (m *EOB) ComputeVMIndex(state interfaces.IState) {
 }
 
 // Execute the leader functions of the given message
-func (m *EOM) LeaderExecute(state interfaces.IState) {
+func (m *EOB) LeaderExecute(state interfaces.IState) {
 	state.LeaderExecuteEOM(m)
 }
 
-func (m *EOM) FollowerExecute(state interfaces.IState) {
+func (m *EOB) FollowerExecute(state interfaces.IState) {
 	state.FollowerExecuteEOM(m)
 }
 
-func (e *EOM) JSONByte() ([]byte, error) {
+func (e *EOB) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *EOM) JSONString() (string, error) {
+func (e *EOB) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (m *EOM) Sign(key interfaces.Signer) error {
+func (m *EOB) Sign(key interfaces.Signer) error {
 	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
@@ -202,19 +202,19 @@ func (m *EOM) Sign(key interfaces.Signer) error {
 	return nil
 }
 
-func (m *EOM) GetSignature() interfaces.IFullSignature {
+func (m *EOB) GetSignature() interfaces.IFullSignature {
 	return m.Signature
 }
 
-func (m *EOM) VerifySignature() (bool, error) {
+func (m *EOB) VerifySignature() (bool, error) {
 	return msgbase.VerifyMessage(m)
 }
 
-func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (m *EOB) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling EOM message: %v", r)
-			llog.LogPrintf("recovery", "Error unmarshalling EOM message: %v", r)
+			err = fmt.Errorf("Error unmarshalling EOB message: %v", r)
+			llog.LogPrintf("recovery", "Error unmarshalling EOB message: %v", r)
 		}
 	}()
 	newData = data
@@ -267,12 +267,12 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	return
 }
 
-func (m *EOM) UnmarshalBinary(data []byte) error {
+func (m *EOB) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
 
-func (m *EOM) MarshalForSignature() (data []byte, err error) {
+func (m *EOB) MarshalForSignature() (data []byte, err error) {
 	var buf primitives.Buffer
 	buf.Write([]byte{m.Type()})
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
@@ -297,7 +297,7 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *EOM) MarshalBinary() (data []byte, err error) {
+func (m *EOB) MarshalBinary() (data []byte, err error) {
 
 	if m.marshalCache != nil {
 		return m.marshalCache, nil
@@ -336,7 +336,7 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *EOM) String() string {
+func (m *EOB) String() string {
 	local := ""
 	if m.IsLocal() {
 		local = "local"
@@ -357,7 +357,7 @@ func (m *EOM) String() string {
 		local)
 }
 
-func (m *EOM) LogFields() log.Fields {
+func (m *EOB) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "eom", "dbheight": m.DBHeight, "vm": m.VMIndex,
 		"minute": m.Minute, "chainid": m.ChainID.String(), "sysheight": m.SysHeight,
 		"hash": m.GetMsgHash().String()}
