@@ -17,6 +17,7 @@ import (
 
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
+	"github.com/FactomProject/serveridentity/identity"
 	"github.com/PaulSnow/factom2d/common/entryBlock"
 	"github.com/PaulSnow/factom2d/common/globals"
 	"github.com/PaulSnow/factom2d/common/identityEntries"
@@ -24,7 +25,6 @@ import (
 	"github.com/PaulSnow/factom2d/common/primitives"
 	"github.com/PaulSnow/factom2d/state"
 	"github.com/PaulSnow/factom2d/wsapi"
-	"github.com/FactomProject/serveridentity/identity"
 )
 
 //

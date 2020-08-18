@@ -53,6 +53,7 @@ require (
 	github.com/spf13/cobra v0.0.4-0.20180915222204-8d114be902bc
 	github.com/spf13/pflag v1.0.3
 	github.com/stretchr/testify v1.4.0
+	golang.org/x/crypto v0.0.0-20180904163835-0709b304e793
 	golang.org/x/lint v0.0.0-20180702182130-06c8688daad7 // indirect
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be // indirect
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect

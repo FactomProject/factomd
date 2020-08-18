@@ -10,7 +10,6 @@ import (
 
 	"github.com/PaulSnow/factom2d/events/eventmessages/generated/eventmessages"
 
-	"github.com/PaulSnow/factom2d/common/constants"
 	"github.com/PaulSnow/factom2d/common/constants/runstate"
 	"github.com/PaulSnow/factom2d/common/interfaces"
 	"github.com/PaulSnow/factom2d/common/messages"
@@ -97,9 +96,9 @@ func (s *State) ValidatorLoop() {
 	CheckGrants()
 
 	// We should only generate 1 EOM for each height/minute/vmindex
-	lastHeight, lastMinute, lastVM := -1, -1, -1
 
 	go s.DoProcessing()
+	go s.Instance.Run()
 	// Look for pending messages, and get one if there is one.
 	for { // this is the message sort
 		var msg interfaces.IMsg
@@ -110,42 +109,16 @@ func (s *State) ValidatorLoop() {
 			time.Sleep(10 * time.Second) // wait till database close is complete
 			return
 		case c := <-s.tickerQueue: // Look for pending messages, and get one if there is one.
-			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not ready to execute as a leader or are loading the DBState messages
-				continue
-			}
-			currentMinute := s.CurrentMinute
-			if currentMinute == 10 { // if we are between blocks
-				currentMinute = 9 // treat minute 10 as an extension of minute 9
-			}
-			if lastHeight == int(s.LLeaderHeight) && lastMinute == currentMinute && s.LeaderVMIndex == lastVM {
-				// This eom was already generated. We shouldn't generate it again.
-				// This does mean we missed an EOM boundary, and the next EOM won't occur for another
-				// "minute". This could cause some serious sliding, as minutes could be an addition 100%
-				// in length.
-				if c == -1 { // This means we received a normal eom cadence timer
-					c = 8 // Send 8 retries on a 1/10 of the normal minute period
-				}
-				if c > 0 {
-					go func() {
-						// We sleep for 1/10 of a minute, and try again
-						time.Sleep(s.GetMinuteDuration() / 10)
-						s.tickerQueue <- c - 1
-					}()
-				}
-				s.LogPrintf("timer", "retry %d", c)
-				s.LogPrintf("validator", "retry %d  %d-:-%d %d", c, s.LLeaderHeight, currentMinute, s.LeaderVMIndex)
-				continue // Already generated this eom
-			}
 
-			lastHeight, lastMinute, lastVM = int(s.LLeaderHeight), currentMinute, s.LeaderVMIndex
+			currentMinute := s.CurrentMinute
 
 			eom := new(messages.EOM)
 			eom.Timestamp = s.GetTimestamp()
 			eom.ChainID = s.GetIdentityChainID()
 			{
 				// best guess info... may be wrong -- just for debug
-				eom.DBHeight = s.LLeaderHeight
-				eom.VMIndex = s.LeaderVMIndex
+				eom.DBHeight = 0
+				eom.VMIndex = 0
 				eom.Minute = byte(currentMinute)
 			}
 
@@ -153,18 +126,9 @@ func (s *State) ValidatorLoop() {
 			eom.SetLocal(true) // local EOMs are really just timeout indicators that we need to generate an EOM
 			msg = eom
 			s.LogMessage("validator", fmt.Sprintf("generated c:%d  %d-:-%d %d", c, s.LLeaderHeight, s.CurrentMinute, s.LeaderVMIndex), eom)
+			s.Instance.InMsg <- msg
 		case msg = <-s.inMsgQueue:
-			s.LogMessage("InMsgQueue", "dequeue", msg)
-		case msg = <-s.inMsgQueue2:
-			s.LogMessage("InMsgQueue2", "dequeue", msg)
-		}
-
-		if t := msg.Type(); t == constants.ACK_MSG {
-			s.LogMessage("ackQueue", "enqueue ValidatorLoop", msg)
-			s.ackQueue <- msg
-		} else {
-			s.LogMessage("msgQueue", "enqueue ValidatorLoop", msg)
-			s.msgQueue <- msg
+			s.Instance.InMsg <- msg
 		}
 	}
 }

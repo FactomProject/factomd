@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+# script to run go fmt, go install with the proper git commit, and run your factomd.  Run from your factomd 
+# directory.  For example, you might run the following:
+#
+#     g factomd -count=10 -net=long -db=Map -blktime=30 > out.txt
+#
+# That runs factomd as a ten node simulation connected in a line using a "In Memory" database (so your 
+# databases on disk are not impacted) with a block time of 30 seconds.  Output is redirected to out.txt
+#
+
+if go fmt ./...; then
+	if go install -ldflags "-X github.com/PaulSnow/factom2d/engine.Build=`git rev-parse HEAD`";then
+		git branch | grep [*]
+                date 
+		echo
+		git branch | grep [*] >&2
+		date >&2
+                echo >&2
+		$@
+	fi
+fi
+

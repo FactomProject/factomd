@@ -12,10 +12,10 @@ import (
 
 	"strconv"
 
-	"github.com/PaulSnow/factom2d/common/interfaces"
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"github.com/FactomProject/goleveldb/leveldb/util"
+	"github.com/PaulSnow/factom2d/common/interfaces"
 )
 
 type LevelDB struct {

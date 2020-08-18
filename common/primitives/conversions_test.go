@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/PaulSnow/factom2d/common/primitives"
 	"github.com/FactomProject/go-bip39"
+	. "github.com/PaulSnow/factom2d/common/primitives"
 )
 
 /*

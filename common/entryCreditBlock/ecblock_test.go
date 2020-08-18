@@ -10,9 +10,9 @@ import (
 	"time"
 
 	ed "github.com/FactomProject/ed25519"
+	"github.com/FactomProject/go-spew/spew"
 	. "github.com/PaulSnow/factom2d/common/entryCreditBlock"
 	"github.com/PaulSnow/factom2d/common/primitives"
-	"github.com/FactomProject/go-spew/spew"
 )
 
 var _ = fmt.Sprint("testing")

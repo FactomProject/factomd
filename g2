@@ -1,0 +1,6 @@
+
+gcomp factom2d --fastsaverate=4 --count=5 --net=alot+ --blktime=20 --faulttimeout=30000 --enablenet=false --network=LOCAL --startdelay=5 $@ > out.txt 2> err.txt
+
+
+
+

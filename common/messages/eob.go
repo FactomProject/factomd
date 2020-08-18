@@ -20,7 +20,7 @@ import (
 // eLogger is for EOM Messages and extends packageLogger
 var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
 
-type EOM struct {
+type EOB struct {
 	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 	Minute    byte
@@ -346,7 +346,7 @@ func (m *EOM) String() string {
 		f = "F"
 	}
 	return fmt.Sprintf("%6s-%30s FF %2d %1s-Leader[%x] hash[%x] ts %d %s %s",
-		"EOM",
+		"EOB",
 		fmt.Sprintf("DBh/VMh/h %d/%02d/-- minute %2d", m.DBHeight, m.VMIndex, m.Minute),
 		m.SysHeight,
 		f,
