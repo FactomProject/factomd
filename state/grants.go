@@ -1233,8 +1233,8 @@ func GetHardCodedGrants() []HardGrant {
 			// The Factoid Authority total: 535 FCT
 			HardGrant{11, 535e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
 
-			// Factom Inc total: 8450 FCT
-			HardGrant{11, 8450e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
+			// Factom Inc total: 8450 FCT - New Factom Address
+			HardGrant{11, 8450e8, validateAddress("FA2iY1hG5PKaBBzvnRAoe5JFita4PzfrAo1gDbZLhE29af53h13J")},
 
 			// CryptoLogic total: 535 FCT
 			HardGrant{11, 535e8, validateAddress("FA29wMUjN38BVLbJs6dR6gHHdBys2mpo3wy565JCjquUQTGqNZfb")},
