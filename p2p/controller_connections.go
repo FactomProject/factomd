@@ -354,8 +354,9 @@ func (c *controller) listen() {
 				if !ne.Temporary() {
 					select {
 					case <-c.net.stopper: // stopped properly
+						tmpLogger.WithError(err).Debug("controller.listen() loop exiting")
 					default:
-						tmpLogger.WithError(err).Error("controller.acceptLoop() error accepting")
+						tmpLogger.WithError(err).Error("controller.listen() error accepting")
 					}
 					return
 				}
