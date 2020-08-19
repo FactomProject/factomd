@@ -352,7 +352,12 @@ func (c *controller) listen() {
 		if err != nil {
 			if ne, ok := err.(*net.OpError); ok && !ne.Timeout() {
 				if !ne.Temporary() {
-					tmpLogger.WithError(err).Error("controller.acceptLoop() error accepting")
+					select {
+					case <-c.net.stopper: // stopped properly
+						tmpLogger.WithError(err).Debug("controller.listen() loop exiting")
+					default:
+						tmpLogger.WithError(err).Error("controller.listen() error accepting")
+					}
 					return
 				}
 			}
