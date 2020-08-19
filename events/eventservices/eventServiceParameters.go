@@ -13,10 +13,12 @@ type EventServiceParams struct {
 	EnableLiveFeedAPI     bool
 	Protocol              string
 	Address               string
+	ClientPort            string
 	OutputFormat          eventconfig.EventFormat
 	ReplayDuringStartup   bool
 	SendStateChangeEvents bool
 	BroadcastContent      eventconfig.BroadcastContent
+	PersistentReconnect   bool
 }
 
 func selectParameters(factomParams *globals.FactomParams, config *util.FactomdConfig) *EventServiceParams {
@@ -35,6 +37,11 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 	} else {
 		params.Address = fmt.Sprintf("%s:%d", defaultConnectionHost, defaultConnectionPort)
 	}
+	if factomParams != nil && factomParams.EventSenderPort > 0 {
+		params.ClientPort = fmt.Sprintf(":%d", factomParams.EventSenderPort)
+	} else if config != nil && config.LiveFeedAPI.EventSenderPort > 0 {
+		params.ClientPort = fmt.Sprintf(":%d", config.LiveFeedAPI.EventSenderPort)
+	}
 	if factomParams != nil && len(factomParams.EventFormat) > 0 {
 		params.OutputFormat = eventconfig.EventFormatFrom(factomParams.EventFormat, defaultOutputFormat)
 	} else if config != nil && len(config.LiveFeedAPI.EventFormat) > 0 {
@@ -46,6 +53,7 @@ func selectParameters(factomParams *globals.FactomParams, config *util.FactomdCo
 	params.EnableLiveFeedAPI = (factomParams != nil && factomParams.EnableLiveFeedAPI) || (config != nil && config.LiveFeedAPI.EnableLiveFeedAPI)
 	params.ReplayDuringStartup = (factomParams != nil && factomParams.EventReplayDuringStartup) || (config != nil && config.LiveFeedAPI.EventReplayDuringStartup)
 	params.SendStateChangeEvents = (factomParams != nil && factomParams.EventSendStateChange) || (config != nil && config.LiveFeedAPI.EventSendStateChange)
+	params.PersistentReconnect = (factomParams != nil && factomParams.PersistentReconnect) || (config != nil && config.LiveFeedAPI.PersistentReconnect)
 
 	var err error
 	if factomParams != nil && len(factomParams.EventBroadcastContent) > 0 {
