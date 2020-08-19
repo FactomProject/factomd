@@ -1214,6 +1214,89 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{246851, 148e8, validateAddress("FA3SD1gth7zPFuYKu1gieDMRAoNMHuuSuVYMUvyApF6dYL3kGF7G")},
 			// --------------------------------------------------------
 
+			// ********************************
+			// **** Grant Round 2020-03 ****
+			// ********************************
+
+			// --------------------------------------------------------
+			// Who -- 16500 FCT
+			// Core and General Development
+
+			// Who total: 16500 FCT
+			HardGrant{259651, 16500e8, validateAddress("FA3WALLETKpcjeneRfQiX8Gv5vQDSugmDTomfc8uahvVgoUiqX3o")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-The Factoid Authority-Factom Inc-CryptoLogic-Bedrock Solutions-De Facto -- 12760 FCT
+			// Factom Open Node System + Anchor Master + Oracle Master
+
+			// The Factoid Authority total: 535 FCT
+			HardGrant{259651, 535e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
+
+			// Factom Inc total: 8450 FCT - New Factom Address
+			HardGrant{259651, 8450e8, validateAddress("FA2iY1hG5PKaBBzvnRAoe5JFita4PzfrAo1gDbZLhE29af53h13J")},
+
+			// CryptoLogic total: 535 FCT
+			HardGrant{259651, 535e8, validateAddress("FA29wMUjN38BVLbJs6dR6gHHdBys2mpo3wy565JCjquUQTGqNZfb")},
+
+			// Bedrock Solutions total: 1395 FCT
+			HardGrant{259651, 1395e8, validateAddress("FA2FqYZPfBeRWq7fWSFEhassT5zpMQZm8jwus3yWbzeN3PZPWybm")},
+
+			// De Facto total: 1845 FCT
+			HardGrant{259651, 1845e8, validateAddress("FA2YeMbN8Z1SsT7Yqw6Np85kWwtFVg2CyJKMDFnuXTawWuWPtzvX")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Jason Gregoire-Kompendium -- 14500 FCT
+			// Factom-Ethereum Bridge System
+
+			// Kompendium total: 14500 FCT
+			HardGrant{259651, 14500e8, validateAddress("FA2H1Vwsq6VLcKJEtnpBRTHTXFzSQYJNFkd82ZB4N77bfe7JmWPD")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-Website Committee -- 2875 FCT
+			// Website Committee grant
+
+			// Website Committee total: 2875 FCT
+			HardGrant{259651, 2875e8, validateAddress("FA3TG1mi25XfJSVeNT5vS9uLi8VQxjK8ju9pGCp8Po6rrk5RXPLH")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-De Facto -- 14438 FCT
+			// Factom Realtime Explorer backpay
+
+			// De Facto total: 14438 FCT
+			HardGrant{259651, 14438e8, validateAddress("FA2rrwFVvkFYwyGFHVBMwRqTpycuZiagrQdcbPWzuoEwJQxjDwi3")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Colin Campbell-Marketing Working Group -- 7000 FCT
+			// Investor Funnels
+
+			// Marketing Working Group total: 7000 FCT
+			HardGrant{259651, 7000e8, validateAddress("FA2tCnVKbLMjnLfj9nJQCvQ2GyyuW64mYep1CzsQaL5WmFV5Vhdw")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-De Facto -- 2150 FCT
+			// Network restart system
+
+			// De Facto total: 2150 FCT
+			HardGrant{259651, 2150e8, validateAddress("FA2rrwFVvkFYwyGFHVBMwRqTpycuZiagrQdcbPWzuoEwJQxjDwi3")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Matt York-MaxCollab -- 6666 FCT
+			// W&M Blockchain Lab Governance / Tokenomics Research
+
+			// Matt York total: 600 FCT
+			HardGrant{259651, 600e8, validateAddress("FA3PTnet6yGwnCkprszYYfHtwqymqQQWKfFjoRkavxSda15VNtwY")},
+
+			// MaxCollab total: 6066 FCT
+			HardGrant{259651, 6066e8, validateAddress("FA3TV1SjP8nVjVsWsYZhxvGX89orBFbXBeAp7ZDYRyE8aA4knqrF")},
+			// --------------------------------------------------------
+
 		}
 
 	default:

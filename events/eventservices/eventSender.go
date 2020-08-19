@@ -103,7 +103,7 @@ func (eventSender *eventSender) sendEvent(event *eventmessages.FactomEvent) {
 
 	// retry sending event ... times
 	sendSuccessful := false
-	for retry := 0; retry < sendRetries && !sendSuccessful; retry++ {
+	for retry := 0; (eventSender.params.PersistentReconnect || retry < sendRetries) && !sendSuccessful; retry++ {
 		if err = eventSender.connect(); err != nil {
 			log.Errorf("An error occurred while connecting to receiver %s: %v, retry %d", eventSender.params.Address, err, retry)
 			time.Sleep(redialSleepDuration)
@@ -148,7 +148,16 @@ func (eventSender *eventSender) connect() error {
 
 	if eventSender.connection == nil {
 		log.Infoln("Connecting to ", eventSender.params.Address)
-		conn, err := net.Dial(eventSender.params.Protocol, eventSender.params.Address)
+		var conn net.Conn
+		var err error
+		if len(eventSender.params.ClientPort) > 0 {
+			server, _ := net.ResolveTCPAddr("tcp", eventSender.params.Address)
+			client, _ := net.ResolveTCPAddr("tcp", eventSender.params.ClientPort)
+			conn, err = net.DialTCP(eventSender.params.Protocol, client, server)
+		} else {
+			conn, err = net.Dial(eventSender.params.Protocol, eventSender.params.Address)
+
+		}
 		if err != nil {
 			return fmt.Errorf("failed to connect: %v", err)
 		}

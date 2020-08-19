@@ -88,10 +88,12 @@ type FactomParams struct {
 	EventReceiverProtocol    string
 	EventReceiverHost        string
 	EventReceiverPort        int
+	EventSenderPort          int
 	EventFormat              string
 	EventSendStateChange     bool
 	EventBroadcastContent    string
 	EventReplayDuringStartup bool
+	PersistentReconnect      bool
 }
 
 /****************************************************************
