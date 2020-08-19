@@ -38,14 +38,13 @@ type finder struct {
 	headsMtx sync.Mutex
 
 	// multithreaded administrative vars
-	wg     sync.WaitGroup
 	gather chan uint32
 	fix    chan *head
 
 	// counter of how many anomalies were detected
 	errors int64
 
-	// results of the second st ep
+	// results of the second step
 	batchMtx    sync.Mutex
 	batchKeys   []interfaces.IHash
 	batchValues []interfaces.IHash
@@ -82,9 +81,13 @@ func (f *finder) gatherHeads(workers int) error {
 		return nil
 	}
 
-	f.wg.Add(workers)
+	var wg sync.WaitGroup
+	wg.Add(workers)
 	for i := 0; i < workers; i++ {
-		go f.gatherer()
+		go func() {
+			f.gatherer()
+			wg.Done()
+		}()
 	}
 
 	height := head.GetDatabaseHeight()
@@ -93,7 +96,7 @@ func (f *finder) gatherHeads(workers int) error {
 		f.gather <- i
 	}
 	close(f.gather)
-	f.wg.Wait()
+	wg.Wait()
 
 	return nil
 }
@@ -101,9 +104,13 @@ func (f *finder) gatherHeads(workers int) error {
 // step 2
 // launches workers and writes all known heads to worker channel.
 func (f *finder) checkHeads(workers int) {
-	f.wg.Add(workers)
+	var wg sync.WaitGroup
+	wg.Add(workers)
 	for i := 0; i < workers; i++ {
-		go f.fixer()
+		go func() {
+			f.fixer()
+			wg.Done()
+		}()
 	}
 
 	for _, ch := range f.heads {
@@ -111,7 +118,7 @@ func (f *finder) checkHeads(workers int) {
 	}
 
 	close(f.fix)
-	f.wg.Wait()
+	wg.Wait()
 }
 
 // run the algorithm with the specified number of workers.
@@ -164,8 +171,6 @@ func (f *finder) gatherer() {
 			f.get(eblock.GetChainID()).Update(int64(h), eblock.GetKeyMR())
 		}
 	}
-
-	f.wg.Done()
 }
 
 // worker routine for step 2.
@@ -193,10 +198,9 @@ func (f *finder) fixer() {
 			}).Warn("bad chainhead found")
 		}
 	}
-	f.wg.Done()
 }
 
-// FindHeads checkes the databases to find any chains where the chain head
+// FindHeads checks the databases to find any chains where the chain head
 // in the database does not match the actual chain head.
 // If specified, these anomalies are also fixed.
 func FindHeads(db *databaseOverlay.Overlay, fixHeads bool) error {
