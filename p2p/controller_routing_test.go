@@ -161,6 +161,8 @@ func Test_controller_manageData(t *testing.T) {
 	}()
 
 	net.controller.manageData()
+	// give asynchronous requests some time to finish before checking
+	time.Sleep(time.Millisecond * 500)
 
 	if len(ping.send) != 1 {
 		t.Errorf("ping peer did not receive pong")
