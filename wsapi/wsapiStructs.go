@@ -274,11 +274,6 @@ func (hr *HeightRequest) IncludeRaw() bool {
 	return !hr.NoRaw
 }
 
-type ReplayRequest struct {
-	StartHeight uint32 `json:"startheight"`
-	EndHeight   uint32 `json:"endheight,omitempty"`
-}
-
 type HeightOrHashRequest struct {
 	Height *int64 `json:"height,omitempty"`
 	Hash   string `json:"hash,omitempty"`
