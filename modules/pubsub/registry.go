@@ -9,6 +9,7 @@ import (
 )
 
 var globalReg *Registry
+var registryLogger = packageLogger.WithField("subpack", "registry")
 
 func init() {
 	Reset()
@@ -126,25 +127,25 @@ func globalPublishWith(path string, p IPublisher, wrappers ...IPublisherWrapper)
 	err := globalReg.Register(path, p)
 	if err != nil {
 		tree := globalReg.PrintTree()
-		fmt.Printf("Publish Tree\n%s\n", tree)
+		registryLogger.WithError(err).Errorf("Publish Tree\n%s\n", tree)
 		panic(fmt.Sprintf("failed to publish: %s", err.Error()))
 	}
 	return p
 }
 
 func globalPublish(path string, p IPublisher) IPublisher {
-	fmt.Printf("globalPublish: %v\n", path)
+	registryLogger.Debugf("globalPublish: %v\n", path)
 	err := globalReg.Register(path, p)
 	if err != nil {
 		tree := globalReg.PrintTree()
-		fmt.Printf("Publish Tree\n%s\n", tree)
+		registryLogger.WithError(err).Errorf("Publish Tree\n%s\n", tree)
 		panic(fmt.Sprintf("failed to publish: %s %s", path, err.Error()))
 	}
 	return p
 }
 
 func globalSubscribe(path string, sub IPubSubscriber) IPubSubscriber {
-	fmt.Printf("globalSubscribe: %v\n", path)
+	registryLogger.Debugf("globalSubscribe: %v\n", path)
 
 	err := globalReg.SubscribeTo(path, sub)
 	if err != nil {

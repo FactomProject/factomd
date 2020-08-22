@@ -19,7 +19,6 @@ import (
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/p2p"
 
-	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/messages"
@@ -407,15 +406,12 @@ func makeServer(w *worker.Thread, p *globals.FactomParams) (node *fnode.FactomNo
 
 func startFnodes(w *worker.Thread) {
 	state.CheckGrants() // check the grants table hard coded into the build is well formed.
-	for i, _ := range fnode.GetFnodes() {
+	for i := range fnode.GetFnodes() {
 		node := fnode.Get(i)
 		w.Spawn(node.GetName()+"Thread", func(w *worker.Thread) {
 			startServer(w, node)
 		})
 	}
-	time.Sleep(10 * time.Second)
-	common.PrintAllNames()
-	fmt.Println(registry.Graph())
 }
 
 func startServer(w *worker.Thread, node *fnode.FactomNode) {
