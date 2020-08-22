@@ -122,7 +122,7 @@ Which will get you something like:
     -logjson
         Use to set logging to use a json formatting
     -loglvl string
-        Set log level to either: none, debug, info, warning, error, fatal or panic (default "none")
+        Set log level to either: none, debug, info, warning, error, fatal or panic (default "info")
     -logstash
         If true, use Logstash
     -logurl string
