@@ -1,4 +1,4 @@
-FROM golang:1.13
+FROM golang:1.14
 
 # Get git
 RUN apt-get update \
@@ -14,7 +14,7 @@ COPY . .
 ARG GOOS=linux
 
 # Build and install factomd
-RUN ./build.sh
+RUN make install
 
 # Setup the cache directory
 RUN mkdir -p /root/.factom/m2
