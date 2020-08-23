@@ -1,4 +1,4 @@
-FROM golang:1.12
+FROM golang:1.14
 
 # Get git
 RUN apt-get update \
@@ -26,7 +26,7 @@ COPY . .
 ARG GOOS=linux
 
 # Build and install factomd
-RUN go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD` -X github.com/FactomProject/factomd/engine.FactomdVersion=`cat VERSION`"
+RUN make install
 
 # Setup the cache directory
 RUN mkdir -p /root/.factom/m2
