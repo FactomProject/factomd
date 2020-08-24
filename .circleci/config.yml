@@ -5,7 +5,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.13
+      - image: circleci/golang:1.14
 
     steps:
       - checkout
@@ -19,7 +19,7 @@ jobs:
             go get github.com/mattn/goveralls
       - run:
           name: Build and install the executable
-          command: ./build.sh && cp -r $GOPATH/ /tmp
+          command: make install && cp -r $GOPATH/ /tmp
 
       - persist_to_workspace:
           root: /tmp
