@@ -72,7 +72,6 @@ func sort(parent *worker.Thread, fnode *fnode.FactomNode) {
 func stubs(parent *worker.Thread, fnode *fnode.FactomNode) {
 	parent.Spawn("stubs", func(w *worker.Thread) {
 		// Run init conditions. Setup publishers
-		pub := pubsub.PubFactory.Base().Publish(fnode.State.GetFactomNodeName() + "/blocktime")
 
 		w.OnReady(func() {
 		})
@@ -81,7 +80,6 @@ func stubs(parent *worker.Thread, fnode *fnode.FactomNode) {
 		})
 
 		w.OnExit(func() {
-			_ = pub.Close()
 		})
 
 		w.OnComplete(func() {
