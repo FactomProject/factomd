@@ -56,7 +56,7 @@ func (p *PubRegistry) bindPublishers() {
 	p.ProcessListInfo = p.newPublisher(events.Path.ProcessListInfo)
 	p.StateUpdate = p.newPublisher(events.Path.StateUpdate)
 	p.AuthoritySet = p.newPublisher(events.Path.AuthoritySet)
-	p.Blocktime = p.newPublisher("Blocktime")
+	p.Blocktime = p.newPublisher("blocktime")
 }
 
 func (p PubRegistry) GetBlkSeq() pubsub.IPublisher {
