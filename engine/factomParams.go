@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -14,13 +15,15 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/FactomProject/factomd/common/globals"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 )
 
 func init() {
-	p := &Params // Global copy of decoded Params global.Params
+	p := &globals.Params // Global copy of decoded Params global.Params
 
 	flag.StringVar(&p.DebugConsole, "debugconsole", "", "Enable DebugConsole on port. localhost:8093 open 8093 and spawns a telnet console, remotehost:8093 open 8093")
 	flag.StringVar(&p.StdoutLog, "stdoutlog", "", "Log stdout to a file")
@@ -69,7 +72,7 @@ func init() {
 	flag.BoolVar(&p.Fast, "fast", true, "If true, Factomd will fast-boot from a file.")
 	flag.IntVar(&p.FastSaveRate, "fastsaverate", 1000, "Save a fastboot file every so many blocks. Should be > 1000 for live systems.")
 	flag.StringVar(&p.FastLocation, "fastlocation", "", "Directory to put the Fast-boot file in.")
-	flag.StringVar(&p.Loglvl, "loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
+	flag.StringVar(&p.Loglvl, "loglvl", "info", "Set log level to either: none, debug, info, warning, error, fatal or panic")
 	flag.BoolVar(&p.Logjson, "logjson", false, "Use to set logging to use a json formatting")
 	flag.BoolVar(&p.Sim_Stdin, "sim_stdin", true, "If true, sim control reads from stdin.")
 	// Plugins
@@ -97,14 +100,31 @@ func init() {
 	flag.BoolVar(&p.EventReplayDuringStartup, "eventreplayduringstartup", false, "Replay events since the last save state during startup; default false")
 }
 
-func ParseCmdLine(args []string) *FactomParams {
-	p := &Params // Global copy of decoded Params global.Params
+func ParseCmdLine(args []string) *globals.FactomParams {
+	p := &globals.Params // Global copy of decoded Params global.Params
 
 	flag.CommandLine.Parse(args)
 
 	// Handle the global (not Factom server specific parameters
 	if p.StdoutLog != "" || p.StderrLog != "" {
 		handleLogfiles(p.StdoutLog, p.StderrLog)
+	}
+
+	switch strings.ToLower(p.Loglvl) {
+	case "none":
+		log.SetOutput(ioutil.Discard)
+	case "debug":
+		log.SetLevel(log.DebugLevel)
+	case "info":
+		log.SetLevel(log.InfoLevel)
+	case "warning", "warn":
+		log.SetLevel(log.WarnLevel)
+	case "error":
+		log.SetLevel(log.ErrorLevel)
+	case "fatal":
+		log.SetLevel(log.FatalLevel)
+	case "panic":
+		log.SetLevel(log.PanicLevel)
 	}
 
 	fmt.Print("//////////////////////// Copyright 2017 Factom Foundation\n")

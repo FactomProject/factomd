@@ -2,7 +2,11 @@ package pubsub
 
 import (
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
+
+var packageLogger = log.WithField("package", "pubsub")
 
 var _ IPublisher = (*PubBase)(nil)
 

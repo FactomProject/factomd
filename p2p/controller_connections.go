@@ -301,7 +301,7 @@ func (c *controller) Dial(ep Endpoint) (*Peer, []Endpoint) {
 	c.logger.Debugf("Dialing to %s", ep)
 	con, err := c.dialer.Dial(ep)
 	if err != nil {
-		c.logger.WithError(err).Infof("Failed to dial to %s", ep)
+		c.logger.WithError(err).Warnf("Failed to dial to %s", ep)
 		return nil, nil
 	}
 

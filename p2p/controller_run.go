@@ -8,7 +8,7 @@ import "time"
 // not based on reactions. runs once a second
 func (c *controller) run() {
 	c.logger.Debug("Start run()")
-	defer c.logger.Error("Stop run()")
+	defer c.logger.Debug("Stop run()")
 
 	for {
 		c.runCatRound()
