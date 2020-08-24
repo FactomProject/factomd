@@ -2,11 +2,13 @@ package pubsub
 
 import (
 	"fmt"
-	"path/filepath"
+	"strings"
 	"sync"
 
 	gotree "github.com/DiSiqueira/GoTree"
 )
+
+const Separator = "/"
 
 var globalReg *Registry
 var registryLogger = packageLogger.WithField("subpack", "registry")
@@ -155,5 +157,5 @@ func globalSubscribe(path string, sub IPubSubscriber) IPubSubscriber {
 }
 
 func GetPath(dirs ...string) string {
-	return filepath.Join(dirs...)
+	return strings.Join(dirs, Separator)
 }
