@@ -892,7 +892,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		callUpdateState = true
 
 		// let blocktime know a new block started
-		s.Blocktime.Write(blockstart)
+		s.Pub.GetBlocktime().Write(blockstart)
 
 		// Expire old commits and stuff ...
 		s.Commits.Cleanup(s)
