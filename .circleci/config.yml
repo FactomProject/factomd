@@ -360,6 +360,21 @@ workflows:
             - test
       - docker_build:
           filters:
+            branches:
+                only:
+                    - develop
+                    - master
+                    - master-staging
+                    - community-testnet-staging
+                    - community-testnet
+                    - experimental1
+                    - experimental2
+                    - qa1
+                    - qa2
+                    - qa3
+                    - devnet1
+                    - devnet2
+                    - devnet3
             tags:
               only: /.*/
           context: org-global
