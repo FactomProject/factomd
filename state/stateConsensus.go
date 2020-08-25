@@ -2378,16 +2378,16 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 			cb := fs.GetCurrentBlock()
 			cbtx := cb.GetTransactions()[0]
-			foo := cbtx.GetTimestamp().GetTimeMilliUInt64()
+			cbTimestamp := cbtx.GetTimestamp().GetTimeMilliUInt64()
 			lts := s.LeaderTimestamp.GetTimeMilliUInt64()
-			s.LogPrintf("dbsig", "ProcessDBSig(): first  cbtx before %d dbsig %d lts %d", foo, dbsMilli, lts)
+			s.LogPrintf("dbsig", "ProcessDBSig(): first  cbtx before %d dbsig %d lts %d", cbTimestamp, dbsMilli, lts)
 
 			s.SetLeaderTimestamp(dbs.Timestamp) // SetLeaderTimestamp also updates the Message Timestamp filter
 
 			uInt64_3 := dbs.GetTimestamp().GetTimeMilliUInt64()
-			foo_3 := cbtx.GetTimestamp().GetTimeMilliUInt64()
-			lts_3 := s.LeaderTimestamp.GetTimeMilliUInt64()
-			s.LogPrintf("dbsig", "ProcessDBSig(): second cbtx before %d dbsig %d lts %d", foo_3, uInt64_3, lts_3)
+			cbTimestamp3 := cbtx.GetTimestamp().GetTimeMilliUInt64()
+			lts3 := s.LeaderTimestamp.GetTimeMilliUInt64()
+			s.LogPrintf("dbsig", "ProcessDBSig(): second cbtx before %d dbsig %d lts %d", cbTimestamp3, uInt64_3, lts3)
 			s.LogPrintf("dbsig", "ProcessDBSig(): p cbtx %p dbsig %p lts %p", cbtx.GetTimestamp().(*primitives.Timestamp), dbs.GetTimestamp().(*primitives.Timestamp), s.LeaderTimestamp.(*primitives.Timestamp))
 
 			txt, _ := cbtx.CustomMarshalText()
@@ -2395,9 +2395,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 			uInt64 := dbs.GetTimestamp().GetTimeMilliUInt64()
 
-			foo2 := cbtx.GetTimestamp().GetTimeMilliUInt64()
+			cbTimestamp2 := cbtx.GetTimestamp().GetTimeMilliUInt64()
 			cb.PatchCoinbase(dbs.Timestamp)
-			s.LogPrintf("dbsig", "ProcessDBSig(): cbtx before %d dbsig %d cbtx after %d", foo2, uInt64, cbtx.GetTimestamp().GetTimeMilliUInt64())
+			s.LogPrintf("dbsig", "ProcessDBSig(): cbtx before %d dbsig %d cbtx after %d", cbTimestamp2, uInt64, cbtx.GetTimestamp().GetTimeMilliUInt64())
 
 			txt, _ = cbtx.CustomMarshalText()
 			s.LogPrintf("dbsig", "ProcessDBSig(): coinbase after  %s", string(txt))
