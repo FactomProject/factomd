@@ -20,6 +20,7 @@ type PubRegistry struct {
 	ProcessListInfo pubsub.IPublisher
 	StateUpdate     pubsub.IPublisher
 	AuthoritySet    pubsub.IPublisher
+	Blocktime       pubsub.IPublisher
 	factomNodeName  string
 }
 
@@ -55,6 +56,7 @@ func (p *PubRegistry) bindPublishers() {
 	p.ProcessListInfo = p.newPublisher(events.Path.ProcessListInfo)
 	p.StateUpdate = p.newPublisher(events.Path.StateUpdate)
 	p.AuthoritySet = p.newPublisher(events.Path.AuthoritySet)
+	p.Blocktime = p.newPublisher("blocktime")
 }
 
 func (p PubRegistry) GetBlkSeq() pubsub.IPublisher {
@@ -99,4 +101,8 @@ func (p PubRegistry) GetDBAnchored() pubsub.IPublisher {
 
 func (p PubRegistry) GetNodeMessage() pubsub.IPublisher {
 	return p.NodeMessage
+}
+
+func (p PubRegistry) GetBlocktime() pubsub.IPublisher {
+	return p.Blocktime
 }

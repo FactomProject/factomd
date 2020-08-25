@@ -26,8 +26,8 @@ var _ = fmt.Print
 func NetworkProcessorNet(w *worker.Thread, fnode *fnode.FactomNode) {
 	FromPeerToPeer(w, fnode)
 	stubs(w, fnode)
-	BasicMessageValidation(w, fnode)
-	sort(w, fnode) // TODO: Replace this service entirely
+	BasicMessageValidation(w, fnode, 2) // 2 validators
+	sort(w, fnode)                      // TODO: Replace this service entirely
 	w.Run("NetworkOutputs", func() { NetworkOutputs(fnode) })
 	w.Run("InvalidOutputs", func() { InvalidOutputs(fnode) })
 
@@ -46,7 +46,7 @@ func sort(parent *worker.Thread, fnode *fnode.FactomNode) {
 		sub := pubsub.SubFactory.Channel(50)
 
 		w.OnReady(func() {
-			sub.Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "rest"))
+			sub.Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "output"))
 		})
 
 		w.OnRun(func() {
@@ -72,7 +72,6 @@ func sort(parent *worker.Thread, fnode *fnode.FactomNode) {
 func stubs(parent *worker.Thread, fnode *fnode.FactomNode) {
 	parent.Spawn("stubs", func(w *worker.Thread) {
 		// Run init conditions. Setup publishers
-		pub := pubsub.PubFactory.Base().Publish(fnode.State.GetFactomNodeName() + "/blocktime")
 
 		w.OnReady(func() {
 		})
@@ -81,7 +80,6 @@ func stubs(parent *worker.Thread, fnode *fnode.FactomNode) {
 		})
 
 		w.OnExit(func() {
-			_ = pub.Close()
 		})
 
 		w.OnComplete(func() {
@@ -95,7 +93,8 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 	// 		validators.
 	// TODO: Construct the proper setup and teardown of this publisher.
 	s := fnode.State
-	msgPub := pubsub.PubFactory.MsgSplit(100).Publish(pubsub.GetPath(s.GetFactomNodeName(), "msgs"))
+
+  msgPub := pubsub.PubFactory.MsgSplit(100).Publish(pubsub.GetPath(s.GetFactomNodeName(), "bmv", "input"))
 	go msgPub.Start()
 
 	// ackHeight is used in ignoreMsg to determine if we should ignore an acknowledgment
@@ -240,8 +239,14 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 	})
 }
 
-func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
-	for i := 0; i < 2; i++ { // 2 Basic message validators
+func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode, validators int) {
+	// grab block time for window size
+	blocktime := time.Second * time.Duration(fnode.State.GetDirectoryBlockInSeconds())
+
+	// one replay for all validators
+	replay := bmv.NewMsgReplay(6, blocktime)
+
+	for i := 0; i < validators; i++ {
 		parent.Spawn(fmt.Sprintf("BMV%d", i), func(w *worker.Thread) {
 			ctx, cancel := context.WithCancel(context.Background())
 			// w.Name is my parent?
@@ -249,7 +254,7 @@ func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
 			//w.Init(&parent.Name, "bmv")
 
 			// Run init conditions. Setup publishers
-			msgIn := bmv.NewBasicMessageValidator(fnode.State.GetFactomNodeName())
+			msgIn := bmv.NewBasicMessageValidator(fnode.State.GetFactomNodeName(), replay)
 
 			w.OnReady(func() {
 				// Subscribe to publishers
@@ -259,7 +264,7 @@ func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode) {
 			w.OnRun(func() {
 				// TODO: Temporary print all messages out of bmv. We need to actually use them...
 				//go func() {
-				//	sub := pubsub.SubFactory.Channel(100).Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "rest"))
+				//	sub := pubsub.SubFactory.Channel(100).Subscribe(pubsub.GetPath(fnode.State.GetFactomNodeName(), "bmv", "output"))
 				//	for v := range sub.Channel() {
 				//		fmt.Println("MESSAGE -> ", v)
 				//	}

@@ -78,7 +78,7 @@ func (s *Sub) SetLeaderMode(nodeName string) {
 		return
 	}
 	s.role = FederatedRole
-	s.MsgInput.Subscribe(pubsub.GetPath(nodeName, "bmv", "rest"))
+	s.MsgInput.Subscribe(pubsub.GetPath(nodeName, "bmv", "output"))
 	s.MovedToHeight.Subscribe(pubsub.GetPath(nodeName, events.Path.Seq))
 	s.DBlockCreated.Subscribe(pubsub.GetPath(nodeName, events.Path.Directory))
 	s.BalanceChanged.Subscribe(pubsub.GetPath(nodeName, events.Path.Bank))

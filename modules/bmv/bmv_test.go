@@ -14,7 +14,8 @@ import (
 
 func TestBasicMessageValidator_SingleRun(t *testing.T) {
 	t.Skip("FIXME")
-	bmv := NewBasicMessageValidator("bmv0")
+	replay := NewMsgReplay(6, time.Minute)
+	bmv := NewBasicMessageValidator("bmv0", replay)
 	blocks := blockmaker.NewFakeBlockMaker()
 	msgs := msgmaker.NewFakeMsgMaker(pubsub.PubFactory.Base().Publish("/msgs"), 10)
 	bmv.Subscribe()
