@@ -1,36 +1,140 @@
 package state
 
 import (
+	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-	"go.uber.org/ratelimit"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
+)
+
+const (
+	EntrySyncMax     = 1000
+	EntrySyncRetry   = time.Second * 10
+	EntrySyncWarning = 16
 )
 
 // TODO rename
 type EntrySyncNew struct {
-	s     *State
-	limit ratelimit.Limiter
+	s *State
+
+	askMtx sync.RWMutex
+	askMap map[[32]byte]bool // entry hash => ask
+	asks   []*entrySyncAsk   // chronological
+
+	ebMtx   sync.Mutex
+	eblocks []*entrySyncEBlock
 
 	closer chan interface{}
 }
 
-func NewEntrySync(s *State, requestsPerSecond int) *EntrySyncNew {
+type entrySyncAsk struct {
+	hash  interfaces.IHash
+	time  time.Time
+	tries int
+}
+
+type entrySyncEBlock struct {
+	height  uint32
+	missing []interfaces.IHash
+}
+
+func NewEntrySync(s *State) *EntrySyncNew {
 	es := new(EntrySyncNew)
 	es.s = s
-	es.limit = ratelimit.New(requestsPerSecond)
+	es.closer = make(chan interface{}, 1)
+	es.askMap = make(map[[32]byte]bool)
+	go es.syncHeight()
+	go es.ask()
+	go es.check()
 	return es
 }
 
-func (es *EntrySyncNew) Start() {
-	select {
-	case <-es.closer:
-	default:
-		panic("EntrySync already running")
+func (es *EntrySyncNew) check() {
+	for {
+		select {
+		case <-es.closer:
+			return
+		default:
+		}
+
+		if len(es.eblocks) == 0 { // outside of mutex but should be fine
+			time.Sleep(time.Second)
+			continue
+		}
+
+		es.ebMtx.Lock()
+		eb := es.eblocks[0]
+
+		stillmissing := make([]interfaces.IHash, 0, len(eb.missing))
+		for _, entryhash := range eb.missing {
+			if !es.has(entryhash) {
+				stillmissing = append(stillmissing, entryhash)
+			}
+		}
+
+		if len(stillmissing) > 0 {
+			eb.missing = stillmissing
+		} else { // eblock is complete
+			es.eblocks = es.eblocks[1:]
+			es.s.EntryBlockDBHeightComplete = eb.height
+			es.s.EntryDBHeightComplete = eb.height
+		}
+		es.ebMtx.Unlock()
+
+		if len(stillmissing) > 0 { // waiting on requests
+			time.Sleep(time.Second)
+		}
 	}
-	es.closer = make(chan interface{}, 1)
-	go es.syncHeight()
-	go es.processReplies()
+}
+
+func (es *EntrySyncNew) has(hash interfaces.IHash) bool {
+	if has, err := es.s.DB.DoesKeyExist(databaseOverlay.ENTRY, hash.Bytes()); err != nil {
+		panic(err)
+	} else {
+		return has
+	}
+}
+
+func (es *EntrySyncNew) ask() {
+	for {
+		select {
+		case <-es.closer:
+			return
+		default:
+		}
+
+		es.askMtx.Lock()
+		// check the first N entries in the list
+		for i := 0; i < len(es.asks) && i < EntrySyncMax; i++ {
+			ask := es.asks[i]
+
+			// remove asks that are fulfilled
+			if es.has(ask.hash) {
+				es.asks = append(es.asks[:i], es.asks[i+1:]...)
+				i-- // we removed one, index stays the same
+				delete(es.askMap, ask.hash.Fixed())
+				continue
+			}
+
+			// re-ask
+			if time.Since(ask.time) > EntrySyncRetry {
+				ask.time = time.Now()
+				ask.tries++
+				request := messages.NewMissingData(primitives.NewTimestampNow(), ask.hash)
+				request.SendOut(es.s, request)
+
+				if ask.tries%EntrySyncWarning == 0 {
+					es.s.Logger.WithField("tries", ask.tries).WithField("hash", ask.hash.String()).Warnf("Unable to retrieve entry from network")
+				}
+			}
+		}
+		es.askMtx.Unlock()
+
+		time.Sleep(time.Second)
+	}
 }
 
 func (es *EntrySyncNew) syncMax() uint32 {
@@ -45,6 +149,12 @@ func (es *EntrySyncNew) syncHeight() {
 	position := es.s.EntryDBHeightComplete + 1
 
 	for {
+		select {
+		case <-es.closer:
+			return
+		default:
+		}
+
 		// nothing to do
 		if position == es.syncMax() {
 			time.Sleep(time.Second)
@@ -62,14 +172,17 @@ func (es *EntrySyncNew) syncHeight() {
 		}
 
 		for _, keymr := range db.GetEntryHashes() {
-			for !es.syncEBlock(keymr, db.GetTimestamp()) {
+			for !es.syncEBlock(position, keymr, db.GetTimestamp()) {
 				time.Sleep(time.Second)
 			}
 		}
+
+		es.s.EntryDBHeightProcessing = position
+		es.s.EntryBlockDBHeightProcessing = position
 	}
 }
 
-func (es *EntrySyncNew) syncEBlock(keymr interfaces.IHash, ts interfaces.Timestamp) bool {
+func (es *EntrySyncNew) syncEBlock(height uint32, keymr interfaces.IHash, ts interfaces.Timestamp) bool {
 	eblock, err := es.s.DB.FetchEBlock(keymr)
 	if err != nil { // database corrupt
 		panic(err)
@@ -78,6 +191,9 @@ func (es *EntrySyncNew) syncEBlock(keymr interfaces.IHash, ts interfaces.Timesta
 	if eblock == nil {
 		return false
 	}
+
+	ebsync := new(entrySyncEBlock)
+	ebsync.height = height
 
 	for _, entryHash := range eblock.GetEntryHashes() {
 		if entryHash.IsMinuteMarker() {
@@ -90,16 +206,38 @@ func (es *EntrySyncNew) syncEBlock(keymr interfaces.IHash, ts interfaces.Timesta
 		update.Timestamp = ts
 		es.s.UpdateEntryHash <- update
 
+		if es.has(entryHash) {
+			continue
+		}
 		es.syncEntryHash(entryHash)
+		ebsync.missing = append(ebsync.missing, entryHash)
 	}
+
+	es.ebMtx.Lock()
+	es.eblocks = append(es.eblocks, ebsync)
+	es.ebMtx.Unlock()
 
 	return true
 }
 
 func (es *EntrySyncNew) syncEntryHash(hash interfaces.IHash) {
+	es.askMtx.Lock()
+	defer es.askMtx.Unlock()
 
+	if _, ok := es.askMap[hash.Fixed()]; ok {
+		return
+	}
+
+	ask := new(entrySyncAsk)
+	ask.hash = hash
+	ask.time = time.Time{} // zero time, never asked
+
+	es.askMap[hash.Fixed()] = true
+	es.asks = append(es.asks, ask) // add to end of queue
 }
 
-func (es *EntrySyncNew) processReplies() {
-
+func (es *EntrySyncNew) AskedFor(hash interfaces.IHash) bool {
+	es.askMtx.RLock()
+	defer es.askMtx.RUnlock()
+	return es.askMap[hash.Fixed()]
 }
