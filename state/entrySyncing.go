@@ -202,7 +202,7 @@ func (s *State) ProcessDBlock(finishedDBlocks chan int, finishedEntries chan int
 			default: // For only the first pass do we ask for missing entries
 				//	s.LogPrintf("entrysyncing", "looking for %x [%6d] dbht %6d tries %6d",
 				//		rc.EntryHash.Bytes(), ipass, dbht, rc.Tries)
-				entryRequest := messages.NewMissingData(s, rc.EntryHash).(*messages.MissingData)
+				entryRequest := messages.NewMissingData(s.GetTimestamp(), rc.EntryHash)
 				s.EntrySyncState.SendRequest <- entryRequest
 				Complete = false
 				rc.Tries++
