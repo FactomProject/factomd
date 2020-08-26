@@ -1363,6 +1363,11 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		if !ok {
 			return
 		}
+
+		if !s.EntrySync.AskedFor(entry.GetHash()) {
+			return
+		}
+
 		s.WriteEntry <- entry // DataResponse
 	}
 }

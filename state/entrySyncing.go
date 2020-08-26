@@ -4,15 +4,7 @@
 
 package state
 
-import (
-	"fmt"
-	"time"
-
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-)
-
+/*
 const (
 	pendingRequests    = 10000 // Lower bound on pending requests while syncing entries
 	purgeEveryXEntries = 1000  // Every 1000 entries or so, go through the written map and purge old entries
@@ -341,3 +333,4 @@ func (s *State) GoSyncEntries() {
 		highestChecked = entryScanLimit
 	}
 }
+*/

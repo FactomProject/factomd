@@ -8,7 +8,7 @@ import (
 // WriteEntries consumed the WriteEntry channel and saves entries into the database.
 // Assumes entries are valid.
 // Panics on database errors
-func (s *State) WriteEntries2(entry interfaces.IEBEntry) {
+func (s *State) WriteEntries(entry interfaces.IEBEntry) {
 	for entry := range s.WriteEntry {
 		if entry == nil {
 			continue

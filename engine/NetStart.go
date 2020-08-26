@@ -658,7 +658,11 @@ func startServer(i int, fnode *FactomNode, load bool) {
 	if load {
 		go state.LoadDatabase(fnode.State)
 	}
-	go fnode.State.GoSyncEntries()
+
+	entrySync := state.NewEntrySync(fnode.State)
+	fnode.State.EntrySync = entrySync
+	go fnode.State.EntrySync.SyncHeight()
+
 	go Timer(fnode.State)
 	go elections.Run(fnode.State)
 	go fnode.State.ValidatorLoop()

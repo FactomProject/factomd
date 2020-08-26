@@ -353,8 +353,8 @@ type State struct {
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
 
-	// State for the Entry Syncing process
-	EntrySyncState *EntrySync
+	// EntrySync handles the downloading of entries
+	EntrySync *EntrySync
 
 	MissingEntryBlockRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
@@ -1300,6 +1300,7 @@ func (s *State) GetEntryBlockDBHeightComplete() uint32 {
 
 func (s *State) SetEntryBlockDBHeightComplete(newHeight uint32) {
 	s.EntryBlockDBHeightComplete = newHeight
+	s.EntryDBHeightComplete = newHeight
 }
 
 func (s *State) GetEntryBlockDBHeightProcessing() uint32 {
@@ -1308,6 +1309,7 @@ func (s *State) GetEntryBlockDBHeightProcessing() uint32 {
 
 func (s *State) SetEntryBlockDBHeightProcessing(newHeight uint32) {
 	s.EntryBlockDBHeightProcessing = newHeight
+	s.EntryDBHeightProcessing = newHeight
 }
 
 func (s *State) GetLLeaderHeight() uint32 {
