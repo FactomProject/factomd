@@ -17,7 +17,7 @@ const (
 )
 
 // TODO rename
-type EntrySyncNew struct {
+type EntrySync struct {
 	s *State
 
 	askMtx sync.RWMutex
@@ -41,18 +41,19 @@ type entrySyncEBlock struct {
 	missing []interfaces.IHash
 }
 
-func NewEntrySync(s *State) *EntrySyncNew {
-	es := new(EntrySyncNew)
+func NewEntrySync(s *State) *EntrySync {
+	es := new(EntrySync)
 	es.s = s
 	es.closer = make(chan interface{}, 1)
 	es.askMap = make(map[[32]byte]bool)
-	go es.syncHeight()
-	go es.ask()
-	go es.check()
 	return es
 }
 
-func (es *EntrySyncNew) check() {
+func (es *EntrySync) Stop() {
+	close(es.closer)
+}
+
+func (es *EntrySync) check() {
 	for {
 		select {
 		case <-es.closer:
@@ -79,8 +80,7 @@ func (es *EntrySyncNew) check() {
 			eb.missing = stillmissing
 		} else { // eblock is complete
 			es.eblocks = es.eblocks[1:]
-			es.s.EntryBlockDBHeightComplete = eb.height
-			es.s.EntryDBHeightComplete = eb.height
+			es.s.SetEntryBlockDBHeightComplete(eb.height)
 		}
 		es.ebMtx.Unlock()
 
@@ -90,7 +90,7 @@ func (es *EntrySyncNew) check() {
 	}
 }
 
-func (es *EntrySyncNew) has(hash interfaces.IHash) bool {
+func (es *EntrySync) has(hash interfaces.IHash) bool {
 	if has, err := es.s.DB.DoesKeyExist(databaseOverlay.ENTRY, hash.Bytes()); err != nil {
 		panic(err)
 	} else {
@@ -98,7 +98,7 @@ func (es *EntrySyncNew) has(hash interfaces.IHash) bool {
 	}
 }
 
-func (es *EntrySyncNew) ask() {
+func (es *EntrySync) ask() {
 	for {
 		select {
 		case <-es.closer:
@@ -137,7 +137,7 @@ func (es *EntrySyncNew) ask() {
 	}
 }
 
-func (es *EntrySyncNew) syncMax() uint32 {
+func (es *EntrySync) syncMax() uint32 {
 	end := es.s.GetHighestSavedBlk()
 	if es.s.DBStates.ProcessHeight < end {
 		end = es.s.DBStates.ProcessHeight
@@ -145,7 +145,10 @@ func (es *EntrySyncNew) syncMax() uint32 {
 	return end
 }
 
-func (es *EntrySyncNew) syncHeight() {
+func (es *EntrySync) SyncHeight() {
+	go es.ask()
+	go es.check()
+
 	position := es.s.EntryDBHeightComplete + 1
 
 	for {
@@ -177,12 +180,11 @@ func (es *EntrySyncNew) syncHeight() {
 			}
 		}
 
-		es.s.EntryDBHeightProcessing = position
-		es.s.EntryBlockDBHeightProcessing = position
+		es.s.SetEntryBlockDBHeightProcessing(position)
 	}
 }
 
-func (es *EntrySyncNew) syncEBlock(height uint32, keymr interfaces.IHash, ts interfaces.Timestamp) bool {
+func (es *EntrySync) syncEBlock(height uint32, keymr interfaces.IHash, ts interfaces.Timestamp) bool {
 	eblock, err := es.s.DB.FetchEBlock(keymr)
 	if err != nil { // database corrupt
 		panic(err)
@@ -220,7 +222,7 @@ func (es *EntrySyncNew) syncEBlock(height uint32, keymr interfaces.IHash, ts int
 	return true
 }
 
-func (es *EntrySyncNew) syncEntryHash(hash interfaces.IHash) {
+func (es *EntrySync) syncEntryHash(hash interfaces.IHash) {
 	es.askMtx.Lock()
 	defer es.askMtx.Unlock()
 
@@ -236,7 +238,7 @@ func (es *EntrySyncNew) syncEntryHash(hash interfaces.IHash) {
 	es.asks = append(es.asks, ask) // add to end of queue
 }
 
-func (es *EntrySyncNew) AskedFor(hash interfaces.IHash) bool {
+func (es *EntrySync) AskedFor(hash interfaces.IHash) bool {
 	es.askMtx.RLock()
 	defer es.askMtx.RUnlock()
 	return es.askMap[hash.Fixed()]
