@@ -4,6 +4,9 @@
 
 package state
 
+// TODO commented out code for comparison purposes while PR is still a draft
+// TODO remove this file later
+
 /*
 const (
 	pendingRequests    = 10000 // Lower bound on pending requests while syncing entries
