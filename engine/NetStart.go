@@ -662,6 +662,7 @@ func startServer(i int, fnode *FactomNode, load bool) {
 	entrySync := state.NewEntrySync(fnode.State)
 	fnode.State.EntrySync = entrySync
 	go fnode.State.EntrySync.SyncHeight()
+	go fnode.State.WriteEntries()
 
 	go Timer(fnode.State)
 	go elections.Run(fnode.State)
