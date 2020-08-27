@@ -430,6 +430,7 @@ func startServer(w *worker.Thread, node *fnode.FactomNode) {
 	entrySync := state.NewEntrySync(s)
 	s.EntrySync = entrySync
 	w.Run("SyncEntries", s.EntrySync.SyncHeight)
+	w.Run("WriteEntries", s.WriteEntries)
 
 	if !state.EnableLeaderThread {
 		w.Run("EOMTicker", func() { Timer(node.State) })

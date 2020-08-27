@@ -1,14 +1,13 @@
 package state
 
 import (
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 )
 
 // WriteEntries consumed the WriteEntry channel and saves entries into the database.
 // Assumes entries are valid.
 // Panics on database errors
-func (s *State) WriteEntries(entry interfaces.IEBEntry) {
+func (s *State) WriteEntries() {
 	for entry := range s.WriteEntry {
 		if entry == nil {
 			continue

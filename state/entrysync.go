@@ -11,12 +11,12 @@ import (
 )
 
 const (
-	EntrySyncMax     = 1000
+	EntrySyncMax     = 750 // good-ish value
 	EntrySyncRetry   = time.Second * 10
 	EntrySyncWarning = 16
 )
 
-// TODO rename
+// TODO comment
 type EntrySync struct {
 	s *State
 
@@ -121,10 +121,10 @@ func (es *EntrySync) ask() {
 
 			// re-ask
 			if time.Since(ask.time) > EntrySyncRetry {
-				ask.time = time.Now()
-				ask.tries++
 				request := messages.NewMissingData(primitives.NewTimestampNow(), ask.hash)
 				request.SendOut(es.s, request)
+				ask.time = time.Now()
+				ask.tries++
 
 				if ask.tries%EntrySyncWarning == 0 {
 					es.s.Logger.WithField("tries", ask.tries).WithField("hash", ask.hash.String()).Warnf("Unable to retrieve entry from network")
@@ -150,7 +150,6 @@ func (es *EntrySync) SyncHeight() {
 	go es.check()
 
 	position := es.s.EntryDBHeightComplete + 1
-
 	for {
 		select {
 		case <-es.closer:
@@ -174,13 +173,14 @@ func (es *EntrySync) SyncHeight() {
 			time.Sleep(time.Millisecond * 125)
 		}
 
-		for _, keymr := range db.GetEntryHashes() {
+		for _, keymr := range db.GetEntryHashes()[3:] { // skip the first 3
 			for !es.syncEBlock(position, keymr, db.GetTimestamp()) {
 				time.Sleep(time.Second)
 			}
 		}
 
 		es.s.SetEntryBlockDBHeightProcessing(position)
+		position++
 	}
 }
 
