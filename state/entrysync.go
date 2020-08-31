@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	// EntrySyncMax is the maximum amount of entries to requeust concurrently
+	// EntrySyncMax is the maximum amount of entries to request concurrently
 	EntrySyncMax = 750 // good-ish value
 	// EntrySyncRetry dictates after what period to retry an unanswered request
 	EntrySyncRetry = time.Second * 10
@@ -206,7 +206,7 @@ func (es *EntrySync) SyncHeight() {
 			time.Sleep(time.Millisecond * 125)
 		}
 
-		for _, keymr := range db.GetEntryHashes()[3:] { // skip the first 3
+		for _, keymr := range db.GetEntryHashes()[3:] { // skip f/c/a-block
 			for !es.syncEBlock(position, keymr, db.GetTimestamp()) {
 				time.Sleep(time.Second)
 			}
