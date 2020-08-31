@@ -12,7 +12,7 @@ jobs:
 
       - restore_cache:
           keys:
-            - v2-factomd-go-build-cache-{{ checksum "go.sum" }}
+            - v3-factomd-go-build-cache-{{ checksum "go.sum" }}
       - run:
           name: Get goveralls
           command: |
@@ -26,14 +26,14 @@ jobs:
           paths: go
 
       - save_cache:
-          key: v2-factomd-go-build-cache-{{ checksum "go.sum" }}
+          key: v3-factomd-go-build-cache-{{ checksum "go.sum" }}
           paths:
-            - vendor
+            - "/tmp/go/pkg/mod"
 
   test:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.13
+      - image: circleci/golang:1.14
 
     parallelism: 8
 
@@ -53,7 +53,7 @@ jobs:
   test_full:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.13
+      - image: circleci/golang:1.14
 
     parallelism: 8
 
@@ -73,7 +73,7 @@ jobs:
   coveralls:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.13
+      - image: circleci/golang:1.14
 
     steps:
       - attach_workspace:
@@ -86,14 +86,13 @@ jobs:
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
             cd /tmp/go/src/github.com/FactomProject/factomd/
-            echo "FIXME: re-nable after fully replacing glide"
-            #go test $(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep '...') -vet=off -v -cover -coverprofile=coverage.out
-            #goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+            go test $(go list ./... | grep -v 'Utilities|longTest|peerTest|simTest') -vet=off -v -cover -coverprofile=coverage.out
+            goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
   gofmt:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.13
+      - image: circleci/golang:1.14
 
     steps:
       - attach_workspace:
@@ -122,8 +121,6 @@ jobs:
       - setup_remote_docker:
           version: 18.03.1-ce
 
-      # The main (only) thing we care about is caching the /vendor dir.
-      #   Hence, checksumming glide.lock
       - restore_cache:
           keys:
             - v6-factomd-cache-{{ checksum "go.sum" }}
