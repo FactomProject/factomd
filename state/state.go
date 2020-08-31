@@ -361,10 +361,7 @@ type State struct {
 	EntryBlockDBHeightComplete uint32
 	// DBlock Height at which we have started asking for entry blocks
 	EntryBlockDBHeightProcessing uint32
-	// Entry Blocks we don't have that we are asking our neighbors for
-	MissingEntryBlocks []MissingEntryBlock
 
-	MissingEntryRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
 	EntryDBHeightComplete uint32
 	// DBlock Height at which we have started asking for or have all entries

@@ -15,8 +15,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -25,9 +23,11 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
 
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -1327,37 +1327,11 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 
 	switch msg.DataType {
 	case 1: // Data is an entryBlock
-		eblock, ok := msg.DataObject.(interfaces.IEntryBlock)
-		if !ok {
-			return
-		}
-
-		ebKeyMR, _ := eblock.KeyMR()
-		if ebKeyMR == nil {
-			return
-		}
-
-		for i, missing := range s.MissingEntryBlocks {
-			eb := missing.EBHash
-			if !eb.IsSameAs(ebKeyMR) {
-				continue
-			}
-
-			db, err := s.DB.FetchDBlockByHeight(eblock.GetHeader().GetDBHeight())
-			if err != nil || db == nil {
-				return
-			}
-
-			var missing []MissingEntryBlock
-			missing = append(missing, s.MissingEntryBlocks[:i]...)
-			missing = append(missing, s.MissingEntryBlocks[i+1:]...)
-			s.MissingEntryBlocks = missing
-
-			s.DB.ProcessEBlockBatch(eblock, true)
-
-			break
-		}
-
+		s.Logger.WithFields(logrus.Fields{
+			"from":   msg.GetNetworkOrigin(),
+			"eblock": msg.DataHash.String(),
+		}).Warnf("unprompted eblock response was sent")
+		return
 	case 0: // Data is an entry
 		entry, ok := msg.DataObject.(interfaces.IEBEntry)
 		if !ok {

@@ -184,8 +184,7 @@ func (m *MissingData) SendResponse(state interfaces.IState) {
 			dataObject = rawObject.(interfaces.IEBEntry)
 			//dataHash = dataObject.(interfaces.IEBEntry).GetHash()
 		case 1: // DataType = eblock
-			dataObject = rawObject.(interfaces.IEntryBlock)
-			//dataHash, _ = dataObject.(interfaces.IEntryBlock).Hash()
+			return // this functionality has been deprecated
 		default:
 			return
 		}
