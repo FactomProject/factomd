@@ -651,8 +651,10 @@ func (s *State) GetEntryBlockDBHeightComplete() uint32 {
 }
 
 func (s *State) SetEntryBlockDBHeightComplete(newHeight uint32) {
-	s.EntryBlockDBHeightComplete = newHeight
-	s.EntryDBHeightComplete = newHeight
+	if newHeight > s.EntryBlockDBHeightComplete {
+		s.EntryBlockDBHeightComplete = newHeight
+		s.EntryDBHeightComplete = newHeight
+	}
 }
 
 func (s *State) GetEntryBlockDBHeightProcessing() uint32 {
@@ -660,8 +662,10 @@ func (s *State) GetEntryBlockDBHeightProcessing() uint32 {
 }
 
 func (s *State) SetEntryBlockDBHeightProcessing(newHeight uint32) {
-	s.EntryBlockDBHeightProcessing = newHeight
-	s.EntryDBHeightProcessing = newHeight
+	if newHeight > s.EntryBlockDBHeightProcessing {
+		s.EntryBlockDBHeightProcessing = newHeight
+		s.EntryDBHeightProcessing = newHeight
+	}
 }
 
 func (s *State) GetLLeaderHeight() uint32 {
