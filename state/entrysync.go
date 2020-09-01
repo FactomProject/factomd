@@ -190,8 +190,8 @@ func (es *EntrySync) SyncHeight() {
 		default:
 		}
 
-		// nothing to do
-		if position == es.syncMax() {
+		// block not available yet
+		if position > es.syncMax() {
 			time.Sleep(time.Second)
 			continue
 		}
@@ -206,14 +206,24 @@ func (es *EntrySync) SyncHeight() {
 			time.Sleep(time.Millisecond * 125)
 		}
 
-		for _, keymr := range db.GetEntryHashes()[3:] { // skip f/c/a-block
-			for !es.syncEBlock(position, keymr, db.GetTimestamp()) {
-				time.Sleep(time.Second)
+		eblocks := db.GetEntryHashes()[3:]
+		if len(eblocks) > 0 {
+			for _, keymr := range db.GetEntryHashes()[3:] { // skip f/c/a-block
+				for !es.syncEBlock(position, keymr, db.GetTimestamp()) {
+					time.Sleep(time.Second)
+				}
 			}
+		} else {
+			ebsync := new(entrySyncEBlock)
+			ebsync.height = position
+			es.ebMtx.Lock()
+			es.eblocks = append(es.eblocks, ebsync)
+			es.ebMtx.Unlock()
 		}
 
-		es.s.SetEntryBlockDBHeightProcessing(position)
 		position++
+		es.s.SetEntryBlockDBHeightProcessing(position)
+
 	}
 }
 
