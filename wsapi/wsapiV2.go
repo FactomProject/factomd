@@ -8,13 +8,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/query"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/FactomProject/factomd/modules/query"
 
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/constants"
@@ -682,7 +683,6 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 	err := MapToObject(params, hashkey)
 	if err != nil {
 		panic(reflect.TypeOf(params))
-		return nil, NewInvalidParamsError()
 	}
 
 	h, err := primitives.HexToHash(hashkey.Hash)

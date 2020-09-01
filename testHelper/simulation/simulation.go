@@ -3,13 +3,14 @@ package simulation
 import (
 	"flag"
 	"fmt"
-	"github.com/FactomProject/factomd/testHelper"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/FactomProject/factomd/testHelper"
 
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/simulation"
@@ -619,5 +620,4 @@ func WaitForEntry(s *state.State, hash interfaces.IHash) bool {
 
 		time.Sleep(time.Millisecond * 200)
 	}
-	return false
 }

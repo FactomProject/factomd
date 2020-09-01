@@ -2,11 +2,12 @@ package elections
 
 import (
 	"fmt"
+	"reflect"
+	"time"
+
 	"github.com/FactomProject/factomd/modules/query"
 	"github.com/FactomProject/factomd/modules/worker"
 	"github.com/FactomProject/factomd/queue"
-	"reflect"
-	"time"
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/globals"
@@ -241,7 +242,7 @@ func (e *Elections) FeedBackStr(v string, fed bool, index int) string {
 }
 
 func (e *Elections) String() string {
-	str := fmt.Sprintf("eee %10s %s  dbht %d\n", e.State.GetFactomNodeName(), e.Name, e.DBHeight)
+	str := fmt.Sprintf("eee %10s %s  dbht %d\n", e.State.GetFactomNodeName(), e.Name.GetName(), e.DBHeight)
 	str += fmt.Sprintf("eee %10s  %s\n", e.State.GetFactomNodeName(), "Federated Servers")
 	for _, s := range e.Federated {
 		str += fmt.Sprintf("eee %10s     %x\n", e.State.GetFactomNodeName(), s.GetChainID().Bytes())
@@ -381,7 +382,7 @@ func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
 		s.LogPrintf("executeMsg", caller+":"+format, more...)
 	}
 
-	var dummy state.Server = state.Server{primitives.ZeroHash, "dummy", false, primitives.ZeroHash}
+	var dummy state.Server = state.Server{ChainID: primitives.ZeroHash, Name: "dummy", Online: false, Replace: primitives.ZeroHash}
 
 	// Force the lists to be the same size by adding Dummy
 	for len(s_fservers) > len(e_fservers) {

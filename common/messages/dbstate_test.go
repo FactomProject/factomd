@@ -6,6 +6,7 @@ package messages_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -86,7 +87,9 @@ func TestUnmarshalNilDBStateMsg(t *testing.T) {
 
 func TestMarshalUnmarshalDBStateMsg(t *testing.T) {
 	msg := newDBStateMsg()
-	msg.String()
+	if strings.TrimSpace(msg.String()) == "" {
+		t.Error("Empty string result")
+	}
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {

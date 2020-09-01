@@ -286,7 +286,7 @@ func TestConcurrency(t *testing.T) {
 }
 
 func NewRandomP2PConnection() *p2p.PeerMetrics {
-	con := NewP2PConnection(rand.Uint64(), rand.Uint64(), rand.Uint64(), rand.Uint64(), string(rand.Uint32()), rand.Int31())
+	con := NewP2PConnection(rand.Uint64(), rand.Uint64(), rand.Uint64(), rand.Uint64(), fmt.Sprint(rand.Uint32()), rand.Int31())
 	return con
 }
 

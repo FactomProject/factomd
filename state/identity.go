@@ -355,7 +355,11 @@ func (s *State) AddIdentityEblocks(cid interfaces.IHash, rootChain bool) error {
 		if err != nil {
 			return fmt.Errorf("DBlock at %d not found on disk", eb.GetDatabaseHeight())
 		}
-		markers = append(markers, EntryBlockMarker{keymr, eb.GetHeader().GetEBSequence(), eb.GetDatabaseHeight(), dblock.GetTimestamp()})
+		markers = append(markers, EntryBlockMarker{
+			KeyMr:           keymr,
+			Sequence:        eb.GetHeader().GetEBSequence(),
+			DBHeight:        eb.GetDatabaseHeight(),
+			DblockTimestamp: dblock.GetTimestamp()})
 		//markers[i] = EntryBlockMarker{keymr, eb.GetHeader().GetEBSequence(), eb.GetDatabaseHeight(), dblock.GetTimestamp()}
 	}
 

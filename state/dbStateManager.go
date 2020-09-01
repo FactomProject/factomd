@@ -7,11 +7,12 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/events"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/FactomProject/factomd/modules/events"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -1120,7 +1121,7 @@ func (list *DBStateList) ProcessBlock(d *DBState) (progress bool) {
 	if list.State.DBFinished {
 		fs.(*FactoidState).DBHeight = dbht
 		list.State.Balancehash = fs.GetBalanceHash(false)
-		list.State.Pub.Bank.Write(&events.Balance{dbht, list.State.Balancehash})
+		list.State.Pub.Bank.Write(&events.Balance{DBHeight: dbht, BalanceHash: list.State.Balancehash})
 	}
 
 	// Make the current exchange rate whatever we had in the previous block.
@@ -1545,7 +1546,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		if err != nil {
 			list.State.LogPrintf("dbstateprocess", err.Error())
 			panic(fmt.Sprintf("%20s At Directory Block Height %d", list.State.FactomNodeName, dbheight))
-			return
 		}
 		if mr == nil {
 			list.State.LogPrintf("dbstateprocess", "There is no mr returned by list.State.DB.FetchDBKeyMRByHeight() at %d\n", dbheight)
@@ -1561,13 +1561,11 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				list.State.LogPrintf("dbstateprocess", "Could not get directory block by primary key at Block Height %d\n", dbheight)
 			}
 			panic(fmt.Sprintf("%20s Error reading db by mr at Directory Block Height %d", list.State.FactomNodeName, dbheight))
-			return
 		}
 		if td.GetKeyMR().Fixed() != mr.Fixed() {
 			list.State.LogPrintf("dbstateprocess", "Key MR is wrong at Directory Block Height %d\n", dbheight)
 			fmt.Fprintln(os.Stderr, d.DirectoryBlock.String(), "\n==============================================\n Should be:\n", td.String())
 			panic(fmt.Sprintf("%20s KeyMR is wrong at Directory Block Height %d", list.State.FactomNodeName, dbheight))
-			return
 		}
 		if !good {
 			return
@@ -1826,6 +1824,7 @@ func (list *DBStateList) NewDBState(isNew bool,
 				}
 				pdbs := list.State.DBStates.Get(int(ht - 1))
 				if pdbs != nil {
+					// Warning: TrimBack is currently not doing anything
 					pdbs.SaveStruct.TrimBack(list.State, dbState)
 				}
 			}

@@ -11,9 +11,10 @@ package databaseOverlay
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/modules/pubsub"
 	"os"
 	"sync"
+
+	"github.com/FactomProject/factomd/modules/pubsub"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -310,19 +311,19 @@ func (db *Overlay) ProcessBlockMultiBatch(blockBucket, numberBucket, secondaryIn
 
 	batch := []interfaces.Record{}
 
-	batch = append(batch, interfaces.Record{blockBucket, block.DatabasePrimaryIndex().Bytes(), block})
+	batch = append(batch, interfaces.Record{Bucket: blockBucket, Key: block.DatabasePrimaryIndex().Bytes(), Data: block})
 
 	if numberBucket != nil {
 		bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(bytes, block.GetDatabaseHeight())
-		batch = append(batch, interfaces.Record{numberBucket, bytes, block.DatabasePrimaryIndex()})
+		batch = append(batch, interfaces.Record{Bucket: numberBucket, Key: bytes, Data: block.DatabasePrimaryIndex()})
 	}
 
 	if secondaryIndexBucket != nil {
-		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
+		batch = append(batch, interfaces.Record{Bucket: secondaryIndexBucket, Key: block.DatabaseSecondaryIndex().Bytes(), Data: block.DatabasePrimaryIndex()})
 	}
 
-	batch = append(batch, interfaces.Record{CHAIN_HEAD, block.GetChainID().Bytes(), block.DatabasePrimaryIndex()})
+	batch = append(batch, interfaces.Record{Bucket: CHAIN_HEAD, Key: block.GetChainID().Bytes(), Data: block.DatabasePrimaryIndex()})
 
 	db.PutInMultiBatch(batch)
 
@@ -342,19 +343,19 @@ func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBu
 	}
 
 	batch := []interfaces.Record{}
-	batch = append(batch, interfaces.Record{blockBucket, block.DatabasePrimaryIndex().Bytes(), block})
+	batch = append(batch, interfaces.Record{Bucket: blockBucket, Key: block.DatabasePrimaryIndex().Bytes(), Data: block})
 
 	if numberBucket != nil {
 		bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(bytes, block.GetDatabaseHeight())
-		batch = append(batch, interfaces.Record{numberBucket, bytes, block.DatabasePrimaryIndex()})
+		batch = append(batch, interfaces.Record{Bucket: numberBucket, Key: bytes, Data: block.DatabasePrimaryIndex()})
 	}
 
 	if secondaryIndexBucket != nil {
-		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
+		batch = append(batch, interfaces.Record{Bucket: secondaryIndexBucket, Key: block.DatabaseSecondaryIndex().Bytes(), Data: block.DatabasePrimaryIndex()})
 	}
 
-	batch = append(batch, interfaces.Record{CHAIN_HEAD, block.GetChainID().Bytes(), block.DatabasePrimaryIndex()})
+	batch = append(batch, interfaces.Record{Bucket: CHAIN_HEAD, Key: block.GetChainID().Bytes(), Data: block.DatabasePrimaryIndex()})
 
 	err := db.PutInBatch(batch)
 	if err != nil {
@@ -377,16 +378,16 @@ func (db *Overlay) ProcessBlockBatchWithoutHead(blockBucket, numberBucket, secon
 	}
 
 	batch := []interfaces.Record{}
-	batch = append(batch, interfaces.Record{blockBucket, block.DatabasePrimaryIndex().Bytes(), block})
+	batch = append(batch, interfaces.Record{Bucket: blockBucket, Key: block.DatabasePrimaryIndex().Bytes(), Data: block})
 
 	if numberBucket != nil {
 		bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(bytes, block.GetDatabaseHeight())
-		batch = append(batch, interfaces.Record{numberBucket, bytes, block.DatabasePrimaryIndex()})
+		batch = append(batch, interfaces.Record{Bucket: numberBucket, Key: bytes, Data: block.DatabasePrimaryIndex()})
 	}
 
 	if secondaryIndexBucket != nil {
-		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
+		batch = append(batch, interfaces.Record{Bucket: secondaryIndexBucket, Key: block.DatabaseSecondaryIndex().Bytes(), Data: block.DatabasePrimaryIndex()})
 	}
 
 	err := db.PutInBatch(batch)
@@ -403,16 +404,16 @@ func (db *Overlay) ProcessBlockMultiBatchWithoutHead(blockBucket, numberBucket, 
 	}
 
 	batch := []interfaces.Record{}
-	batch = append(batch, interfaces.Record{blockBucket, block.DatabasePrimaryIndex().Bytes(), block})
+	batch = append(batch, interfaces.Record{Bucket: blockBucket, Key: block.DatabasePrimaryIndex().Bytes(), Data: block})
 
 	if numberBucket != nil {
 		bytes := make([]byte, 4)
 		binary.BigEndian.PutUint32(bytes, block.GetDatabaseHeight())
-		batch = append(batch, interfaces.Record{numberBucket, bytes, block.DatabasePrimaryIndex()})
+		batch = append(batch, interfaces.Record{Bucket: numberBucket, Key: bytes, Data: block.DatabasePrimaryIndex()})
 	}
 
 	if secondaryIndexBucket != nil {
-		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
+		batch = append(batch, interfaces.Record{Bucket: secondaryIndexBucket, Key: block.DatabaseSecondaryIndex().Bytes(), Data: block.DatabasePrimaryIndex()})
 	}
 
 	db.PutInMultiBatch(batch)
@@ -649,7 +650,7 @@ func (db *Overlay) SetChainHeads(primaryIndexes, chainIDs []interfaces.IHash) er
 
 	batch := []interfaces.Record{}
 	for i := range primaryIndexes {
-		batch = append(batch, interfaces.Record{CHAIN_HEAD, chainIDs[i].Bytes(), primaryIndexes[i]})
+		batch = append(batch, interfaces.Record{Bucket: CHAIN_HEAD, Key: chainIDs[i].Bytes(), Data: primaryIndexes[i]})
 	}
 
 	return db.PutInBatch(batch)

@@ -37,7 +37,6 @@ func init() {
 	GlobalLogger.AddPrintField("comment", Formatter("[%-45v]"), "")
 	GlobalLogger.AddPrintField("hash", Formatter("%-38v"), "")
 	GlobalLogger.AddPrintField("message", MsgFormatter, "")
-	fmt.Println("Logging setup!")
 }
 
 func LogPrintf(name string, format string, more ...interface{}) {
