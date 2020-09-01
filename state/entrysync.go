@@ -97,6 +97,7 @@ func (es *EntrySync) check() {
 
 		es.ebMtx.Lock()
 		eb := es.eblocks[0]
+		es.s.SetEntryBlockDBHeightProcessing(eb.height)
 
 		stillmissing := make([]interfaces.IHash, 0, len(eb.missing))
 		for _, entryhash := range eb.missing {
@@ -183,6 +184,11 @@ func (es *EntrySync) SyncHeight() {
 	go es.check()
 
 	position := es.s.EntryDBHeightComplete
+	// genesis block edge case since EntryDBHeightComplete can't be -1
+	if position > 0 {
+		position++
+	}
+
 	for {
 		select {
 		case <-es.closer:
@@ -206,25 +212,32 @@ func (es *EntrySync) SyncHeight() {
 			time.Sleep(time.Millisecond * 125)
 		}
 
-		eblocks := db.GetEntryHashes()[3:]
-		if len(eblocks) > 0 {
-			for _, keymr := range db.GetEntryHashes()[3:] { // skip f/c/a-block
-				for !es.syncEBlock(position, keymr, db.GetTimestamp()) {
-					time.Sleep(time.Second)
-				}
-			}
-		} else {
-			ebsync := new(entrySyncEBlock)
-			ebsync.height = position
-			es.ebMtx.Lock()
-			es.eblocks = append(es.eblocks, ebsync)
-			es.ebMtx.Unlock()
-		}
-
+		es.syncDBlock(db)
 		position++
-		es.s.SetEntryBlockDBHeightProcessing(position)
-
 	}
+}
+
+// extract eblocks from the dblock
+func (es *EntrySync) syncDBlock(db interfaces.IDirectoryBlock) {
+	eblocks := db.GetEntryHashes()[3:] // skip f/c/a-block
+	if len(eblocks) > 0 {
+		for _, keymr := range eblocks {
+			for !es.syncEBlock(db.GetDatabaseHeight(), keymr, db.GetTimestamp()) {
+				time.Sleep(time.Second)
+			}
+		}
+	} else {
+		es.syncNoEBlock(db.GetDatabaseHeight())
+	}
+}
+
+// for dblocks with no eblocks, we still need to advance the complete counter
+func (es *EntrySync) syncNoEBlock(height uint32) {
+	ebsync := new(entrySyncEBlock)
+	ebsync.height = height
+	es.ebMtx.Lock()
+	es.eblocks = append(es.eblocks, ebsync)
+	es.ebMtx.Unlock()
 }
 
 // process a single eblock, will call syncEntryHash() on each entry, and add an eblock to the queue
