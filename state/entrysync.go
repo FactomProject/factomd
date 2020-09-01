@@ -182,7 +182,7 @@ func (es *EntrySync) SyncHeight() {
 	go es.ask()
 	go es.check()
 
-	position := es.s.EntryDBHeightComplete + 1
+	position := es.s.EntryDBHeightComplete
 	for {
 		select {
 		case <-es.closer:
