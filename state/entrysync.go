@@ -44,6 +44,8 @@ var (
 type EntrySync struct {
 	s *State
 
+	position uint32
+
 	askMtx sync.RWMutex
 	askMap map[[32]byte]bool // entry hash => ask
 	asks   []*entrySyncAsk   // chronological
@@ -183,10 +185,10 @@ func (es *EntrySync) SyncHeight() {
 	go es.ask()
 	go es.check()
 
-	position := es.s.EntryDBHeightComplete
+	es.position = es.s.EntryDBHeightComplete
 	// genesis block edge case since EntryDBHeightComplete can't be -1
-	if position > 0 {
-		position++
+	if es.position > 0 {
+		es.position++
 	}
 
 	for {
@@ -195,25 +197,25 @@ func (es *EntrySync) SyncHeight() {
 			return
 		default:
 		}
-
 		// block not available yet
-		if position > es.syncMax() {
+		if es.position > es.syncMax() {
 			time.Sleep(time.Second)
 			continue
 		}
 
-		db := es.s.GetDirectoryBlockByHeight(position)
+		db := es.s.GetDirectoryBlockByHeight(es.position)
 		if db == nil { // block not saved yet
 			time.Sleep(time.Second)
 			continue
 		}
 
-		if es.s.DBFinished { // throttle syncing
-			time.Sleep(time.Millisecond * 125)
+		// legacy logic
+		if !es.s.DBFinished { // throttle syncing
+			time.Sleep(time.Millisecond * 10)
 		}
 
 		es.syncDBlock(db)
-		position++
+		es.position++
 	}
 }
 
@@ -303,4 +305,9 @@ func (es *EntrySync) AskedFor(hash interfaces.IHash) bool {
 	es.askMtx.RLock()
 	defer es.askMtx.RUnlock()
 	return es.askMap[hash.Fixed()]
+}
+
+// Positions returns the DBlock EntrySync is adding next
+func (es *EntrySync) Position() uint32 {
+	return es.position
 }
