@@ -242,7 +242,7 @@ func (e *Elections) FeedBackStr(v string, fed bool, index int) string {
 }
 
 func (e *Elections) String() string {
-	str := fmt.Sprintf("eee %10s %s  dbht %d\n", e.State.GetFactomNodeName(), e.Name.GetName(), e.DBHeight)
+	str := fmt.Sprintf("eee %10s %s  dbht %d\n", e.State.GetFactomNodeName(), e.Name.String(), e.DBHeight)
 	str += fmt.Sprintf("eee %10s  %s\n", e.State.GetFactomNodeName(), "Federated Servers")
 	for _, s := range e.Federated {
 		str += fmt.Sprintf("eee %10s     %x\n", e.State.GetFactomNodeName(), s.GetChainID().Bytes())

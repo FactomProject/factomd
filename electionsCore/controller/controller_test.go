@@ -19,22 +19,24 @@ func TestSimpleController(t *testing.T) {
 
 func TestElectionDisplay(t *testing.T) {
 	t.Skip()
-	StartUnitTestErrorHandling(t)
+	// StartUnitTestErrorHandling(t)
 
-	con := NewController(3, 3)
-	all := []int{0, 1, 2}
-	con.RouteVolunteerMessage(1, all)
-	fmt.Println(con.GlobalDisplay.String())
+	// con := NewController(3, 3)
+	// all := []int{0, 1, 2}
+	// con.RouteVolunteerMessage(1, all)
+	// fmt.Println(con.GlobalDisplay.String())
 
-	ExpMsg(con.RouteLeaderSetLevelMessage(all, 0, all))
-	fmt.Println(con.GlobalDisplay.String())
+	// ExpMsg(con.RouteLeaderSetLevelMessage(all, 0, all))
+	// fmt.Println(con.GlobalDisplay.String())
 
-	fmt.Println(con.Elections[0].Display.String())
+	// fmt.Println(con.Elections[0].Display.String())
 
-	ExpMsg(con.RouteLeaderLevelMessage(1, 0, all))
-	ExpMsg(con.RouteLeaderLevelMessage(2, 0, all))
+	// ExpMsg(con.RouteLeaderLevelMessage(1, 0, all))
+	// ExpMsg(con.RouteLeaderLevelMessage(2, 0, all))
 
-	ExpMsg(con.RouteLeaderLevelMessage(0, 2, all))
+	// ExpMsg(con.RouteLeaderLevelMessage(0, 2, all))
+
+	//fmt.Println(con.GlobalDisplay.String())
 }
 
 // TestElectionSimpleScenario will test 100% consensus
