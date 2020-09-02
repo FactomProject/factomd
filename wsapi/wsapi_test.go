@@ -53,7 +53,6 @@ func TestAuthenticatedUnauthorizedRequest(t *testing.T) {
 	username := "user"
 	password := "password"
 
-	propertiesV2Body := body(primitives.NewJSON2Request("properties", 0, ""))
 	globals.Params.NetworkName = "LOCAL"
 
 	state := testHelper.CreateAndPopulateTestState()
@@ -71,8 +70,8 @@ func TestAuthenticatedUnauthorizedRequest(t *testing.T) {
 	}{
 		"v1Authorized":   {"GET", "http://localhost:18088/v1/properties/", true, http.StatusOK, nil},
 		"v1Unauthorized": {"GET", "http://localhost:18088/v1/properties/", false, http.StatusUnauthorized, nil},
-		"v2Authorized":   {"POST", "http://localhost:18088/v2", true, http.StatusOK, propertiesV2Body},
-		"v2Unauthorized": {"POST", "http://localhost:18088/v2", false, http.StatusUnauthorized, propertiesV2Body},
+		"v2Authorized":   {"POST", "http://localhost:18088/v2", true, http.StatusOK, body(primitives.NewJSON2Request("properties", 0, ""))},
+		"v2Unauthorized": {"POST", "http://localhost:18088/v2", false, http.StatusUnauthorized, body(primitives.NewJSON2Request("properties", 0, ""))},
 	}
 
 	client := &http.Client{}
