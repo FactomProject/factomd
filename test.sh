@@ -9,7 +9,7 @@ cd $DIR															 # always from from script dir
 set -o pipefail
 
 # base go test command
-GO_TEST="go test -v -timeout=10m -vet=off"
+GO_TEST="go test -v -timeout=10m"
 
 # list modules for CI testing
 function listModules() {
