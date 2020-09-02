@@ -648,5 +648,4 @@ func WaitForEntry(s *state.State, hash interfaces.IHash) bool {
 
 		time.Sleep(time.Millisecond * 200)
 	}
-	return false
 }

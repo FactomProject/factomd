@@ -1347,7 +1347,7 @@ func SimControl(listenTo int, listenStdin bool) {
 			case 'L' == b[0]:
 				if len(b) <= 2 {
 					if cancelheight == -1 {
-						fmt.Errorf("Exp LH.I")
+						fmt.Println("Exp LH.I")
 						break
 					}
 
@@ -1377,18 +1377,18 @@ func SimControl(listenTo int, listenStdin bool) {
 				str := b[1:]
 				res := strings.Split(str, ".")
 				if len(res) != 2 {
-					fmt.Errorf("Exp Lh.i")
+					fmt.Println("Exp Lh.i")
 					break
 				}
 				height, err := strconv.Atoi(res[0])
 				if err != nil {
-					fmt.Errorf("%s", err.Error())
+					fmt.Println(err.Error())
 					break
 				}
 
 				index, err := strconv.Atoi(res[1])
 				if err != nil {
-					fmt.Errorf("%s", err.Error())
+					fmt.Println(err.Error())
 					break
 				}
 

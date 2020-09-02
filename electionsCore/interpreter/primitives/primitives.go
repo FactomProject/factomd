@@ -21,7 +21,7 @@ var immediate FlagsStruct = FlagsStruct{Traced: false, Immediate: true, Executab
 
 func (p *Primitives) AddPrim(dict Dictionary, name string, x interface{}, f FlagsStruct) {
 	n := p.GetName(name)
-	dict.Add(n.GetRawName(), DictionaryEnrty{n.GetRawName(), f, x})
+	dict.Add(n.GetRawName(), DictionaryEnrty{N: n.GetRawName(), FlagsStruct: f, E: x})
 }
 
 func NewPrimitives() *Primitives {
@@ -267,7 +267,7 @@ func (p *Primitives) Def() {
 	case Name:
 		flags.Executable = body.(Name).IsExecutable()
 	}
-	p.DictStack[0].Add(name, DictionaryEnrty{name, flags, body})
+	p.DictStack[0].Add(name, DictionaryEnrty{N: name, FlagsStruct: flags, E: body})
 }
 
 // Strings

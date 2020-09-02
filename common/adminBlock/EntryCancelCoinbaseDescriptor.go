@@ -12,7 +12,7 @@ import (
 type CancelCoinbaseDescriptor struct {
 	AdminIDType      uint32 `json:"adminidtype"`
 	DescriptorHeight uint32 `json:"descriptor_height"`
-	DescriptorIndex  uint32 `json:descriptor_index`
+	DescriptorIndex  uint32 `json:"descriptor_index"`
 
 	// Not marshalled
 	hash interfaces.IHash // cache

@@ -346,9 +346,9 @@ type ReceiptRequest struct {
 }
 
 type FactiodAccounts struct {
-	NumbOfAccounts string   `json:numberofacc`
+	NumbOfAccounts string   `json:"numberofacc"`
 	Height         uint32   `json:"height"`
-	Accounts       []string `json:accounts`
+	Accounts       []string `json:"accounts"`
 }
 
 type MultipleFTBalances struct {

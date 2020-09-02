@@ -284,7 +284,7 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 				missingBlocks++
 			}
 			if eBlock == nil {
-				fmt.Errorf("Could not find eBlock %v!\n", v.GetKeyMR())
+				fmt.Printf("Could not find eBlock %v!\n", v.GetKeyMR())
 			} else {
 				foundBlocks++
 			}

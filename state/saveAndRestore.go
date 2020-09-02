@@ -418,67 +418,65 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 }
 
 func (ss *SaveState) TrimBack(s *State, d *DBState) {
-	return
-	pdbstate := d
-	d = s.DBStates.Get(int(ss.DBHeight + 1))
-	if pdbstate == nil {
-		return
-	}
-	// Don't do anything until we are within the current day
-	if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 144 {
-		return
-	}
+	// pdbstate := d
+	// d = s.DBStates.Get(int(ss.DBHeight + 1))
+	// if pdbstate == nil {
+	// 	return
+	// }
+	// // Don't do anything until we are within the current day
+	// if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 144 {
+	// 	return
+	// }
 
-	pss := pdbstate.SaveStruct
-	if pss == nil {
-		return
-	}
-	ppl := s.ProcessLists.Get(ss.DBHeight)
-	if ppl == nil {
-		return
-	}
-	pl := s.ProcessLists.Get(ss.DBHeight + 1)
-	if pl == nil {
-		return
-	}
+	// pss := pdbstate.SaveStruct
+	// if pss == nil {
+	// 	return
+	// }
+	// ppl := s.ProcessLists.Get(ss.DBHeight)
+	// if ppl == nil {
+	// 	return
+	// }
+	// pl := s.ProcessLists.Get(ss.DBHeight + 1)
+	// if pl == nil {
+	// 	return
+	// }
 
-	for _, vm := range pl.VMs {
-		vm.LeaderMinute = 0
-		if vm.Height > 0 {
-			vm.Signed = true
-			vm.Synced = true
-			vm.Height = 0
-			vm.List = vm.List[:0]
-			vm.ListAck = vm.ListAck[:0]
-		} else {
-			vm.Signed = false
-			vm.Synced = false
-			vm.List = vm.List[:0]
-			vm.ListAck = vm.ListAck[:0]
-		}
-	}
+	// for _, vm := range pl.VMs {
+	// 	vm.LeaderMinute = 0
+	// 	if vm.Height > 0 {
+	// 		vm.Signed = true
+	// 		vm.Synced = true
+	// 		vm.Height = 0
+	// 		vm.List = vm.List[:0]
+	// 		vm.ListAck = vm.ListAck[:0]
+	// 	} else {
+	// 		vm.Signed = false
+	// 		vm.Synced = false
+	// 		vm.List = vm.List[:0]
+	// 		vm.ListAck = vm.ListAck[:0]
+	// 	}
+	// }
 
-	ss.EOMsyncing = s.EOMsyncing
+	// ss.EOMsyncing = s.EOMsyncing
 
-	s.EOM = pss.EOM
-	s.EOMLimit = pss.EOMLimit
-	s.EOMProcessed = pss.EOMProcessed
-	s.EOMDone = pss.EOMDone
-	s.EOMMinute = pss.EOMMinute
-	s.EOMSys = pss.EOMSys
-	s.DBSig = pss.DBSig
-	s.DBSigLimit = pss.DBSigLimit
-	s.DBSigProcessed = pss.DBSigProcessed
-	s.DBSigDone = pss.DBSigDone
-	s.DBSigSys = pss.DBSigSys
-	s.Saving = pss.Saving
-	s.Syncing = pss.Syncing
+	// s.EOM = pss.EOM
+	// s.EOMLimit = pss.EOMLimit
+	// s.EOMProcessed = pss.EOMProcessed
+	// s.EOMDone = pss.EOMDone
+	// s.EOMMinute = pss.EOMMinute
+	// s.EOMSys = pss.EOMSys
+	// s.DBSig = pss.DBSig
+	// s.DBSigLimit = pss.DBSigLimit
+	// s.DBSigProcessed = pss.DBSigProcessed
+	// s.DBSigDone = pss.DBSigDone
+	// s.DBSigSys = pss.DBSigSys
+	// s.Saving = pss.Saving
+	// s.Syncing = pss.Syncing
 
 	//s.Replay = pss.Replay.Save()
 	//s.Replay.s = s
 	//s.Replay.name = "Replay"
 
-	return
 	/*
 		pl.FedServers = append(pl.FedServers[0:], ppl.FedServers...)
 		pl.AuditServers = append(pl.AuditServers[0:], ppl.AuditServers...)

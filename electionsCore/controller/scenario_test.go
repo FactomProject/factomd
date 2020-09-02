@@ -81,20 +81,19 @@ func TestElectionScenario01(t *testing.T) {
 
 	t.Log(con.ElectionStatus(1))
 
-	return
-	con.RouteLeaderSetVoteMessage(all, 1, all)
-	con.RouteLeaderSetVoteMessage(all, 1, all)
-	con.RouteLeaderSetVoteMessage(all, 1, all)
+	// con.RouteLeaderSetVoteMessage(all, 1, all)
+	// con.RouteLeaderSetVoteMessage(all, 1, all)
+	// con.RouteLeaderSetVoteMessage(all, 1, all)
 
-	con.RouteVolunteerMessage(1, all)
-	con.RouteLeaderSetVoteMessage(all, 1, all)
-	con.RouteLeaderSetLevelMessage(all, 1, all)
-	con.RouteLeaderSetLevelMessage(all, 2, all)
+	// con.RouteVolunteerMessage(1, all)
+	// con.RouteLeaderSetVoteMessage(all, 1, all)
+	// con.RouteLeaderSetLevelMessage(all, 1, all)
+	// con.RouteLeaderSetLevelMessage(all, 2, all)
 
-	loop := con.GlobalDisplay.DetectVerticalLoop(con.Elections[0].Self)
-	if loop {
-		t.Errorf("Detected a vert loop when there is not one")
-	}
+	// loop := con.GlobalDisplay.DetectVerticalLoop(con.Elections[0].Self)
+	// if loop {
+	// 	t.Errorf("Detected a vert loop when there is not one")
+	// }
 
-	runToComplete(con, t)
+	// runToComplete(con, t)
 }

@@ -720,7 +720,6 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 	err := MapToObject(params, hashkey)
 	if err != nil {
 		panic(reflect.TypeOf(params))
-		return nil, NewInvalidParamsError()
 	}
 
 	h, err := primitives.HexToHash(hashkey.Hash)

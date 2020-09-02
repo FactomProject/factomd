@@ -27,7 +27,7 @@ func (e *AddFactoidAddress) Init() {
 	}
 
 	if e.FactoidAddress == nil {
-		e.FactoidAddress = &factoid.Address{*(primitives.NewZeroHash().(*primitives.Hash))}
+		e.FactoidAddress = &factoid.Address{Hash: *(primitives.NewZeroHash().(*primitives.Hash))}
 	}
 }
 

@@ -371,7 +371,7 @@ func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
 		s.LogPrintf("executeMsg", caller+":"+format, more...)
 	}
 
-	var dummy state.Server = state.Server{primitives.ZeroHash, "dummy", false, primitives.ZeroHash}
+	var dummy state.Server = state.Server{ChainID: primitives.ZeroHash, Name: "dummy", Online: false, Replace: primitives.ZeroHash}
 
 	// Force the lists to be the same size by adding Dummy
 	for len(s_fservers) > len(e_fservers) {
