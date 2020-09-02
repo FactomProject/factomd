@@ -150,7 +150,7 @@ func (s *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 	ecPubPrefix := []byte{0x59, 0x2a}
 
 	if !bytes.Equal(authorityAddress[:2], ecPubPrefix) {
-		fmt.Errorf("Invalid Entry Credit Private Address")
+		fmt.Println("Invalid Entry Credit Private Address")
 		return false
 	}
 

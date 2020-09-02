@@ -86,7 +86,7 @@ func TestUnmarshalNilDBStateMsg(t *testing.T) {
 
 func TestMarshalUnmarshalDBStateMsg(t *testing.T) {
 	msg := newDBStateMsg()
-	msg.String()
+	_ = msg.String()
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {

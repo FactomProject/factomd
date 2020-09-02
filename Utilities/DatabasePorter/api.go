@@ -37,7 +37,6 @@ func GetDBlock(keymr string) (interfaces.IDirectoryBlock, error) {
 		return dblock, nil
 	}
 	panic("Failed 100 times to get the data " + keymr)
-	return nil, nil
 }
 
 func GetABlock(keymr string) (interfaces.IAdminBlock, error) {
@@ -54,7 +53,6 @@ func GetABlock(keymr string) (interfaces.IAdminBlock, error) {
 		return block, nil
 	}
 	panic("Failed 100 times to get the data " + keymr)
-	return nil, nil
 }
 
 func GetECBlock(keymr string) (interfaces.IEntryCreditBlock, error) {
@@ -70,7 +68,6 @@ func GetECBlock(keymr string) (interfaces.IEntryCreditBlock, error) {
 		return block, nil
 	}
 	panic("Failed 100 times to get the data " + keymr)
-	return nil, nil
 }
 
 func GetFBlock(keymr string) (interfaces.IFBlock, error) {
@@ -86,7 +83,6 @@ func GetFBlock(keymr string) (interfaces.IFBlock, error) {
 		return block, nil
 	}
 	panic("Failed 100 times to get the data " + keymr)
-	return nil, nil
 }
 
 func GetEBlock(keymr string) (interfaces.IEntryBlock, error) {
@@ -102,7 +98,6 @@ func GetEBlock(keymr string) (interfaces.IEntryBlock, error) {
 		return block, nil
 	}
 	panic("Failed 100 times to get the data " + keymr)
-	return nil, nil
 }
 
 func GetEntry(hash string) (interfaces.IEBEntry, error) {
@@ -160,7 +155,6 @@ func GetDBlockHead() (string, error) {
 		return d.KeyMR, nil
 	}
 	panic("Failed 100 times to get the DBlock Head")
-	return "", nil
 }
 
 type Data struct {
@@ -201,5 +195,4 @@ func GetRaw(keymr string) ([]byte, error) {
 		return raw, nil
 	}
 	panic("Failed 100 times to get the data " + keymr)
-	return nil, nil
 }

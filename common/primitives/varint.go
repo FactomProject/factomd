@@ -38,8 +38,6 @@ func RandomVarInt() uint64 {
 	default:
 		panic("Internal varint error")
 	}
-
-	return 0
 }
 
 // VarIntLength returns the length of the variable integer when encoded as a var int

@@ -25,9 +25,9 @@ func (p *PubBase) Publish(path string, wrappers ...IPublisherWrapper) IPublisher
 }
 
 func (p *PubBase) setPath(path string) { p.path = path }
-func (p PubBase) Path() string         { return p.path }
+func (p *PubBase) Path() string        { return p.path }
 func (p *PubBase) SetLogger(log Log)   { p.Log = log }
-func (p PubBase) Logger() Log          { return p.Log }
+func (p *PubBase) Logger() Log         { return p.Log }
 
 func (p *PubBase) Close() error {
 	p.RLock()
@@ -74,5 +74,5 @@ func (p *PubBase) Write(o interface{}) {
 	p.RUnlock()
 }
 
-func (PubBase) Start() {
+func (*PubBase) Start() {
 }
