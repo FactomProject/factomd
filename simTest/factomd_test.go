@@ -14,14 +14,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FactomProject/factomd/log"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	. "github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -696,7 +695,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		if ok != true {
 			fmt.Println(x)
 		}
-		if resp2.Result.CurrentHeight != currentHeight || string(resp2.Result.LastSavedHeight) != string(heighestSavedHeight) {
+		if resp2.Result.CurrentHeight != currentHeight || uint32(resp2.Result.LastSavedHeight) != heighestSavedHeight {
 			t.Fatalf("Who wrote this trash code?... Expected a current height of " + fmt.Sprint(currentHeight) + " and a saved height of " + fmt.Sprint(heighestSavedHeight) + " but got " + fmt.Sprint(resp2.Result.CurrentHeight) + ", " + fmt.Sprint(resp2.Result.LastSavedHeight))
 		}
 
@@ -904,7 +903,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 			fmt.Println(x)
 		}
 
-		if resp2.Result.CurrentHeight != currentHeight || string(resp2.Result.LastSavedHeight) != string(heighestSavedHeight) {
+		if resp2.Result.CurrentHeight != currentHeight || uint32(resp2.Result.LastSavedHeight) != heighestSavedHeight {
 			t.Fatalf("Who wrote this trash code?... Expected a current height of " + fmt.Sprint(currentHeight) + " and a saved height of " + fmt.Sprint(heighestSavedHeight) + " but got " + fmt.Sprint(resp2.Result.CurrentHeight) + ", " + fmt.Sprint(resp2.Result.LastSavedHeight))
 		}
 
