@@ -1,10 +1,14 @@
 package state_test
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 )
@@ -20,9 +24,14 @@ func TestEntrySync(t *testing.T) {
 
 	go es.SyncHeight()
 	defer es.Stop()
+	go s.WriteEntries()
+	defer func() {
+		close(s.WriteEntry)
+	}()
 
 	// testHelper creates 10 blocks by default
 	// copy these from database to DBStates
+	// they all have entries that exist in db
 	for i := uint32(0); i < baseBlocks; i++ {
 		db, err := s.DB.FetchDBlockByHeight(i)
 		if err != nil || db == nil {
@@ -76,13 +85,113 @@ func TestEntrySync(t *testing.T) {
 
 	s.DBStates.ProcessHeight = baseBlocks // manually move this
 
-	time.Sleep(time.Second)
-
-	if s.GetDBHeightComplete() != baseBlocks-1 { // starts at 0
-		t.Fatalf("EntrySync was unable to sync the %d existing database blocks. got = %d, want = %d", baseBlocks, s.GetDBHeightComplete(), baseBlocks-1)
+	// test times out if something goes wrong here
+	for s.GetEntryBlockDBHeightComplete() < baseBlocks-1 {
+		time.Sleep(time.Millisecond * 100)
 	}
 
 	if pos := es.Position(); pos != baseBlocks {
 		t.Fatalf("EntrySync position wrong. got = %d, want = %d", pos, baseBlocks)
+	}
+
+	// create blocks with missing entries that need to be synced
+	allentries := make(map[[32]byte]*entryBlock.Entry)
+	oldblockset := testHelper.CreateFullTestBlockSet()
+	last := oldblockset[len(oldblockset)-1]
+	for i := uint32(0); i < baseBlocks; i++ {
+		last = testHelper.CreateTestBlockSetWithNetworkIDAndEBlocks(last, constants.LOCAL_NETWORK_ID, true, i != 5)
+
+		s.DB.StartMultiBatch()
+		err := s.DB.ProcessABlockMultiBatch(last.ABlock)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if last.EBlock != nil {
+			err = s.DB.ProcessEBlockMultiBatch(last.EBlock, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		if last.AnchorEBlock != nil {
+			err = s.DB.ProcessEBlockMultiBatch(last.AnchorEBlock, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		err = s.DB.ProcessECBlockMultiBatch(last.ECBlock, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = s.DB.ProcessFBlockMultiBatch(last.FBlock)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = s.DB.ProcessDBlockMultiBatch(last.DBlock)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = s.DB.ExecuteMultiBatch()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// don't save entries
+		var eblocks []interfaces.IEntryBlock
+		if last.EBlock != nil {
+			eblocks = append(eblocks, last.EBlock)
+		}
+
+		if last.AnchorEBlock != nil {
+			eblocks = append(eblocks, last.AnchorEBlock)
+		}
+
+		var entries []interfaces.IEBEntry
+		for _, e := range last.Entries {
+			allentries[e.GetHash().Fixed()] = e
+			entries = append(entries, e)
+		}
+
+		s.DBStates.NewDBState(true, last.DBlock, last.ABlock, last.FBlock, last.ECBlock, eblocks, entries)
+		s.DBStates.DBStates[baseBlocks+i].Saved = true
+	}
+
+	s.DBStates.ProcessHeight = baseBlocks * 2
+	time.Sleep(time.Second * 2)
+
+	if s.NetworkOutMsgQueue().Length() == 0 {
+		t.Fatalf("expected message requests. got = %d, want = %d", s.NetworkOutMsgQueue().Length(), len(allentries))
+	}
+	for s.NetworkOutMsgQueue().Length() > 0 {
+		imsg := s.NetworkOutMsgQueue().Dequeue()
+		msg, ok := imsg.(*messages.MissingData)
+		if !ok {
+			t.Errorf("unexpected message in network queue. got = %v, want = *messages.MissingData", reflect.TypeOf(imsg))
+			continue
+		}
+
+		response, ok := allentries[msg.RequestHash.Fixed()]
+		if !ok {
+			t.Errorf("response to %x not in map", msg.RequestHash)
+		}
+
+		if !es.AskedFor(msg.RequestHash) {
+			t.Errorf("a request sent for a hash that wasn't asked for: %x", msg.RequestHash)
+		}
+
+		s.WriteEntry <- response
+	}
+
+	// test times out if something goes wrong here
+	for s.GetEntryBlockDBHeightComplete() < baseBlocks*2-1 {
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	if pos := es.Position(); pos != baseBlocks*2 {
+		t.Fatalf("EntrySync position wrong. got = %d, want = %d", pos, baseBlocks*2)
 	}
 }
