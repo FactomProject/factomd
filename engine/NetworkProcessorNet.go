@@ -94,7 +94,7 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 	// TODO: Construct the proper setup and teardown of this publisher.
 	s := fnode.State
 
-  msgPub := pubsub.PubFactory.MsgSplit(100).Publish(pubsub.GetPath(s.GetFactomNodeName(), "bmv", "input"))
+	msgPub := pubsub.PubFactory.MsgSplit(100).Publish(pubsub.GetPath(s.GetFactomNodeName(), "bmv", "input"))
 	go msgPub.Start()
 
 	// ackHeight is used in ignoreMsg to determine if we should ignore an acknowledgment
