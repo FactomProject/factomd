@@ -322,18 +322,6 @@ jobs:
           paths:
             - /images
 
-# The flow is
-#    build
-#      |
-#      ---------- test
-#                   |
-#                   ---------- gofmt
-#                   |
-#                   ---------- docker_build
-#                   |
-#                   ---------- test_full
-#
-#
 
 workflows:
   version: 2
@@ -343,18 +331,18 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - test:
-          filters:
-            tags:
-              only: /.*/
-          requires:
-            - build
       - gofmt:
           filters:
             tags:
               only: /.*/
           requires:
-            - test
+            - build
+      - test:
+          filters:
+            tags:
+              only: /.*/
+          requires:
+            - gofmt
       - docker_build:
           filters:
             branches:
