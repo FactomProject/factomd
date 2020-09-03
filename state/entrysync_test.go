@@ -13,15 +13,19 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestEntrySync builds an environment to test various features of EntrySync at once
+// 1. See if we can verify the existence of the 10 test blocks that are added by the testhelper
+// 2. Create ten more blocks but don't save the entries in the database (one block has no entries)
+// 3. Check that the code makes requests for the right entries
+// 4. Add missing entries to the "WriteEntries" system manually
+// 5. Check that EntrySync will now have synced to the end of 20 blocks
 func TestEntrySync(t *testing.T) {
 
-	baseBlocks := uint32(testHelper.BlockCount)
-
+	baseBlocks := uint32(testHelper.BlockCount) // default 10
 	s := testHelper.CreateAndPopulateTestState()
 
 	es := state.NewEntrySync(s)
 	s.EntrySync = es
-
 	go es.SyncHeight()
 	defer es.Stop()
 	go s.WriteEntries()
@@ -29,60 +33,17 @@ func TestEntrySync(t *testing.T) {
 		close(s.WriteEntry)
 	}()
 
-	// testHelper creates 10 blocks by default
-	// copy these from database to DBStates
-	// they all have entries that exist in db
-	for i := uint32(0); i < baseBlocks; i++ {
-		db, err := s.DB.FetchDBlockByHeight(i)
-		if err != nil || db == nil {
-			t.Fatal(err)
-		}
-
-		ablock, err := s.DB.FetchABlockByHeight(i)
-		if err != nil || ablock == nil {
-			t.Fatal(err)
-		}
-
-		fblock, err := s.DB.FetchFBlockByHeight(i)
-		if err != nil || fblock == nil {
-			t.Fatal(err)
-		}
-
-		ecblock, err := s.DB.FetchECBlockByHeight(i)
-		if err != nil || ecblock == nil {
-			t.Fatal(err)
-		}
-
-		var eblocks []interfaces.IEntryBlock
-		for _, entry := range db.GetEBlockDBEntries() {
-			eblock, err := s.DB.FetchEBlock(entry.GetKeyMR())
-			if err != nil || eblock == nil {
-				t.Fatal(err)
-			}
-			eblocks = append(eblocks, eblock)
-		}
-
+	blockset := testHelper.CreateFullTestBlockSet() // deterministic so we get the same as in CreateAndPopulateTestState
+	// CreateAndPopulateTestState doesn't update state.DBStates, do it manually
+	for i, bs := range blockset {
 		var entries []interfaces.IEBEntry
-		for _, eb := range eblocks {
-			for _, h := range eb.GetEntryHashes() {
-				if h.IsMinuteMarker() {
-					continue
-				}
-				entry, err := s.DB.FetchEntry(h)
-				if err != nil {
-					t.Fatal(err)
-				}
-				if entry == nil {
-					t.Fatalf("missing entry with hash %s", h.String())
-				}
-				entries = append(entries, entry)
-			}
+		for _, e := range bs.Entries {
+			entries = append(entries, e)
 		}
 
-		s.DBStates.NewDBState(true, db, ablock, fblock, ecblock, eblocks, entries)
+		s.DBStates.NewDBState(true, bs.DBlock, bs.ABlock, bs.FBlock, bs.ECBlock, []interfaces.IEntryBlock{bs.EBlock}, entries)
 		s.DBStates.DBStates[i].Saved = true
 	}
-
 	s.DBStates.ProcessHeight = baseBlocks // manually move this
 
 	// test times out if something goes wrong here
@@ -90,15 +51,16 @@ func TestEntrySync(t *testing.T) {
 		time.Sleep(time.Millisecond * 100)
 	}
 
+	// 1.
 	if pos := es.Position(); pos != baseBlocks {
 		t.Fatalf("EntrySync position wrong. got = %d, want = %d", pos, baseBlocks)
 	}
 
-	// create blocks with missing entries that need to be synced
+	// 2.
 	allentries := make(map[[32]byte]*entryBlock.Entry)
-	oldblockset := testHelper.CreateFullTestBlockSet()
-	last := oldblockset[len(oldblockset)-1]
+	last := blockset[len(blockset)-1]
 	for i := uint32(0); i < baseBlocks; i++ {
+		// block 5 has no eblocks
 		last = testHelper.CreateTestBlockSetWithNetworkIDAndEBlocks(last, constants.LOCAL_NETWORK_ID, true, i != 5)
 
 		s.DB.StartMultiBatch()
@@ -140,7 +102,6 @@ func TestEntrySync(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// don't save entries
 		var eblocks []interfaces.IEntryBlock
 		if last.EBlock != nil {
 			eblocks = append(eblocks, last.EBlock)
@@ -161,8 +122,9 @@ func TestEntrySync(t *testing.T) {
 	}
 
 	s.DBStates.ProcessHeight = baseBlocks * 2
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 2) // internal entrysync wait timer = 1s
 
+	// 3.
 	if s.NetworkOutMsgQueue().Length() == 0 {
 		t.Fatalf("expected message requests. got = %d, want = %d", s.NetworkOutMsgQueue().Length(), len(allentries))
 	}
@@ -179,10 +141,10 @@ func TestEntrySync(t *testing.T) {
 			t.Errorf("response to %x not in map", msg.RequestHash)
 		}
 
+		// 4.
 		if !es.AskedFor(msg.RequestHash) {
 			t.Errorf("a request sent for a hash that wasn't asked for: %x", msg.RequestHash)
 		}
-
 		s.WriteEntry <- response
 	}
 
@@ -191,6 +153,7 @@ func TestEntrySync(t *testing.T) {
 		time.Sleep(time.Millisecond * 100)
 	}
 
+	// 5.
 	if pos := es.Position(); pos != baseBlocks*2 {
 		t.Fatalf("EntrySync position wrong. got = %d, want = %d", pos, baseBlocks*2)
 	}
