@@ -23,8 +23,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var _ = fmt.Print
-
 // packageLogger is the general logger for all engine related logs. You can add additional fields,
 // or create more context loggers off of this
 var packageLogger = log.WithFields(log.Fields{"package": "engine"})
@@ -44,11 +42,11 @@ func Run(params *FactomParams) {
 }
 
 func Factomd(w *worker.Thread, params *FactomParams, listenToStdin bool) {
-	fmt.Printf("SpawnRun compiler version: %s\n", runtime.Version())
-	fmt.Printf("Using build: %s\n", Build)
+	fmt.Printf("Compiler version: %s\n", runtime.Version())
+	fmt.Printf("Build: %s\n", Build)
 	fmt.Printf("Version: %s\n", FactomdVersion)
-	StartTime = time.Now()
-	fmt.Printf("Start time: %s\n", StartTime.String())
+	fmt.Printf("Start time: %s\n", time.Now().String())
+	fmt.Println()
 	go StartProfiler(params.MemProfileRate, params.ExposeProfiling)
 	NetStart(w, params, listenToStdin)
 }
