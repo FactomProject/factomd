@@ -1320,13 +1320,13 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 	msg, ok := m.(*messages.DataResponse)
 	if !ok {
-		s.LogMessage("executeMsg", "Drop, not a DataResponce", msg)
+		s.LogMessage("executeMsg", "drop, not a DataResponse", msg)
 		return
 	}
 
 	switch msg.DataType {
 	case 1: // Data is an entryBlock
-		s.LogMessage("executeMsg", "unprompted eblock response was sent by "+msg.GetNetworkOrigin()+" for block "+msg.DataHash.String(), msg)
+		s.LogMessage("executeMsg", "unprompted eblock response was sent", msg)
 		return
 	case 0: // Data is an entry
 		entry, ok := msg.DataObject.(interfaces.IEBEntry)
