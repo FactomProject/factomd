@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/modules/events"
-	"github.com/sirupsen/logrus"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -1371,10 +1370,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 
 	switch msg.DataType {
 	case 1: // Data is an entryBlock
-		s.Logger.WithFields(logrus.Fields{
-			"from":   msg.GetNetworkOrigin(),
-			"eblock": msg.DataHash.String(),
-		}).Warnf("unprompted eblock response was sent")
+		s.LogMessage("executeMsg", "unprompted eblock response was sent by", msg.GetNetworkOrigin(), "for block", msg.DataHash.String())
 		return
 	case 0: // Data is an entry
 		entry, ok := msg.DataObject.(interfaces.IEBEntry)
