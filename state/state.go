@@ -2404,6 +2404,8 @@ func (s *State) GetIgnoreDone() bool {
 func (s *State) ShutdownNode(exitCode int) {
 	fmt.Println(fmt.Sprintf("Initiating a graceful shutdown of node %s. The exit code is %v.", s.FactomNodeName, exitCode))
 	s.RunState = runstate.Stopping
+	close(s.WriteEntry)
+	s.EntrySync.Stop()
 	s.ShutdownChan <- exitCode
 }
 
