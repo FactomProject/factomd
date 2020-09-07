@@ -53,8 +53,6 @@ type EntrySync struct {
 	askMap map[[32]byte]bool // entry hash => ask
 	asks   []*entrySyncAsk   // chronological
 
-	//ebMtx   sync.Mutex
-	//eblocks []*entrySyncEBlock
 	eblocks chan *entrySyncEBlock
 
 	closer chan interface{}
@@ -79,7 +77,7 @@ func NewEntrySync(s *State) *EntrySync {
 	es.s = s
 	es.closer = make(chan interface{}, 1)
 	es.askMap = make(map[[32]byte]bool)
-	es.eblocks = make(chan *entrySyncEBlock, EntrySyncMax) //
+	es.eblocks = make(chan *entrySyncEBlock, EntrySyncMaxEBlocks)
 	return es
 }
 
