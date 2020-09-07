@@ -13,6 +13,9 @@ import (
 var (
 	// EntrySyncMax is the maximum amount of entries to request concurrently
 	EntrySyncMax = 750 // good-ish value
+	// EntrySyncMaxEBlocks is the maximum amount of eblocks to process concurrently.
+	// The value only applies if that range of eblocks has fewer than EntrySyncMax entries.
+	EntrySyncMaxEBlocks = 200
 	// EntrySyncRetry dictates after what period to retry an unanswered request
 	EntrySyncRetry = time.Second * 10
 	// EntrySyncWarning is the number of failed requests before warning in the console.
@@ -50,8 +53,9 @@ type EntrySync struct {
 	askMap map[[32]byte]bool // entry hash => ask
 	asks   []*entrySyncAsk   // chronological
 
-	ebMtx   sync.Mutex
-	eblocks []*entrySyncEBlock
+	//ebMtx   sync.Mutex
+	//eblocks []*entrySyncEBlock
+	eblocks chan *entrySyncEBlock
 
 	closer chan interface{}
 }
@@ -75,48 +79,41 @@ func NewEntrySync(s *State) *EntrySync {
 	es.s = s
 	es.closer = make(chan interface{}, 1)
 	es.askMap = make(map[[32]byte]bool)
+	es.eblocks = make(chan *entrySyncEBlock, EntrySyncMax) //
 	return es
 }
 
 // Stop initiates shutdown and will stop all associated goroutines
 func (es *EntrySync) Stop() {
 	close(es.closer)
+	close(es.eblocks)
 }
 
 // check routine, for description see EntrySync comment
 func (es *EntrySync) check() {
-	for {
-		select {
-		case <-es.closer:
-			return
-		default:
-		}
-
-		if len(es.eblocks) == 0 { // outside of mutex but should be fine
-			time.Sleep(time.Second)
-			continue
-		}
-
-		es.ebMtx.Lock()
-		eb := es.eblocks[0]
+	for eb := range es.eblocks {
 		es.s.SetEntryBlockDBHeightProcessing(eb.height)
 
-		stillmissing := make([]interfaces.IHash, 0, len(eb.missing))
-		for _, entryhash := range eb.missing {
-			if !es.has(entryhash) {
-				stillmissing = append(stillmissing, entryhash)
+		for {
+			select {
+			case <-es.closer:
+				return
+			default:
 			}
-		}
 
-		if len(stillmissing) > 0 {
-			eb.missing = stillmissing
-		} else { // eblock is complete
-			es.eblocks = es.eblocks[1:]
-			es.s.SetEntryBlockDBHeightComplete(eb.height)
-		}
-		es.ebMtx.Unlock()
+			for i := 0; i < len(eb.missing); i++ {
+				if es.has(eb.missing[i]) {
+					eb.missing[i] = eb.missing[len(eb.missing)-1]
+					eb.missing = eb.missing[:len(eb.missing)-1]
+				}
+			}
 
-		if len(stillmissing) > 0 { // waiting on requests
+			// eblock is complete
+			if len(eb.missing) == 0 {
+				es.s.SetEntryBlockDBHeightComplete(eb.height)
+				break
+			}
+
 			time.Sleep(time.Second)
 		}
 	}
@@ -237,9 +234,7 @@ func (es *EntrySync) syncDBlock(db interfaces.IDirectoryBlock) {
 func (es *EntrySync) syncNoEBlock(height uint32) {
 	ebsync := new(entrySyncEBlock)
 	ebsync.height = height
-	es.ebMtx.Lock()
-	es.eblocks = append(es.eblocks, ebsync)
-	es.ebMtx.Unlock()
+	es.eblocks <- ebsync
 }
 
 // process a single eblock, will call syncEntryHash() on each entry, and add an eblock to the queue
@@ -274,9 +269,7 @@ func (es *EntrySync) syncEBlock(height uint32, keymr interfaces.IHash, ts interf
 		ebsync.missing = append(ebsync.missing, entryHash)
 	}
 
-	es.ebMtx.Lock()
-	es.eblocks = append(es.eblocks, ebsync)
-	es.ebMtx.Unlock()
+	es.eblocks <- ebsync
 
 	return true
 }
