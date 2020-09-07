@@ -209,8 +209,8 @@ func (es *EntrySync) SyncHeight() {
 			continue
 		}
 
-		// legacy logic
-		if !es.s.DBFinished { // throttle syncing
+		// throttle syncing while loading from the database to give preference to that
+		if !es.s.DBFinished {
 			time.Sleep(time.Millisecond * 10)
 		}
 
