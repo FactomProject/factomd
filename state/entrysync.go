@@ -103,6 +103,7 @@ func (es *EntrySync) check() {
 				if es.has(eb.missing[i]) {
 					eb.missing[i] = eb.missing[len(eb.missing)-1]
 					eb.missing = eb.missing[:len(eb.missing)-1]
+					i--
 				}
 			}
 
