@@ -8,13 +8,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/modules/events"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	llog "github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/util/atomic"
 )

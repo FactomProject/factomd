@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/testHelper/simulation"
 )
 
 type remoteNode struct {
@@ -216,7 +217,7 @@ func (r remoteNode) RunCmd(cmd string) error {
 
 func (r remoteNode) WriteConfig(identityNumber int, extra string) error {
 	c := make(map[string]string)
-	c["Config"] = testHelper.GetConfig(identityNumber, extra)
+	c["Config"] = simulation.GetConfig(identityNumber, extra)
 	cfg, _ := json.Marshal(c)
 	_, err := rpc(r.getAPIUrl(), "write-configuration", string(cfg))
 	return err
