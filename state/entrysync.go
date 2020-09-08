@@ -176,6 +176,16 @@ func (es *EntrySync) syncMax() uint32 {
 	return end
 }
 
+// DelayedStart waits for the database to be finished loading before starting the syncing process
+func (es *EntrySync) DelayedStart() {
+	// delay the start of entrysync until
+	for !es.s.DBFinished {
+		time.Sleep(time.Second)
+	}
+
+	es.SyncHeight()
+}
+
 // SyncHeight starts the Sync, Ask, and Check routines.
 func (es *EntrySync) SyncHeight() {
 	go es.ask()
@@ -203,11 +213,6 @@ func (es *EntrySync) SyncHeight() {
 		if db == nil { // block not saved yet
 			time.Sleep(time.Second)
 			continue
-		}
-
-		// throttle syncing while loading from the database to give preference to that
-		if !es.s.DBFinished {
-			time.Sleep(time.Millisecond * 10)
 		}
 
 		es.syncDBlock(db)
