@@ -2890,7 +2890,6 @@ func (s *State) GetDirectoryBlock() interfaces.IDirectoryBlock {
 }
 
 func (s *State) GetNewHash() (rval interfaces.IHash) {
-	defer func() { rval = primitives.CheckNil(rval, "State.GetNewHash") }()
 	return new(primitives.Hash)
 }
 
