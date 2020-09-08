@@ -242,7 +242,7 @@ func (e *CommitEntry) MarshalBinarySig() (rval []byte, err error) {
 func (e *CommitEntry) MarshalBinaryTransaction() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
-			fmt.Fprintf(os.Stderr, "CommitEntry.MarshalBinary err:%v", *pe)
+			fmt.Fprintf(os.Stderr, "CommitEntry.MarshalBinaryTransaction err:%v", *pe)
 		}
 	}(&err)
 	b, err := e.MarshalBinarySig()
@@ -270,7 +270,7 @@ func (e *CommitEntry) MarshalBinary() (rval []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-
+	buf := primitives.NewBuffer(b)
 	// 64 byte Signature
 	err = buf.PushBinaryMarshallable(e.Sig)
 	if err != nil {
