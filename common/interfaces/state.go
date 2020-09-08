@@ -320,9 +320,6 @@ type IState interface {
 	Validate(msg IMsg) (validToSend int, validToExecute int)
 	GetIgnoreDone() bool
 
-	// Emit DBState events to the livefeed api from a specified height
-	EmitDirectoryBlockEventsFromHeight(height uint32, end uint32)
-
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
 	LoadAcksMap() map[[32]byte]IMsg
