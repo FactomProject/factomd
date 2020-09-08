@@ -332,8 +332,12 @@ func sortMsg(msg interfaces.IMsg, fnode *fnode.FactomNode, source string) {
 	case constants.COMMIT_ENTRY_MSG:
 		Q2(fnode, source, msg) // slow track
 
-	case constants.MISSING_DATA:
+	// WAX MERGE this was re-introduced in develop, but was removed in wax
+	// the function DataQ exists in wax, however
+	/*
+		case constants.MISSING_DATA:
 		DataQ(fnode, source, msg) // separated missing data queue
+	*/
 
 	default:
 		//todo: Probably should send EOM/DBSig and their ACKs on a faster yet track
