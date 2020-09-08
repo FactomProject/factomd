@@ -147,7 +147,6 @@ type State struct {
 	lasttime    time.Time
 	longTps     float64
 	tps         float64
-	longTps     float64
 	ResetTryCnt int
 	ResetCnt    int
 

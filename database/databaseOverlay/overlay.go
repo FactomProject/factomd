@@ -204,7 +204,7 @@ func NewOverlay(db interfaces.IDatabase) *Overlay {
 	return answer
 }
 
-func NewOverlayWithState(db interfaces.IDatabase, parentState interfaces.IState) *Overlay {
+func NewOverlayWithState(db interfaces.IDatabase, parentState pubsub.IPubState) *Overlay {
 	answer := NewOverlay(db)
 	answer.pubState = parentState
 	return answer
