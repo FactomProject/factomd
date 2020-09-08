@@ -903,7 +903,8 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			s.ExpireHolding() // expire anything in holding that is old.
 			fallthrough
 		default:
-			s.EventService.EmitProcessListEventNewMinute(newMinute, dbheight)
+			// WAX MERGE replace this with the events module
+			// s.EventService.EmitProcessListEventNewMinute(newMinute, dbheight)
 		}
 		s.CurrentMinute = newMinute // Update just the minute
 		// We are between blocks make sure we are setup to sync

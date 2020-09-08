@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -161,11 +160,6 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 
 			for i := 0; i < 100 && s.APIQueue().Length() > 0; i++ {
 				msg := s.APIQueue().Dequeue()
-
-				if msg.GetRepeatHash() == nil || reflect.ValueOf(msg.GetRepeatHash()).IsNil() || msg.GetMsgHash() == nil || reflect.ValueOf(msg.GetMsgHash()).IsNil() { // Do not send pokemon messages
-					fnode.State.LogMessage("badEvents", fmt.Sprintf("PokeMon seen on Peer %s", peer.GetNameFrom()), msg)
-					continue
-				}
 
 				if globals.Params.FullHashesLog {
 					primitives.Loghash(msg.GetMsgHash())
