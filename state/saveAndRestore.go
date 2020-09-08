@@ -432,6 +432,9 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		atomic.WhereAmIMsg("no identity manager")
 	}
 
+	ss.EntryBlockDBHeightComplete = state.EntryBlockDBHeightComplete
+	// don't save processing
+
 	return ss
 }
 

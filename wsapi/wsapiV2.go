@@ -1270,7 +1270,7 @@ func HandleV2Heights(state interfaces.IState, params interface{}) (interface{}, 
 	h.DirectoryBlockHeight = int64(state.GetHighestSavedBlk())
 	h.LeaderHeight = lheight
 	h.EntryBlockHeight = int64(state.GetHighestSavedBlk())
-	h.EntryHeight = int64(state.GetEntryDBHeightComplete())
+	h.EntryHeight = int64(state.GetEntryBlockDBHeightComplete())
 	h.MissingEntryCount = int64(state.GetMissingEntryCount())
 	h.EntryBlockDBHeightProcessing = int64(state.GetEntryBlockDBHeightProcessing())
 	h.EntryBlockDBHeightComplete = int64(state.GetEntryBlockDBHeightComplete())

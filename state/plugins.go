@@ -153,7 +153,7 @@ func (s *State) uploadDBState(sequence uint32) error {
 	// Create the torrent
 	if s.UsingTorrent() {
 		// When we complete height X+2, we can upload to it
-		for (s.EntryDBHeightComplete - 2) < base+BATCH_SIZE {
+		for (s.EntryBlockDBHeightComplete - 2) < base+BATCH_SIZE {
 			time.Sleep(2 * time.Second)
 		}
 

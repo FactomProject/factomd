@@ -181,7 +181,7 @@ func (es *EntrySync) SyncHeight() {
 	go es.ask()
 	go es.check()
 
-	es.position = es.s.EntryDBHeightComplete
+	es.position = es.s.EntryBlockDBHeightComplete
 	// genesis block edge case since EntryDBHeightComplete can't be -1
 	if es.position > 0 {
 		es.position++
