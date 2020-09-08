@@ -2413,6 +2413,11 @@ func (s *State) IsRunLeader() bool {
 	return s.RunLeader
 }
 
+// WAX MERGE duplicate function, redundant with IsRunLeader
+func (s *State) GetRunLeader() bool {
+	return s.IsRunLeader()
+}
+
 func (s *State) GetPubRegistry() pubsub.IPubRegistry {
 	return s.Pub
 }
