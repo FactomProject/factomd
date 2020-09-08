@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"hash"
-	"math"
 	"os"
 	"reflect"
 	"sort"
@@ -2240,22 +2239,26 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		)
 		s.electionsQueue.Enqueue(InMsg)
 
-		// Prometheus metrics to analyze timing delays
-		msgDelay := e.GetReceivedTime().Sub(e.Timestamp.GetTime())
-		LeaderSyncMsgDelay.WithLabelValues(e.ChainID.String()).Set(msgDelay.Seconds())
-		// Grab the ack (should always work)
-		if vm.Height < len(vm.ListAck) { // This shouldn't fail...
-			ack := vm.ListAck[vm.Height]
-			if ack != nil && ack.GetHash() != nil && ack.GetHash().IsSameAs(e.GetMsgHash()) {
-				// Measure Ack delay
-				ackDelay := ack.GetReceivedTime().Sub(ack.Timestamp.GetTime())
-				LeaderSyncAckDelay.WithLabelValues(e.ChainID.String()).Set(ackDelay.Seconds())
+		// WAX MERGE the variables LeaderSync*Delay don't exist in wax, need to re-add them
+		// under prometheus metrics
+		/*
+			// Prometheus metrics to analyze timing delays
+			msgDelay := e.GetReceivedTime().Sub(e.Timestamp.GetTime())
+			LeaderSyncMsgDelay.WithLabelValues(e.ChainID.String()).Set(msgDelay.Seconds())
+			// Grab the ack (should always work)
+			if vm.Height < len(vm.ListAck) { // This shouldn't fail...
+				ack := vm.ListAck[vm.Height]
+				if ack != nil && ack.GetHash() != nil && ack.GetHash().IsSameAs(e.GetMsgHash()) {
+					// Measure Ack delay
+					ackDelay := ack.GetReceivedTime().Sub(ack.Timestamp.GetTime())
+					LeaderSyncAckDelay.WithLabelValues(e.ChainID.String()).Set(ackDelay.Seconds())
 
-				// Measure Pair Delay. The delay between the msg and ack
-				pairDelay := ack.GetReceivedTime().Sub(e.GetReceivedTime())
-				LeaderSyncAckPairDelay.WithLabelValues(e.ChainID.String()).Set(math.Abs(pairDelay.Seconds()))
+					// Measure Pair Delay. The delay between the msg and ack
+					pairDelay := ack.GetReceivedTime().Sub(e.GetReceivedTime())
+					LeaderSyncAckPairDelay.WithLabelValues(e.ChainID.String()).Set(math.Abs(pairDelay.Seconds()))
+				}
 			}
-		}
+		*/
 
 		//fmt.Println(fmt.Sprintf("SigType PROCESS: %10s vm %2d Process Once: !e.Processed(%v) SigType: %s", s.FactomNodeName, e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
