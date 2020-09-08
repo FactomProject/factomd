@@ -203,7 +203,3 @@ func (c *controller) Start() {
 	go c.catReplenish() // cycle every 1s
 	go c.route()        // route data
 }
-
-func (c *Controller) GetKnownPeers() map[string]Peer {
-	return c.discovery.knownPeers
-}
