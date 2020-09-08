@@ -18,7 +18,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/blockExtractor"
-	"github.com/FactomProject/factomd/events"
 	"github.com/FactomProject/factomd/modules/pubsub"
 )
 
@@ -205,9 +204,9 @@ func NewOverlay(db interfaces.IDatabase) *Overlay {
 	return answer
 }
 
-func NewOverlayWithState(db interfaces.IDatabase, parentState events.StateEventServices) *Overlay {
+func NewOverlayWithState(db interfaces.IDatabase, parentState interfaces.IState) *Overlay {
 	answer := NewOverlay(db)
-	answer.parentState = parentState
+	answer.pubState = parentState
 	return answer
 }
 

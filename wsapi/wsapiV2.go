@@ -190,8 +190,9 @@ func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 }
 
 func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	n := time.Now()
-	defer HandleV2APICallReplayDBFromHeight.Observe(float64(time.Since(n).Nanoseconds()))
+	// WAX MERGE readd prometheus metric
+	//n := time.Now()
+	//defer HandleV2APICallReplayDBFromHeight.Observe(float64(time.Since(n).Nanoseconds()))
 
 	replayRequest := new(ReplayRequest)
 	err := MapToObject(params, replayRequest)

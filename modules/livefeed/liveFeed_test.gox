@@ -57,7 +57,7 @@ func TestEventEmitter_Send(t *testing.T) {
 				PubRegistry: pubregistry.New("UnitTestNode_LiveFeed"),
 			},
 			eventSender: &mockEventSender{
-				eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
+				eventsOutQueue: make(chan *eventmessages.FactomEvent, 5000),
 			},
 			config:       buildTestConfig(),
 			factomParams: nil,
@@ -71,7 +71,7 @@ func TestEventEmitter_Send(t *testing.T) {
 				PubRegistry: pubregistry.New("UnitTestNode_LiveFeed"),
 			},
 			eventSender: &mockEventSender{
-				eventsOutQueue:      make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
+				eventsOutQueue:      make(chan *eventmessages.FactomEvent, 5000),
 				replayDuringStartup: true,
 			},
 			config:       buildTestConfig(),
@@ -147,7 +147,7 @@ func buildTestConfig() *util.FactomdConfig {
 
 func NewTestLiveFeedService(eventSender eventservices.EventSender) *liveFeedService {
 	liveFeedService := new(liveFeedService)
-	liveFeedService.factomEventPublisher = pubsub.PubFactory.Threaded(p2p.StandardChannelSize).Publish("/live-feed", pubsub.PubMultiWrap())
+	liveFeedService.factomEventPublisher = pubsub.PubFactory.Threaded(5000).Publish("/live-feed", pubsub.PubMultiWrap())
 	liveFeedService.eventSender = eventSender
 	pubsub.SubFactory.PrometheusCounter("factomd_livefeed_total_events_published", "Number of events published by the factomd backend")
 	return liveFeedService
