@@ -238,8 +238,8 @@ func (e *CommitEntry) MarshalBinarySig() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-// MarshalBinary marshals the entire object
-func (e *CommitEntry) MarshalBinary() (rval []byte, err error) {
+// Transaction hash of entry commit. (version through pub key hashed)
+func (e *CommitEntry) MarshalBinaryTransaction() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "CommitEntry.MarshalBinary err:%v", *pe)
@@ -253,6 +253,20 @@ func (e *CommitEntry) MarshalBinary() (rval []byte, err error) {
 
 	// 32 byte Public Key
 	err = buf.PushBinaryMarshallable(e.ECPubKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (e *CommitEntry) MarshalBinary() (rval []byte, err error) {
+	defer func(pe *error) {
+		if *pe != nil {
+			fmt.Fprintf(os.Stderr, "CommitEntry.MarshalBinary err:%v", *pe)
+		}
+	}(&err)
+	b, err := e.MarshalBinaryTransaction()
 	if err != nil {
 		return nil, err
 	}
@@ -366,4 +380,24 @@ func (e *CommitEntry) JSONByte() ([]byte, error) {
 // JSONString returns this object as a json encoded string
 func (e *CommitEntry) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
+}
+
+func (e *CommitEntry) GetVersion() uint8 {
+	return e.Version
+}
+
+func (e *CommitEntry) GetMilliTime() *primitives.ByteSlice6 {
+	return e.MilliTime
+}
+
+func (e *CommitEntry) GetCredits() uint8 {
+	return e.Credits
+}
+
+func (e *CommitEntry) GetECPubKey() *primitives.ByteSlice32 {
+	return e.ECPubKey
+}
+
+func (e *CommitEntry) GetSig() *primitives.ByteSlice64 {
+	return e.Sig
 }

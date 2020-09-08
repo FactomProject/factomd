@@ -22,8 +22,8 @@ type IQueue interface {
 	Length() int
 	Cap() int
 	Enqueue(msg IMsg)
+	DequeueNonBlocking() IMsg
 	Dequeue() IMsg
-	BlockingDequeue() IMsg
 }
 
 // Holds the state information for factomd.  This does imply that we will be
@@ -36,17 +36,13 @@ type IState interface {
 	// Server
 	GetFactomNodeName() string
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
-	Clone(number int) IState
 	GetCfg() IFactomConfig
 	GetConfigPath() string
 	LoadConfig(filename string, networkFlag string)
-	Init()
 	String() string
 	GetIdentityChainID() IHash
 	SetIdentityChainID(IHash)
 	Sign([]byte) IFullSignature
-	Log(level string, message string)
-	Logf(level string, format string, args ...interface{})
 	GetServerPublicKeyString() string
 
 	GetDBStatesSent() []*DBStateSent
@@ -117,10 +113,6 @@ type IState interface {
 	TimerMsgQueue() chan IMsg
 	NetworkOutMsgQueue() IQueue
 	NetworkInvalidMsgQueue() chan IMsg
-
-	// Journaling
-	JournalMessage(IMsg)
-	GetJournalMessages() [][]byte
 
 	// Consensus
 	APIQueue() IQueue    // Input Queue from the API
@@ -206,11 +198,10 @@ type IState interface {
 	IncFactoidTrans()
 	IncDBStateAnswerCnt()
 
-	GetPendingTransactions(interface{}) []IPendingTransaction
+	GetPendingTransactions(string) []IPendingTransaction
 	// MISC
 	// ====
 
-	Reset()                                    // Trim back the state to the last saved block
 	GetSystemMsg(dbheight, height uint32) IMsg // Return the system message at the given height.
 	SendDBSig(dbheight uint32, vmIndex int)    // If a Leader, we have to send a DBSig out for the previous block
 
@@ -218,8 +209,6 @@ type IState interface {
 	FollowerExecuteEOM(IMsg)          // Messages that go into the process list
 	FollowerExecuteAck(IMsg)          // Ack Msg calls this function.
 	FollowerExecuteDBState(IMsg)      // Add the given DBState to this server
-	FollowerExecuteSFault(IMsg)       // Handling of Server Fault Messages
-	FollowerExecuteFullFault(IMsg)    // Handle Server Full-Fault Messages
 	FollowerExecuteMMR(IMsg)          // Handle Missing Message Responses
 	FollowerExecuteDataResponse(IMsg) // Handle Data Response
 	FollowerExecuteMissingMsg(IMsg)   // Handle requests for missing messages
@@ -253,11 +242,7 @@ type IState interface {
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
 
-	ValidatorLoop()
-
 	UpdateECs(IEntryCreditBlock)
-	SetIsReplaying()
-	SetIsDoneReplaying()
 
 	CrossReplayAddSalt(height uint32, salt [8]byte) error
 
@@ -340,10 +325,6 @@ type IState interface {
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
 	LoadAcksMap() map[[32]byte]IMsg
-
-	// Plugins
-	UsingTorrent() bool
-	GetMissingDBState(height uint32) error
 
 	LogMessage(logName string, comment string, msg IMsg)
 	LogPrintf(logName string, format string, more ...interface{})

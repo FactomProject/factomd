@@ -1,0 +1,65 @@
+{{define "page"}}
+    <section id="explorer">
+        <div class="row">
+            <div class="columns">
+                <h1>{{ .Title }}</h1>
+
+                {{if .DirectoryBlock.Hash  }}
+                    <div id="directory-block">
+                        <table>
+                            <tbody>
+                            <tr>
+                                <td>KeyMR:</td>
+                                <td>2c753a509fd8f56a83f9e6648280d37af11e9002d0b04f6761c0424d1fb97c79</td>
+                            </tr>
+                            <tr>
+                                <td>Body KeyMR:</td>
+                                <td>e36887d621ad0ec58c0def321d3373fb17ebedd1171944176bdc2326f01713ab</td>
+                            </tr>
+                            <tr>
+                                <td>Full Hash:</td>
+                                <td>858ad1897502c45265e7c824ef40fee49d3ac1543ef8dd765bb1bbeffd0a97f9</td>
+                            </tr>
+                            <tr>
+                                <td>TimeStamp:</td>
+                                <td>2020-01-23 14:52:00</td>
+                            </tr>
+                            <tr>
+                                <td>Block Height:</td>
+                                <td>115221</td>
+                            </tr>
+                            <tr>
+                                <td>Previous Directory Block:</td>
+                                <td>
+                                    Previous KeyMR : <a id="factom-search-link" type="dblock">e6541a785037f952204958593ab0f921826668703515c7546a705cec0c68c629</a><br/>
+                                    Previous Full Hash :
+                                    a64b718874fe3f636e85c78845fc379c4f2b08586b9aa8a78d7a0551a427ab27
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                {{else}}
+
+                    <div id="not-found">
+                        <div>It seems there has been an error while trying to complete that search. The item being
+                            searched was not found, if you navigated to this page by clicking a link, try inputting the
+                            search term into the search bar above. If that fails, the search may have failed due to
+                            factomd being down or the item not exisiting in the database.
+                        </div>
+                        <div>
+                            <p>Search term: <b>{{ .Term }}</b>
+                            <p>
+                        </div>
+                    </div>
+                {{end}}
+
+                {{ if .Title }}
+                    <p>WQHOOOOP</p>
+                {{end}}
+
+            </div>
+        </div>
+    </section>
+{{end}}

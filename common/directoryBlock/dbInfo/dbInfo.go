@@ -94,12 +94,12 @@ func (c *DirBlockInfo) GetBTCConfirmed() bool {
 	return c.BTCConfirmed
 }
 
-func (c *DirBlockInfo) GetEthereumAnchorRecordEntryHash() interfaces.IHash {
-	return c.EthereumAnchorRecordEntryHash
-}
-
 func (c *DirBlockInfo) GetEthereumConfirmed() bool {
 	return c.EthereumConfirmed
+}
+
+func (c *DirBlockInfo) GetEthereumAnchorRecordEntryHash() interfaces.IHash {
+	return c.EthereumAnchorRecordEntryHash
 }
 
 func (c *DirBlockInfo) GetChainID() (rval interfaces.IHash) {

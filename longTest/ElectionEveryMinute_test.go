@@ -2,34 +2,34 @@ package longtest
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/testHelper/simulation"
 	"testing"
 
-	. "github.com/FactomProject/factomd/engine"
-	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/fnode"
 )
 
 func TestElectionEveryMinute(t *testing.T) {
 	//							  01234567890123456789012345678901
-	state0 := SetupSim("LLLLLLLLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--blktime": "60"}, 20, 10, 1, t)
+	state0 := simulation.SetupSim("LLLLLLLLLLLLLLLLLLLLLAAAAAAAAAAF", map[string]string{"--blktime": "60"}, 20, 10, 1, t)
 
-	StatusEveryMinute(state0)
-	s := GetFnodes()[1].State
-	WaitMinutes(s, 1) // wait for start of next minute on fnode01
+	simulation.StatusEveryMinute(state0)
+	s := fnode.Get(1).State
+	simulation.WaitMinutes(s, 1) // wait for start of next minute on fnode01
 	// knock followers off one per minute
 	start := s.CurrentMinute
 	for i := 0; i < 10; i++ {
-		s := GetFnodes()[i+1].State
-		RunCmd(fmt.Sprintf("%d", i+1))
-		WaitForMinute(s, (start+i+1)%10) // wait for selected minute
-		RunCmd("x")
+		s := fnode.Get(i + 1).State
+		simulation.RunCmd(fmt.Sprintf("%d", i+1))
+		simulation.WaitForMinute(s, (start+i+1)%10) // wait for selected minute
+		simulation.RunCmd("x")
 	}
-	WaitMinutes(state0, 1)
+	simulation.WaitMinutes(state0, 1)
 	// bring them all back
 	for i := 0; i < 10; i++ {
-		RunCmd(fmt.Sprintf("%d", i+1))
-		RunCmd("x")
+		simulation.RunCmd(fmt.Sprintf("%d", i+1))
+		simulation.RunCmd("x")
 	}
 
-	WaitForAllNodes(state0) /// wait till everyone catches up
-	ShutDownEverything(t)
+	simulation.WaitForAllNodes(state0) /// wait till everyone catches up
+	simulation.ShutDownEverything(t)
 }

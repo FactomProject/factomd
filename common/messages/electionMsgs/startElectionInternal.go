@@ -94,6 +94,11 @@ func (m *StartElectionInternal) ElectionValidate(ie interfaces.IElections) int {
 	return 1
 }
 
+func (m *StartElectionInternal) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 func (m *StartElectionInternal) Validate(state interfaces.IState) int {
 	return 1
 }
@@ -145,16 +150,16 @@ func (m *StartElectionInternal) ComputeVMIndex(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *StartElectionInternal) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *StartElectionInternal) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *StartElectionInternal) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *StartElectionInternal) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *StartElectionInternal) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *StartElectionInternal) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *StartElectionInternal) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -176,6 +181,10 @@ func (m *StartElectionInternal) String() string {
 	return fmt.Sprintf("%20s dbheight %d min %d vm %d", "Start Election Internal", m.DBHeight, int(m.Minute), m.VMIndex)
 }
 
-func (a *StartElectionInternal) IsSameAs(b *StartElectionInternal) bool {
+func (m *StartElectionInternal) IsSameAs(b *StartElectionInternal) bool {
 	return true
+}
+
+func (m *StartElectionInternal) Label() string {
+	return msgbase.GetLabel(m)
 }

@@ -29,11 +29,11 @@ type RequestBlock struct {
 
 var _ interfaces.IMsg = (*RequestBlock)(nil)
 
-func (a *RequestBlock) IsSameAs(b *RequestBlock) bool {
+func (m *RequestBlock) IsSameAs(b *RequestBlock) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
+	if m.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -160,6 +160,11 @@ func (m *RequestBlock) Signature() []byte {
 	return nil
 }
 
+func (m *RequestBlock) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
@@ -177,10 +182,14 @@ func (m *RequestBlock) LeaderExecute(state interfaces.IState) {
 func (m *RequestBlock) FollowerExecute(interfaces.IState) {
 }
 
-func (e *RequestBlock) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *RequestBlock) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *RequestBlock) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *RequestBlock) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
+}
+
+func (m *RequestBlock) Label() string {
+	return msgbase.GetLabel(m)
 }

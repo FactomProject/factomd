@@ -7,9 +7,6 @@ import (
 )
 
 func TestInstrumentation(t *testing.T) {
-	RegisterPrometheus()
-	RegisterPrometheus()
-
 	GetBucket(DIRECTORYBLOCK)
 	GetBucket(DIRECTORYBLOCK_NUMBER)
 	GetBucket(DIRECTORYBLOCK_SECONDARYINDEX)

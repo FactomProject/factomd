@@ -5,7 +5,6 @@
 package interfaces
 
 type IFactoidState interface {
-
 	// Get the current transaction block
 	GetCurrentBlock() IFBlock
 

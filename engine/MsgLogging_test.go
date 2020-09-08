@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/state"
 )
 
@@ -14,9 +15,9 @@ func TestMessageLoging(t *testing.T) {
 	msgLog := new(MsgLog)
 	msgLog.Init(true, 0)
 
-	fnode := new(FactomNode)
-	fnode.State = new(state.State)
-	s := fnode.State
+	node := new(fnode.FactomNode)
+	node.State = new(state.State)
+	s := node.State
 
 	msg := new(messages.Bounce)
 	msg.Name = "bob"
@@ -26,11 +27,11 @@ func TestMessageLoging(t *testing.T) {
 
 	msgLog.PrtMsgs(s)
 
-	msgLog.Add2(fnode, true, "peer", "where", true, msg)
-	msgLog.Add2(fnode, false, "peer", "where", true, msg)
+	msgLog.Add2(node, true, "peer", "where", true, msg)
+	msgLog.Add2(node, false, "peer", "where", true, msg)
 
 	msgLog.Startp = primitives.NewTimestampFromMilliseconds(0)
-	msgLog.Add2(fnode, false, "peer", "where", true, msg)
+	msgLog.Add2(node, false, "peer", "where", true, msg)
 
 	if len(msgLog.MsgList) != 3 {
 		t.Error("Should have three entries")
@@ -39,7 +40,7 @@ func TestMessageLoging(t *testing.T) {
 
 	msgLog.Last.SetTimeSeconds(msgLog.Last.GetTimeSeconds() - 6)
 	time.Sleep(10 * time.Millisecond)
-	msgLog.Add2(fnode, false, "peer", "where", true, msg)
+	msgLog.Add2(node, false, "peer", "where", true, msg)
 
 	if len(msgLog.MsgList) != 0 {
 		t.Error("Should have zero messages")

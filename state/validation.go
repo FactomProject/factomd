@@ -8,22 +8,23 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/modules/events"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
+	llog "github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var ValidationDebug bool = false
 
 // This is the tread with access to state. It does process and update state
-func (s *State) DoProcessing() {
+func (s *State) MsgExecute() {
 	s.validatorLoopThreadID = atomic.Goid()
-
-	s.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_STARTED, "Node %s startup complete", s.GetFactomNodeName())
+	events.EmitNodeMessageF(s, events.NodeMessageCode_STARTED, events.Level_INFO, "Node %s startup complete", s.GetFactomNodeName())
 	s.RunState = runstate.Running
 
 	slp := false
@@ -50,10 +51,11 @@ func (s *State) DoProcessing() {
 		for i2 = 0; p2 && i2 < 20; i2++ {
 			p2 = s.UpdateState()
 		}
+
 		// Call process at least every second to insure MMR runs.
 		now := s.GetTimestamp()
 		p3 := false
-		// If we haven't process messages in over a seconds go process them now
+		// If we haven't process inMessages in over a seconds go process them now
 		if now.GetTimeMilli()-s.ProcessTime.GetTimeMilli() > int64(s.FactomSecond()/time.Millisecond) {
 			for s.LeaderPL.Process(s) {
 				p3 = true
@@ -84,23 +86,33 @@ func (s *State) DoProcessing() {
 	fmt.Println(s.GetFactomNodeName(), "closed")
 }
 
-func (s *State) ValidatorLoop() {
-	defer func() {
-		if r := recover(); r != nil {
-			s.EventService.EmitNodeErrorMessage(eventmessages.NodeMessageCode_GENERAL,
-				"A panic state occurred in ValidatorLoop.", r)
-
-			shutdown(s)
-		}
-	}()
-
+func (s *State) MsgSort() {
 	CheckGrants()
 
 	// We should only generate 1 EOM for each height/minute/vmindex
 	lastHeight, lastMinute, lastVM := -1, -1, -1
 
-	go s.DoProcessing()
-	// Look for pending messages, and get one if there is one.
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("A panic state occurred in MsgSort.", r)
+			llog.LogPrintf("recovery", "A panic state occurred in ValidatorLoop. %v", r)
+			nodeMessageEvent := &events.NodeMessage{
+				MessageCode: events.NodeMessageCode_GENERAL,
+				Level:       events.Level_ERROR,
+				MessageText: fmt.Sprintf("A panic state occurred in ValidatorLoop. %v", r),
+			}
+			s.Pub.GetNodeMessage().Write(nodeMessageEvent)
+			shutdown(s)
+		}
+	}()
+
+	leaderOut := pubsub.SubFactory.Channel(50)
+
+	if EnableLeaderThread {
+		leaderOut.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), events.Path.LeaderMsgOut))
+	}
+
+	// Look for pending inMessages, and get one if there is one.
 	for { // this is the message sort
 		var msg interfaces.IMsg
 
@@ -109,8 +121,9 @@ func (s *State) ValidatorLoop() {
 			shutdown(s)
 			time.Sleep(10 * time.Second) // wait till database close is complete
 			return
-		case c := <-s.tickerQueue: // Look for pending messages, and get one if there is one.
-			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not ready to execute as a leader or are loading the DBState messages
+			// TODO: REFACTOR/extract method to process ticker
+		case c := <-s.tickerQueue: // Look for pending inMessages, and get one if there is one.
+			if !s.RunLeader || !s.DBFinished { // don't generate EOM if we are not ready to execute as a leader or are loading the DBState inMessages
 				continue
 			}
 			currentMinute := s.CurrentMinute
@@ -153,10 +166,15 @@ func (s *State) ValidatorLoop() {
 			eom.SetLocal(true) // local EOMs are really just timeout indicators that we need to generate an EOM
 			msg = eom
 			s.LogMessage("validator", fmt.Sprintf("generated c:%d  %d-:-%d %d", c, s.LLeaderHeight, s.CurrentMinute, s.LeaderVMIndex), eom)
-		case msg = <-s.inMsgQueue:
+		case msg = <-s.inMsgQueue.Channel:
 			s.LogMessage("InMsgQueue", "dequeue", msg)
-		case msg = <-s.inMsgQueue2:
+			s.inMsgQueue.Metric(msg).Dec()
+		case msg = <-s.inMsgQueue2.Channel:
 			s.LogMessage("InMsgQueue2", "dequeue", msg)
+			s.inMsgQueue2.Metric(msg).Dec()
+		case v := <-leaderOut.Updates:
+			msg = v.(interfaces.IMsg)
+			s.LogMessage("leader", "out", msg)
 		}
 
 		if t := msg.Type(); t == constants.ACK_MSG {
@@ -180,7 +198,7 @@ func shouldShutdown(state *State) bool {
 }
 
 func shutdown(state *State) {
-	state.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SHUTDOWN,
+	events.EmitNodeMessageF(state, events.NodeMessageCode_SHUTDOWN, events.Level_INFO,
 		"Node %s is shutting down", state.GetFactomNodeName())
 
 	state.RunState = runstate.Stopping

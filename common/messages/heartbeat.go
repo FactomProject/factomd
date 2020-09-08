@@ -39,37 +39,37 @@ type Heartbeat struct {
 var _ interfaces.IMsg = (*Heartbeat)(nil)
 var _ interfaces.Signable = (*Heartbeat)(nil)
 
-func (a *Heartbeat) IsSameAs(b *Heartbeat) bool {
+func (m *Heartbeat) IsSameAs(b *Heartbeat) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
+	if m.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
-	if a.DBlockHash == nil && b.DBlockHash != nil {
+	if m.DBlockHash == nil && b.DBlockHash != nil {
 		return false
 	}
-	if a.DBlockHash != nil {
-		if a.DBlockHash.IsSameAs(b.DBlockHash) == false {
+	if m.DBlockHash != nil {
+		if m.DBlockHash.IsSameAs(b.DBlockHash) == false {
 			return false
 		}
 	}
 
-	if a.IdentityChainID == nil && b.IdentityChainID != nil {
+	if m.IdentityChainID == nil && b.IdentityChainID != nil {
 		return false
 	}
-	if a.IdentityChainID != nil {
-		if a.IdentityChainID.IsSameAs(b.IdentityChainID) == false {
+	if m.IdentityChainID != nil {
+		if m.IdentityChainID.IsSameAs(b.IdentityChainID) == false {
 			return false
 		}
 	}
 
-	if a.Signature == nil && b.Signature != nil {
+	if m.Signature == nil && b.Signature != nil {
 		return false
 	}
-	if a.Signature != nil {
-		if a.Signature.IsSameAs(b.Signature) == false {
+	if m.Signature != nil {
+		if m.Signature.IsSameAs(b.Signature) == false {
 			return false
 		}
 	}
@@ -231,7 +231,9 @@ func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Heartbeat) String() string {
-	return fmt.Sprintf("HeartBeat ID[%x] dbht %d-:-%d ts %d", m.IdentityChainID.Bytes()[3:6], m.DBHeight, m.Minute, m.Timestamp.GetTimeSeconds())
+	return fmt.Sprintf("HeartBeat ID[%x] dbht %7d-:-%-2d ts %d %s", m.IdentityChainID.Bytes()[3:6], m.DBHeight,
+		m.Minute, m.Timestamp.GetTimeMilli(), m.Timestamp.String(),
+	)
 }
 
 func (m *Heartbeat) LogFields() log.Fields {
@@ -252,6 +254,15 @@ func (m *Heartbeat) ListHeight() int {
 
 func (m *Heartbeat) SerialHash() []byte {
 	return nil
+}
+
+func (m *Heartbeat) WellFormed() bool {
+	// Check signature
+	if isVer, err := m.VerifySignature(); err != nil || !isVer {
+		return false
+	}
+
+	return true
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -331,12 +342,12 @@ func (m *Heartbeat) FollowerExecute(is interfaces.IState) {
 
 }
 
-func (e *Heartbeat) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *Heartbeat) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *Heartbeat) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *Heartbeat) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *Heartbeat) Sign(key interfaces.Signer) error {
@@ -354,4 +365,8 @@ func (m *Heartbeat) GetSignature() interfaces.IFullSignature {
 
 func (m *Heartbeat) VerifySignature() (bool, error) {
 	return msgbase.VerifyMessage(m)
+}
+
+func (m *Heartbeat) Label() string {
+	return msgbase.GetLabel(m)
 }

@@ -2,6 +2,7 @@ package electionMsgs
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/state"
 )
 
@@ -85,4 +86,8 @@ func (e *ElectionsFactory) NewAuthorityListInternal(feds []interfaces.IServer, a
 	}
 
 	return msg
+}
+
+func (m *RemoveLeaderInternal) Label() string {
+	return msgbase.GetLabel(m)
 }

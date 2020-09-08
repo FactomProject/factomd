@@ -214,7 +214,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			Sync.SetLocal(true)
 			Sync.VMIndex = vm
 			Sync.TS = primitives.NewTimestampNow()
-			Sync.Name = e.Name
+			Sync.Name = e.GetName()
 
 			Sync.FedIdx = uint32(e.Electing)
 			Sync.FedID = e.FedID
@@ -241,7 +241,8 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 }
 
 func (m *TimeoutInternal) GetServerID() (rval interfaces.IHash) {
-	defer func() { rval = primitives.CheckNil(rval, "TimeoutInternal.GetServerID") }()
+	// reenable if this function is implemented
+	// defer func() { rval = primitives.CheckNil(rval, "TimeoutInternal.GetServerID") }()
 
 	return nil
 }
@@ -271,6 +272,11 @@ func (m *TimeoutInternal) Type() byte {
 	return constants.INTERNALTIMEOUT
 }
 
+func (m *TimeoutInternal) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 func (m *TimeoutInternal) Validate(state interfaces.IState) int {
 	return 1
 }
@@ -295,16 +301,16 @@ func (m *TimeoutInternal) FollowerExecute(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *TimeoutInternal) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *TimeoutInternal) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *TimeoutInternal) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *TimeoutInternal) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *TimeoutInternal) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *TimeoutInternal) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *TimeoutInternal) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -327,6 +333,10 @@ func (m *TimeoutInternal) String() string {
 		m.Minute)
 }
 
-func (a *TimeoutInternal) IsSameAs(b *TimeoutInternal) bool {
+func (m *TimeoutInternal) IsSameAs(b *TimeoutInternal) bool {
 	return true
+}
+
+func (m *TimeoutInternal) Label() string {
+	return msgbase.GetLabel(m)
 }

@@ -21,10 +21,6 @@ type FactomParams struct {
 	Net                      string
 	Fnet                     string
 	DropRate                 int
-	Journal                  string
-	Journaling               bool
-	Follower                 bool
-	Leader                   bool
 	Db                       string
 	CloneDB                  string
 	PortOverride             int

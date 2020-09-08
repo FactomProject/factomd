@@ -2,33 +2,32 @@ package longtest
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/testHelper/simulation"
 	"testing"
-
-	. "github.com/FactomProject/factomd/testHelper"
 )
 
 func TestMultiple7Election(t *testing.T) {
-	state0 := SetupSim("LLLLLLLLLFLLFLFLLLFLAAFAAAAFA", map[string]string{"--blktime": "60"}, 10, 7, 7, t)
+	state0 := simulation.SetupSim("LLLLLLLLLFLLFLFLLLFLAAFAAAAFA", map[string]string{"--blktime": "60"}, 10, 7, 7, t)
 
-	WaitForMinute(state0, 2)
+	simulation.WaitForMinute(state0, 2)
 
 	// Take 7 nodes off line
 	for i := 1; i < 8; i++ {
-		RunCmd(fmt.Sprintf("%d", i))
-		RunCmd("x")
+		simulation.RunCmd(fmt.Sprintf("%d", i))
+		simulation.RunCmd("x")
 	}
 	// force them all to be faulted
-	WaitMinutes(state0, 1)
+	simulation.WaitMinutes(state0, 1)
 
 	// bring them back online
 	for i := 1; i < 8; i++ {
-		RunCmd(fmt.Sprintf("%d", i))
-		RunCmd("x")
+		simulation.RunCmd(fmt.Sprintf("%d", i))
+		simulation.RunCmd("x")
 	}
 
 	// Wait till they should have updated by DBSTATE
-	WaitBlocks(state0, 2)
-	WaitMinutes(state0, 1)
-	WaitForAllNodes(state0)
-	ShutDownEverything(t)
+	simulation.WaitBlocks(state0, 2)
+	simulation.WaitMinutes(state0, 1)
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
 }

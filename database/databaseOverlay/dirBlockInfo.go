@@ -3,6 +3,8 @@ package databaseOverlay
 import (
 	"sort"
 
+	"github.com/FactomProject/factomd/modules/events"
+
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/util"
@@ -20,8 +22,12 @@ func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) (err
 		err = db.ProcessBlockBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
 
-	if err == nil && db.parentState != nil {
-		db.parentState.GetEventService().EmitDirectoryBlockAnchorEvent(block)
+	if err == nil && db.pubState != nil {
+		dbAnchoredEvent := &events.DBAnchored{
+			DBHeight:     block.GetDatabaseHeight(),
+			DirBlockInfo: block,
+		}
+		db.pubState.GetPubRegistry().GetDBAnchored().Write(dbAnchoredEvent)
 	}
 	return err
 }
@@ -37,8 +43,12 @@ func (db *Overlay) ProcessDirBlockInfoMultiBatch(block interfaces.IDirBlockInfo)
 		err = db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
 
-	if err == nil && db.parentState != nil {
-		db.parentState.GetEventService().EmitDirectoryBlockAnchorEvent(block)
+	if err == nil && db.pubState != nil {
+		dbAnchoredEvent := &events.DBAnchored{
+			DBHeight:     block.GetDBHeight(),
+			DirBlockInfo: block,
+		}
+		db.pubState.GetPubRegistry().GetDBAnchored().Write(dbAnchoredEvent)
 	}
 	return err
 }

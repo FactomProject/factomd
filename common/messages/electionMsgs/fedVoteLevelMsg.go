@@ -12,7 +12,6 @@ import (
 	"os"
 
 	"github.com/FactomProject/factomd/activations"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -142,7 +141,7 @@ func (m *FedVoteLevelMsg) processIfCommitted(is interfaces.IState, elect interfa
 			m.Volunteer.FedIdx, m.Volunteer.FedID.Bytes()[3:6],
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
-		e.LogPrintf("election", "LeaderSwapState %d/%d/%d", m.DBHeight, m.VMIndex, m.Minute)
+		e.LogPrintf("election", "LeaderSwapState %7d/%02d/%-5d", m.DBHeight, m.VMIndex, m.Minute)
 		e.LogPrintf("election", "Demote  %x[%d]", e.Federated[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6], m.Volunteer.FedIdx)
 		e.LogPrintf("election", "Promote %x[%d]", e.Audit[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6], m.Volunteer.ServerIdx)
 
@@ -229,7 +228,7 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 			m.Volunteer.ServerIdx, m.Volunteer.ServerID.Bytes()[3:6])
 
 		s.LogPrintf("executeMsg", "Pre  Election s.Leader=%v s.LeaderVMIndex to %v", s.Leader, s.LeaderVMIndex)
-		s.LogPrintf("executeMsg", "LeaderSwapState %d/%d/%d", m.DBHeight, m.VMIndex, m.Minute)
+		s.LogPrintf("executeMsg", "LeaderSwapState %7d/%02d/%-5d", m.DBHeight, m.VMIndex, m.Minute)
 		s.LogPrintf("executeMsg", "Demote  %x[%d]", pl.FedServers[m.Volunteer.FedIdx].GetChainID().Bytes()[3:6], m.Volunteer.FedIdx)
 		s.LogPrintf("executeMsg", "Promote %x[%d]", pl.AuditServers[m.Volunteer.ServerIdx].GetChainID().Bytes()[3:6], m.Volunteer.ServerIdx)
 
@@ -266,46 +265,46 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 
 var _ interfaces.IMsg = (*FedVoteVolunteerMsg)(nil)
 
-func (a *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
+func (m *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
 	b, ok := msg.(*FedVoteLevelMsg)
 	if !ok {
 		return false
 	}
 
-	if !a.FedVoteMsg.IsSameAs(&b.FedVoteMsg) {
+	if !m.FedVoteMsg.IsSameAs(&b.FedVoteMsg) {
 		return false
 	}
 
-	if !a.Signer.IsSameAs(b.Signer) {
+	if !m.Signer.IsSameAs(b.Signer) {
 		return false
 	}
 
-	if !a.EOMFrom.IsSameAs(b.EOMFrom) {
+	if !m.EOMFrom.IsSameAs(b.EOMFrom) {
 		return false
 	}
 
-	if a.Committed != b.Committed {
+	if m.Committed != b.Committed {
 		return false
 	}
 
-	if a.Level != b.Level {
+	if m.Level != b.Level {
 		return false
 	}
 
-	if a.Rank != b.Rank {
+	if m.Rank != b.Rank {
 		return false
 	}
 
-	if !a.Volunteer.IsSameAs(&b.Volunteer) {
+	if !m.Volunteer.IsSameAs(&b.Volunteer) {
 		return false
 	}
 
-	if len(a.Justification) != len(b.Justification) {
+	if len(m.Justification) != len(b.Justification) {
 		return false
 	}
 
-	for i := range a.Justification {
-		data, err := a.Justification[i].MarshalBinary()
+	for i := range m.Justification {
+		data, err := m.Justification[i].MarshalBinary()
 		if err != nil {
 			return false
 		}
@@ -320,7 +319,7 @@ func (a *FedVoteLevelMsg) IsSameAs(msg interfaces.IMsg) bool {
 		}
 	}
 
-	if !a.Signature.IsSameAs(b.Signature) {
+	if !m.Signature.IsSameAs(b.Signature) {
 		return false
 	}
 
@@ -382,6 +381,11 @@ func (m *FedVoteLevelMsg) ElectionValidate(ie interfaces.IElections) int {
 	return m.FedVoteMsg.ElectionValidate(ie)
 }
 
+func (m *FedVoteLevelMsg) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 func (m *FedVoteLevelMsg) Validate(is interfaces.IState) int {
 	if m.IsValid() {
 		return 1
@@ -398,16 +402,16 @@ func (m *FedVoteLevelMsg) ComputeVMIndex(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *FedVoteLevelMsg) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *FedVoteLevelMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *FedVoteLevelMsg) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *FedVoteLevelMsg) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *FedVoteLevelMsg) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *FedVoteLevelMsg) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *FedVoteLevelMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -559,4 +563,8 @@ func (m *FedVoteLevelMsg) MarshalForSignature() (data []byte, err error) {
 
 	data = buf.DeepCopyBytes()
 	return data, nil
+}
+
+func (m *FedVoteVolunteerMsg) Label() string {
+	return msgbase.GetLabel(m)
 }

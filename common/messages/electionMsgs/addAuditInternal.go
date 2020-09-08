@@ -109,6 +109,11 @@ func (m *AddAuditInternal) ElectionValidate(ie interfaces.IElections) int {
 	return 1
 }
 
+func (m *AddAuditInternal) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 func (m *AddAuditInternal) Validate(state interfaces.IState) int {
 	return 1
 }
@@ -129,16 +134,16 @@ func (m *AddAuditInternal) FollowerExecute(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *AddAuditInternal) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *AddAuditInternal) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *AddAuditInternal) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *AddAuditInternal) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *AddAuditInternal) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *AddAuditInternal) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *AddAuditInternal) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -163,6 +168,10 @@ func (m *AddAuditInternal) String() string {
 	return fmt.Sprintf(" %10s %20s %x dbheight %5d", m.NName, "Add Audit Internal", m.ServerID.Bytes(), m.DBHeight)
 }
 
-func (a *AddAuditInternal) IsSameAs(b *AddAuditInternal) bool {
+func (m *AddAuditInternal) IsSameAs(b *AddAuditInternal) bool {
 	return true
+}
+
+func (m *AddAuditInternal) Label() string {
+	return msgbase.GetLabel(m)
 }

@@ -23,6 +23,9 @@ type IMsg interface {
 	// Returns a byte indicating the type of message.
 	Type() byte
 
+	// Returns string label for type of message
+	Label() string
+
 	// A local message is never broadcast to the greater network.
 	IsLocal() bool
 	SetLocal(bool)
@@ -78,6 +81,12 @@ type IMsg interface {
 	//  0   -- Cannot tell if message is Valid
 	//  1   -- Message is valid
 	Validate(IState) int
+
+	// Phases out validations
+	// WellFormed is any check that can be done on a message regardless
+	// of any state information. This can include things like valid signatures,
+	// reasonable minute (between 0 and 10), etc.
+	WellFormed() bool
 
 	//Set the VMIndex for a message
 	ComputeVMIndex(IState)

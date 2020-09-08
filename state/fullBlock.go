@@ -18,7 +18,7 @@ import (
 	llog "github.com/FactomProject/factomd/log"
 )
 
-// Can take a directory block and package all the data into a file to be torrented.
+// Can take a directory block and package all the data into a file
 // Can also unpack packages
 
 type WholeBlock struct {

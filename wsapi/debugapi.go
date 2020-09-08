@@ -5,7 +5,6 @@
 package wsapi
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -29,7 +28,7 @@ func HandleDebug(writer http.ResponseWriter, request *http.Request) {
 
 	state, err := GetState(request)
 	if err != nil {
-		wsDebugLog.Errorf("failed to extract port from request: %s", err)
+		//wsDebugLog.Errorf("failed to extract port from request: %s", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -65,7 +64,7 @@ func HandleDebugRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
-	wsDebugLog.Printf("request %v", j.String())
+	//wsDebugLog.Printf("request %v", j.String())
 
 	switch j.Method {
 	case "audit-servers":
@@ -97,9 +96,6 @@ func HandleDebugRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 		break
 	case "holding-queue":
 		resp, jsonError = HandleHoldingQueue(state, params)
-		break
-	case "messages":
-		resp, jsonError = HandleMessages(state, params)
 		break
 	case "network-info":
 		resp, jsonError = HandleNetworkInfo(state, params)
@@ -142,14 +138,14 @@ func HandleDebugRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 		break
 	}
 	if jsonError != nil {
-		wsDebugLog.Printf("error %v", jsonError)
+		//wsDebugLog.Printf("error %v", jsonError)
 		return nil, jsonError
 	}
 
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
-	wsDebugLog.Printf("response %v", jsonResp.String())
+	//wsDebugLog.Printf("response %v", jsonResp.String())
 
 	return jsonResp, nil
 }
@@ -265,17 +261,6 @@ func HandleHoldingQueue(state interfaces.IState, params interface{}) (interface{
 	return r, nil
 }
 
-func HandleMessages(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	type ret struct {
-		Messages []json.RawMessage
-	}
-	r := new(ret)
-	for _, v := range state.GetJournalMessages() {
-		r.Messages = append(r.Messages, v)
-	}
-	return r, nil
-}
-
 func HandleNetworkInfo(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
 		NodeName      string
@@ -383,14 +368,14 @@ type GetCommands struct {
 }
 
 func HandleMessageFilter(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	wsDebugLog.Println("Factom Node Name: ", state.GetFactomNodeName())
+	//wsDebugLog.Println("Factom Node Name: ", state.GetFactomNodeName())
 	x, ok := params.(map[string]interface{})
 	if !ok {
 		return nil, NewCustomInvalidParamsError("ERROR! Invalid params passed in")
 	}
 
-	wsDebugLog.Println(`x["output-regex"]`, x["output-regex"])
-	wsDebugLog.Println(`x["input-regex"]`, x["input-regex"])
+	//wsDebugLog.Println(`x["output-regex"]`, x["output-regex"])
+	//wsDebugLog.Println(`x["input-regex"]`, x["input-regex"])
 
 	OutputString := fmt.Sprintf("%s", x["output-regex"])
 	if OutputString != "" {

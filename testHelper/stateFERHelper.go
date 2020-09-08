@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
@@ -18,7 +17,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/state"
 )
 
 var _ = fmt.Print
@@ -80,25 +78,6 @@ func MakeFEREntryWithHeightFromContent(passedResidentHeight uint32, passedTarget
 	ewh.AnFEREntry = EBEntry
 
 	return ewh
-}
-
-func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredHeight int) *state.State {
-	s := new(state.State)
-	s.DB = CreateAndPopulateTestDatabaseOverlayForFER(testEntries, desiredHeight)
-	s.LoadConfig("", "")
-	s.Init()
-	/*err := s.RecalculateBalances()
-	if err != nil {
-		panic(err)
-	}*/
-	s.SetFactoshisPerEC(1)
-	state.LoadDatabase(s)
-	s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
-	s.UpdateState()
-	go s.ValidatorLoop()
-	time.Sleep(20 * time.Millisecond)
-
-	return s
 }
 
 func CreateAndPopulateTestDatabaseOverlayForFER(testEntries []FEREntryWithHeight, desiredHeight int) *databaseOverlay.Overlay {

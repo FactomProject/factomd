@@ -19,14 +19,14 @@ type ACKMap struct {
 	N        int
 }
 
-// map of the last N messages indexed by hash
+// map of the last N inMessages indexed by hash
 type MSGMap struct {
 	Msgs     map[[32]byte]interfaces.IMsg
 	MsgOrder [1000][32]byte
 	N        int
 }
 
-// Keep the history last N acks and Ackable messages
+// Keep the history last N acks and Ackable inMessages
 type RecentMessage struct {
 	AcksMap ACKMap
 	MsgsMap MSGMap
@@ -46,7 +46,7 @@ func (a *ACKMap) Add(msg interfaces.IMsg) {
 	// add the new ack
 	ack := msg.(*messages.Ack)
 	height := MsgHeight{int(ack.DBHeight), ack.VMIndex, int(ack.Height)}
-	a.Acks[height] = msg     // stores a message by the messages DBHeight, VMIndex and Height.
+	a.Acks[height] = msg     // stores a message by the inMessages DBHeight, VMIndex and Height.
 	a.MsgOrder[a.N] = height // keeps track of ACKMap.Acks message order
 	a.N = (a.N + 1) % 1000   // increment N by 1 each time and when it reaches 1000 start at 0 again.
 }
@@ -68,8 +68,8 @@ func (m *RecentMessage) HandleRejection(msg interfaces.IMsg, iAck interfaces.IMs
 	}
 }
 
-// Adds messages to a map
-// The map of messages will be used in tandem with the ack map when we get an MMR to ensure we don't ask for a message we already have.
+// Adds inMessages to a map
+// The map of inMessages will be used in tandem with the ack map when we get an MMR to ensure we don't ask for a message we already have.
 func (m *RecentMessage) Add(msg interfaces.IMsg) {
 	if msg.Type() == constants.ACK_MSG {
 		m.AcksMap.Add(msg) // adds Acks to a Ack map for MMR

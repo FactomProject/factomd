@@ -1,0 +1,116 @@
+package longtest
+
+import (
+	"fmt"
+	"github.com/FactomProject/factomd/testHelper/simulation"
+	"testing"
+	"time"
+
+	"github.com/FactomProject/factom"
+)
+
+// FIXME: test runs > 40 min try to tune down to 10 min
+// TODO: refactor to use testAccount helpers
+func TestChainedTransactions(t *testing.T) {
+	// a genesis block address w/ funding
+	bankSecret := "Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK"
+	bankAddress := "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q"
+
+	var depositSecrets []string
+	var depositAddresses []string
+
+	for i := 0; i < 120; i++ {
+		priv, addr := simulation.RandomFctAddressPair()
+		depositSecrets = append(depositSecrets, priv)
+		depositAddresses = append(depositAddresses, addr)
+	}
+
+	var maxBlocks = 500
+	state0 := simulation.SetupSim("LAF", map[string]string{}, maxBlocks+1, 0, 0, t)
+	var ecPrice uint64 = state0.GetFactoshisPerEC() //10000
+	var oneFct uint64 = factom.FactoidToFactoshi("1")
+
+	waitForDeposit := func(i int, amt uint64) uint64 {
+		balance := simulation.GetBalance(state0, depositAddresses[i])
+		simulation.TimeNow(state0)
+		fmt.Printf("%v waitForDeposit %v %v - %v = diff: %v \n", i, depositAddresses[i], balance, amt, balance-int64(amt))
+		var waited bool
+		for balance != int64(amt) {
+			waited = true
+			balance = simulation.GetBalance(state0, depositAddresses[i])
+			time.Sleep(time.Millisecond * 100)
+		}
+		if waited {
+			fmt.Printf("%v waitForDeposit %v %v - %v = diff: %v \n", i, depositAddresses[i], balance, amt, balance-int64(amt))
+			simulation.TimeNow(state0)
+		}
+		return uint64(balance)
+	}
+	_ = waitForDeposit
+
+	initialBalance := 10 * oneFct
+	fee := 12 * ecPrice
+
+	prepareTransactions := func(bal uint64) ([]func(), uint64, int) {
+
+		var transactions []func()
+		var i int
+
+		for i = 0; i < len(depositAddresses)-1; i += 1 {
+			bal -= fee
+
+			in := i
+			out := i + 1
+			send := bal
+
+			txn := func() {
+				simulation.SendTxn(state0, send, depositSecrets[in], depositAddresses[out], ecPrice)
+			}
+			transactions = append(transactions, txn)
+		}
+		return transactions, bal, i
+	}
+
+	// offset to send initial blocking transaction
+	offset := 1
+
+	mkTransactions := func() { // txnGenerator
+		// fund the start address
+		simulation.SendTxn(state0, initialBalance, bankSecret, depositAddresses[0], ecPrice)
+		simulation.WaitMinutes(state0, 1)
+		waitForDeposit(0, initialBalance)
+		transactions, finalBalance, finalAddress := prepareTransactions(initialBalance)
+
+		var sent []int
+		var unblocked bool = false
+
+		for i := 1; i < len(transactions); i++ {
+			sent = append(sent, i)
+			//fmt.Printf("offset: %v <=> i:%v", offset, i)
+			if i == offset {
+				fmt.Printf("\n==>TXN offset%v\n", offset)
+				transactions[0]() // unblock the transactions
+				unblocked = true
+			}
+			transactions[i]()
+		}
+		if !unblocked {
+			transactions[0]() // unblock the transactions
+		}
+		offset++ // next time start further in the future
+		fmt.Printf("send chained transations")
+		waitForDeposit(finalAddress, finalBalance)
+
+		// empty final address returning remaining funds to bank
+		simulation.SendTxn(state0, finalBalance-fee, depositSecrets[finalAddress], bankAddress, ecPrice)
+		waitForDeposit(finalAddress, 0)
+	}
+
+	for x := 1; x <= 120; x++ {
+		mkTransactions()
+		simulation.WaitBlocks(state0, 1)
+	}
+
+	simulation.WaitForAllNodes(state0)
+	simulation.ShutDownEverything(t)
+}

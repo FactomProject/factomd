@@ -17,8 +17,8 @@ func (db *Overlay) InsertEntry(entry interfaces.IEBEntry) error {
 	//So they can be loaded in two load operations without needing to know their chainID
 
 	batch := []interfaces.Record{}
-	batch = append(batch, interfaces.Record{entry.GetChainID().Bytes(), entry.DatabasePrimaryIndex().Bytes(), entry})
-	batch = append(batch, interfaces.Record{ENTRY, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
+	batch = append(batch, interfaces.Record{Bucket: entry.GetChainID().Bytes(), Key: entry.DatabasePrimaryIndex().Bytes(), Data: entry})
+	batch = append(batch, interfaces.Record{Bucket: ENTRY, Key: entry.DatabasePrimaryIndex().Bytes(), Data: entry.GetChainIDHash()})
 
 	err := db.PutInBatch(batch)
 	if err != nil {
@@ -40,8 +40,8 @@ func (db *Overlay) InsertEntryMultiBatch(entry interfaces.IEBEntry) error {
 	//So they can be loaded in two load operations without needing to know their chainID
 
 	batch := []interfaces.Record{}
-	batch = append(batch, interfaces.Record{entry.GetChainID().Bytes(), entry.DatabasePrimaryIndex().Bytes(), entry})
-	batch = append(batch, interfaces.Record{ENTRY, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
+	batch = append(batch, interfaces.Record{Bucket: entry.GetChainID().Bytes(), Key: entry.DatabasePrimaryIndex().Bytes(), Data: entry})
+	batch = append(batch, interfaces.Record{Bucket: ENTRY, Key: entry.DatabasePrimaryIndex().Bytes(), Data: entry.GetChainIDHash()})
 
 	db.PutInMultiBatch(batch)
 	if _, exists := ValidAnchorChains[entry.GetChainID().String()]; exists {

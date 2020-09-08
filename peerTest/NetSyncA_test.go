@@ -3,7 +3,7 @@ package simtest
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/testHelper/simulation"
 )
 
 /*
@@ -13,7 +13,7 @@ Just boots to test that Leader can sync over a network
 func TestNetSyncA(t *testing.T) {
 
 	peers := "127.0.0.1:37003"
-	ResetSimHome(t)
+	simulation.ResetSimHome(t)
 
 	params := map[string]string{
 		"--db":               "LDB",
@@ -29,7 +29,8 @@ func TestNetSyncA(t *testing.T) {
 		"--peers":            peers,
 	}
 
-	state0 := SetupSim("L", params, 13, 0, 0, t)
-	WaitForBlock(state0, 13)
-	Halt(t)
+	state0 := simulation.SetupSim("L", params, 7, 0, 0, t)
+
+	simulation.WaitForBlock(state0, 6)
+	simulation.Halt(t)
 }

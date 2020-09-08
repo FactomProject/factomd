@@ -45,7 +45,7 @@ var (
 
 	DisplayState      state.DisplayState
 	StatePointer      *state.State
-	Controller        *p2p.Controller // Used for Disconnect
+	Controller        *p2p.Network // Used for Disconnect
 	indexTemplateData *IndexTemplateData
 
 	LastRequest     time.Time
@@ -99,7 +99,7 @@ func InitTemplates() {
 }
 
 // Main function. This intiates appropriate variables and starts the control panel serving
-func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string, nodeName string) {
+func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan map[string]p2p.PeerMetrics, controller *p2p.Network, gitBuild string, nodeName string) {
 	defer func() {
 		if r := recover(); r != nil {
 			// The following recover string indicates an overwrite of existing http.ListenAndServe goroutine

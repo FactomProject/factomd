@@ -69,23 +69,19 @@ func (dbo *Overlay) ReparseAnchorChains() error {
 	btcChainID, err := primitives.NewShaHashFromStr(BitcoinAnchorChainID)
 	if err != nil {
 		panic(err)
-		return err
 	}
 	btcAnchorEntries, err := dbo.FetchAllEntriesByChainID(btcChainID)
 	if err != nil {
 		panic(err)
-		return err
 	}
 
 	ethChainID, err := primitives.NewShaHashFromStr(EthereumAnchorChainID)
 	if err != nil {
 		panic(err)
-		return err
 	}
 	ethAnchorEntries, err := dbo.FetchAllEntriesByChainID(ethChainID)
 	if err != nil {
 		panic(err)
-		return err
 	}
 
 	// Validate structure, verify signatures, and store in database

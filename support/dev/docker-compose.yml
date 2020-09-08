@@ -4,6 +4,7 @@ services:
     factomd_0:
         container_name: factomd_0
         build: ../../
+        image: factomproject/factomd:dev
         depends_on:
             - logstash
             - nginx
@@ -13,7 +14,7 @@ services:
         ports:
             - "8090:8090"
         volumes:
-            - ./factom/factomd_1.conf:/root/.factom/m2/factomd.conf:ro
+            - ./factom/factomd_0.conf:/root/.factom/m2/factomd.conf:ro
         command: -sim_stdin=false -nodename=Fnode0 -customnet=net -network=CUSTOM -blktime=15 -logstash -logurl=logstash:8345
         networks:
             factomd:
@@ -22,6 +23,7 @@ services:
     factomd_1:
         container_name: factomd_1
         build: ../../
+        image: factomproject/factomd:dev
         depends_on:
             - logstash
             - nginx
@@ -31,7 +33,7 @@ services:
         ports:
             - "8190:8090"
         volumes:
-            - ./factom/factomd_2.conf:/root/.factom/m2/factomd.conf:ro
+            - ./factom/factomd_1.conf:/root/.factom/m2/factomd.conf:ro
         command: -sim_stdin=false -nodename=Fnode1 -customnet=net -network=CUSTOM -blktime=15 -logstash -logurl=logstash:8345
         networks:
             factomd:
@@ -40,6 +42,7 @@ services:
     factomd_2:
         container_name: factomd_2
         build: ../../
+        image: factomproject/factomd:dev
         depends_on:
             - logstash
             - nginx
@@ -49,7 +52,7 @@ services:
         ports:
             - "8290:8090"
         volumes:
-            - ./factom/factomd_3.conf:/root/.factom/m2/factomd.conf:ro
+            - ./factom/factomd_2.conf:/root/.factom/m2/factomd.conf:ro
         command: -sim_stdin=false -nodename=Fnode2 -customnet=net -network=CUSTOM -blktime=15 -logstash -logurl=logstash:8345
         networks:
             factomd:
@@ -76,8 +79,14 @@ services:
         volumes:
             - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
             - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+        expose:
+            - "5000"
+            - "9600"
+            - "8345"
         ports:
             - "5000:5000"
+            - "9600:9600"
+            - "8345:8345"
         environment:
             LS_JAVA_OPTS: "-Xmx256m -Xms256m"
         networks:

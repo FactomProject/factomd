@@ -10,6 +10,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/FactomProject/factomd/modules/registry"
+	"github.com/FactomProject/factomd/modules/worker"
+
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
@@ -20,7 +23,12 @@ import (
 
 func TestGetEndpoints(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		Start(w, state)
+	})
+	go p.Run()
+	p.WaitForRunning()
 
 	cases := map[string]struct {
 		Method   string
@@ -59,7 +67,12 @@ func TestAuthenticatedUnauthorizedRequest(t *testing.T) {
 	state.RpcUser = username
 	state.RpcPass = password
 	state.SetPort(18088)
-	Start(state)
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		Start(w, state)
+	})
+	go p.Run()
+	p.WaitForRunning()
 
 	cases := map[string]struct {
 		Method       string
@@ -115,16 +128,20 @@ func TestHTTPS(t *testing.T) {
 	certFile, pkFile, cleanup := testSetupCertificateFiles(t)
 	defer cleanup()
 
-	state := testHelper.CreateAndPopulateTestState()
-	state.SetPort(10443)
-	mState := &MockState{
-		State: *state,
-		mockTlsInfo: func() (bool, string, string) {
-			return true, pkFile, certFile
-		},
-	}
-
-	Start(mState)
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		state := testHelper.CreateAndPopulateTestState()
+		state.SetPort(10443)
+		mState := &MockState{
+			State: *state,
+			mockTlsInfo: func() (bool, string, string) {
+				return true, pkFile, certFile
+			},
+		}
+		Start(w, mState)
+	})
+	go p.Run()
+	p.WaitForRunning()
 
 	url := "https://localhost:10443/v1/heights/"
 	transCfg := &http.Transport{

@@ -29,6 +29,7 @@ var speed int64 = 1000 // Speed in milliseconds (max) that we will move the cloc
 var _ = pprof.Cmdline
 
 func Test_Replay(test *testing.T) {
+	// REVIEW: intended design may have changed in the upstream release
 	type mh struct {
 		hash [32]byte
 		time interfaces.Timestamp

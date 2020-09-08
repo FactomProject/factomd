@@ -60,7 +60,7 @@ func main() {
 	dbo := databaseOverlay.NewOverlay(dbase)
 	err = SetDirectoryBlockHead(dbo, newHeight)
 	if err != nil {
-		fmt.Errorf("ERROR: %v", err)
+		panic(fmt.Errorf("ERROR: %v", err))
 	}
 
 	head, err := dbo.FetchDirectoryBlockHead()

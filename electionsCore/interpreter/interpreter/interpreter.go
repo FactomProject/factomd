@@ -204,8 +204,6 @@ func (i *Interpreter) InterpretString(s string) {
 }
 
 func (i *Interpreter) InterpretLine(line string) {
-	//fmt.Printf("Interpret(\"%s\")\n", line)
-	defer func() { i.Line = i.Line }()
 	i.Line = line
 
 	var s string
@@ -242,7 +240,7 @@ func (i *Interpreter) Interpret(source io.Reader) {
 	defer func(old *bufio.Reader) { i.Input = old }(i.Input) // Reset i.Input when we exit
 	defer func() {
 		if r := recover(); r != nil {
-			llog.LogPrintf("recovery", "Error:", r)
+			llog.LogPrintf("recovery", "Error: %s", r)
 			fmt.Println("Error:", r)
 			i.Compiling = 0
 			i.Tracing = 0

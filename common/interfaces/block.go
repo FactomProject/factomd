@@ -30,6 +30,12 @@ type IFBlock interface {
 	MarshalTrans() ([]byte, error)
 	// Add a coinbase transaction.  This transaction has no inputs
 	AddCoinbase(ITransaction) error
+	// PatchCoinbase updates the coinbase transaction with the leader's real timestamp.
+	// This timestamp is not known at the time of creation.
+	PatchCoinbase(Timestamp)
+	// IsCoinbasePatched returns true when the coinbase has been patched with the real timestamp
+	IsCoinbasePatched() bool
+
 	// Add a proper transaction.  Transactions are validated before
 	// being added to the block.
 	AddTransaction(ITransaction) error

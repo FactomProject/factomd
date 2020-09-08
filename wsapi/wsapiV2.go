@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FactomProject/factomd/modules/query"
+
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
@@ -40,7 +42,7 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 
 	state, err := GetState(request)
 	if err != nil {
-		wsLog.Errorf("failed to extract port from request: %s", err)
+		//wsLog.Errorf("failed to extract port from request: %s", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -70,7 +72,7 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 
 	_, err = writer.Write([]byte(jsonResp.String()))
 	if err != nil {
-		wsLog.Errorf("failed to write response: %v", err)
+		//wsLog.Errorf("failed to write response: %v", err)
 		HandleV2Error(writer, nil, NewInternalError())
 		return
 	}
@@ -79,7 +81,7 @@ func HandleV2(writer http.ResponseWriter, request *http.Request) {
 func HandleV2Request(_ http.ResponseWriter, request *http.Request, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
 	state, err := GetState(request)
 	if err != nil {
-		wsLog.Errorf("failed to extract port from request: %s", err)
+		//wsLog.Errorf("failed to extract port from request: %s", err)
 		return nil, NewParseError()
 	}
 	return HandleV2JSONRequest(state, j)
@@ -89,7 +91,7 @@ func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
-	wsLog.Infof("request %v", j.String())
+	//wsLog.Infof("request %v", j.String())
 	switch j.Method {
 	case "replay-from-height":
 		resp, jsonError = HandleV2ReplayDBFromHeight(state, params)
@@ -175,7 +177,7 @@ func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 		jsonError = NewMethodNotFoundError()
 	}
 	if jsonError != nil {
-		wsLog.Errorf("error %v", jsonError)
+		//wsLog.Errorf("error %v", jsonError)
 		return nil, jsonError
 	}
 
@@ -183,7 +185,7 @@ func HandleV2JSONRequest(state interfaces.IState, j *primitives.JSON2Request) (*
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
 
-	wsLog.Infof("response %v", jsonResp.String())
+	//wsLog.Infof("response %v", jsonResp.String())
 	return jsonResp, nil
 }
 
@@ -244,18 +246,20 @@ func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interf
 		return nil, NewBlockNotFoundError()
 	}
 
-	raw, err := block.MarshalBinary()
-	if err != nil {
-		return nil, NewInternalError()
-	}
-
 	resp := new(BlockHeightResponse)
 	b, err := ObjectToJStruct(block)
 	if err != nil {
 		return nil, NewInternalError()
 	}
 	resp.DBlock = b
-	resp.RawData = hex.EncodeToString(raw)
+
+	if heightRequest.IncludeRaw() {
+		raw, err := block.MarshalBinary()
+		if err != nil {
+			return nil, NewInternalError()
+		}
+		resp.RawData = hex.EncodeToString(raw)
+	}
 
 	return resp, nil
 }
@@ -285,7 +289,7 @@ func HandleV2EntryCreditBlock(state interfaces.IState, params interface{}) (inte
 		return nil, NewBlockNotFoundError()
 	}
 
-	return ECBlockToResp(block)
+	return ECBlockToResp(block, keymr.IncludeRaw())
 }
 
 func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -308,19 +312,21 @@ func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (inter
 		return nil, NewBlockNotFoundError()
 	}
 
-	return ECBlockToResp(block)
+	return ECBlockToResp(block, heightRequest.IncludeRaw())
 }
 
-func ECBlockToResp(block interfaces.IEntryCreditBlock) (interface{}, *primitives.JSONError) {
-	raw, err := block.MarshalBinary()
-	if err != nil {
-		return nil, NewInternalError()
-	}
+func ECBlockToResp(block interfaces.IEntryCreditBlock, includeRaw bool) (interface{}, *primitives.JSONError) {
 
 	resp := new(EntryCreditBlockResponse)
 	resp.ECBlock.Body = block.GetBody()
 	resp.ECBlock.Header = block.GetHeader()
-	resp.RawData = hex.EncodeToString(raw)
+	if includeRaw {
+		raw, err := block.MarshalBinary()
+		if err != nil {
+			return nil, NewInternalError()
+		}
+		resp.RawData = hex.EncodeToString(raw)
+	}
 	tmpHash, err := block.GetFullHash()
 	if err != nil {
 		return nil, NewInternalError()
@@ -359,11 +365,11 @@ func HandleV2FactoidBlock(state interfaces.IState, params interface{}) (interfac
 		return nil, NewBlockNotFoundError()
 	}
 
-	return fBlockToResp(block)
+	return fBlockToResp(block, keymr.IncludeRaw())
 }
 
 // Cached response for genesis fblock
-var gensisFBlockCache interface{}
+var genesisFBlockCache interface{}
 
 func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
@@ -378,9 +384,9 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 	// The gensis FBlock is a very expensive call (>1s) because of the string manipulation
 	// To counter this, we will cache that response for quicker returns, only doing that manipulation one.
 	if heightRequest.Height == 0 {
-		if gensisFBlockCache != nil {
-			GensisFblockCall.Inc()
-			return gensisFBlockCache, nil
+		if genesisFBlockCache != nil {
+			GenesisFlockCall.Inc()
+			return genesisFBlockCache, nil
 		}
 	}
 
@@ -394,25 +400,20 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 		return nil, NewBlockNotFoundError()
 	}
 
-	resp, jerr := fBlockToResp(block)
+	resp, jerr := fBlockToResp(block, heightRequest.IncludeRaw())
 	if jerr != nil {
 		return nil, jerr
 	}
 
 	// Cache the gensis block if it is nil
-	if gensisFBlockCache == nil && heightRequest.Height == 0 {
-		gensisFBlockCache = resp
+	if genesisFBlockCache == nil && heightRequest.Height == 0 {
+		genesisFBlockCache = resp
 	}
 
 	return resp, nil
 }
 
-func fBlockToResp(block interfaces.IFBlock) (interface{}, *primitives.JSONError) {
-	raw, err := block.MarshalBinary()
-	if err != nil {
-		return nil, NewInternalError()
-	}
-
+func fBlockToResp(block interfaces.IFBlock, includeRaw bool) (interface{}, *primitives.JSONError) {
 	resp := new(BlockHeightResponse)
 	b, err := ObjectToJStruct(block)
 	if err != nil {
@@ -433,7 +434,13 @@ func fBlockToResp(block interfaces.IFBlock) (interface{}, *primitives.JSONError)
 	}
 
 	resp.FBlock = b
-	resp.RawData = hex.EncodeToString(raw)
+	if includeRaw {
+		raw, err := block.MarshalBinary()
+		if err != nil {
+			return nil, NewInternalError()
+		}
+		resp.RawData = hex.EncodeToString(raw)
+	}
 
 	return resp, nil
 }
@@ -468,7 +475,7 @@ func HandleV2AdminBlock(state interfaces.IState, params interface{}) (interface{
 		return nil, NewBlockNotFoundError()
 	}
 
-	return aBlockToResp(block)
+	return aBlockToResp(block, keymr.IncludeRaw())
 }
 
 func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -491,22 +498,23 @@ func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interf
 		return nil, NewBlockNotFoundError()
 	}
 
-	return aBlockToResp(block)
+	return aBlockToResp(block, heightRequest.IncludeRaw())
 }
 
-func aBlockToResp(block interfaces.IAdminBlock) (interface{}, *primitives.JSONError) {
-	raw, err := block.MarshalBinary()
-	if err != nil {
-		return nil, NewInternalError()
-	}
-
+func aBlockToResp(block interfaces.IAdminBlock, includeRaw bool) (interface{}, *primitives.JSONError) {
 	resp := new(BlockHeightResponse)
 	b, err := ObjectToJStruct(block)
 	if err != nil {
 		return nil, NewInternalError()
 	}
 	resp.ABlock = b
-	resp.RawData = hex.EncodeToString(raw)
+	if includeRaw {
+		raw, err := block.MarshalBinary()
+		if err != nil {
+			return nil, NewInternalError()
+		}
+		resp.RawData = hex.EncodeToString(raw)
+	}
 
 	return resp, nil
 }
@@ -523,7 +531,7 @@ func HandleV2Error(writer http.ResponseWriter, j *primitives.JSON2Request, jErr 
 	writer.WriteHeader(http.StatusBadRequest)
 	_, err := writer.Write([]byte(resp.String()))
 	if err != nil {
-		wsLog.Errorf("failed to write error response: %v", err)
+		//wsLog.Errorf("failed to write error response: %v", err)
 	}
 }
 
@@ -714,7 +722,6 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 	err := MapToObject(params, hashkey)
 	if err != nil {
 		panic(reflect.TypeOf(params))
-		return nil, NewInvalidParamsError()
 	}
 
 	h, err := primitives.HexToHash(hashkey.Hash)
@@ -1617,7 +1624,7 @@ func HandleV2Diagnostics(state interfaces.IState, params interface{}) (interface
 
 	// Elections information
 	eInfo := new(ElectionInfo)
-	if e := state.GetElections(); e != nil {
+	if e := query.Module(state.GetFactomNodeName()).Election; e != nil {
 		if electing := e.GetElecting(); electing != -1 {
 			eInfo.InProgress = true
 			vm := e.GetVMIndex()

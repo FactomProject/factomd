@@ -3,18 +3,18 @@
 # this script is specified as the 'tests' task in .circleci/config.yml
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)" # get dir containing this script
-cd $DIR                                                             # always from from script dir
+cd $DIR															 # always from from script dir
 
 # set error on return if any part of a pipe command fails
 set -o pipefail
 
 # base go test command
-GO_TEST="go test -v -timeout=10m -vet=off"
+GO_TEST="go test -v -timeout=10m"
 
 # list modules for CI testing
 function listModules() {
-	glide nv | grep -v Utilities | grep -v elections | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v activations | grep -v netTest | grep "\.\.\."
-}
+    go list ./... | grep -Ev 'Utilities|log|pubsub|simulation|modules|elections|longTest|peerTest|simTest|activations|netTest|factomgenerate|scripts|support'
+}	
 
 # formatted list of simTest/<testname>
 function listSimTest() {
@@ -108,12 +108,11 @@ function loadTestList() {
 }
 
 function testGoFmt() {
-	FILES=$(find . -name '*.go')
+	FILES=$(find . -name '*.go' ! -name '*_template.go')
 
 	for FILE in ${FILES[*]}; do
-		gofmt -w $FILE
-
-		if [[ $? != 0 ]]; then
+		
+		if [[ $(gofmt -l $FILE) != "" ]]; then
 			FAIL=1
 			FAILURES+=($FILE)
 		fi
@@ -163,7 +162,7 @@ function testPeer() {
 
 # run unit tests per module this ignores all simtests
 function unitTest() {
-	$GO_TEST $1 | egrep "PASS|FAIL|panic|bind|Timeout"
+	$GO_TEST $1 | egrep "PASS|FAIL|panic|bind|Timeout|no test files"
 }
 
 # run a simtest
@@ -173,11 +172,11 @@ function testSim() {
 }
 
 function writeTestList() {
-    > .circleci/ci_tests
+	> .circleci/ci_tests
 	for TST in ${TESTS[*]}; do
-        echo $TST >> .circleci/ci_tests
-    done
-    echo "Wrote .circleci/ci_tests"
+		echo $TST >> .circleci/ci_tests
+	done
+	echo "Wrote .circleci/ci_tests"
 }
 
 function main() {
@@ -187,11 +186,11 @@ function main() {
 	case $1 in
 
 	mklist)
-        # writelist of all tests to a file
-        # so full test run can be customized for a given build
-	    loadTestList full
-        writeTestList
-        ;;
+		# writelist of all tests to a file
+		# so full test run can be customized for a given build
+		loadTestList full
+                writeTestList
+		;;
 	gofmt)
 		# check all go files pass gofmt
 		testGoFmt

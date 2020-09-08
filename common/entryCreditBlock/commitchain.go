@@ -441,3 +441,31 @@ func (c *CommitChain) JSONByte() ([]byte, error) {
 func (c *CommitChain) JSONString() (string, error) {
 	return primitives.EncodeJSONString(c)
 }
+
+func (c *CommitChain) GetVersion() uint8 {
+	return c.Version
+}
+
+func (c *CommitChain) GetMilliTime() *primitives.ByteSlice6 {
+	return c.MilliTime
+}
+
+func (c *CommitChain) GetChainIDHash() interfaces.IHash {
+	return c.ChainIDHash
+}
+
+func (c *CommitChain) GetWeld() interfaces.IHash {
+	return c.Weld
+}
+
+func (c *CommitChain) GetCredits() uint8 {
+	return c.Credits
+}
+
+func (c *CommitChain) GetECPubKey() *primitives.ByteSlice32 {
+	return c.ECPubKey
+}
+
+func (c *CommitChain) GetSig() *primitives.ByteSlice64 {
+	return c.Sig
+}

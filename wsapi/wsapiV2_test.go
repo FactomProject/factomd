@@ -8,6 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/FactomProject/factomd/modules/registry"
+	"github.com/FactomProject/factomd/modules/worker"
+
 	"github.com/stretchr/testify/assert"
 
 	"time"
@@ -21,7 +24,12 @@ import (
 
 func TestHandleV2Requests(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		Start(w, state)
+	})
+	go p.Run()
+	p.WaitForRunning()
 
 	cases := map[string]struct {
 		Method     string
@@ -242,11 +250,6 @@ func TestHandleV2Requests(t *testing.T) {
 	}
 }
 
-func TestRegisterPrometheus(t *testing.T) {
-	RegisterPrometheus()
-	RegisterPrometheus()
-}
-
 func TestHandleV2GetRaw(t *testing.T) {
 	type RawData struct {
 		Hash1 string
@@ -316,7 +319,12 @@ func TestHandleV2GetRaw(t *testing.T) {
 
 	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		Start(w, state)
+	})
+	go p.Run()
+	p.WaitForRunning()
 
 	for i, v := range toTest {
 		data := new(HashRequest)
@@ -481,7 +489,7 @@ func Test_ecBlockToResp(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			got, got1 := ECBlockToResp(tt.args.block)
+			got, got1 := ECBlockToResp(tt.args.block, true)
 			assert.True(t, reflect.DeepEqual(got, tt.want), "ecBlockToResp() got = %v, want %v", got, tt.want)
 			assert.True(t, reflect.DeepEqual(got1, tt.want1), "ecBlockToResp() got1 = %v, want %v", got1, tt.want1)
 		})

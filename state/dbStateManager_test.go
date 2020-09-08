@@ -197,7 +197,7 @@ func createTestDBStateList(blockCount int, s *State) ([]interfaces.IMsg, []inter
 		}
 
 		timestamp := primitives.NewTimestampNow()
-		timestamp.SetTime(uint64(i * 1000 * 60 * 60 * 6)) //6 hours of difference between messages
+		timestamp.SetTime(uint64(i * 1000 * 60 * 60 * 6)) //6 hours of difference between inMessages
 
 		prev = testHelper.CreateTestBlockSetWithNetworkID(prev, s.GetNetworkID(), false)
 		if i == 0 {

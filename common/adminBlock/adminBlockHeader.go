@@ -7,10 +7,9 @@ package adminBlock
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
-
-	"errors"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"

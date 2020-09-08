@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-
 	"sort"
 
 	"github.com/FactomProject/factomd/common/constants"

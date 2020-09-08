@@ -1,10 +1,9 @@
 package adminBlock
 
 import (
+	"bytes"
 	"fmt"
 	"os"
-
-	"bytes"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"

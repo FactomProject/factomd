@@ -94,7 +94,7 @@ func (s *State) SendManager() {
 		now := time.Now()
 		tenSeconds := s.FactomSecond() * 10
 
-		// Every 1000 messages or so, purge our hash map.
+		// Every 1000 inMessages or so, purge our hash map.
 		if purge <= 0 {
 			for k, v := range EntriesRequested {
 				delay := now.Sub(v)

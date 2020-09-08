@@ -217,7 +217,7 @@ func (m *MissingMsgResponse) String() string {
 	}
 
 	return fmt.Sprintf("MissingMsgResponse <-- DBh/VMh/h[%15s] message %s msgHash[%x] to peer-%d %s",
-		fmt.Sprintf("%d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m.MsgResponse.String(),
+		fmt.Sprintf("%7d/%02d/%-5d", ack.DBHeight, ack.VMIndex, ack.Height), m.MsgResponse.String(),
 		m.GetMsgHash().Bytes()[:3], m.GetOrigin(), m.GetNetworkOrigin())
 }
 
@@ -250,6 +250,11 @@ func (m *MissingMsgResponse) ChainID() []byte {
 
 func (m *MissingMsgResponse) ListHeight() int {
 	return 0
+}
+
+func (m *MissingMsgResponse) WellFormed() bool {
+	// TODO: Flush this out
+	return true
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -303,4 +308,8 @@ func NewMissingMsgResponse(state interfaces.IState, msgResponse interfaces.IMsg,
 	msg.AckResponse = ackResponse
 
 	return msg
+}
+
+func (m *MissingMsgResponse) Label() string {
+	return msgbase.GetLabel(m)
 }

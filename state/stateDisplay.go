@@ -1,415 +1,115 @@
-// Copyright 2017 Factom Foundation
-// Use of this source code is governed by the MIT
-// license that can be found in the LICENSE file.
-
 package state
-
-// The Control Panel needs access to the State, so a deep copy of the elements needed
-// will be constructed and sent over a channel. Guards are in place to prevent a full
-// channel from hanging. This fixes any concurrency issue on the control panel side.
 
 import (
 	"fmt"
-
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	. "github.com/FactomProject/factomd/common/identity"
+	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/modules/events"
+	"strings"
 )
 
-var ControlPanelAllowedSize int = 2
+func (s *State) stateUpdate() *events.StateUpdate {
+	fnodes := []*State{s}
+	nodesSummary := nodesSummary(fnodes)
+	summary := fmt.Sprintf("===SummaryStart===%s \n%s===SummaryEnd===\n", s.ShortString(), nodesSummary)
 
-// This struct will contain all information wanted by the control panel from the state.
-type DisplayState struct {
-	NodeName string
+	identitiesDetails := identitiesDetails(s.IdentityControl.GetSortedIdentities())
+	authoritiesDetails := authoritiesDetails(s.IdentityControl.GetSortedAuthorities())
 
-	ControlPanelPort    int
-	ControlPanelSetting int
-
-	// DB Info
-	CurrentNodeHeight   uint32
-	CurrentLeaderHeight uint32
-	CurrentEBDBHeight   uint32
-	LeaderHeight        uint32
-	LastDirectoryBlock  interfaces.IDirectoryBlock
-
-	// Identity Info
-	IdentityChainID interfaces.IHash
-	Identities      []*Identity
-	Authorities     []*Authority
-	PublicKey       *primitives.PublicKey
-
-	// Process List
-	PLFactoid []FactoidTransaction
-	PLEntry   []EntryTransaction
-
-	// DataDump
-	RawSummary          string
-	PrintMap            string
-	ProcessList0        string
-	ProcessList         string
-	ProcessList2        string
-	Election            string
-	SimElection         string
-	SyncingState        [256]string
-	SyncingStateCurrent int
-	IgnoreDone          bool
-}
-
-type FactoidTransaction struct {
-	TxID         string
-	Hash         string
-	TotalInput   string
-	Status       string
-	TotalInputs  int
-	TotalOutputs int
-}
-
-type EntryTransaction struct {
-	ChainID   string
-	EntryHash string
-}
-
-func NewDisplayState() *DisplayState {
-	d := new(DisplayState)
-	d.Identities = make([]*Identity, 0)
-	d.Authorities = make([]*Authority, 0)
-	d.PublicKey = new(primitives.PublicKey)
-	d.LastDirectoryBlock = nil
-	d.PLEntry = make([]EntryTransaction, 0)
-	d.PLFactoid = make([]FactoidTransaction, 0)
-
-	return d
-}
-
-// Sends the copy of State over channel to control panel
-func (s *State) CopyStateToControlPanel() error {
-	if !s.ControlPanelDataRequest {
-		return nil
+	return &events.StateUpdate{
+		NodeTime:           s.ProcessTime,
+		LeaderHeight:       s.LLeaderHeight,
+		Summary:            summary,
+		IdentitiesDetails:  identitiesDetails,
+		AuthoritiesDetails: authoritiesDetails,
 	}
-	s.ControlPanelDataRequest = false
-	if len(s.ControlPanelChannel) < ControlPanelAllowedSize {
-		ds, err := DeepStateDisplayCopyDifference(s, s.LastDisplayState)
-		if err != nil {
-			return err
-		}
-		s.ControlPanelChannel <- *ds
-		prev := s.LastDisplayState
-		s.LastDisplayState = ds
-		if ds.LastDirectoryBlock == nil && prev != nil && prev.LastDirectoryBlock != nil {
-			s.LastDisplayState.LastDirectoryBlock = prev.LastDirectoryBlock
-		}
-		return nil
-	} else {
-		return fmt.Errorf("DisplayState Error: Control Panel channel has been filled to maximum allowed size.")
-	}
-	// 	return fmt.Errorf("DisplayState Error: Reached unreachable code. Impressive")
-}
-
-func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState, error) {
-	ds := NewDisplayState()
-
-	ds.NodeName = s.GetFactomNodeName()
-	ds.ControlPanelPort = s.ControlPanelPort
-	ds.ControlPanelSetting = s.ControlPanelSetting
-
-	// DB Info
-	ds.CurrentNodeHeight = s.GetHighestSavedBlk()
-	lheight := s.GetTrueLeaderHeight()
-	// Acks are from the current block being built, and at +1
-	ds.CurrentLeaderHeight = s.GetLeaderHeight()
-	ds.CurrentEBDBHeight = s.EntryDBHeightComplete
-	ds.LeaderHeight = lheight
-
-	// Only copies the directory block if it is new
-	ds.CopyDirectoryBlock(s, prev, s.GetLLeaderHeight())
-
-	// Identities
-	ds.IdentityChainID = s.GetIdentityChainID().Copy()
-	ds.Identities = s.IdentityControl.GetSortedIdentities()
-	for _, auth := range s.IdentityControl.GetSortedAuthorities() {
-		ds.Authorities = append(ds.Authorities, auth.(*Authority))
-	}
-
-	if pubkey, err := s.GetServerPublicKey().Copy(); err != nil {
-	} else {
-		ds.PublicKey = pubkey
-	}
-
-	if s.LeaderPL != nil {
-		vms := s.LeaderPL.VMs
-		for _, v := range vms {
-			list := v.List
-			for _, msg := range list {
-				if msg == nil {
-					continue
-				}
-				switch msg.Type() {
-				case constants.REVEAL_ENTRY_MSG:
-					rev := msg.(*messages.RevealEntryMsg)
-					var entry EntryTransaction
-					entry.ChainID = "Processing..."
-					entry.EntryHash = rev.Entry.GetHash().String()
-
-					ds.PLEntry = append(ds.PLEntry, entry)
-				case constants.FACTOID_TRANSACTION_MSG:
-					transMsg := msg.(*messages.FactoidTransaction)
-					trans := transMsg.Transaction
-					input, err := trans.TotalInputs()
-					if err != nil {
-						continue
-					}
-					totalInputs := len(trans.GetInputs())
-					totalOutputs := len(trans.GetECOutputs())
-					totalOutputs = totalOutputs + len(trans.GetOutputs())
-					inputStr := fmt.Sprintf("%f", float64(input)/1e8)
-
-					ds.PLFactoid = append(ds.PLFactoid, struct {
-						TxID         string
-						Hash         string
-						TotalInput   string
-						Status       string
-						TotalInputs  int
-						TotalOutputs int
-					}{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Process List", totalInputs, totalOutputs})
-				}
-			}
-		}
-	}
-
-	prt := "===SummaryStart===\n"
-	s.Status = 1
-	prt = prt + fmt.Sprintf("%s \n", s.ShortString())
-	fnodes := make([]*State, 0)
-	fnodes = append(fnodes, s)
-	prt = prt + messageLists(fnodes)
-	prt = prt + "===SummaryEnd===\n"
-
-	ds.RawSummary = prt
-
-	b := s.GetHighestCompletedBlk() + 1
-	pl := s.ProcessLists.Get(b)
-	if pl == nil {
-		b--
-		pl = s.ProcessLists.Get(b)
-		if pl == nil {
-			if b > 1 {
-				b--
-				pl = s.ProcessLists.Get(b)
-				if pl == nil {
-					return ds, nil
-				}
-			}
-		}
-	}
-
-	pl0 := s.ProcessLists.GetSafe(b + 1)
-	if pl0 != nil {
-		ds.ProcessList0 = pl0.String()
-	} else {
-		ds.ProcessList0 = fmt.Sprintf("Process list %d is nil\n", b+1)
-
-	}
-
-	var pl2 *ProcessList
-	pl2 = s.ProcessLists.GetSafe(b - 1)
-	if pl2 == nil {
-		ds.ProcessList2 = fmt.Sprintf("Process list %d is nil\n", b-1)
-	}
-
-	if pl != nil && pl.FedServers != nil {
-		ds.PrintMap = pl.PrintMap()
-		ds.ProcessList = pl.String()
-	} else {
-		ds.PrintMap = ""
-		ds.ProcessList = ""
-	}
-
-	if pl2 != nil {
-		ds.ProcessList2 = pl2.String()
-	}
-
-	prt = ""
-	prt = prt + "\n" + s.Election0
-	if pl != nil {
-		for i, _ := range pl.FedServers {
-			prt = prt + fmt.Sprintf("%4d ", i)
-		}
-		for i, _ := range pl.AuditServers {
-			prt = prt + fmt.Sprintf("%4d ", i)
-		}
-	}
-	prt = prt + "\n"
-	prt += "__ _ " // Active
-	prt = s.Election3 + "\n" + prt + s.Election1 + s.Election2 + "\n"
-
-	ds.Election = prt
-
-	if s.Elections != nil {
-		ea := s.Elections.GetAdapter()
-		if ea != nil {
-			ds.SimElection = ea.Status()
-		} else {
-			ds.SimElection = ""
-		}
-	}
-
-	ds.SyncingState = s.SyncingState
-	ds.SyncingStateCurrent = s.SyncingStateCurrent
-	ds.IgnoreDone = s.GetIgnoreDone()
-
-	return ds, nil
-}
-
-func (ds *DisplayState) CopyDirectoryBlock(s *State, prev *DisplayState, height uint32) {
-	if prev == nil || prev.LastDirectoryBlock == nil || prev.LastDirectoryBlock.GetDatabaseHeight() != height {
-		dir := s.GetDirectoryBlockByHeight(height)
-		if dir == nil {
-			dir = s.GetDirectoryBlockByHeight(height - 1)
-		}
-		if dir != nil {
-			data, err := dir.MarshalBinary()
-			if err != nil || dir == nil {
-			} else {
-				newDBlock, err := directoryBlock.UnmarshalDBlock(data)
-				if err != nil {
-					ds.LastDirectoryBlock = nil
-				} else {
-					ds.LastDirectoryBlock = newDBlock
-				}
-			}
-		}
-	} else {
-		ds.LastDirectoryBlock = nil
-	}
-}
-
-func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
-	return DeepStateDisplayCopyDifference(s, nil)
-}
-
-// Used for display dump. Allows a clone of the display state to be made
-func (d *DisplayState) Clone() *DisplayState {
-	ds := NewDisplayState()
-
-	ds.NodeName = d.NodeName
-	ds.ControlPanelPort = d.ControlPanelPort
-	ds.ControlPanelSetting = d.ControlPanelSetting
-
-	// DB Info
-	ds.CurrentNodeHeight = d.CurrentNodeHeight
-	ds.CurrentLeaderHeight = d.CurrentLeaderHeight
-	ds.CurrentEBDBHeight = d.CurrentEBDBHeight
-	ds.LeaderHeight = d.LeaderHeight
-
-	// Identities
-	ds.IdentityChainID = d.IdentityChainID.Copy()
-	for _, id := range d.Identities {
-		ds.Identities = append(ds.Identities, id)
-	}
-	for _, auth := range d.Authorities {
-		ds.Authorities = append(ds.Authorities, auth)
-	}
-	if pubkey, err := d.PublicKey.Copy(); err != nil {
-	} else {
-		ds.PublicKey = pubkey
-	}
-
-	ds.RawSummary = d.RawSummary
-	ds.PrintMap = d.PrintMap
-	ds.ProcessList = d.ProcessList
-	ds.ProcessList2 = d.ProcessList2
-	ds.ProcessList0 = d.ProcessList0
-	ds.Election = d.Election
-
-	ds.SimElection = d.SimElection
-	ds.SyncingStateCurrent = d.SyncingStateCurrent
-	ds.SyncingState = d.SyncingState
-
-	return ds
 }
 
 // Data Dump String Creation
-func messageLists(fnodes []*State) string {
-	prt := ""
-	list := ""
-	fmtstr := "%22s%s\n"
-	for i, _ := range fnodes {
-		list = list + fmt.Sprintf(" %3d", i)
+func nodesSummary(fnodes []*State) string {
+	var nodesSummary strings.Builder
+	var nodes, review, holding, acks, msgQueue, prioritizedMsgQueue, inMsgQueue, apiQueue, ackQueue, timerMsgQueue, networkOutMsgQueue, networkInvalidMsgQueue string
+	for i, f := range fnodes {
+		nodes = fmt.Sprintf("%s %3d", nodes, i)
+		review = fmt.Sprintf("%s %3d", review, len(f.XReview))
+		holding = fmt.Sprintf(" %3d", len(f.Holding))
+		acks = fmt.Sprintf(" %3d", len(f.Acks))
+		msgQueue = fmt.Sprintf(" %3d", len(f.MsgQueue()))
+		prioritizedMsgQueue = fmt.Sprintf(" %3d", len(f.PrioritizedMsgQueue()))
+		inMsgQueue = fmt.Sprintf(" %3d", f.InMsgQueue().Length())
+		apiQueue = fmt.Sprintf(" %3d", f.APIQueue().Length())
+		ackQueue = fmt.Sprintf(" %3d", len(f.AckQueue()))
+		timerMsgQueue = fmt.Sprintf(" %3d", len(f.TimerMsgQueue()))
+		networkOutMsgQueue = fmt.Sprintf(" %3d", f.NetworkOutMsgQueue().Length())
+		networkInvalidMsgQueue = fmt.Sprintf(" %3d", len(f.NetworkInvalidMsgQueue()))
+
 	}
-	prt = prt + fmt.Sprintf(fmtstr, "", list)
 
-	list = ""
-	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.XReview))
+	format := "%22s%s\n"
+	_, _ = fmt.Fprintf(&nodesSummary, format, "", nodes)
+	_, _ = fmt.Fprintf(&nodesSummary, format, "Review", review)
+	_, _ = fmt.Fprintf(&nodesSummary, format, "Holding", holding)
+	_, _ = fmt.Fprintf(&nodesSummary, format, "Acks", acks)
+	_, _ = fmt.Fprintf(&nodesSummary, format, "MsgQueue", msgQueue)
+	_, _ = fmt.Fprintf(&nodesSummary, format, "PrioritizedMsgQueue", prioritizedMsgQueue)
+	_, _ = fmt.Fprintf(&nodesSummary, format, "InMsgQueue", inMsgQueue)
+	_, _ = fmt.Fprintf(&nodesSummary, format, "APIQueue", apiQueue)
+	_, _ = fmt.Fprintf(&nodesSummary, format, "AckQueue", ackQueue)
+	_, _ = fmt.Fprintf(&nodesSummary, format, "TimerMsgQueue", timerMsgQueue)
+	_, _ = fmt.Fprintf(&nodesSummary, format, "NetworkOutMsgQueue", networkOutMsgQueue)
+	_, _ = fmt.Fprintf(&nodesSummary, format, "NetworkInvalidMsgQueue", networkInvalidMsgQueue)
+
+	return nodesSummary.String()
+}
+
+func identitiesDetails(identities []*identity.Identity) string {
+	var details strings.Builder
+	_, _ = fmt.Fprintf(&details, "=== Identity List ===   Total: %d Displaying: All\n", len(identities))
+	for num, i := range identities {
+		_, _ = fmt.Fprintf(&details, "------------------------------------%d---------------------------------------\n", num)
+		_, _ = fmt.Fprintf(&details, "Server Status: %s\n", constants.IdentityStatusString(i.Status))
+		_, _ = fmt.Fprintf(&details, "Synced Status: ID[%t] MG[%t]\n", i.IdentityChainSync.Synced(), i.ManagementChainSync.Synced())
+		_, _ = fmt.Fprintf(&details, "Identity Chain: %s (C:%d R:%d)\n", i.IdentityChainID.String(), i.IdentityCreated, i.IdentityRegistered)
+		_, _ = fmt.Fprintf(&details, "Management Chain: %s (C:%d R:%d)\n", i.ManagementChainID.String(), i.ManagementCreated, i.ManagementRegistered)
+		_, _ = fmt.Fprintf(&details, "Matryoshka Hash: %s\n", i.MatryoshkaHash)
+		_, _ = fmt.Fprintf(&details, "Key 1: %s\n", i.Keys[0])
+		_, _ = fmt.Fprintf(&details, "Key 2: %s\n", i.Keys[1])
+		_, _ = fmt.Fprintf(&details, "Key 3: %s\n", i.Keys[2])
+		_, _ = fmt.Fprintf(&details, "Key 4: %s\n", i.Keys[3])
+		_, _ = fmt.Fprintf(&details, "Signing Key: %s\n", i.SigningKey)
+		_, _ = fmt.Fprintf(&details, "Coinbase Address: %s\n", i.GetCoinbaseHumanReadable())
+		_, _ = fmt.Fprintf(&details, "Efficiency: %s&#37;\n", primitives.EfficiencyToString(i.Efficiency))
+
+		for _, a := range i.AnchorKeys {
+			_, _ = fmt.Fprintf(&details, "Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey)
+		}
+		_, _ = fmt.Fprintf(&details, "ID Eblock Syncing: Current: %d  Target: %d\n", i.IdentityChainSync.Current.DBHeight, i.IdentityChainSync.Target.DBHeight)
+		_, _ = fmt.Fprintf(&details, "MG Eblock Syncing: Current: %d  Target: %d\n", i.ManagementChainSync.Current.DBHeight, i.ManagementChainSync.Target.DBHeight)
 	}
-	prt = prt + fmt.Sprintf(fmtstr, "Review", list)
 
-	list = ""
-	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.Holding))
+	return details.String()
+}
+
+func authoritiesDetails(authorities []interfaces.IAuthority) string {
+	var details strings.Builder
+	_, _ = fmt.Fprintf(&details, "=== Authority List ===   Total: %d Displaying: All\n", len(authorities))
+	for num, i := range authorities {
+		if authority, ok := i.(*identity.Authority); ok {
+			_, _ = fmt.Fprintf(&details, "------------------------------------%d---------------------------------------\n", num)
+			_, _ = fmt.Fprintf(&details, "Server Status: %s\n", constants.IdentityStatusString(authority.Status))
+			_, _ = fmt.Fprintf(&details, "Identity Chain: %s\n", authority.AuthorityChainID)
+			_, _ = fmt.Fprintf(&details, "Management Chain: %s\n", authority.ManagementChainID)
+			_, _ = fmt.Fprintf(&details, "Matryoshka Hash: %s\n", authority.MatryoshkaHash)
+			_, _ = fmt.Fprintf(&details, "Signing Key: %s\n", authority.SigningKey.String())
+			_, _ = fmt.Fprintf(&details, "Coinbase Address: %s\n", authority.GetCoinbaseHumanReadable())
+			_, _ = fmt.Fprintf(&details, "Efficiency: %d\n", authority.Efficiency)
+
+			for _, a := range authority.AnchorKeys {
+				_, _ = fmt.Fprintf(&details, "Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey)
+			}
+		}
 	}
-	prt = prt + fmt.Sprintf(fmtstr, "Holding", list)
-
-	list = ""
-	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.Acks))
-	}
-	prt = prt + fmt.Sprintf(fmtstr, "Acks", list)
-
-	prt = prt + "\n"
-
-	list = ""
-	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.MsgQueue()))
-	}
-	prt = prt + fmt.Sprintf(fmtstr, "MsgQueue", list)
-
-	list = ""
-	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.PrioritizedMsgQueue()))
-	}
-	prt = prt + fmt.Sprintf(fmtstr, "PrioritizedMsgQueue", list)
-
-	list = ""
-	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", f.InMsgQueue().Length())
-	}
-	prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue", list)
-
-	list = ""
-	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", f.APIQueue().Length())
-	}
-	prt = prt + fmt.Sprintf(fmtstr, "APIQueue", list)
-
-	list = ""
-	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.AckQueue()))
-	}
-	prt = prt + fmt.Sprintf(fmtstr, "AckQueue", list)
-
-	prt = prt + "\n"
-
-	list = ""
-	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.TimerMsgQueue()))
-	}
-	prt = prt + fmt.Sprintf(fmtstr, "TimerMsgQueue", list)
-
-	list = ""
-	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", f.NetworkOutMsgQueue().Length())
-	}
-	prt = prt + fmt.Sprintf(fmtstr, "NetworkOutMsgQueue", list)
-
-	list = ""
-	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.NetworkInvalidMsgQueue()))
-	}
-	prt = prt + fmt.Sprintf(fmtstr, "NetworkInvalidMsgQueue", list)
-
-	return prt
+	return details.String()
 }

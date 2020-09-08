@@ -242,10 +242,12 @@ func (r *Replay) validate(mask int, hash [32]byte, timestamp interfaces.Timestam
 	// Check the timestamp to see if within 12 hours of the system time.  That not valid, we are
 	// just done without any added concerns.
 	if diff > Range || diff < -Range {
+		/* REVIEW: this change was made upstream
 		if mask == constants.INTERNAL_REPLAY {
 			return -1, true // if it's outside the replay bounds it is allowed.
 		}
 		//fmt.Println("Time in hours, range:", hours(timeSeconds-systemTimeSeconds), HourRange)
+		*/
 		return -1, false
 	}
 
