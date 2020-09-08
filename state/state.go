@@ -1294,6 +1294,7 @@ func (s *State) GetEntryBlockDBHeightComplete() uint32 {
 func (s *State) SetEntryBlockDBHeightComplete(newHeight uint32) {
 	if newHeight > s.EntryBlockDBHeightComplete {
 		s.EntryBlockDBHeightComplete = newHeight
+		s.DB.SaveDatabaseEntryHeight(newHeight)
 	}
 }
 
