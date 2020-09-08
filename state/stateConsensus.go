@@ -1149,9 +1149,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
-	// ignore if too old. If its under EntryDBHeightComplete
-	//todo: Is this better to be GetEntryDBHeightComplete()
-	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() && dbheight < s.EntryDBHeightComplete {
+	// ignore if too old. If its under EntryBlockDBHeightComplete
+	//todo: Is this better to be GetEntryBlockDBHeightComplete()
+	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() && dbheight < s.EntryBlockDBHeightComplete {
 		return
 	}
 

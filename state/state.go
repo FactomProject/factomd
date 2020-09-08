@@ -368,10 +368,6 @@ type State struct {
 	// DBlock Height at which we have started asking for entry blocks
 	EntryBlockDBHeightProcessing uint32
 
-	// DBlock Height at which node has a complete set of eblocks+entries
-	EntryDBHeightComplete uint32
-	// DBlock Height at which we have started asking for or have all entries
-	EntryDBHeightProcessing uint32
 	// Height in the Directory Block where we have
 	// Entries we don't have that we are asking our neighbors for
 	MissingEntries chan *MissingEntry
@@ -653,7 +649,6 @@ func (s *State) GetEntryBlockDBHeightComplete() uint32 {
 func (s *State) SetEntryBlockDBHeightComplete(newHeight uint32) {
 	if newHeight > s.EntryBlockDBHeightComplete {
 		s.EntryBlockDBHeightComplete = newHeight
-		s.EntryDBHeightComplete = newHeight
 	}
 }
 
@@ -664,7 +659,6 @@ func (s *State) GetEntryBlockDBHeightProcessing() uint32 {
 func (s *State) SetEntryBlockDBHeightProcessing(newHeight uint32) {
 	if newHeight > s.EntryBlockDBHeightProcessing {
 		s.EntryBlockDBHeightProcessing = newHeight
-		s.EntryDBHeightProcessing = newHeight
 	}
 }
 
@@ -678,10 +672,6 @@ func (s *State) GetFaultTimeout() int {
 
 func (s *State) GetFaultWait() int {
 	return s.FaultWait
-}
-
-func (s *State) GetEntryDBHeightComplete() uint32 {
-	return s.EntryDBHeightComplete
 }
 
 func (s *State) GetMissingEntryCount() uint32 {
