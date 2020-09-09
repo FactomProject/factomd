@@ -196,7 +196,7 @@ func (m *MessageBase) SendOut(s interfaces.IState, msg interfaces.IMsg) {
 	// debug code end ............
 	s.LogMessage("NetworkOutputs", "Enqueue", msg)
 
-	if s.IsRunLeader() { // true means - we are not in wait period
+	if s.GetRunLeader() { // true means - we are not in wait period
 		s.NetworkOutMsgQueue().Enqueue(msg)
 	} else {
 		q := s.NetworkOutMsgQueue()

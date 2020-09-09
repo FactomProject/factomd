@@ -2403,13 +2403,9 @@ func (s *State) GetDBFinished() bool {
 	return s.DBFinished
 }
 
-func (s *State) IsRunLeader() bool {
-	return s.RunLeader
-}
-
-// WAX MERGE duplicate function, redundant with IsRunLeader
+// GetRunLeader returns true if the node is following along with the leaders
 func (s *State) GetRunLeader() bool {
-	return s.IsRunLeader()
+	return s.RunLeader
 }
 
 func (s *State) GetPubRegistry() pubsub.IPubRegistry {

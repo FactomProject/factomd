@@ -230,7 +230,7 @@ func (s StateMock) GetIdentityChainID() interfaces.IHash {
 	return s.IdentityChainID
 }
 
-func (s StateMock) IsRunLeader() bool {
+func (s StateMock) GetRunLeader() bool {
 	return s.RunLeader
 }
 
