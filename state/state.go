@@ -195,7 +195,6 @@ type State struct {
 	apiQueue               *queue.MsgQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	dataQueue              chan interfaces.IMsg
 	// prioritizedMsgQueue contains messages we know we need for consensus. (missing from processlist)
 	//		Currently messages from MMR handling can be put in here to fast track
 	//		them to the front.
@@ -1607,10 +1606,6 @@ func (s *State) InMsgQueue2() interfaces.IQueue {
 
 func (s *State) ElectionsQueue() interfaces.IQueue {
 	return s.electionsQueue
-}
-
-func (s *State) DataMsgQueue() chan interfaces.IMsg {
-	return s.dataQueue
 }
 
 func (s *State) APIQueue() interfaces.IQueue {

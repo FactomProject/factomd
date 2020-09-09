@@ -30,11 +30,6 @@ func NetworkProcessorNet(w *worker.Thread, fnode *fnode.FactomNode) {
 	sort(w, fnode)                      // TODO: Replace this service entirely
 	w.Run("NetworkOutputs", func() { NetworkOutputs(fnode) })
 	w.Run("InvalidOutputs", func() { InvalidOutputs(fnode) })
-
-	// FIXME: replace queue w/ pub/sub for message delivery
-	if false {
-		w.Run("MissingData", func() { MissingData(fnode) })
-	}
 }
 
 // TODO: sort should not exist, we should have each module subscribing to the
@@ -286,13 +281,6 @@ func BasicMessageValidation(parent *worker.Thread, fnode *fnode.FactomNode, vali
 	}
 }
 
-// FIXME: publish event rather than using nested state queue
-func DataQ(node *fnode.FactomNode, source string, msg interfaces.IMsg) {
-	q := node.State.DataMsgQueue()
-	node.State.LogMessage("DataQueue", fmt.Sprintf(source+", enqueue %v", len(q)), msg)
-	q <- msg
-}
-
 func sendToExecute(msg interfaces.IMsg, _ *fnode.FactomNode, _ string, pub pubsub.IPublisher) {
 	pub.Write(msg)
 }
@@ -500,18 +488,5 @@ func InvalidOutputs(fnode *fnode.FactomNode) {
 		// if len(invalidMsg.GetNetworkOrigin()) > 0 {
 		// 	p2pNetwork.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2)
 		// }
-	}
-}
-
-// Handle requests for missing data
-func MissingData(fnode *fnode.FactomNode) {
-	// FIXME bind pub/sub event handlers
-	q := fnode.State.DataMsgQueue()
-	for {
-		select {
-		case msg := <-q:
-			fnode.State.LogMessage("DataQueue", fmt.Sprintf("dequeue %v", len(q)), msg)
-			msg.(*messages.MissingData).SendResponse(fnode.State)
-		}
 	}
 }
