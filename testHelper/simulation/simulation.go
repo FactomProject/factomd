@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FactomProject/factomd/modules/registry"
+	"github.com/FactomProject/factomd/modules/worker"
 	"github.com/FactomProject/factomd/testHelper"
 
 	"github.com/FactomProject/factomd/engine"
@@ -19,8 +21,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/fnode"
-	"github.com/FactomProject/factomd/modules/registry"
-	"github.com/FactomProject/factomd/modules/worker"
 	"github.com/FactomProject/factomd/state"
 	"github.com/stretchr/testify/assert"
 )
@@ -132,7 +132,17 @@ func optionsToParams(UserAddedOptions map[string]string) *globals.FactomParams {
 		fmt.Printf("%d: %25s %s = %v\n", i,
 			typeOfT.Field(i).Name, f.Type(), f.Interface())
 	}
-	fmt.Println()
+
+	return params
+}
+
+// StartSim starts simulation without promoting nodes to the authority set
+// this is useful for creating scripts that will start/stop a simulation outside of the context of a unit test
+// this allows for consistent tweaking of a simulation to induce load add message loss or adjust timing
+func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
+	UserAddedOptions["--count"] = fmt.Sprintf("%v", nodeCount)
+	params := optionsToParams(UserAddedOptions)
+
 	p := registry.New()
 	p.Register(func(w *worker.Thread) {
 		engine.Factomd(w, params, false)
