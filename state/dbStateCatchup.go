@@ -43,16 +43,7 @@ func (list *DBStateList) Catchup() {
 
 	factomSecond := list.State.FactomSecond()
 
-	// WAX MERGE this change from develop somehow breaks simulation unit tests, old behavior restored
-	//requestTimeout := time.Duration(list.State.RequestTimeout) * factomSecond
-	requestTimeout := list.State.RequestTimeout
-	if requestTimeout < 1*time.Second { // If the timeout is 0 (default), base off blktime
-		// 10min block	== 30s timeout for a request.
-		// 5min block	== 15s timeout for a request.
-		// 1min block	== 3s  timeout for a request.
-		requestTimeout = factomSecond * 5
-		list.State.RequestTimeout = requestTimeout
-	}
+	requestTimeout := time.Duration(list.State.RequestTimeout.Seconds()) * factomSecond
 	requestLimit := list.State.RequestLimit
 
 	// Wait for db to be loaded
