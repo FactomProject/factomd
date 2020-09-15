@@ -236,7 +236,7 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 	*/
 	s.TimestampAtBoot = primitives.NewTimestampNow()
 	preBootTime := new(primitives.Timestamp)
-	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - 20*60*1000)
+	preBootTime.SetTimeMilli(s.TimestampAtBoot.GetTimeMilli() - constants.PreBootWindow*60*1000)
 	s.SetLeaderTimestamp(s.TimestampAtBoot)
 	s.SetMessageFilterTimestamp(preBootTime)
 	s.RunState = runstate.New
