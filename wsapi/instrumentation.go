@@ -133,6 +133,11 @@ var (
 		"Time it takes to compelete a tx",
 	)
 
+	HandleV2APICallReplayDBFromHeight = telemetry.NewSummary(
+		"factomd_wsapi_v2_api_call_replay_from_height",
+		"Time it takes to replay DBStates from a specific height",
+	)
+
 	HandleV2APICallDBlockByHeight = telemetry.NewSummary(
 		"factomd_wsapi_v2_api_call_dblockbyheight_ns",
 		"Time it takes to compelete a dblockbyheight",
