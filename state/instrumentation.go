@@ -117,4 +117,24 @@ var (
 		"factomd_state_execute_msg_time",
 		"Time spent in executeMsg",
 	)
+
+	//		Eom/DBSig delay
+	LeaderSyncAckDelay = telemetry.NewGaugeVec(
+		"factomd_state_consensus_sync_delay_ack_vec_sec",
+		"Instruments the delay in the time an ack (eom/dbsig only) was signed by a leader, "+
+			"and the time it took our node to receive it in nanoseconds.",
+		[]string{"leader"})
+
+	LeaderSyncMsgDelay = telemetry.NewGaugeVec(
+		"factomd_state_consensus_sync_delay_msg_vec_sec",
+		"Instruments the delay in the time a msg (eom/dbsig only) was signed by a leader, "+
+			"and the time it took our node to receive it in nanoseconds.",
+		[]string{"leader"})
+
+	LeaderSyncAckPairDelay = telemetry.NewGaugeVec(
+		"factomd_state_consensus_ackpair_delay_vec_sec",
+		"Instruments the delay in the time an ack & msg pair was received. "+
+			"If there is a delay, it means the ack+msg would benefit from being "+
+			"coupled. The delay is measured in seconds.",
+		[]string{"leader"})
 )
