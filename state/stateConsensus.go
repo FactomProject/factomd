@@ -2241,9 +2241,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		)
 		s.electionsQueue.Enqueue(InMsg)
 
-		// WAX MERGE the variables LeaderSync*Delay don't exist in wax, need to re-add them
-		// under prometheus metrics
-
 		// Prometheus metrics to analyze timing delays
 		msgDelay := e.GetReceivedTime().Sub(e.Timestamp.GetTime())
 		LeaderSyncMsgDelay.WithLabelValues(e.ChainID.String()).Set(msgDelay.Seconds())
