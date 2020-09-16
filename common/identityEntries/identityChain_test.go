@@ -11,6 +11,7 @@ import (
 	. "github.com/FactomProject/factomd/common/identityEntries"
 )
 
+// TestIdentityChainStructure creates a new external ID and reads it into a new IdentityChainStructure, and checks its chain ID is correct
 func TestIdentityChainStructure(t *testing.T) {
 	parts := []string{
 		"00",
@@ -35,5 +36,14 @@ func TestIdentityChainStructure(t *testing.T) {
 	h := ics.GetChainID()
 	if h.String() != "888888d027c59579fc47a6fc6c4a5c0409c7c39bc38a86cb5fc0069978493762" {
 		t.Errorf("Wrong ChainID, expected 888888d027c59579fc47a6fc6c4a5c0409c7c39bc38a86cb5fc0069978493762, got %v", h.String())
+	}
+
+	ics2, err := DecodeIdentityChainStructureFromExtIDs(extIDs)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	h2 := ics2.GetChainID()
+	if h2.String() != "888888d027c59579fc47a6fc6c4a5c0409c7c39bc38a86cb5fc0069978493762" {
+		t.Errorf("Wrong ChainID #2, expected 888888d027c59579fc47a6fc6c4a5c0409c7c39bc38a86cb5fc0069978493762, got %v", h.String())
 	}
 }

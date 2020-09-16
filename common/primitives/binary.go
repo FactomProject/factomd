@@ -85,7 +85,7 @@ type ByteSlice32 [32]byte
 var _ interfaces.Printable = (*ByteSlice32)(nil)
 var _ interfaces.BinaryMarshallable = (*ByteSlice32)(nil)
 
-// StringToByteSlice32 converts the input hexidecimal string (0-F) to a new ByteSlice32
+// StringToByteSlice32 converts the input hexadecimal string (0-F) to a new ByteSlice32
 func StringToByteSlice32(s string) *ByteSlice32 {
 	bin, err := DecodeBinary(s)
 	if err != nil {
@@ -157,7 +157,7 @@ func (bs *ByteSlice32) JSONString() (string, error) {
 	return EncodeJSONString(bs)
 }
 
-// String returns the hexidecimal string (0-F) of this ByteSlice32
+// String returns the hexadecimal string (0-F) of this ByteSlice32
 func (bs *ByteSlice32) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
@@ -221,7 +221,7 @@ func (bs *ByteSlice64) JSONString() (string, error) {
 	return EncodeJSONString(bs)
 }
 
-// String returns the json encoded hexidecimal (0-F) string
+// String returns the json encoded hexadecimal (0-F) string
 func (bs *ByteSlice64) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
@@ -285,7 +285,7 @@ func (bs *ByteSlice6) JSONString() (string, error) {
 	return EncodeJSONString(bs)
 }
 
-// String returns the hexidecimal (0-F) string of the ByteSlice6S
+// String returns the hexadecimal (0-F) string of the ByteSlice6S
 func (bs *ByteSlice6) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
@@ -360,7 +360,7 @@ func (bs *ByteSliceSig) JSONString() (string, error) {
 	return EncodeJSONString(bs)
 }
 
-// String returns a hexidecimal (0-F) string of the ByteSliceSig
+// String returns a hexadecimal (0-F) string of the ByteSliceSig
 func (bs *ByteSliceSig) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
@@ -441,7 +441,7 @@ func (bs *ByteSlice20) JSONString() (string, error) {
 	return EncodeJSONString(bs)
 }
 
-// String returns a hexidecimal (0-F) string of the internal data
+// String returns a hexadecimal (0-F) string of the internal data
 func (bs *ByteSlice20) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
@@ -536,7 +536,7 @@ func (bs *ByteSlice) JSONString() (string, error) {
 	return EncodeJSONString(bs)
 }
 
-// String returns a hexidecimal (0-F) string of the ByteSlice
+// String returns a hexadecimal (0-F) string of the ByteSlice
 func (bs *ByteSlice) String() string {
 	return fmt.Sprintf("%x", bs.Bytes[:])
 }

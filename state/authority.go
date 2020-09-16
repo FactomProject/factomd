@@ -12,7 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-// Checks the signature of a message. Returns an int based on who signed it:
+// VerifyAuthoritySignature checks the signature of a message to verify whether an authority node has signed the message. Returns an int based on who signed it:
 // 			1  -> Federated Signature
 //			0  -> Audit Signature
 //			-1 -> Neither Fed or Audit Signature
@@ -105,7 +105,7 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 	return -1, fmt.Errorf("%s", "Signature Key Invalid or not Federated Server Key")
 }
 
-// Checks the signature of a message. Returns an int based on who signed it:
+// FastVerifyAuthoritySignautre checks the signature of a message has been signed by an authority server. Returns an int based on who signed it:
 // 			1  -> Federated Signature
 //			0  -> Audit Signature
 //			-1 -> Neither Fed or Audit Signature

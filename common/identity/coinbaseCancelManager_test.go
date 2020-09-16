@@ -12,10 +12,25 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestCancelTally tests the cancel coinbase
 func TestCancelTally(t *testing.T) {
+	// Make 5 federated and 5 audits
 	im := RandomIdentityManagerWithCounts(5, 5)
+	if im.FedServerCount() != 5 {
+		t.Errorf("Federated server count not 5")
+		return
+	}
+	if im.AuditServerCount() != 5 {
+		t.Errorf("Audit server count not 5")
+		return
+	}
+	if im.AuthorityServerCount() != 10 {
+		t.Errorf("Total server count not 10")
+		return
+	}
 	c := NewCoinbaseCancelManager(im)
 
+	// Extract the federated from the list
 	feds := make([]*Authority, 0)
 	for _, a := range im.Authorities {
 		if a.Status == constants.IDENTITY_FEDERATED_SERVER {
@@ -24,6 +39,12 @@ func TestCancelTally(t *testing.T) {
 	}
 
 	// Has options
+	// auths: authority list
+	// h: coinbase descriptor height
+	// i: coinbase descriptor index
+	// exp: expected cancellations
+	// duplicates: do we duplicate transactions to test
+	// gc: do we do garbage collection at the end
 	addAndTestWithOptions := func(auths []int, h uint32, i []uint32, exp []int, t *testing.T, duplicates bool, gc bool) {
 		var outs []uint32
 		for ci, count := range auths {
@@ -127,6 +148,7 @@ func TestCancelTally(t *testing.T) {
 
 }
 
+// newCoinbaseCancel creates a new coinbase cancel for the input authority id at the height and index input
 func newCoinbaseCancel(id *Authority, h, i uint32) identityEntries.NewCoinbaseCancelStruct {
 	cc := new(identityEntries.NewCoinbaseCancelStruct)
 	cc.RootIdentityChainID = id.AuthorityChainID
@@ -135,6 +157,7 @@ func newCoinbaseCancel(id *Authority, h, i uint32) identityEntries.NewCoinbaseCa
 	return *cc
 }
 
+// TestCancelGC tests garbage collection for coinbase cancel
 func TestCancelGC(t *testing.T) {
 	dbheight := uint32(10)
 
@@ -181,6 +204,7 @@ func TestCancelGC(t *testing.T) {
 
 }
 
+// TestAdminBlockRecorded checks that you can mark admin blocks as being recorded properly
 func TestAdminBlockRecorded(t *testing.T) {
 	c := NewCoinbaseCancelManager(nil)
 	if c.IsAdminBlockRecorded(0, 1) {
@@ -198,7 +222,8 @@ func TestAdminBlockRecorded(t *testing.T) {
 
 }
 
-func TestAddProposalRadom(t *testing.T) {
+// TestAddProposalRandom verifies that 1000 random proposals are inserted properly sorted into the list
+func TestAddProposalRandom(t *testing.T) {
 	c := NewCoinbaseCancelManager(nil)
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < 1000; i++ {
@@ -210,6 +235,7 @@ func TestAddProposalRadom(t *testing.T) {
 	}
 }
 
+// TestAddProposalVector checks that the proposal list is properly sorted when new proposals are added
 func TestAddProposalVector(t *testing.T) {
 	c := NewCoinbaseCancelManager(nil)
 	// Check 0
@@ -254,6 +280,7 @@ func TestAddProposalVector(t *testing.T) {
 
 }
 
+// checkList returns an error if the input list has an incorrect length or is unsorted
 func checkList(list []uint32, l int) error {
 	err := checkListLength(list, l)
 	if err != nil {
@@ -262,6 +289,7 @@ func checkList(list []uint32, l int) error {
 	return checkListSorted(list)
 }
 
+// checkListLength returns an error if the input list does not have the expected length 'l'
 func checkListLength(list []uint32, l int) error {
 	if len(list) != l {
 		return fmt.Errorf("Expect length of %d,found %d", l, len(list))
@@ -269,6 +297,7 @@ func checkListLength(list []uint32, l int) error {
 	return nil
 }
 
+// checkListSorted returns an error if the list is not sorted
 func checkListSorted(list []uint32) error {
 	last := 0
 	for v := range list {

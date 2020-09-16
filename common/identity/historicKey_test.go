@@ -10,6 +10,7 @@ import (
 	. "github.com/FactomProject/factomd/common/identity"
 )
 
+// TesetHistoricKeyMarshalUnmarshal checks that 1000 random historic keys can be marshaled and unmarshaled properly
 func TestHistoricKeyMarshalUnmarshal(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		hk := RandomHistoricKey()

@@ -21,6 +21,8 @@ import (
  * Helper Functions
  ***********************/
 
+// UnmarshalBinaryAuth takes the input byte slice, determines whether it's RCD 1 or 2, and
+// unmarshals it into a new RCD of that type
 func UnmarshalBinaryAuth(data []byte) (a interfaces.IRCD, newData []byte, err error) {
 	if data == nil || len(data) < 1 {
 		return nil, nil, fmt.Errorf("Not enough data to unmarshal")
@@ -40,6 +42,7 @@ func UnmarshalBinaryAuth(data []byte) (a interfaces.IRCD, newData []byte, err er
 	return auth, data, err
 }
 
+// NewRCD_1 creates a new RCD of type 1
 func NewRCD_1(publicKey []byte) interfaces.IRCD {
 	if len(publicKey) != constants.ADDRESS_LENGTH {
 		panic("Bad publickey.  This should not happen")
@@ -49,6 +52,7 @@ func NewRCD_1(publicKey []byte) interfaces.IRCD {
 	return a
 }
 
+// NewRCD_2 creates a new RCD of type 2
 func NewRCD_2(n int, m int, addresses []interfaces.IAddress) (interfaces.IRCD, error) {
 	if len(addresses) != m {
 		return nil, fmt.Errorf("Improper number of addresses.  m = %d n = %d #addresses = %d", m, n, len(addresses))
@@ -63,6 +67,7 @@ func NewRCD_2(n int, m int, addresses []interfaces.IAddress) (interfaces.IRCD, e
 	return au, nil
 }
 
+// CreateRCD creates a new RCD based on the input type
 func CreateRCD(data []byte) interfaces.IRCD {
 	switch data[0] {
 	case 1:

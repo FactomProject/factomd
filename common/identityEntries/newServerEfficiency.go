@@ -13,7 +13,11 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#add-server-efficiency
+// ExpectedServerEfficiencyExternalIDLengths is a hardcoded slice containing the expected lengths of each entry in an external ID (the fields of NewServerEfficiencyStruct)
+var ExpectedServerEfficiencyExternalIDLengths = []int{1, 17, 32, 2, 8, 33, 64}
+
+// NewServerEfficiencyStruct holds all the information for adding a new server efficiency to a server subchain
+// https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#add-server-efficiency
 type NewServerEfficiencyStruct struct {
 	//The message is a Factom Entry with several extIDs holding the various parts.
 	//[0 (version)] [Server Efficiency] [identity ChainID] [new efficiency] [timestamp] [identity key preimage] [signature of version through timestamp]
@@ -34,6 +38,7 @@ type NewServerEfficiencyStruct struct {
 	Signature []byte
 }
 
+// DecodeNewServerEfficiencyStructFromExtIDs returns a new object with values from the input external ID
 func DecodeNewServerEfficiencyStructFromExtIDs(extIDs [][]byte) (*NewServerEfficiencyStruct, error) {
 	nbsk := new(NewServerEfficiencyStruct)
 	err := nbsk.DecodeFromExtIDs(extIDs)
@@ -43,10 +48,12 @@ func DecodeNewServerEfficiencyStructFromExtIDs(extIDs [][]byte) (*NewServerEffic
 	return nbsk, nil
 }
 
+// SetFunctionName sets the function name to "Server Efficiency"
 func (nses *NewServerEfficiencyStruct) SetFunctionName() {
 	nses.FunctionName = []byte("Server Efficiency")
 }
 
+// MarshalForSig marshals the object without its signature
 func (nses *NewServerEfficiencyStruct) MarshalForSig() []byte {
 	answer := []byte{}
 	efficiency := make([]byte, 2)
@@ -60,6 +67,7 @@ func (nses *NewServerEfficiencyStruct) MarshalForSig() []byte {
 	return answer
 }
 
+// VerifySignature marshals the object without its signature and verifies the marshaled data with the signature, and verifies the input key
 func (nses *NewServerEfficiencyStruct) VerifySignature(key1 interfaces.IHash) error {
 	bin := nses.MarshalForSig()
 	pk := new(primitives.PublicKey)
@@ -85,11 +93,12 @@ func (nses *NewServerEfficiencyStruct) VerifySignature(key1 interfaces.IHash) er
 	return nil
 }
 
+// DecodeFromExtIDs places the information from the input external IDs into this object
 func (nses *NewServerEfficiencyStruct) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(extIDs))
 	}
-	if CheckExternalIDsLength(extIDs, []int{1, 17, 32, 2, 8, 33, 64}) == false {
+	if CheckExternalIDsLength(extIDs, ExpectedServerEfficiencyExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 	nses.Version = extIDs[0][0]
@@ -119,6 +128,7 @@ func (nses *NewServerEfficiencyStruct) DecodeFromExtIDs(extIDs [][]byte) error {
 	return nil
 }
 
+// ToExternalIDs returns a 2d byte slice of all the data in this object
 func (nses *NewServerEfficiencyStruct) ToExternalIDs() [][]byte {
 	extIDs := [][]byte{}
 
@@ -136,6 +146,7 @@ func (nses *NewServerEfficiencyStruct) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
+// GetChainID computes the chain ID associated with this object
 func (nses *NewServerEfficiencyStruct) GetChainID() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "NewServerEfficiencyStruct.GetChainID") }()
 

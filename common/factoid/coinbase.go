@@ -10,7 +10,7 @@ var adrs []interfaces.IAddress
 var amount uint64 = 5000000000 // One Factoid (remember, fixed point math!
 var addressCnt int = 0         // No coinbase payments until Milestone 3
 
-// Allows the amount paid in the coinbase to be modified.   This is
+// UpdateAmount allows the amount paid in the coinbase to be modified.   This is
 // NOT allowed in production!  That's why it is here in Test!
 func UpdateAmount(amt uint64) {
 	amount = amt

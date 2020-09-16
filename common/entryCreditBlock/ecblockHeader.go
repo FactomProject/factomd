@@ -14,7 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// ECBlockHeader contains information related to this EC block as well as the previous EC block
+// ECBlockHeader contains meta information related to this EC block as well as the previous EC block
 type ECBlockHeader struct {
 	BodyHash            interfaces.IHash `json:"bodyhash"`            // The hash of the EC block's body
 	PrevHeaderHash      interfaces.IHash `json:"prevheaderhash"`      // The hash of the previous EC block's header

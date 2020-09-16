@@ -12,7 +12,11 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#add-new-bitcoin-key
+// ExpectedBitcoinKeyExternalIDLengths is a hardcoded slice containing the expected lengths of each entry in an external ID (the fields of NewBitcoinKeyStructure)
+var ExpectedBitcoinKeyExternalIDLengths = []int{1, 15, 32, 1, 1, 20, 8, 33, 64}
+
+// NewBitcoinKeyStructure holds all the information for adding a new bitcoin key to a server subchain
+// https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#add-new-bitcoin-key
 type NewBitcoinKeyStructure struct {
 	//The message is an entry with multiple extIDs.
 	//[0 (version)] [New Bitcoin Key] [identity ChainID] [Bitcoin key level] [type byte] [new key] [timestamp] [identity key preimage] [signature of version through timestamp]
@@ -26,7 +30,7 @@ type NewBitcoinKeyStructure struct {
 	//Next is a byte signifying the bitcoin key level.
 	//It is 0 origin indexed, so with only 1 key it would be 0x00.
 	BitcoinKeyLevel byte
-	//The next extID specifies what type of Bitcoin key is used, P2PKH or P2SH.
+	//The next extID specifies what type of Bitcoin key is used, P2PKH or P2SH. 0=P2PKH 1=P2SH.
 	KeyType byte
 	//Next is the 20 byte Bitcoin key.
 	NewKey [20]byte
@@ -38,6 +42,7 @@ type NewBitcoinKeyStructure struct {
 	Signature []byte
 }
 
+// DecodeNewBitcoinKeyStructureFromExtIDs returns a new object with values from the input external ID
 func DecodeNewBitcoinKeyStructureFromExtIDs(extIDs [][]byte) (*NewBitcoinKeyStructure, error) {
 	nbks := new(NewBitcoinKeyStructure)
 	err := nbks.DecodeFromExtIDs(extIDs)
@@ -47,6 +52,7 @@ func DecodeNewBitcoinKeyStructureFromExtIDs(extIDs [][]byte) (*NewBitcoinKeyStru
 	return nbks, nil
 }
 
+// MarshalForSig marshals the object without its signature
 func (nbks *NewBitcoinKeyStructure) MarshalForSig() []byte {
 	answer := []byte{}
 	answer = append(answer, nbks.Version)
@@ -59,6 +65,7 @@ func (nbks *NewBitcoinKeyStructure) MarshalForSig() []byte {
 	return answer
 }
 
+// VerifySignature marshals the object without its signature and verifies the marshaled data with the signature, and verifies the input key
 func (nbks *NewBitcoinKeyStructure) VerifySignature(key1 interfaces.IHash) error {
 	bin := nbks.MarshalForSig()
 	pk := new(primitives.PublicKey)
@@ -84,11 +91,12 @@ func (nbks *NewBitcoinKeyStructure) VerifySignature(key1 interfaces.IHash) error
 	return nil
 }
 
+// DecodeFromExtIDs places the information from the input external IDs into this object
 func (nbks *NewBitcoinKeyStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 9 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 9, got %v", len(extIDs))
 	}
-	if CheckExternalIDsLength(extIDs, []int{1, 15, 32, 1, 1, 20, 8, 33, 64}) == false {
+	if CheckExternalIDsLength(extIDs, ExpectedBitcoinKeyExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 	nbks.Version = extIDs[0][0]
@@ -120,6 +128,7 @@ func (nbks *NewBitcoinKeyStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	return nil
 }
 
+// ToExternalIDs returns a 2d byte slice of all the data in this object
 func (nbks *NewBitcoinKeyStructure) ToExternalIDs() [][]byte {
 	extIDs := [][]byte{}
 
@@ -136,6 +145,7 @@ func (nbks *NewBitcoinKeyStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
+// GetChainID computes the chain ID associated with this object
 func (nbks *NewBitcoinKeyStructure) GetChainID() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "NewBitcoinKeyStructure.GetChainID") }()
 

@@ -12,7 +12,11 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#server-management-subchain-registration
+// ExpectedRegisterServerManagementExternalIDLengths is a hardcoded slice containing the expected lengths of each entry in an external ID (the fields of RegisterServerManagementStructure)
+var ExpectedRegisterServerManagementExternalIDLengths = []int{1, 26, 32, 33, 64}
+
+// RegisterServerManagementStructure holds all the information for adding registering a server management subchain
+// https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#server-management-subchain-registration
 type RegisterServerManagementStructure struct {
 	//It is very similar to the Factom identity registration message.
 	//[0 (version)] [Register Server Management] [subchain ChainID] [identity key preimage] [signature of version through ChainID]
@@ -29,6 +33,7 @@ type RegisterServerManagementStructure struct {
 	Signature []byte
 }
 
+// DecodeRegisterServerManagementStructureFromExtIDs returns a new object with values from the input external ID
 func DecodeRegisterServerManagementStructureFromExtIDs(extIDs [][]byte) (*RegisterServerManagementStructure, error) {
 	rsm := new(RegisterServerManagementStructure)
 	err := rsm.DecodeFromExtIDs(extIDs)
@@ -38,6 +43,7 @@ func DecodeRegisterServerManagementStructureFromExtIDs(extIDs [][]byte) (*Regist
 	return rsm, nil
 }
 
+// MarshalForSig marshals the object without its signature
 func (rsm *RegisterServerManagementStructure) MarshalForSig() []byte {
 	answer := []byte{}
 	answer = append(answer, rsm.Version)
@@ -46,6 +52,7 @@ func (rsm *RegisterServerManagementStructure) MarshalForSig() []byte {
 	return answer
 }
 
+// VerifySignature marshals the object without its signature and verifies the marshaled data with the signature, and verifies the input key
 func (rsm *RegisterServerManagementStructure) VerifySignature(key1 interfaces.IHash) error {
 	bin := rsm.MarshalForSig()
 	pk := new(primitives.PublicKey)
@@ -71,11 +78,12 @@ func (rsm *RegisterServerManagementStructure) VerifySignature(key1 interfaces.IH
 	return nil
 }
 
+// DecodeFromExtIDs places the information from the input external IDs into this object
 func (rsm *RegisterServerManagementStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 5 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 5, got %v", len(extIDs))
 	}
-	if CheckExternalIDsLength(extIDs, []int{1, 26, 32, 33, 64}) == false {
+	if CheckExternalIDsLength(extIDs, ExpectedRegisterServerManagementExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 	rsm.Version = extIDs[0][0]
@@ -106,6 +114,7 @@ func (rsm *RegisterServerManagementStructure) DecodeFromExtIDs(extIDs [][]byte) 
 	return nil
 }
 
+// ToExternalIDs returns a 2d byte slice of all the data in this object
 func (rsm *RegisterServerManagementStructure) ToExternalIDs() [][]byte {
 	extIDs := [][]byte{}
 
@@ -118,6 +127,7 @@ func (rsm *RegisterServerManagementStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
+// GetChainID computes the chain ID associated with this object
 func (rsm *RegisterServerManagementStructure) GetChainID() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "RegisterServerManagementStructure.GetChainID") }()
 

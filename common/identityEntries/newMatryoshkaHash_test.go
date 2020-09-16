@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+// TestNewMatryoshkaHashStructure checks a hardcoded external ID can be set into the Matryoshka hash structure and obtain the correct chain ID
 func TestNewMatryoshkaHashStructure(t *testing.T) {
 	parts := []string{
 		"00",

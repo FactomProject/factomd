@@ -24,17 +24,19 @@ import (
 	"github.com/FactomProject/factomd/util/atomic"
 )
 
+// IdentityManager is identical to IdentityManagerWithoutMutex, except that it contains a mutex
 type IdentityManager struct {
 	Mutex sync.RWMutex
 	IdentityManagerWithoutMutex
 }
 
+// IdentityManagerWithoutMutex manages the authorities and identities of the network. It does not contain a mutex
 type IdentityManagerWithoutMutex struct {
-	Authorities map[[32]byte]*Authority
-	Identities  map[[32]byte]*Identity
+	Authorities map[[32]byte]*Authority // Map of the authority servers mapped based on chain id
+	Identities  map[[32]byte]*Identity  // Map of the identities mapped based on the chain id
 	// All Identity Registrations.
-	IdentityRegistrations   map[[32]byte]*identityEntries.RegisterFactomIdentityStructure
-	MaxAuthorityServerCount int
+	IdentityRegistrations   map[[32]byte]*identityEntries.RegisterFactomIdentityStructure // Map of the identity registrations mapped based on chain id
+	MaxAuthorityServerCount int                                                           // The maximum number of authority servers allowed
 
 	// Not Marshalled
 	// Tracks cancellation of coinbases
@@ -47,10 +49,10 @@ type IdentityManagerWithoutMutex struct {
 	//	descriptor+declaration height is hit.
 	//		[descriptorheight]List of cancelled outputs
 	CanceledCoinbaseOutputs map[uint32][]uint32
-	OldEntries              []*OldEntry
+	OldEntries              []*OldEntry // A set of entries which have already attempted to be processed, but failed for some reason. Will be tried again later
 }
 
-// Full print of Identity Manager
+// String produces a full print of Identity Manager to a string
 func (im *IdentityManager) String() string {
 	str := fmt.Sprintf("-- Identity Manager: %d Auths, %d Ids\n --", len(im.Authorities), len(im.Identities))
 	str += fmt.Sprintf("--- Identities ---\n")
@@ -75,6 +77,7 @@ func (im *IdentityManager) String() string {
 	return str
 }
 
+// NewIdentityManager creates a new identity manager
 func NewIdentityManager() *IdentityManager {
 	im := new(IdentityManager)
 	im.Authorities = make(map[[32]byte]*Authority)
@@ -89,6 +92,7 @@ func NewIdentityManager() *IdentityManager {
 	return im
 }
 
+// RandomIdentityManagerWithCounts creates a new identity manager with random ids for the specified federated and audit server input counts
 func RandomIdentityManagerWithCounts(fedCount, audCount int) *IdentityManager {
 	im := NewIdentityManager()
 	for i := 0; i < fedCount; i++ {
@@ -107,6 +111,7 @@ func RandomIdentityManagerWithCounts(fedCount, audCount int) *IdentityManager {
 	return im
 }
 
+// RandomIdentityManager creates a new identity manager with up to 10 random identities, authorities, and registrations
 func RandomIdentityManager() *IdentityManager {
 	im := NewIdentityManager()
 	for i := 0; i < rand.Intn(10); i++ {
@@ -125,6 +130,7 @@ func RandomIdentityManager() *IdentityManager {
 	return im
 }
 
+// SetBootstrapIdentity creates and inserts a new authority server with the input id into the identity manager
 func (im *IdentityManager) SetBootstrapIdentity(id interfaces.IHash, key interfaces.IHash) error {
 	// Identity
 	i := NewIdentity()
@@ -147,6 +153,7 @@ func (im *IdentityManager) SetBootstrapIdentity(id interfaces.IHash, key interfa
 	return nil
 }
 
+// SetIdentityRegistration registers the input chain an identity registration chain in the identity manager
 func (im *IdentityManager) SetIdentityRegistration(chain interfaces.IHash) error {
 	id := NewIdentity()
 	id.IdentityChainID = chain
@@ -156,6 +163,7 @@ func (im *IdentityManager) SetIdentityRegistration(chain interfaces.IHash) error
 	return nil
 }
 
+// SetSkeletonIdentity registers the input chain as a skeleton identity in the identity manager
 func (im *IdentityManager) SetSkeletonIdentity(chain interfaces.IHash) error {
 	// Skeleton is in the identity list
 	//	The key comes from the blockchain, and must be parsed
@@ -188,30 +196,33 @@ func (im *IdentityManager) AuthorityServerCount() int {
 	return answer
 }
 
+// FedServerCount returns the total count of Federated Servers
 func (im *IdentityManager) FedServerCount() int {
 	im.Mutex.RLock()
 	defer im.Mutex.RUnlock()
 	answer := 0
 	for _, v := range im.Authorities {
-		if v.Type() == int(constants.IDENTITY_FEDERATED_SERVER) {
+		if v.Status == constants.IDENTITY_FEDERATED_SERVER {
 			answer++
 		}
 	}
 	return answer
 }
 
+// AuditServerCount returns the total count of Audit Servers
 func (im *IdentityManager) AuditServerCount() int {
 	im.Mutex.RLock()
 	defer im.Mutex.RUnlock()
 	answer := 0
 	for _, v := range im.Authorities {
-		if v.Type() == int(constants.IDENTITY_AUDIT_SERVER) {
+		if v.Status == constants.IDENTITY_AUDIT_SERVER {
 			answer++
 		}
 	}
 	return answer
 }
 
+// GobDecode decodes the input gob data into this object
 func (im *IdentityManager) GobDecode(data []byte) error {
 	//Circumventing Gob's "gob: type sync.RWMutex has no exported fields"
 	b := bytes.NewBuffer(data)
@@ -219,6 +230,7 @@ func (im *IdentityManager) GobDecode(data []byte) error {
 	return dec.Decode(&im.IdentityManagerWithoutMutex)
 }
 
+// GobEncode encodes this object via gob
 func (im *IdentityManager) GobEncode() ([]byte, error) {
 	//Circumventing Gob's "gob: type sync.RWMutex has no exported fields"
 	b := bytes.NewBuffer(nil)
@@ -230,6 +242,7 @@ func (im *IdentityManager) GobEncode() ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+// Init initializes the identities and authorities if they are nil to new maps
 func (im *IdentityManager) Init() {
 	// Do nothing, it used to init the maps if they were empty, but we init the Identity control with non-empty maps
 	if im.Identities == nil {
@@ -240,6 +253,7 @@ func (im *IdentityManager) Init() {
 	}
 }
 
+// SetIdentity associates the input identity to the input chain id in the identity manager. This is a thread locked operation
 func (im *IdentityManager) SetIdentity(chainID interfaces.IHash, id *Identity) {
 	im.Init()
 	im.Mutex.Lock()
@@ -247,6 +261,7 @@ func (im *IdentityManager) SetIdentity(chainID interfaces.IHash, id *Identity) {
 	im.Identities[chainID.Fixed()] = id
 }
 
+// RemoveIdentity removes the identity associated with the input chain from the identity manager. This is a thread locked operation
 func (im *IdentityManager) RemoveIdentity(chainID interfaces.IHash) bool {
 	im.Init()
 	im.Mutex.Lock()
@@ -264,6 +279,7 @@ func (im *IdentityManager) RemoveIdentity(chainID interfaces.IHash) bool {
 	return true
 }
 
+// GetIdentity returns the idenity associated with the input chain id. This is a thread locked operation
 func (im *IdentityManager) GetIdentity(chainID interfaces.IHash) *Identity {
 	im.Init()
 	im.Mutex.RLock()
@@ -284,23 +300,28 @@ func (im *IdentityManager) GetIdentity(chainID interfaces.IHash) *Identity {
 	return nil
 }
 
+// GetSortedIdentities returns a new slice with all the sorted identities in the identity manager. This is a thread locked operation
 func (im *IdentityManager) GetSortedIdentities() []*Identity {
-	list := im.GetIdentities()
+	list := im.GetIdentities() // Thread Locked
 	sort.Sort(IdentitySort(list))
 	return list
 }
 
+// GetSortedAuthorities returns a new slice with all the sorted authorities in the identity manager. This is a thread locked operation
 func (im *IdentityManager) GetSortedAuthorities() []interfaces.IAuthority {
-	list := im.GetAuthorities()
+	list := im.GetAuthorities() // Thread Locked
 	sort.Sort(AuthoritySort(list))
 	return list
 }
 
+// GetSortedRegistrations returns a new slice with all the sorted identity registrations in the identity manager. This is a thread locked operation
 func (im *IdentityManager) GetSortedRegistrations() []*identityEntries.RegisterFactomIdentityStructure {
-	list := im.GetRegistrations()
+	list := im.GetRegistrations() // Thread Locked
 	sort.Sort(identityEntries.RegisterFactomIdentityStructureSort(list))
 	return list
 }
+
+// GetRegistrations returns a new slice with all the identity registrations in the identity manager. This is a thread locked operation
 func (im *IdentityManager) GetRegistrations() []*identityEntries.RegisterFactomIdentityStructure {
 	im.Mutex.RLock()
 	defer im.Mutex.RUnlock()
@@ -313,6 +334,7 @@ func (im *IdentityManager) GetRegistrations() []*identityEntries.RegisterFactomI
 	return rs
 }
 
+// GetIdentities returns a new slice with all the identities in this identity manager. This is a thread locked operation
 func (im *IdentityManager) GetIdentities() []*Identity {
 	im.Mutex.RLock()
 	defer im.Mutex.RUnlock()
@@ -325,6 +347,7 @@ func (im *IdentityManager) GetIdentities() []*Identity {
 	return ids
 }
 
+// SetAuthority associates the input authority with the input chain id in the identity manager. This is a thread locked operation
 func (im *IdentityManager) SetAuthority(chainID interfaces.IHash, auth *Authority) {
 	im.Init()
 	im.Mutex.Lock()
@@ -332,8 +355,11 @@ func (im *IdentityManager) SetAuthority(chainID interfaces.IHash, auth *Authorit
 	im.Authorities[chainID.Fixed()] = auth
 }
 
+// RemoveAuthority removes the authority associated with this chain id
 func (im *IdentityManager) RemoveAuthority(chainID interfaces.IHash) bool {
 	im.Init()
+	im.Mutex.Lock()
+	defer im.Mutex.Unlock()
 	_, ok := im.Authorities[chainID.Fixed()]
 	if !ok {
 		return false
@@ -343,6 +369,7 @@ func (im *IdentityManager) RemoveAuthority(chainID interfaces.IHash) bool {
 	return true
 }
 
+// GetAuthorities returns a new slice with all the authorities in this identity manager. This is a thread locked operation
 func (im *IdentityManager) GetAuthorities() []interfaces.IAuthority {
 	im.Mutex.RLock()
 	defer im.Mutex.RUnlock()
@@ -355,6 +382,7 @@ func (im *IdentityManager) GetAuthorities() []interfaces.IAuthority {
 	return auths
 }
 
+// GetAuthority returns the authority associated with the input chain id. This is a thread locked operation
 func (im *IdentityManager) GetAuthority(chainID interfaces.IHash) *Authority {
 	im.Init()
 	im.Mutex.RLock()
@@ -366,12 +394,14 @@ func (im *IdentityManager) GetAuthority(chainID interfaces.IHash) *Authority {
 	return rval
 }
 
+// OldEntry contains the serialized entry along with its block height and timestamp
 type OldEntry struct {
-	EntryBinary     []byte
-	DBlockHeight    uint32
-	DBlockTimestamp uint64
+	EntryBinary     []byte // The marshaled entry data
+	DBlockHeight    uint32 // The block height of the entry
+	DBlockTimestamp uint64 // The block timestamp
 }
 
+// PushEntryForLater appends the input entry into the identity managers OldEntries slice
 func (im *IdentityManager) PushEntryForLater(entry interfaces.IEBEntry, dBlockHeight uint32, dBlockTimestamp interfaces.Timestamp) error {
 	oe := new(OldEntry)
 	b, err := entry.MarshalBinary()
@@ -386,6 +416,8 @@ func (im *IdentityManager) PushEntryForLater(entry interfaces.IEBEntry, dBlockHe
 	return nil
 }
 
+// ProcessOldEntries loops through the list of old entries and attempts to reprocess them. If an old entry is processed, it is
+// removed from the list for the future
 func (im *IdentityManager) ProcessOldEntries() (bool, error) {
 	var change bool
 	for {
@@ -408,12 +440,13 @@ func (im *IdentityManager) ProcessOldEntries() (bool, error) {
 		}
 		//loop over and over until no entries have been removed in a whole loop
 		if allErrors == true {
-			return change, nil
+			break
 		}
 	}
 	return change, nil
 }
 
+// CheckDBSignatureEntries checks that the DBSignature entries in the admin block are properly signed by the associated authority server
 func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock, dBlock interfaces.IDirectoryBlock, prevHeader []byte) error {
 	if dBlock.GetDatabaseHeight() == 0 {
 		return nil
@@ -453,57 +486,60 @@ func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock
 	return nil
 }
 
-func (a *IdentityManager) IsSameAs(b *IdentityManager) bool {
-	if len(a.Authorities) != len(b.Authorities) {
+// IsSameAs returns true iff the input object is identical to this object
+func (im *IdentityManager) IsSameAs(b *IdentityManager) bool {
+	if len(im.Authorities) != len(b.Authorities) {
 		return false
 	}
 
-	for k := range a.Authorities {
+	for k := range im.Authorities {
 		if _, ok := b.Authorities[k]; !ok {
 			return false
 		}
-		if !a.Authorities[k].IsSameAs(b.Authorities[k]) {
+		if !im.Authorities[k].IsSameAs(b.Authorities[k]) {
 			return false
 		}
 	}
 
-	if len(a.Identities) != len(b.Identities) {
+	if len(im.Identities) != len(b.Identities) {
 		return false
 	}
 
-	for k := range a.Identities {
+	for k := range im.Identities {
 		if _, ok := b.Identities[k]; !ok {
 			return false
 		}
-		if !a.Identities[k].IsSameAs(b.Identities[k]) {
+		if !im.Identities[k].IsSameAs(b.Identities[k]) {
 			return false
 		}
 	}
 
-	if len(a.IdentityRegistrations) != len(b.IdentityRegistrations) {
+	if len(im.IdentityRegistrations) != len(b.IdentityRegistrations) {
 		return false
 	}
 
-	for k := range a.IdentityRegistrations {
+	for k := range im.IdentityRegistrations {
 		if _, ok := b.IdentityRegistrations[k]; !ok {
 			return false
 		}
-		if !a.IdentityRegistrations[k].IsSameAs(b.IdentityRegistrations[k]) {
+		if !im.IdentityRegistrations[k].IsSameAs(b.IdentityRegistrations[k]) {
 			return false
 		}
 	}
 	return true
 }
 
-func (e *IdentityManager) UnmarshalBinary(p []byte) error {
-	if e == nil {
+// UnmarshalBinary unmarshals the input data into this object
+func (im *IdentityManager) UnmarshalBinary(p []byte) error {
+	if im == nil {
 		atomic.WhereAmIMsg("no identity manager")
 	}
 
-	_, err := e.UnmarshalBinaryData(p)
+	_, err := im.UnmarshalBinaryData(p)
 	return err
 }
 
+// UnmarshalBinaryData unmarshals the input data into this object
 func (im *IdentityManager) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	if im == nil {
 		atomic.WhereAmIMsg("no identity manager")
@@ -564,6 +600,7 @@ func (im *IdentityManager) UnmarshalBinaryData(p []byte) (newData []byte, err er
 	return
 }
 
+// MarshalBinary marshals this object
 func (im *IdentityManager) MarshalBinary() ([]byte, error) {
 	if im == nil {
 		atomic.WhereAmIMsg("no identity manager")
@@ -611,7 +648,7 @@ func (im *IdentityManager) MarshalBinary() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-// Used when cloning state into sim nodes
+// Clone returns a new, identical copy of this identity manager. Used when cloning state into sim nodes
 func (im *IdentityManager) Clone() *IdentityManager {
 	if im == nil {
 		atomic.WhereAmIMsg("no identity manager")

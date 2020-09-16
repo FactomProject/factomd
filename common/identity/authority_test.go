@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+// TestAuthorityType checks that different authority types can be set and confirmed
 func TestAuthorityType(t *testing.T) {
 	auth := new(Authority)
 	if auth.Type() != -1 {
@@ -91,6 +92,7 @@ func TestAuthorityType(t *testing.T) {
 //	}
 //}
 
+// TestAuthorityMarshalUnmarshal checks that 1000 random authorities can be marshaled and unmarshaled with identical values
 func TestAuthorityMarshalUnmarshal(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		a := RandomAuthority()
@@ -110,6 +112,7 @@ func TestAuthorityMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestAuthorityClone checks that 1000 random Authorities can be cloned to produce identical Authorities
 func TestAuthorityClone(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		auth := RandomAuthority()
@@ -134,6 +137,8 @@ func TestAuthorityClone(t *testing.T) {
 	}
 }
 
+// TestVerify sets up 10 random servers: 5 federated and 5 audit servers. It then creates and signs a message which it verifies. The test checks
+// that the VerifyAuthoritySignature function returns the proper integer based on whether the server was a federated or audit server
 func TestVerify(t *testing.T) {
 	s := testHelper.CreateEmptyTestState()
 	pl := s.ProcessLists.Get(10)
@@ -190,6 +195,8 @@ func TestVerify(t *testing.T) {
 
 }
 
+// TestSameAuth checks that a new random Authority can be marshaled and unmarshaled with the same results. The test then corrupts each piece
+// of the Authority and checks that IsSameAs flags differences properly
 func TestSameAuth(t *testing.T) {
 	a := RandomAuthority()
 	d, _ := a.MarshalBinary()
@@ -244,6 +251,7 @@ func TestSameAuth(t *testing.T) {
 
 }
 
+// newAck returns a new Ack with the input id and timestamp
 func newAck(id interfaces.IHash, ts interfaces.Timestamp) *messages.Ack {
 	ack := new(messages.Ack)
 	ack.DBHeight = 0
@@ -257,6 +265,7 @@ func newAck(id interfaces.IHash, ts interfaces.Timestamp) *messages.Ack {
 	return ack
 }
 
+// TestAuthorityJsonMarshal checks that a new Authority can be marshaled to json properly
 func TestAuthorityJsonMarshal(t *testing.T) {
 	// Testing Human readable json marshal
 	a := NewAuthority()

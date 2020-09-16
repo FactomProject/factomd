@@ -15,19 +15,30 @@ import (
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
+// ExpectedRegisterFactomIdentityExternalIDLengths is a hardcoded slice containing the expected lengths of each entry in an external ID (the fields of RegisterFactomIdentityStructure)
+var ExpectedRegisterFactomIdentityExternalIDLengths = []int{1, 24, 32, 33, 64}
+
+// RegisterFactomIdentityStructureSort is a slice of RegisterFactomIdentityStructures usef for sorting them
 type RegisterFactomIdentityStructureSort []*RegisterFactomIdentityStructure
 
+// Len returns the length of the slice
 func (p RegisterFactomIdentityStructureSort) Len() int {
 	return len(p)
 }
+
+// Swap swaps the data located at the input indices 'i' and 'j'
 func (p RegisterFactomIdentityStructureSort) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
+
+// Less is a comparison function used for sorting. Checks if bytes of the identity chain id of the 'ith' index is less than
+// the 'jth' index, and returns the result.
 func (p RegisterFactomIdentityStructureSort) Less(i, j int) bool {
 	return bytes.Compare(p[i].IdentityChainID.Bytes(), p[j].IdentityChainID.Bytes()) < 0
 }
 
-//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#factom-identity-registration
+// RegisterFactomIdentityStructure holds all the information for registering a factom identity
+// https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#factom-identity-registration
 type RegisterFactomIdentityStructure struct {
 	//The registration message has 5 ExtIDs.
 	//The first ExtID is a binary string 0 signifying the version.
@@ -42,6 +53,7 @@ type RegisterFactomIdentityStructure struct {
 	Signature []byte
 }
 
+// RandomRegisterFactomIdentityStructure returns a randomly created object
 func RandomRegisterFactomIdentityStructure() *RegisterFactomIdentityStructure {
 	r := new(RegisterFactomIdentityStructure)
 	r.Version = random.RandByteSliceOfLen(1)[0]
@@ -53,36 +65,38 @@ func RandomRegisterFactomIdentityStructure() *RegisterFactomIdentityStructure {
 	return r
 }
 
-func (e *RegisterFactomIdentityStructure) UnmarshalBinary(p []byte) error {
-	_, err := e.UnmarshalBinaryData(p)
+// UnmarshalBinary unmarshals the input data into this object
+func (rfi *RegisterFactomIdentityStructure) UnmarshalBinary(p []byte) error {
+	_, err := rfi.UnmarshalBinaryData(p)
 	return err
 }
 
-func (e *RegisterFactomIdentityStructure) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+// UnmarshalBinaryData unmarshals the input data into this object
+func (rfi *RegisterFactomIdentityStructure) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	buf := primitives.NewBuffer(p)
 	newData = p
 
-	e.Version, err = buf.PopByte()
+	rfi.Version, err = buf.PopByte()
 	if err != nil {
 		return
 	}
 
-	e.FunctionName, err = buf.PopBytes()
+	rfi.FunctionName, err = buf.PopBytes()
 	if err != nil {
 		return
 	}
 
-	e.IdentityChainID, err = buf.PopIHash()
+	rfi.IdentityChainID, err = buf.PopIHash()
 	if err != nil {
 		return
 	}
 
-	e.PreimageIdentityKey, err = buf.PopBytes()
+	rfi.PreimageIdentityKey, err = buf.PopBytes()
 	if err != nil {
 		return
 	}
 
-	e.Signature, err = buf.PopBytes()
+	rfi.Signature, err = buf.PopBytes()
 	if err != nil {
 		return
 	}
@@ -91,7 +105,8 @@ func (e *RegisterFactomIdentityStructure) UnmarshalBinaryData(p []byte) (newData
 	return
 }
 
-func (r *RegisterFactomIdentityStructure) MarshalBinary() (rval []byte, err error) {
+// MarshalBinary marshals this object
+func (rfi *RegisterFactomIdentityStructure) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
 			fmt.Fprintf(os.Stderr, "RegisterFactomIdentityStructure.MarshalBinary err:%v", *pe)
@@ -99,27 +114,27 @@ func (r *RegisterFactomIdentityStructure) MarshalBinary() (rval []byte, err erro
 	}(&err)
 	buf := primitives.NewBuffer(nil)
 
-	err = buf.PushByte(r.Version)
+	err = buf.PushByte(rfi.Version)
 	if err != nil {
 		return nil, err
 	}
 
-	err = buf.PushBytes(r.FunctionName)
+	err = buf.PushBytes(rfi.FunctionName)
 	if err != nil {
 		return nil, err
 	}
 
-	err = buf.PushIHash(r.IdentityChainID)
+	err = buf.PushIHash(rfi.IdentityChainID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = buf.PushBytes(r.PreimageIdentityKey)
+	err = buf.PushBytes(rfi.PreimageIdentityKey)
 	if err != nil {
 		return nil, err
 	}
 
-	err = buf.PushBytes(r.Signature)
+	err = buf.PushBytes(rfi.Signature)
 	if err != nil {
 		return nil, err
 	}
@@ -127,8 +142,9 @@ func (r *RegisterFactomIdentityStructure) MarshalBinary() (rval []byte, err erro
 	return buf.DeepCopyBytes(), nil
 }
 
-func (a *RegisterFactomIdentityStructure) IsSameAs(b *RegisterFactomIdentityStructure) bool {
-	la := a.ToExternalIDs()
+// IsSameAs returns true iff the input object is identical to this object
+func (rfi *RegisterFactomIdentityStructure) IsSameAs(b *RegisterFactomIdentityStructure) bool {
+	la := rfi.ToExternalIDs()
 	lb := b.ToExternalIDs()
 
 	if len(la) != len(lb) {
@@ -143,6 +159,7 @@ func (a *RegisterFactomIdentityStructure) IsSameAs(b *RegisterFactomIdentityStru
 	return true
 }
 
+// DecodeRegisterFactomIdentityStructureFromExtIDs returns a new object with values from the input external ID
 func DecodeRegisterFactomIdentityStructureFromExtIDs(extIDs [][]byte) (*RegisterFactomIdentityStructure, error) {
 	rfi := new(RegisterFactomIdentityStructure)
 	err := rfi.DecodeFromExtIDs(extIDs)
@@ -152,6 +169,7 @@ func DecodeRegisterFactomIdentityStructureFromExtIDs(extIDs [][]byte) (*Register
 	return rfi, nil
 }
 
+// MarshalForSig marshals the object without its signature
 func (rfi *RegisterFactomIdentityStructure) MarshalForSig() []byte {
 	answer := []byte{}
 	answer = append(answer, rfi.Version)
@@ -160,6 +178,7 @@ func (rfi *RegisterFactomIdentityStructure) MarshalForSig() []byte {
 	return answer
 }
 
+// VerifySignature marshals the object without its signature and verifies the marshaled data with the signature, and verifies the input key
 func (rfi *RegisterFactomIdentityStructure) VerifySignature(key1 interfaces.IHash) error {
 	bin := rfi.MarshalForSig()
 	pk := new(primitives.PublicKey)
@@ -185,11 +204,12 @@ func (rfi *RegisterFactomIdentityStructure) VerifySignature(key1 interfaces.IHas
 	return nil
 }
 
+// DecodeFromExtIDs places the information from the input external IDs into this object
 func (rfi *RegisterFactomIdentityStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 5 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 5, got %v", len(extIDs))
 	}
-	if CheckExternalIDsLength(extIDs, []int{1, 24, 32, 33, 64}) == false {
+	if CheckExternalIDsLength(extIDs, ExpectedRegisterFactomIdentityExternalIDLengths) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 	rfi.Version = extIDs[0][0]
@@ -220,6 +240,7 @@ func (rfi *RegisterFactomIdentityStructure) DecodeFromExtIDs(extIDs [][]byte) er
 	return nil
 }
 
+// ToExternalIDs returns a 2d byte slice of all the data in this object
 func (rfi *RegisterFactomIdentityStructure) ToExternalIDs() [][]byte {
 	extIDs := [][]byte{}
 
@@ -232,6 +253,7 @@ func (rfi *RegisterFactomIdentityStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
+// GetChainID computes the chain ID associated with this object
 func (rfi *RegisterFactomIdentityStructure) GetChainID() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "RegisterFactomIdentityStructure.GetChainID") }()
 

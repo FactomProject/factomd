@@ -16,6 +16,7 @@ import (
 	. "github.com/FactomProject/factomd/common/identityEntries"
 )
 
+// TestRegisterFatomIdentityStructure checks a hardcoded external ID can be set into the register Factom idenity structure and obtain the correct chain ID
 func TestRegisterFactomIdentityStructure(t *testing.T) {
 	parts := []string{
 		"00",
@@ -47,6 +48,7 @@ func TestRegisterFactomIdentityStructure(t *testing.T) {
 	}
 }
 
+// TestRegisterFactomIdentityStructureMarshal checks that the register Factom identity structure can be marshaled and unmarshaled properly
 func TestRegisterFactomIdentityStructureMarshal(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		rand.Seed(time.Now().UnixNano())

@@ -5,13 +5,12 @@
 package factoid_test
 
 import (
-	"math/rand"
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+// TestUnmarshalNilRCD_2 checks that unmarshalling nil or the empty interface results in errors
 func TestUnmarshalNilRCD_2(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -31,8 +30,9 @@ func TestUnmarshalNilRCD_2(t *testing.T) {
 	}
 }
 
+// TestRCD2MarshalUnmarshal checks that marshalling and unmarshalling RCD2 preserves the data integrity
 func TestRCD2MarshalUnmarshal(t *testing.T) {
-	rcd := nextAuth2_rcd2()
+	rcd := nextAuth2()
 
 	hex, err := rcd.MarshalBinary()
 	if err != nil {
@@ -66,15 +66,16 @@ func TestRCD2MarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TestUnmarshalBadRCD2 checks that corrupted data cannot be unmarshalled without an error
 func TestUnmarshalBadRCD2(t *testing.T) {
-	rcd := nextAuth2_rcd2()
+	rcd := nextAuth2()
 
 	p, err := rcd.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 
-	// wright bad signature count to rcd2
+	// write bad signature count to rcd2
 	p[3] = 0xff
 
 	rcd2 := new(RCD_2)
@@ -86,8 +87,9 @@ func TestUnmarshalBadRCD2(t *testing.T) {
 	}
 }
 
+// TestRCD2Clone checks that the clone function produces an identical copy
 func TestRCD2Clone(t *testing.T) {
-	rcd := nextAuth2_rcd2()
+	rcd := nextAuth2()
 
 	hex, err := rcd.MarshalBinary()
 	if err != nil {
@@ -112,19 +114,4 @@ func TestRCD2Clone(t *testing.T) {
 	if rcd.IsSameAs(rcd2) == false {
 		t.Error("RCDs are not equal")
 	}
-}
-
-func nextAuth2_rcd2() *RCD_2 {
-	if r == nil {
-		r = rand.New(rand.NewSource(1))
-	}
-	n := r.Int()%4 + 1
-	m := r.Int()%4 + n
-	addresses := make([]interfaces.IAddress, m, m)
-	for j := 0; j < m; j++ {
-		addresses[j] = nextAddress()
-	}
-
-	rcd, _ := NewRCD_2(n, m, addresses)
-	return rcd.(*RCD_2)
 }

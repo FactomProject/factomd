@@ -262,7 +262,7 @@ func Sha512Half(p []byte) (h *Hash) {
 	return h
 }
 
-// String converts a hash into a hexidecimal (0-F) string
+// String converts a hash into a hexadecimal (0-F) string
 func (h *Hash) String() string {
 	if h == nil {
 		return hex.EncodeToString(nil)
@@ -276,7 +276,7 @@ func (h *Hash) ByteString() string {
 	return string(h[:])
 }
 
-// HexToHash converts the input hexidecimal (0-F) string into the internal []byte array
+// HexToHash converts the input hexadecimal (0-F) string into the internal []byte array
 func HexToHash(hexStr string) (h interfaces.IHash, err error) {
 	h = new(Hash)
 	v, err := hex.DecodeString(hexStr)

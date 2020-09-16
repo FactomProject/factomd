@@ -8,6 +8,7 @@ import (
 	"encoding"
 )
 
+// BinaryMarshallable represents an object which is binary marshallable and unmarshallable
 type BinaryMarshallable interface {
 	encoding.BinaryMarshaler
 	encoding.BinaryUnmarshaler
@@ -15,7 +16,8 @@ type BinaryMarshallable interface {
 	UnmarshalBinaryData([]byte) ([]byte, error)
 }
 
+// BinaryMarshallableAndCopyable represents an object which is binary marshallable/unmarshallable and copyable
 type BinaryMarshallableAndCopyable interface {
-	BinaryMarshallable
-	New() BinaryMarshallableAndCopyable
+	BinaryMarshallable                  // All of the above
+	New() BinaryMarshallableAndCopyable // Plus the copy piece
 }
