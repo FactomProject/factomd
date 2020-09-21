@@ -176,8 +176,8 @@ func (m *MissingData) LeaderExecute(state interfaces.IState) {
 
 func (m *MissingData) FollowerExecute(state interfaces.IState) {
 	// FIXME: fully replace missing data handling w/ Pub/Sub framework
-	//panic("deprecated") // go routine in NetworkProcessorNet now handles this
-	m.SendResponse(state)
+	panic("deprecated") // go routine in NetworkProcessorNet now handles this
+	//m.SendResponse(state)
 }
 
 func (m *MissingData) SendResponse(state interfaces.IState) {
