@@ -31,6 +31,7 @@ func NetworkProcessorNet(w *worker.Thread, fnode *fnode.FactomNode) {
 	w.Run("NetworkOutputs", func() { NetworkOutputs(fnode) })
 	w.Run("InvalidOutputs", func() { InvalidOutputs(fnode) })
 	w.Run("MissingData", func() { MissingData(fnode) })
+	w.Run("DataResponse", func() { DataResponse(fnode) })
 }
 
 // TODO: sort should not exist, we should have each module subscribing to the
@@ -323,6 +324,9 @@ func sortMsg(msg interfaces.IMsg, fnode *fnode.FactomNode, source string) {
 	case constants.MISSING_DATA:
 		DataQ(fnode, source, msg) // separated missing data queue
 
+	case constants.DATA_RESPONSE:
+		DataResponseQ(fnode, source, msg) // separated missing data queue
+
 	default:
 		//todo: Probably should send EOM/DBSig and their ACKs on a faster yet track
 		// in general this makes ACKs more likely to arrive first.
@@ -350,6 +354,12 @@ func Q2(fnode *fnode.FactomNode, source string, msg interfaces.IMsg) {
 func DataQ(fnode *fnode.FactomNode, source string, msg interfaces.IMsg) {
 	q := fnode.State.DataMsgQueue()
 	fnode.State.LogMessage("DataQueue", fmt.Sprintf(source+", enqueue %v", q.Length()), msg)
+	q.Enqueue(msg)
+}
+
+func DataResponseQ(fnode *fnode.FactomNode, source string, msg interfaces.IMsg) {
+	q := fnode.State.DataResponseQueue()
+	fnode.State.LogMessage("DataResponse", fmt.Sprintf(source+", enqueue %v", q.Length()), msg)
 	q.Enqueue(msg)
 }
 
@@ -506,5 +516,14 @@ func MissingData(fnode *fnode.FactomNode) {
 		msg := q.Dequeue()
 		fnode.State.LogMessage("DataQueue", fmt.Sprintf("dequeue %v", q.Length()), msg)
 		msg.(*messages.MissingData).SendResponse(fnode.State)
+	}
+}
+
+func DataResponse(fnode *fnode.FactomNode) {
+	q := fnode.State.DataResponseQueue()
+	for {
+		msg := q.Dequeue()
+		fnode.State.LogMessage("DataResponse", fmt.Sprintf("dequeue %v", q.Length()), msg)
+		fnode.State.FollowerExecuteDataResponse(msg)
 	}
 }
