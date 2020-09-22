@@ -10,7 +10,6 @@ import (
 
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/testHelper/simulation"
 )
 
@@ -35,13 +34,13 @@ Exclusive                             =  true
 
 func SetupNode(seedNode string, minPeers int, t *testing.T) *testNode {
 
-	homeDir := testHelper.ResetSimHome(t)
+	homeDir := simulation.ResetSimHome(t)
 
 	var CmdLineOptions map[string]string
 
 	// Use identity 9 to run a follower
 	if seedNode == DOCKER_NETWORK {
-		testHelper.WriteConfigFile(9, 0, "", t)
+		simulation.WriteConfigFile(9, 0, "", t)
 
 		// use config that mirrors docker-compose from ./support/dev/docker-compose
 		CmdLineOptions = map[string]string{
@@ -68,7 +67,7 @@ func SetupNode(seedNode string, minPeers int, t *testing.T) *testNode {
 
 	// when interfacing w/ devnet don't talk to other peers
 	if seedNode == DEV_NET {
-		testHelper.WriteConfigFile(9, 0, DEV_NET_CONFIG, t)
+		simulation.WriteConfigFile(9, 0, DEV_NET_CONFIG, t)
 
 		CmdLineOptions = map[string]string{
 			"--db":               "Map",
@@ -84,10 +83,10 @@ func SetupNode(seedNode string, minPeers int, t *testing.T) *testNode {
 		}
 	}
 
-	n := &testNode{state: testHelper.StartPeer(CmdLineOptions)}
+	n := &testNode{state: simulation.StartSim(1, CmdLineOptions)}
 
 	t.Log("Waiting for first block")
-	testHelper.WaitForBlock(n.state, 1)
+	simulation.WaitForBlock(n.state, 1)
 	n.seedAddress = seedNode
 	t.Log("Discovering Peers")
 	n.DiscoverPeers(minPeers)
@@ -98,22 +97,22 @@ func SetupNode(seedNode string, minPeers int, t *testing.T) *testNode {
 func (n *testNode) StatusEveryMinute() {
 	// REVIEW: this could hit the RPC port to pull summary from remote nodes
 	// instead of simply reporting on local fnode
-	testHelper.StatusEveryMinute(n.state)
+	simulation.StatusEveryMinute(n.state)
 }
 
 // wait minutes on this local node
 func (n *testNode) WaitMinutes(minutes int) {
-	testHelper.WaitMinutes(n.state, minutes)
+	simulation.WaitMinutes(n.state, minutes)
 }
 
 // wait blocks on this local node
 func (n *testNode) WaitBlocks(blocks int) {
-	testHelper.WaitBlocks(n.state, blocks)
+	simulation.WaitBlocks(n.state, blocks)
 }
 
 // wait for block on this local node
 func (n *testNode) WaitForBlock(block int) {
-	testHelper.WaitForBlock(n.state, block)
+	simulation.WaitForBlock(n.state, block)
 }
 
 func (n *testNode) DiscoverPeers(minPeers int) {
@@ -121,7 +120,7 @@ func (n *testNode) DiscoverPeers(minPeers int) {
 
 	for len(peers) < minPeers {
 		peers = n.GetPeers()
-		testHelper.WaitBlocks(n.state, 1) // let more time pass to discover peers
+		simulation.WaitBlocks(n.state, 1) // let more time pass to discover peers
 	}
 
 	switch n.seedAddress {
@@ -160,8 +159,8 @@ func (n *testNode) DiscoverPeers(minPeers int) {
 }
 
 // get list of peers from our local node
-func (n *testNode) GetPeers() map[string]p2p.Peer {
-	return n.state.NetworkController.GetKnownPeers()
+func (n *testNode) GetPeers() map[string]p2p.PeerMetrics {
+	return n.state.NetworkController.GetPeerMetrics()
 }
 
 // build url for debug API
