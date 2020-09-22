@@ -53,13 +53,13 @@ func NewBasicMessageValidator(nodeName string, replay *MsgReplay) *BasicMessageV
 	b.NodeName = nodeName
 
 	// subscribed in b.Subscribe()
-	b.input = pubsub.SubFactory.Channel(100)
+	b.input = pubsub.SubFactory.Channel(1000)
 	b.times = pubsub.SubFactory.Channel(100)
 	b.bootTime = time.Now()
 	// 20min grace period
 	b.preBootFilter = b.bootTime.Add(-20 * time.Minute)
 
-	b.output = pubsub.PubFactory.Threaded(100).Publish(pubsub.GetPath(b.NodeName, "bmv", "output"), pubsub.PubMultiWrap())
+	b.output = pubsub.PubFactory.Threaded(1000).Publish(pubsub.GetPath(b.NodeName, "bmv", "output"), pubsub.PubMultiWrap())
 
 	b.replay = replay
 	return b

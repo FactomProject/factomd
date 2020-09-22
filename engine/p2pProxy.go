@@ -14,7 +14,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/fnode"
 	"github.com/FactomProject/factomd/modules/worker"
 	"github.com/FactomProject/factomd/p2p"
 
@@ -211,11 +210,6 @@ func (p *P2PProxy) networkHousekeeping(w *worker.Thread) {
 }
 
 func (p *P2PProxy) StartProxy(w *worker.Thread) {
-	{ // FIXME refactor - REVIEW: is this still necessary?
-		node0 := fnode.Get(0)
-		node0.Peers = append(node0.Peers, p2pProxy)
-	}
-
 	p.logger.Info("Starting P2PProxy")
 	w.Spawn("ManageOut", p.ManageOutChannel) // Bridges between network format Parcels and factomd messages (incl. addressing to peers)
 	w.Spawn("ManageIn", p.ManageInChannel)

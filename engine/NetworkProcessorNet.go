@@ -30,6 +30,8 @@ func NetworkProcessorNet(w *worker.Thread, fnode *fnode.FactomNode) {
 	sort(w, fnode)                      // TODO: Replace this service entirely
 	w.Run("NetworkOutputs", func() { NetworkOutputs(fnode) })
 	w.Run("InvalidOutputs", func() { InvalidOutputs(fnode) })
+	w.Run("MissingData", func() { MissingData(fnode) })
+	w.Run("DataResponse", func() { DataResponse(fnode) })
 }
 
 // TODO: sort should not exist, we should have each module subscribing to the
@@ -89,7 +91,7 @@ func FromPeerToPeer(parent *worker.Thread, fnode *fnode.FactomNode) {
 	// TODO: Construct the proper setup and teardown of this publisher.
 	s := fnode.State
 
-	msgPub := pubsub.PubFactory.MsgSplit(100).Publish(pubsub.GetPath(s.GetFactomNodeName(), "bmv", "input"))
+	msgPub := pubsub.PubFactory.MsgSplit(1000).Publish(pubsub.GetPath(s.GetFactomNodeName(), "bmv", "input"))
 	go msgPub.Start()
 
 	// ackHeight is used in ignoreMsg to determine if we should ignore an acknowledgment
@@ -319,6 +321,12 @@ func sortMsg(msg interfaces.IMsg, fnode *fnode.FactomNode, source string) {
 	case constants.COMMIT_ENTRY_MSG:
 		Q2(fnode, source, msg) // slow track
 
+	case constants.MISSING_DATA:
+		DataQ(fnode, source, msg) // separated missing data queue
+
+	case constants.DATA_RESPONSE:
+		DataResponseQ(fnode, source, msg) // separated missing data queue
+
 	default:
 		//todo: Probably should send EOM/DBSig and their ACKs on a faster yet track
 		// in general this makes ACKs more likely to arrive first.
@@ -341,6 +349,18 @@ func Q2(fnode *fnode.FactomNode, source string, msg interfaces.IMsg) {
 	fnode.State.LogMessage("NetworkInputs", source+", enqueue2", msg)
 	fnode.State.LogMessage("InMsgQueue2", source+", enqueue2", msg)
 	fnode.State.InMsgQueue2().Enqueue(msg)
+}
+
+func DataQ(fnode *fnode.FactomNode, source string, msg interfaces.IMsg) {
+	q := fnode.State.DataMsgQueue()
+	fnode.State.LogMessage("DataQueue", fmt.Sprintf(source+", enqueue %v", q.Length()), msg)
+	q.Enqueue(msg)
+}
+
+func DataResponseQ(fnode *fnode.FactomNode, source string, msg interfaces.IMsg) {
+	q := fnode.State.DataResponseQueue()
+	fnode.State.LogMessage("DataResponse", fmt.Sprintf(source+", enqueue %v", q.Length()), msg)
+	q.Enqueue(msg)
 }
 
 func NetworkOutputs(fnode *fnode.FactomNode) {
@@ -486,5 +506,24 @@ func InvalidOutputs(fnode *fnode.FactomNode) {
 		// if len(invalidMsg.GetNetworkOrigin()) > 0 {
 		// 	p2pNetwork.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2)
 		// }
+	}
+}
+
+// Handle requests for missing data
+func MissingData(fnode *fnode.FactomNode) {
+	q := fnode.State.DataMsgQueue()
+	for {
+		msg := q.Dequeue()
+		fnode.State.LogMessage("DataQueue", fmt.Sprintf("dequeue %v", q.Length()), msg)
+		msg.(*messages.MissingData).SendResponse(fnode.State)
+	}
+}
+
+func DataResponse(fnode *fnode.FactomNode) {
+	q := fnode.State.DataResponseQueue()
+	for {
+		msg := q.Dequeue()
+		fnode.State.LogMessage("DataResponse", fmt.Sprintf("dequeue %v", q.Length()), msg)
+		fnode.State.FollowerExecuteDataResponse(msg)
 	}
 }

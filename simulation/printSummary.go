@@ -220,6 +220,18 @@ func GetSystemStatus(listenTo int, wsapiNode int) string {
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "AckQueue", list)
 
+	list = ""
+	for _, f := range pnodes {
+		list = list + fmt.Sprintf(" %3d", f.State.DataMsgQueue().Length())
+	}
+	prt = prt + fmt.Sprintf(fmtstr, "DataMsgQueue", list)
+
+	list = ""
+	for _, f := range pnodes {
+		list = list + fmt.Sprintf(" %3d", f.State.DataResponseQueue().Length())
+	}
+	prt = prt + fmt.Sprintf(fmtstr, "DataResponseQueue", list)
+
 	prt = prt + "\n"
 
 	list = ""

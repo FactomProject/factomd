@@ -391,6 +391,18 @@ func messageLists(fnodes []*State) string {
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "AckQueue", list)
 
+	list = ""
+	for _, f := range fnodes {
+		list = list + fmt.Sprintf(" %3d", f.DataMsgQueue().Length())
+	}
+	prt = prt + fmt.Sprintf(fmtstr, "DataMsgQueue", list)
+
+	list = ""
+	for _, f := range fnodes {
+		list = list + fmt.Sprintf(" %3d", f.DataResponseQueue().Length())
+	}
+	prt = prt + fmt.Sprintf(fmtstr, "DataResponseQueue", list)
+
 	prt = prt + "\n"
 
 	list = ""
