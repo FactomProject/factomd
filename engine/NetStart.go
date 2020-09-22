@@ -215,7 +215,7 @@ func startLiveFeed(w *worker.Thread, p *globals.FactomParams) {
 func startWebserver(w *worker.Thread) {
 	state0 := fnode.Get(0).State
 	wsapi.Start(w, state0)
-	if state0.DebugExec() && llog.CheckFileName("graphData.txt") {
+	if state0.DebugExec() && state0.CheckFileName("graphData.txt") {
 		go printGraphData("graphData.txt", 30)
 	}
 
