@@ -12,7 +12,7 @@ import (
 
 var (
 	// EntrySyncMax is the maximum amount of entries to request concurrently
-	EntrySyncMax = 750 // good-ish value
+	EntrySyncMax = 150 // good-ish value
 	// EntrySyncMaxEBlocks is the maximum amount of eblocks to process concurrently.
 	// The value only applies if that range of eblocks has fewer than EntrySyncMax entries.
 	EntrySyncMaxEBlocks = 200
