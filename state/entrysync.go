@@ -12,12 +12,12 @@ import (
 
 var (
 	// EntrySyncMax is the maximum amount of entries to request concurrently
-	EntrySyncMax = 150 // good-ish value
+	EntrySyncMax = 250 // good-ish value
 	// EntrySyncMaxEBlocks is the maximum amount of eblocks to process concurrently.
 	// The value only applies if that range of eblocks has fewer than EntrySyncMax entries.
 	EntrySyncMaxEBlocks = 200
 	// EntrySyncRetry dictates after what period to retry an unanswered request
-	EntrySyncRetry = time.Second * 10
+	EntrySyncRetry = time.Second * 20
 	// EntrySyncWarning is the number of failed requests before warning in the console.
 	EntrySyncWarning = 16
 )
