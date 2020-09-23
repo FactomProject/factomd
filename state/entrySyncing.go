@@ -120,7 +120,8 @@ func (s *State) SendManager() {
 			}
 		}
 		if time.Since(rates) > time.Second {
-			fmt.Println("rate:", rate, "mps")
+			fmt.Println("rate:", rate, "messages over", time.Since(rates), "=", float64(rate)/time.Since(rates).Seconds())
+			rate = 0
 			rates = time.Now()
 		}
 	} // forever ...
