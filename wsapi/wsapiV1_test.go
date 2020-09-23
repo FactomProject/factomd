@@ -347,7 +347,7 @@ func TestHandleHeights(t *testing.T) {
 	assert.Equal(t, int64(state.GetTrueLeaderHeight()), heightsResponse.LeaderHeight)
 	assert.Equal(t, int64(state.GetHighestSavedBlk()), heightsResponse.DirectoryBlockHeight)
 	assert.Equal(t, int64(state.GetHighestSavedBlk()), heightsResponse.EntryBlockHeight)
-	assert.Equal(t, int64(state.GetEntryDBHeightComplete()), heightsResponse.EntryHeight)
+	assert.Equal(t, int64(state.GetEntryBlockDBHeightComplete()), heightsResponse.EntryHeight)
 	assert.Equal(t, int64(state.GetMissingEntryCount()), heightsResponse.MissingEntryCount)
 	assert.Equal(t, int64(state.GetEntryBlockDBHeightProcessing()), heightsResponse.EntryBlockDBHeightProcessing)
 	assert.Equal(t, int64(state.GetEntryBlockDBHeightComplete()), heightsResponse.EntryBlockDBHeightComplete)
