@@ -1,9 +1,10 @@
-package events
+package internalevents
 
 import (
+	"path"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"path"
 )
 
 type pubSubPaths struct {

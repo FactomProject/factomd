@@ -1,7 +1,8 @@
-package events
+package internalevents
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/modules/pubsub"

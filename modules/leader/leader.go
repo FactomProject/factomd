@@ -2,13 +2,14 @@ package leader
 
 import (
 	"encoding/binary"
+	"strings"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/modules/events"
+	"github.com/FactomProject/factomd/modules/internalevents"
 	"github.com/FactomProject/factomd/state"
-	"strings"
 )
 
 type Leader struct {
@@ -30,21 +31,21 @@ func New(s *state.State) *Leader {
 	l.exit = make(chan interface{})
 
 	l.Events = &Events{
-		Config: &events.LeaderConfig{
+		Config: &internalevents.LeaderConfig{
 			NodeName:           s.GetFactomNodeName(),
 			Salt:               s.Salt,
 			IdentityChainID:    s.IdentityChainID,
 			ServerPrivKey:      s.ServerPrivKey,
 			BlocktimeInSeconds: s.DirectoryBlockInSeconds,
 		},
-		DBHT: &events.DBHT{ // moved to new height/min
+		DBHT: &internalevents.DBHT{ // moved to new height/min
 			DBHeight: s.DBHeightAtBoot,
 			Minute:   0,
 		},
 		Balance:   nil, // last perm balance computed
 		Directory: nil, // last dblock created
 		Ack:       nil, // last ack
-		AuthoritySet: &events.AuthoritySet{
+		AuthoritySet: &internalevents.AuthoritySet{
 			LeaderHeight: s.LLeaderHeight,
 			FedServers:   make([]interfaces.IServer, 0),
 			AuditServers: make([]interfaces.IServer, 0),

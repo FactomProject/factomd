@@ -3,10 +3,9 @@ package databaseOverlay
 import (
 	"sort"
 
-	"github.com/FactomProject/factomd/modules/events"
-
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/modules/internalevents"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -23,7 +22,7 @@ func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) (err
 	}
 
 	if err == nil && db.pubState != nil {
-		dbAnchoredEvent := &events.DBAnchored{
+		dbAnchoredEvent := &internalevents.DBAnchored{
 			DBHeight:     block.GetDatabaseHeight(),
 			DirBlockInfo: block,
 		}
@@ -44,7 +43,7 @@ func (db *Overlay) ProcessDirBlockInfoMultiBatch(block interfaces.IDirBlockInfo)
 	}
 
 	if err == nil && db.pubState != nil {
-		dbAnchoredEvent := &events.DBAnchored{
+		dbAnchoredEvent := &internalevents.DBAnchored{
 			DBHeight:     block.GetDBHeight(),
 			DirBlockInfo: block,
 		}

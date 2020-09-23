@@ -2,15 +2,16 @@ package state
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/modules/events"
-	"strings"
+	"github.com/FactomProject/factomd/modules/internalevents"
 )
 
-func (s *State) stateUpdate() *events.StateUpdate {
+func (s *State) stateUpdate() *internalevents.StateUpdate {
 	fnodes := []*State{s}
 	nodesSummary := nodesSummary(fnodes)
 	summary := fmt.Sprintf("===SummaryStart===%s \n%s===SummaryEnd===\n", s.ShortString(), nodesSummary)
@@ -18,7 +19,7 @@ func (s *State) stateUpdate() *events.StateUpdate {
 	identitiesDetails := identitiesDetails(s.IdentityControl.GetSortedIdentities())
 	authoritiesDetails := authoritiesDetails(s.IdentityControl.GetSortedAuthorities())
 
-	return &events.StateUpdate{
+	return &internalevents.StateUpdate{
 		NodeTime:           s.ProcessTime,
 		LeaderHeight:       s.LLeaderHeight,
 		Summary:            summary,

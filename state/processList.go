@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/modules/events"
-
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -21,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/modules/internalevents"
 	"github.com/FactomProject/factomd/util/atomic"
 
 	log "github.com/sirupsen/logrus"
@@ -990,7 +989,7 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 	}
 
 	// publish process list
-	info := &events.ProcessListInfo{ProcessTime: p.State.ProcessTime, Dump: p.String(), PrintMap: p.PrintMap()}
+	info := &internalevents.ProcessListInfo{ProcessTime: p.State.ProcessTime, Dump: p.String(), PrintMap: p.PrintMap()}
 	p.State.Pub.ProcessListInfo.Write(info)
 	return progress
 }
@@ -1170,7 +1169,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	// also add the msg and ack to our missing msg request handler
 	s.MissingMessageResponseHandler.NotifyNewMsgPair(ack, m)
 
-	events.EmitEventFromMessage(s, m, events.RequestState_ACCEPTED)
+	internalevents.EmitEventFromMessage(s, m, internalevents.RequestState_ACCEPTED)
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {

@@ -1,4 +1,4 @@
-package events
+package internalevents
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
