@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/modules/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/modules/internalevents"
 	"github.com/FactomProject/factomd/util/atomic"
 
@@ -1170,6 +1171,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	s.MissingMessageResponseHandler.NotifyNewMsgPair(ack, m)
 
 	internalevents.EmitEventFromMessage(s, m, internalevents.RequestState_ACCEPTED)
+	s.EventService.EmitStateChangeEvent(m, eventmessages.EntityState_ACCEPTED)
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {

@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	llog "github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/modules/internalevents"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -24,6 +25,7 @@ var ValidationDebug bool = false
 func (s *State) MsgExecute() {
 	s.validatorLoopThreadID = atomic.Goid()
 	internalevents.EmitNodeMessageF(s, internalevents.NodeMessageCode_STARTED, internalevents.Level_INFO, "Node %s startup complete", s.GetFactomNodeName())
+	s.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_STARTED, "Node %s startup complete", s.GetFactomNodeName())
 	s.RunState = runstate.Running
 
 	slp := false
@@ -101,6 +103,8 @@ func (s *State) MsgSort() {
 				MessageText: fmt.Sprintf("A panic state occurred in ValidatorLoop. %v", r),
 			}
 			s.Pub.GetNodeMessage().Write(nodeMessageEvent)
+			s.EventService.EmitNodeErrorMessage(eventmessages.NodeMessageCode_GENERAL,
+				"A panic state occurred in ValidatorLoop.", r)
 			shutdown(s)
 		}
 	}()
@@ -198,6 +202,8 @@ func shouldShutdown(state *State) bool {
 
 func shutdown(state *State) {
 	internalevents.EmitNodeMessageF(state, internalevents.NodeMessageCode_SHUTDOWN, internalevents.Level_INFO,
+		"Node %s is shutting down", state.GetFactomNodeName())
+	state.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SHUTDOWN,
 		"Node %s is shutting down", state.GetFactomNodeName())
 
 	state.RunState = runstate.Stopping

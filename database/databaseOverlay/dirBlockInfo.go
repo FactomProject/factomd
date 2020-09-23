@@ -28,6 +28,9 @@ func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) (err
 		}
 		db.pubState.GetPubRegistry().GetDBAnchored().Write(dbAnchoredEvent)
 	}
+	if err == nil && db.parentState != nil {
+		db.parentState.GetEventService().EmitDirectoryBlockAnchorEvent(block)
+	}
 	return err
 }
 
@@ -48,6 +51,9 @@ func (db *Overlay) ProcessDirBlockInfoMultiBatch(block interfaces.IDirBlockInfo)
 			DirBlockInfo: block,
 		}
 		db.pubState.GetPubRegistry().GetDBAnchored().Write(dbAnchoredEvent)
+	}
+	if err == nil && db.parentState != nil {
+		db.parentState.GetEventService().EmitDirectoryBlockAnchorEvent(block)
 	}
 	return err
 }

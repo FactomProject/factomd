@@ -18,6 +18,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/blockExtractor"
+	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/modules/pubsub"
 )
 
@@ -125,7 +126,8 @@ type Overlay struct {
 	EthereumAnchorRecordPublicKeys []interfaces.Verifier
 
 	// We need access to the state to be able publish anchor events
-	pubState pubsub.IPubState
+	pubState    pubsub.IPubState
+	parentState events.StateEventServices
 }
 
 var _ interfaces.IDatabase = (*Overlay)(nil)
@@ -204,9 +206,10 @@ func NewOverlay(db interfaces.IDatabase) *Overlay {
 	return answer
 }
 
-func NewOverlayWithState(db interfaces.IDatabase, parentState pubsub.IPubState) *Overlay {
+func NewOverlayWithState(db interfaces.IDatabase, pubState pubsub.IPubState, parentState events.StateEventServices) *Overlay {
 	answer := NewOverlay(db)
-	answer.pubState = parentState
+	answer.pubState = pubState
+	answer.parentState = parentState
 	return answer
 }
 
