@@ -2,7 +2,7 @@ package eventservices
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/modules/events/eventmessages/generated/eventmessages"
 )
 
 func mapFactoidBlock(block interfaces.IFBlock) *eventmessages.FactoidBlock {

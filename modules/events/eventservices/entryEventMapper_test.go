@@ -8,7 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/modules/events/eventmessages/generated/eventmessages"
 	"github.com/stretchr/testify/assert"
 )
 

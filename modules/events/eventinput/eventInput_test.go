@@ -10,8 +10,8 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/events/eventinput"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/modules/events/eventinput"
+	"github.com/FactomProject/factomd/modules/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
 )

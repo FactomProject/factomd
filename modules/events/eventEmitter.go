@@ -7,9 +7,9 @@ import (
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/events/eventinput"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/events/eventservices"
+	"github.com/FactomProject/factomd/modules/events/eventinput"
+	"github.com/FactomProject/factomd/modules/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/modules/events/eventservices"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -53,7 +53,7 @@ func (eventEmitter *eventEmitter) Send(event eventinput.EventInput) error {
 	}
 
 	// Only send info messages when EventReplayDuringStartup is disabled
-	if !eventEmitter.eventSender.ReplayDuringStartup() && !eventEmitter.parentState.IsRunLeader() {
+	if !eventEmitter.eventSender.ReplayDuringStartup() && !eventEmitter.parentState.GetRunLeader() {
 		switch event.(type) {
 		case *eventinput.ProcessListEvent:
 		case *eventinput.NodeMessageEvent:
@@ -162,7 +162,7 @@ func (eventEmitter *eventEmitter) GetStreamSource() eventmessages.EventSource {
 		return -1
 	}
 
-	if eventEmitter.parentState.IsRunLeader() {
+	if eventEmitter.parentState.GetRunLeader() {
 		return eventmessages.EventSource_LIVE
 	} else {
 		return eventmessages.EventSource_REPLAY_BOOT

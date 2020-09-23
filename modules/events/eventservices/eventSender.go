@@ -11,9 +11,8 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/events/eventconfig"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/modules/events/eventconfig"
+	"github.com/FactomProject/factomd/modules/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/util"
 	"github.com/gogo/protobuf/proto"
 	"github.com/prometheus/client_golang/prometheus"
@@ -62,7 +61,7 @@ func NewEventSender(config *util.FactomdConfig, factomParams *globals.FactomPara
 func NewEventSenderTo(params *EventServiceParams) EventSender {
 	if eventSenderInstance == nil {
 		eventSenderInstance = &eventSender{
-			eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
+			eventsOutQueue: make(chan *eventmessages.FactomEvent, 5000),
 			params:         params,
 		}
 

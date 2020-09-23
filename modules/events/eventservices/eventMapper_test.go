@@ -10,11 +10,11 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/engine"
-	"github.com/FactomProject/factomd/events/eventconfig"
-	"github.com/FactomProject/factomd/events/eventinput"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/events/eventservices"
+	"github.com/FactomProject/factomd/modules/events/eventconfig"
+	"github.com/FactomProject/factomd/modules/events/eventinput"
+	"github.com/FactomProject/factomd/modules/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/modules/events/eventservices"
+	"github.com/FactomProject/factomd/simulation"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/stretchr/testify/assert"
@@ -520,7 +520,7 @@ func newTestCommitEntry() interfaces.IMsg {
 
 func newTestEntryReveal() interfaces.IMsg {
 	msg := messages.NewRevealEntryMsg()
-	msg.Entry = engine.RandomEntry()
+	msg.Entry = simulation.RandomEntry()
 	msg.Timestamp = primitives.NewTimestampNow()
 	return msg
 }

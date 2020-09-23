@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/events/eventconfig"
 	"github.com/FactomProject/factomd/util"
 )
 

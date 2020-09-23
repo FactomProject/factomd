@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/globals"
-	"github.com/FactomProject/factomd/events/eventconfig"
+	"github.com/FactomProject/factomd/modules/events/eventconfig"
 	"github.com/FactomProject/factomd/util"
 	"github.com/stretchr/testify/assert"
 )

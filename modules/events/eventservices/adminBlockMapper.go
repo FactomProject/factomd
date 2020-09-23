@@ -3,8 +3,8 @@ package eventservices
 import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/modules/events/eventmessages/generated/eventmessages"
 )
-import "github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 
 func MapAdminBlock(block interfaces.IAdminBlock) *eventmessages.AdminBlock {
 	var keyMRBytes []byte = nil
