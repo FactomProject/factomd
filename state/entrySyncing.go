@@ -89,6 +89,9 @@ func (s *State) SendManager() {
 
 	purge := purgeEveryXEntries
 
+	rate := 0
+	rates := time.Now()
+
 	for {
 		missingData := <-es.SendRequest
 		now := time.Now()
@@ -111,9 +114,14 @@ func (s *State) SendManager() {
 			if !has(s, missingData.RequestHash) {
 				EntriesRequested[missingData.RequestHash.Fixed()] = now
 				missingData.SendOut(s, missingData)
+				rate++
 				s.EntrySyncState.EntryRequests++
 				continue
 			}
+		}
+		if time.Since(rates) > time.Second {
+			fmt.Println("rate:", rate, "mps")
+			rates = time.Now()
 		}
 	} // forever ...
 }
