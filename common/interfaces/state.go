@@ -353,4 +353,5 @@ type IState interface {
 	GotHeartbeat(heartbeatTS Timestamp, dbheight uint32)
 	GetDBFinished() bool
 	FactomSecond() time.Duration
+	EmitDirectoryBlockEventsFromHeight(uint32, uint32)
 }

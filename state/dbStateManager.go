@@ -12,8 +12,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/FactomProject/factomd/modules/events"
-
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -25,6 +23,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/modules/internalevents"
 	"github.com/FactomProject/factomd/util/atomic"
 
 	llog "github.com/FactomProject/factomd/log"
@@ -1121,7 +1120,7 @@ func (list *DBStateList) ProcessBlock(d *DBState) (progress bool) {
 	if list.State.DBFinished {
 		fs.(*FactoidState).DBHeight = dbht
 		list.State.Balancehash = fs.GetBalanceHash(false)
-		list.State.Pub.Bank.Write(&events.Balance{DBHeight: dbht, BalanceHash: list.State.Balancehash})
+		list.State.Pub.Bank.Write(&internalevents.Balance{DBHeight: dbht, BalanceHash: list.State.Balancehash})
 	}
 
 	// Make the current exchange rate whatever we had in the previous block.
@@ -1687,11 +1686,12 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		}
 
 		if progress && d.Saved && d.Signed && !wasSavedBefore {
-			dbStateCommitEvent := &events.DBStateCommit{
+			dbStateCommitEvent := &internalevents.DBStateCommit{
 				DBHeight: d.DirectoryBlock.GetDatabaseHeight(),
 				DBState:  d,
 			}
 			s.Pub.CommitDBState.Write(dbStateCommitEvent)
+			s.EventService.EmitDirectoryBlockCommitEvent(d)
 		}
 
 		// only process one block past the last saved block

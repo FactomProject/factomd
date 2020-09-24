@@ -13,7 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	llog "github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/modules/events"
+	"github.com/FactomProject/factomd/modules/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/modules/internalevents"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/util/atomic"
 )
@@ -23,7 +24,8 @@ var ValidationDebug bool = false
 // This is the tread with access to state. It does process and update state
 func (s *State) MsgExecute() {
 	s.validatorLoopThreadID = atomic.Goid()
-	events.EmitNodeMessageF(s, events.NodeMessageCode_STARTED, events.Level_INFO, "Node %s startup complete", s.GetFactomNodeName())
+	internalevents.EmitNodeMessageF(s, internalevents.NodeMessageCode_STARTED, internalevents.Level_INFO, "Node %s startup complete", s.GetFactomNodeName())
+	s.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_STARTED, "Node %s startup complete", s.GetFactomNodeName())
 	s.RunState = runstate.Running
 
 	slp := false
@@ -95,12 +97,14 @@ func (s *State) MsgSort() {
 		if r := recover(); r != nil {
 			fmt.Println("A panic state occurred in MsgSort.", r)
 			llog.LogPrintf("recovery", "A panic state occurred in ValidatorLoop. %v", r)
-			nodeMessageEvent := &events.NodeMessage{
-				MessageCode: events.NodeMessageCode_GENERAL,
-				Level:       events.Level_ERROR,
+			nodeMessageEvent := &internalevents.NodeMessage{
+				MessageCode: internalevents.NodeMessageCode_GENERAL,
+				Level:       internalevents.Level_ERROR,
 				MessageText: fmt.Sprintf("A panic state occurred in ValidatorLoop. %v", r),
 			}
 			s.Pub.GetNodeMessage().Write(nodeMessageEvent)
+			s.EventService.EmitNodeErrorMessage(eventmessages.NodeMessageCode_GENERAL,
+				"A panic state occurred in ValidatorLoop.", r)
 			shutdown(s)
 		}
 	}()
@@ -108,7 +112,7 @@ func (s *State) MsgSort() {
 	leaderOut := pubsub.SubFactory.Channel(50)
 
 	if EnableLeaderThread {
-		leaderOut.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), events.Path.LeaderMsgOut))
+		leaderOut.Subscribe(pubsub.GetPath(s.GetFactomNodeName(), internalevents.Path.LeaderMsgOut))
 	}
 
 	// Look for pending inMessages, and get one if there is one.
@@ -197,7 +201,9 @@ func shouldShutdown(state *State) bool {
 }
 
 func shutdown(state *State) {
-	events.EmitNodeMessageF(state, events.NodeMessageCode_SHUTDOWN, events.Level_INFO,
+	internalevents.EmitNodeMessageF(state, internalevents.NodeMessageCode_SHUTDOWN, internalevents.Level_INFO,
+		"Node %s is shutting down", state.GetFactomNodeName())
+	state.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SHUTDOWN,
 		"Node %s is shutting down", state.GetFactomNodeName())
 
 	state.RunState = runstate.Stopping

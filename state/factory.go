@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/modules/chainheadfix"
-	"github.com/FactomProject/factomd/modules/livefeed"
+	"github.com/FactomProject/factomd/modules/events"
 
 	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/constants"
@@ -345,7 +345,7 @@ func NewState(p *globals.FactomParams, FactomdVersion string) *State {
 		s.CloneDBType = p.Db
 	}
 
-	s.LiveFeedService = livefeed.NewLiveFeedService()
+	s.EventService = events.NewEventService()
 
 	s.AddPrefix(p.Prefix)
 	s.SetOut(false)

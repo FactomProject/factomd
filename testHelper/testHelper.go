@@ -12,7 +12,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/modules/livefeed"
+	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/simulation"
 
@@ -93,7 +93,7 @@ func CreateAndPopulateTestState() *state.State {
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
 	s.LoadConfig("", "")
-	s.LiveFeedService = livefeed.NewLiveFeedService()
+	s.EventService = events.NewEventService()
 
 	s.DirectoryBlockInSeconds = 20
 

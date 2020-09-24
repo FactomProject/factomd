@@ -217,8 +217,7 @@ func HandleV2ReplayDBFromHeight(state interfaces.IState, params interface{}) (in
 		end = beginning + 1000
 	}
 
-	// WAX MERGE this function is gone in wax, emit it using the new events module
-	//state.EmitDirectoryBlockEventsFromHeight(beginning, end)
+	state.EmitDirectoryBlockEventsFromHeight(beginning, end)
 
 	resp := new(SendReplayMessageResponse)
 	resp.Message = "Successfully initiated replay of blocks " + fmt.Sprint(beginning) + " through " + fmt.Sprint(end)

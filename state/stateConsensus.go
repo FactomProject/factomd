@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
-	"github.com/FactomProject/factomd/modules/events"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -25,6 +24,8 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/modules/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/modules/internalevents"
 	. "github.com/FactomProject/factomd/modules/logging"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -83,7 +84,8 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.Holding[hash] = msg
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
-		events.EmitEventFromMessage(s, msg, events.RequestState_HOLDING)
+		internalevents.EmitEventFromMessage(s, msg, internalevents.RequestState_HOLDING)
+		s.EventService.EmitRegistrationEvent(msg)
 	}
 }
 
@@ -93,7 +95,10 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		delete(s.Holding, hash)
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
-		events.EmitEventFromMessage(s, msg, events.RequestState_REJECTED)
+		internalevents.EmitEventFromMessage(s, msg, internalevents.RequestState_REJECTED)
+		if reason != "Process()" {
+			s.EventService.EmitStateChangeEvent(msg, eventmessages.EntityState_REJECTED)
+		}
 	}
 
 	s.Hold.RemoveDependentMsg(hash, reason)
@@ -394,7 +399,9 @@ func (s *State) Process() (progress bool) {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing
 					s.IgnoreDone = true
 				}
-				events.EmitNodeMessageF(s, events.NodeMessageCode_SYNCED, events.Level_INFO,
+				internalevents.EmitNodeMessageF(s, internalevents.NodeMessageCode_SYNCED, internalevents.Level_INFO,
+					"Node %s has finished syncing up its database", s.GetFactomNodeName())
+				s.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SYNCED,
 					"Node %s has finished syncing up its database", s.GetFactomNodeName())
 			}
 		}
@@ -851,7 +858,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 		if EnableLeaderThread {
 			// REVIEW: eventually Election Queue will be replaced completely w/ pubsub
 
-			s.Pub.AuthoritySet.Write(&events.AuthoritySet{
+			s.Pub.AuthoritySet.Write(&internalevents.AuthoritySet{
 				LeaderHeight: s.LLeaderHeight,
 				FedServers:   s.LeaderPL.FedServers,
 				AuditServers: s.LeaderPL.AuditServers,
@@ -871,7 +878,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			{
 				dbstate := s.DBStates.Get(int(dbheight - 1))
 
-				directory := events.Directory{
+				directory := internalevents.Directory{
 					DBHeight:             dbheight,
 					VMIndex:              s.LeaderVMIndex,
 					DirectoryBlockHeader: dbstate.DirectoryBlock.GetHeader(),
@@ -904,8 +911,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			s.ExpireHolding() // expire anything in holding that is old.
 			fallthrough
 		default:
-			// WAX MERGE replace this with the events module
-			// s.EventService.EmitProcessListEventNewMinute(newMinute, dbheight)
+			s.EventService.EmitProcessListEventNewMinute(newMinute, dbheight)
 		}
 		s.CurrentMinute = newMinute // Update just the minute
 		// We are between blocks make sure we are setup to sync
@@ -917,6 +923,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 
 	if callUpdateState {
 		s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
+		s.EventService.EmitProcessListEventNewBlock(dbheight)
 	}
 	s.CurrentMinuteStartTime = time.Now().UnixNano()
 	// If an election took place, our lists will be unsorted. Fix that
@@ -947,7 +954,7 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 	s.DBSigLimit = s.EOMLimit               // We add or remove server only on block boundaries
 	s.LogPrintf("dbstateprocess", "MoveStateToHeight(%d-:-%d) leader=%v leaderPL=%p, leaderVMIndex=%d", dbheight, newMinute, s.Leader, s.LeaderPL, s.LeaderVMIndex)
 
-	s.Pub.BlkSeq.Write(&events.DBHT{DBHeight: s.LLeaderHeight, Minute: s.CurrentMinute})
+	s.Pub.BlkSeq.Write(&internalevents.DBHT{DBHeight: s.LLeaderHeight, Minute: s.CurrentMinute})
 
 	s.Hold.ExecuteForNewHeight(s.LLeaderHeight, s.CurrentMinute) // execute held inMessages
 	s.Hold.Review()                                              // cleanup old inMessages
@@ -2345,7 +2352,7 @@ func (s *State) CheckForIDChange() {
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
 		s.initServerKeys()
 		s.LogPrintf("AckChange", "ReloadIdentity new local_priv: %v ident_chain: %v, prev local_priv: %v ident_chain: %v", s.LocalServerPrivKey, s.IdentityChainID, prev_LocalServerPrivKey, prev_ChainID)
-		s.Pub.LeaderConfig.Write(&events.LeaderConfig{
+		s.Pub.LeaderConfig.Write(&internalevents.LeaderConfig{
 			NodeName:           s.GetFactomNodeName(),
 			IdentityChainID:    s.IdentityChainID,
 			Salt:               s.Salt,

@@ -29,7 +29,7 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
-	"github.com/FactomProject/factomd/modules/livefeed"
+	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/modules/pubsub/pubregistry"
 	"github.com/FactomProject/factomd/p2p"
@@ -444,7 +444,7 @@ type State struct {
 	InputRegExString          string
 	executeRecursionDetection map[[32]byte]interfaces.IMsg
 	Hold                      *HoldingList
-	LiveFeedService           livefeed.LiveFeedService
+	EventService              events.EventService
 
 	// MissingMessageResponse is a cache of the last 1000 msgs we receive such that when
 	// we send out a missing message, we can find that message locally before we ask the net
@@ -2425,6 +2425,53 @@ func (s *State) BuildPubRegistry() {
 	s.Pub = pubregistry.New(s.FactomNodeName)
 }
 
-func (s *State) GetLiveFeedService() livefeed.LiveFeedService {
-	return s.LiveFeedService
+func (s *State) GetEventService() events.EventService {
+	return s.EventService
+}
+
+func (s *State) EmitDirectoryBlockEventsFromHeight(height uint32, end uint32) {
+	i := height
+	msgCount := 0
+	for i <= end {
+		d, err := s.DB.FetchDBlockByHeight(i)
+		if err != nil || d == nil {
+			break
+		}
+
+		a, err := s.DB.FetchABlockByHeight(i)
+		if err != nil || a == nil {
+			break
+		}
+		f, err := s.DB.FetchFBlockByHeight(i)
+		if err != nil || f == nil {
+			break
+		}
+		ec, err := s.DB.FetchECBlockByHeight(i)
+		if err != nil || ec == nil {
+			break
+		}
+
+		var eblocks []interfaces.IEntryBlock
+		var entries []interfaces.IEBEntry
+
+		ebs := d.GetEBlockDBEntries()
+		for _, eb := range ebs {
+			eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
+			if eblock != nil {
+				eblocks = append(eblocks, eblock)
+				for _, e := range eblock.GetEntryHashes() {
+					ent, _ := s.DB.FetchEntry(e)
+					if ent != nil {
+						entries = append(entries, ent)
+					}
+				}
+			}
+		}
+
+		msg := messages.NewDBStateMsg(d.GetTimestamp(), d, a, f, ec, eblocks, entries, nil)
+		i++
+		msgCount++
+
+		s.EventService.EmitReplayDirectoryBlockCommit(msg)
+	}
 }

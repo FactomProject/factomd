@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/controlPanel"
-	"github.com/FactomProject/factomd/modules/livefeed/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/modules/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/p2p"
 
@@ -205,7 +205,7 @@ func startLiveFeed(w *worker.Thread, p *globals.FactomParams) {
 	config := state0.Cfg.(*util.FactomdConfig)
 
 	if config.LiveFeedAPI.EnableLiveFeedAPI || p.EnableLiveFeedAPI {
-		state0.LiveFeedService.Start(state0, config, p)
+		state0.EventService.ConfigService(state0, config, p)
 		if p.UseLogstash {
 			eventForward(w)
 		}

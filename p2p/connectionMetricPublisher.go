@@ -1,7 +1,7 @@
 package p2p
 
 import (
-	"github.com/FactomProject/factomd/modules/events"
+	"github.com/FactomProject/factomd/modules/internalevents"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/modules/worker"
 )
@@ -15,7 +15,7 @@ type metricPublisher struct {
 }
 
 func NewMetricPublisher(factomNodeName string, connectionMetricChannel chan map[string]PeerMetrics) MetricPublisher {
-	publisher := pubsub.PubFactory.Threaded(5).Publish(pubsub.GetPath(factomNodeName, events.Path.ConnectionMetrics))
+	publisher := pubsub.PubFactory.Threaded(5).Publish(pubsub.GetPath(factomNodeName, internalevents.Path.ConnectionMetrics))
 	go publisher.Start()
 	return &metricPublisher{
 		publisher:                publisher,

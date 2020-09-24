@@ -1,7 +1,7 @@
 package pubregistry
 
 import (
-	"github.com/FactomProject/factomd/modules/events"
+	"github.com/FactomProject/factomd/modules/internalevents"
 	"github.com/FactomProject/factomd/modules/pubsub"
 )
 
@@ -43,19 +43,19 @@ func (p *PubRegistry) newPublisher(name string) pubsub.IPublisher {
 }
 
 func (p *PubRegistry) bindPublishers() {
-	p.BlkSeq = p.newPublisher(events.Path.Seq)
-	p.Bank = p.newPublisher(events.Path.Bank)
-	p.Directory = p.newPublisher(events.Path.Directory)
-	p.LeaderConfig = p.newPublisher(events.Path.LeaderConfig)
-	p.CommitChain = p.newPublisher(events.Path.CommitChain)
-	p.CommitEntry = p.newPublisher(events.Path.CommitEntry)
-	p.RevealEntry = p.newPublisher(events.Path.RevealEntry)
-	p.CommitDBState = p.newPublisher(events.Path.CommitDBState)
-	p.DBAnchored = p.newPublisher(events.Path.DBAnchored)
-	p.NodeMessage = p.newPublisher(events.Path.NodeMessage)
-	p.ProcessListInfo = p.newPublisher(events.Path.ProcessListInfo)
-	p.StateUpdate = p.newPublisher(events.Path.StateUpdate)
-	p.AuthoritySet = p.newPublisher(events.Path.AuthoritySet)
+	p.BlkSeq = p.newPublisher(internalevents.Path.Seq)
+	p.Bank = p.newPublisher(internalevents.Path.Bank)
+	p.Directory = p.newPublisher(internalevents.Path.Directory)
+	p.LeaderConfig = p.newPublisher(internalevents.Path.LeaderConfig)
+	p.CommitChain = p.newPublisher(internalevents.Path.CommitChain)
+	p.CommitEntry = p.newPublisher(internalevents.Path.CommitEntry)
+	p.RevealEntry = p.newPublisher(internalevents.Path.RevealEntry)
+	p.CommitDBState = p.newPublisher(internalevents.Path.CommitDBState)
+	p.DBAnchored = p.newPublisher(internalevents.Path.DBAnchored)
+	p.NodeMessage = p.newPublisher(internalevents.Path.NodeMessage)
+	p.ProcessListInfo = p.newPublisher(internalevents.Path.ProcessListInfo)
+	p.StateUpdate = p.newPublisher(internalevents.Path.StateUpdate)
+	p.AuthoritySet = p.newPublisher(internalevents.Path.AuthoritySet)
 	p.Blocktime = p.newPublisher("blocktime")
 }
 
