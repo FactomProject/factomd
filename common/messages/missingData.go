@@ -191,8 +191,7 @@ func (m *MissingData) SendResponse(state interfaces.IState) {
 			dataObject = rawObject.(interfaces.IEBEntry)
 			//dataHash = dataObject.(interfaces.IEBEntry).GetHash()
 		case 1: // DataType = eblock
-			dataObject = rawObject.(interfaces.IEntryBlock)
-			//dataHash, _ = dataObject.(interfaces.IEntryBlock).Hash()
+			return // this functionality has been deprecated
 		default:
 			return
 		}
@@ -214,11 +213,11 @@ func (m *MissingData) JSONString() (string, error) {
 	return primitives.EncodeJSONString(m)
 }
 
-func NewMissingData(state interfaces.IState, requestHash interfaces.IHash) interfaces.IMsg {
+func NewMissingData(timestamp interfaces.Timestamp, requestHash interfaces.IHash) *MissingData {
 	msg := new(MissingData)
 
 	msg.Peer2Peer = true // Always a peer2peer request.
-	msg.Timestamp = state.GetTimestamp()
+	msg.Timestamp = timestamp
 	msg.RequestHash = requestHash
 
 	return msg

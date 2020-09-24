@@ -105,7 +105,7 @@ func echoConfig(s *state.State, p *globals.FactomParams) {
 	echo("%20s %v\n", "selfaddr", s.FactomdLocations)
 	echo("%20s \"%s\"\n", "rpcuser", s.RpcUser)
 	echo("%20s \"%s\"\n", "corsdomains", s.CorsDomains)
-	echo("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete)
+	echo("%20s %d\n", "Start 2nd Sync at ht", s.EntryBlockDBHeightComplete)
 
 	echo(fmt.Sprintf("%20s %d\n", "faultTimeout", elections.FaultTimeout))
 
@@ -134,16 +134,16 @@ func interruptHandler() {
 
 func initEntryHeight(s *state.State, target int) {
 	if target >= 0 {
-		s.EntryDBHeightComplete = uint32(target)
-		s.LogPrintf("EntrySync", "Force with Sync2 NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+		s.EntryBlockDBHeightComplete = uint32(target)
+		s.LogPrintf("EntrySync", "Force with Sync2 NetStart EntryBlockDBHeightComplete = %d", s.EntryBlockDBHeightComplete)
 	} else {
 		height, err := s.DB.FetchDatabaseEntryHeight()
 		if err != nil {
-			s.LogPrintf("EntrySync", "Error reading EntryDBHeightComplete NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+			s.LogPrintf("EntrySync", "Error reading EntryBlockDBHeightComplete NetStart EntryBlockDBHeightComplete = %d", s.EntryBlockDBHeightComplete)
 			_, _ = os.Stderr.WriteString(fmt.Sprintf("ERROR reading Entry DBHeight Complete: %v\n", err))
 		} else {
-			s.EntryDBHeightComplete = height
-			s.LogPrintf("EntrySync", "NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+			s.EntryBlockDBHeightComplete = height
+			s.LogPrintf("EntrySync", "NetStart EntryBlockDBHeightComplete = %d", s.EntryBlockDBHeightComplete)
 		}
 	}
 }
@@ -241,7 +241,7 @@ func startControlPanel(w *worker.Thread) {
 					BuildNumer: Build,
 					Version:    FactomdVersion,
 
-					CompleteHeight: state0.EntryDBHeightComplete,
+					CompleteHeight: state0.EntryBlockDBHeightComplete,
 					LeaderHeight:   state0.LLeaderHeight,
 
 					IdentityChainID: state0.GetIdentityChainID().String(),
@@ -429,7 +429,12 @@ func startServer(w *worker.Thread, node *fnode.FactomNode) {
 
 	w.Run("DBStateCatchup", s.DBStates.Catchup)
 	w.Run("LoadDatabase", s.LoadDatabase)
-	w.Run("SyncEntries", s.GoSyncEntries)
+
+	entrySync := state.NewEntrySync(s)
+	s.EntrySync = entrySync
+	w.Run("SyncEntries", s.EntrySync.DelayedStart)
+	w.Run("WriteEntries", s.WriteEntries)
+
 	if !state.EnableLeaderThread {
 		w.Run("EOMTicker", func() { Timer(node.State) })
 	}

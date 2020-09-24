@@ -954,13 +954,13 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 
 	// So here is the deal.  After we have processed a block, we have to allow the DirectoryBlockSignatures a chance to save
 	// to disk.  Then we can insist on having the entry blocks.
-	diff := (int(s.LLeaderHeight)*10 + int(s.CurrentMinute)) - int(s.EntryDBHeightComplete)*10
+	diff := (int(s.LLeaderHeight)*10 + int(s.CurrentMinute)) - int(s.EntryBlockDBHeightComplete)*10
 
 	// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
 	// Until the first couple signatures are processed, we will be 2 behind.
 	//TODO: Why is this in the execution per message per VM when it's global to the processlist -- clay
 	if s.WaitForEntries {
-		s.LogPrintf("processList", "s.WaitForEntries %d-:-%d [%d]", p.DBHeight, s.CurrentMinute, s.EntryDBHeightComplete)
+		s.LogPrintf("processList", "s.WaitForEntries %d-:-%d [%d]", p.DBHeight, s.CurrentMinute, s.EntryBlockDBHeightComplete)
 		return false // Don't process further in this list, go to the next.
 	}
 
@@ -969,12 +969,12 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 	// this prevent you from becoming a leader when you don't have complete identities
 	if diff > 22 {
 		s.LogPrintf("process", "Waiting on saving")
-		s.LogPrintf("EntrySync", "Waiting on saving EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+		s.LogPrintf("EntrySync", "Waiting on saving EntryBlockDBHeightComplete = %d", s.EntryBlockDBHeightComplete)
 
 		// If we don't have the Entry Blocks (or we haven't processed the signatures) we can't do more.
-		// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, s.EntryDBHeightComplete))
+		// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, s.EntryBlockDBHeightComplete))
 		if extraDebug {
-			p.State.LogPrintf("process", "Waiting on saving blocks to progress complete %d processing %d-:-%d", s.EntryDBHeightComplete, s.LLeaderHeight, s.CurrentMinute)
+			p.State.LogPrintf("process", "Waiting on saving blocks to progress complete %d processing %d-:-%d", s.EntryBlockDBHeightComplete, s.LLeaderHeight, s.CurrentMinute)
 		}
 		return false
 	}
@@ -1228,7 +1228,7 @@ func (p *ProcessList) String() string {
 			p.State.DBSig,
 			p.State.EOM,
 			saved,
-			p.State.EntryDBHeightComplete))
+			p.State.EntryBlockDBHeightComplete))
 
 		for i := 0; i < len(p.FedServers); i++ {
 			vm := p.VMs[i]
