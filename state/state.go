@@ -2472,6 +2472,8 @@ func (s *State) EmitDirectoryBlockEventsFromHeight(height uint32, end uint32) {
 		i++
 		msgCount++
 
-		s.EventService.EmitReplayDirectoryBlockCommit(msg)
+		if s.EventService != nil {
+			s.EventService.EmitReplayDirectoryBlockCommit(msg)
+		}
 	}
 }

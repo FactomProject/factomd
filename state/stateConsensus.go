@@ -85,7 +85,9 @@ func (s *State) AddToHolding(hash [32]byte, msg interfaces.IMsg) {
 		s.LogMessage("holding", "add", msg)
 		TotalHoldingQueueInputs.Inc()
 		internalevents.EmitEventFromMessage(s, msg, internalevents.RequestState_HOLDING)
-		s.EventService.EmitRegistrationEvent(msg)
+		if s.EventService != nil {
+			s.EventService.EmitRegistrationEvent(msg)
+		}
 	}
 }
 
@@ -96,7 +98,7 @@ func (s *State) DeleteFromHolding(hash [32]byte, msg interfaces.IMsg, reason str
 		s.LogMessage("holding", "delete "+reason, msg)
 		TotalHoldingQueueOutputs.Inc()
 		internalevents.EmitEventFromMessage(s, msg, internalevents.RequestState_REJECTED)
-		if reason != "Process()" {
+		if reason != "Process()" && s.EventService != nil {
 			s.EventService.EmitStateChangeEvent(msg, eventmessages.EntityState_REJECTED)
 		}
 	}
@@ -401,8 +403,10 @@ func (s *State) Process() (progress bool) {
 				}
 				internalevents.EmitNodeMessageF(s, internalevents.NodeMessageCode_SYNCED, internalevents.Level_INFO,
 					"Node %s has finished syncing up its database", s.GetFactomNodeName())
-				s.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SYNCED,
-					"Node %s has finished syncing up its database", s.GetFactomNodeName())
+				if s.EventService != nil {
+					s.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SYNCED,
+						"Node %s has finished syncing up its database", s.GetFactomNodeName())
+				}
 			}
 		}
 	} else if s.IgnoreMissing {
@@ -911,7 +915,9 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 			s.ExpireHolding() // expire anything in holding that is old.
 			fallthrough
 		default:
-			s.EventService.EmitProcessListEventNewMinute(newMinute, dbheight)
+			if s.EventService != nil {
+				s.EventService.EmitProcessListEventNewMinute(newMinute, dbheight)
+			}
 		}
 		s.CurrentMinute = newMinute // Update just the minute
 		// We are between blocks make sure we are setup to sync
@@ -923,7 +929,9 @@ func (s *State) MoveStateToHeight(dbheight uint32, newMinute int) {
 
 	if callUpdateState {
 		s.DBStates.UpdateState() // call to get the state signed now that the DBSigs have processed
-		s.EventService.EmitProcessListEventNewBlock(dbheight)
+		if s.EventService != nil {
+			s.EventService.EmitProcessListEventNewBlock(dbheight)
+		}
 	}
 	s.CurrentMinuteStartTime = time.Now().UnixNano()
 	// If an election took place, our lists will be unsorted. Fix that

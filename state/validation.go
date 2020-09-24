@@ -25,7 +25,9 @@ var ValidationDebug bool = false
 func (s *State) MsgExecute() {
 	s.validatorLoopThreadID = atomic.Goid()
 	internalevents.EmitNodeMessageF(s, internalevents.NodeMessageCode_STARTED, internalevents.Level_INFO, "Node %s startup complete", s.GetFactomNodeName())
-	s.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_STARTED, "Node %s startup complete", s.GetFactomNodeName())
+	if s.EventService != nil {
+		s.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_STARTED, "Node %s startup complete", s.GetFactomNodeName())
+	}
 	s.RunState = runstate.Running
 
 	slp := false
@@ -103,8 +105,10 @@ func (s *State) MsgSort() {
 				MessageText: fmt.Sprintf("A panic state occurred in ValidatorLoop. %v", r),
 			}
 			s.Pub.GetNodeMessage().Write(nodeMessageEvent)
-			s.EventService.EmitNodeErrorMessage(eventmessages.NodeMessageCode_GENERAL,
-				"A panic state occurred in ValidatorLoop.", r)
+			if s.EventService != nil {
+				s.EventService.EmitNodeErrorMessage(eventmessages.NodeMessageCode_GENERAL,
+					"A panic state occurred in ValidatorLoop.", r)
+			}
 			shutdown(s)
 		}
 	}()
@@ -203,8 +207,10 @@ func shouldShutdown(state *State) bool {
 func shutdown(state *State) {
 	internalevents.EmitNodeMessageF(state, internalevents.NodeMessageCode_SHUTDOWN, internalevents.Level_INFO,
 		"Node %s is shutting down", state.GetFactomNodeName())
-	state.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SHUTDOWN,
-		"Node %s is shutting down", state.GetFactomNodeName())
+	if state.EventService != nil {
+		state.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SHUTDOWN,
+			"Node %s is shutting down", state.GetFactomNodeName())
+	}
 
 	state.RunState = runstate.Stopping
 	fmt.Println("Closing the Database on", state.GetFactomNodeName())

@@ -202,6 +202,9 @@ func initAnchors(s *state.State, reparse bool) {
 // start live feed service (for fnode 0 only)
 func startLiveFeed(w *worker.Thread, p *globals.FactomParams) {
 	state0 := fnode.Get(0).State
+	if state0.EventService == nil {
+		return
+	}
 	config := state0.Cfg.(*util.FactomdConfig)
 
 	if config.LiveFeedAPI.EnableLiveFeedAPI || p.EnableLiveFeedAPI {

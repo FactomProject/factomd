@@ -1691,7 +1691,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 				DBState:  d,
 			}
 			s.Pub.CommitDBState.Write(dbStateCommitEvent)
-			s.EventService.EmitDirectoryBlockCommitEvent(d)
+			if s.EventService != nil {
+				s.EventService.EmitDirectoryBlockCommitEvent(d)
+			}
 		}
 
 		// only process one block past the last saved block
