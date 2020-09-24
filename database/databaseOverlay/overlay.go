@@ -206,10 +206,10 @@ func NewOverlay(db interfaces.IDatabase) *Overlay {
 	return answer
 }
 
-func NewOverlayWithState(db interfaces.IDatabase, pubState pubsub.IPubState, parentState events.StateEventServices) *Overlay {
+func NewOverlayWithState(db interfaces.IDatabase, state interfaces.IState) *Overlay {
 	answer := NewOverlay(db)
-	answer.pubState = pubState
-	answer.parentState = parentState
+	answer.pubState = state.(pubsub.IPubState) // will panic if it doesn't work
+	answer.parentState = state.(events.StateEventServices)
 	return answer
 }
 

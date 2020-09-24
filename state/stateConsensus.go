@@ -402,7 +402,7 @@ func (s *State) Process() (progress bool) {
 				internalevents.EmitNodeMessageF(s, internalevents.NodeMessageCode_SYNCED, internalevents.Level_INFO,
 					"Node %s has finished syncing up its database", s.GetFactomNodeName())
 				s.EventService.EmitNodeInfoMessageF(eventmessages.NodeMessageCode_SYNCED,
-					"Node %s has finished syncing up it's database", s.GetFactomNodeName())
+					"Node %s has finished syncing up its database", s.GetFactomNodeName())
 			}
 		}
 	} else if s.IgnoreMissing {
