@@ -13,8 +13,6 @@ import (
 	gcfg "gopkg.in/gcfg.v1"
 )
 
-var _ = fmt.Print
-
 type FactomdConfig struct {
 	App struct {
 		PortNumber                             int
@@ -398,8 +396,8 @@ func ReadConfig(filename string) *FactomdConfig {
 	err = gcfg.FatalOnly(gcfg.ReadFileInto(cfg, filename))
 	if err != nil {
 		if reportedError[filename] != err.Error() {
-			fmt.Printf("Reading from '%s'\n", filename)
-			fmt.Printf("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
+			fmt.Printf("Failed reading config from '%s': %s\n", filename, err)
+			fmt.Printf("Starting with default settings.\n")
 			// Remember the error reported for this filename
 			reportedError[filename] = err.Error()
 		}

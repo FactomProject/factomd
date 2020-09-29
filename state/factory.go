@@ -36,7 +36,6 @@ func (s *State) LoadConfigFromFile(filename string, networkFlag string) {
 	} else {
 		globals.Params.NetworkName = s.Network
 	}
-	fmt.Printf("\n\nNetwork : %s\n", s.Network)
 
 	networkName := strings.ToLower(s.Network) + "-"
 	// TODO: improve the paths after milestone 1

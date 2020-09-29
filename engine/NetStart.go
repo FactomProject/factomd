@@ -61,8 +61,9 @@ func echo(s string, more ...interface{}) {
 
 func echoConfig(s *state.State, p *globals.FactomParams) {
 
+	fmt.Println()
 	fmt.Println(">>>>>>>>>>>>>>>>")
-	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")
+	fmt.Println(">>>>>>>>>>>>>>>> Factom parameters")
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Listening to Node", p.ListenTo)
 	fmt.Println(">>>>>>>>>>>>>>>>")
@@ -105,7 +106,7 @@ func echoConfig(s *state.State, p *globals.FactomParams) {
 	echo("%20s %v\n", "selfaddr", s.FactomdLocations)
 	echo("%20s \"%s\"\n", "rpcuser", s.RpcUser)
 	echo("%20s \"%s\"\n", "corsdomains", s.CorsDomains)
-	echo("%20s %d\n", "Start 2nd Sync at ht", s.EntryBlockDBHeightComplete)
+	echo("%20s %d\n", "Start 2nd Sync at height", s.EntryBlockDBHeightComplete)
 
 	echo(fmt.Sprintf("%20s %d\n", "faultTimeout", elections.FaultTimeout))
 
@@ -117,6 +118,7 @@ func echoConfig(s *state.State, p *globals.FactomParams) {
 	echo("%20s \"%d\"\n", "TCP port", s.PortNumber)
 	echo("%20s \"%s\"\n", "pprof port", logPort)
 	echo("%20s \"%d\"\n", "Control Panel port", s.ControlPanelPort)
+	echo("\n\n")
 }
 
 // shutdown factomd

@@ -79,7 +79,7 @@ func (sss *StateSaverStruct) DeleteSaveState(networkName string) error {
 
 func (sss *StateSaverStruct) LoadDBStateList(s *State, statelist *DBStateList, networkName string) error {
 	filename := NetworkIDToFilename(networkName, sss.FastBootLocation)
-	fmt.Println(statelist.State.FactomNodeName, "Loading from", filename)
+	fmt.Println(statelist.State.FactomNodeName, "Loading state from", filename)
 	b, err := LoadFromFile(s, filename)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "LoadDBStateList error:", err)
@@ -138,10 +138,8 @@ func SaveToFile(s *State, dbht uint32, b []byte, filename string) error {
 }
 
 func LoadFromFile(s *State, filename string) ([]byte, error) {
-	fmt.Fprintf(os.Stderr, "%20s Load state from %s\n", s.FactomNodeName, filename)
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%20s LoadFromFile error: %v\n", s.FactomNodeName, err)
 		return nil, err
 	}
 	return b, nil
