@@ -82,8 +82,6 @@ type SaveState struct {
 
 	// DBlock Height at which node has a complete set of eblocks+entries
 	EntryBlockDBHeightComplete uint32
-	// DBlock Height at which we have started asking for entry blocks
-	EntryBlockDBHeightProcessing uint32
 
 	// FER section
 	FactoshisPerEC                 uint64
@@ -237,28 +235,13 @@ func (a *SaveState) IsSameAs(b *SaveState) bool {
 		return false
 	}
 
-	//Replay *Replay
-
 	if a.LeaderTimestamp.IsSameAs(b.LeaderTimestamp) == false {
 		return false
 	}
 
-	//Holding map[[32]byte]interfaces.IMsg
-	//XReview []interfaces.IMsg
-	//Acks    map[[32]byte]interfaces.IMsg
-	//Commits map[[32]byte][]interfaces.IMsg
-
-	//InvalidMessages map[[32]byte]interfaces.IMsg
-
 	if a.EntryBlockDBHeightComplete != b.EntryBlockDBHeightComplete {
 		return false
 	}
-	if a.EntryBlockDBHeightProcessing != b.EntryBlockDBHeightProcessing {
-		return false
-	}
-	//MissingEntryBlocks []MissingEntryBlock
-
-	//MissingEntries []MissingEntry
 
 	if a.FactoshisPerEC != b.FactoshisPerEC {
 		return false
@@ -850,60 +833,12 @@ func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
 		return nil, err
 	}
 
-	//err = buf.PushBinaryMarshallable(ss.Replay)
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	err = buf.PushBinaryMarshallable(ss.LeaderTimestamp)
 	if err != nil {
 		return nil, err
 	}
-	/*
-		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
-		XReview []interfaces.IMsg              // After the EOM, we must review the inMessages in Holding
-		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgements
-		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
-
-		InvalidMessages map[[32]byte]interfaces.IMsg
-	*/
 
 	err = buf.PushUInt32(ss.EntryBlockDBHeightComplete)
-	if err != nil {
-		return nil, err
-	}
-
-	// formerly EntryBlockDBHeightProcessing, deprecated
-	err = buf.PushUInt32(0)
-	if err != nil {
-		return nil, err
-	}
-	// formerly len(MissingEntryBlocks), deprecated
-	err = buf.PushVarInt(0)
-	if err != nil {
-		return nil, err
-	}
-
-	// formerly EntryDBHeightComplete, deprecated
-	err = buf.PushUInt32(0)
-	if err != nil {
-		return nil, err
-	}
-
-	// formerly EntryHeightComplete, deprecated
-	err = buf.PushVarInt(0)
-	if err != nil {
-		return nil, err
-	}
-
-	// formerly EntryDBHeightProcessing, deprecated
-	err = buf.PushUInt32(0)
-	if err != nil {
-		return nil, err
-	}
-
-	// formerly len(MissingEntries), deprecated
-	err = buf.PushVarInt(0)
 	if err != nil {
 		return nil, err
 	}
@@ -1130,54 +1065,6 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	ss.EntryBlockDBHeightComplete, err = buf.PopUInt32()
 	if err != nil {
 		return
-	}
-	ss.EntryBlockDBHeightProcessing, err = buf.PopUInt32()
-	if err != nil {
-		return
-	}
-
-	// deprecated
-	l, err = buf.PopVarInt()
-	if err != nil {
-		return
-	}
-	for i := 0; i < int(l); i++ {
-		s := new(MissingEntryBlock)
-		err = buf.PopBinaryMarshallable(s)
-		if err != nil {
-			return
-		}
-	}
-
-	// formerly EntryDBHeightComplete, deprecated
-	_, err = buf.PopUInt32()
-	if err != nil {
-		return
-	}
-
-	// formerly EntryHeightComplete, deprecated
-	_, err = buf.PopVarInt()
-	if err != nil {
-		return
-	}
-
-	// formerly EntryDBHeightProcessing, deprecated
-	_, err = buf.PopUInt32()
-	if err != nil {
-		return
-	}
-
-	// deprecated
-	l, err = buf.PopVarInt()
-	if err != nil {
-		return
-	}
-	for i := 0; i < int(l); i++ {
-		s := new(MissingEntry)
-		err = buf.PopBinaryMarshallable(s)
-		if err != nil {
-			return
-		}
 	}
 
 	ss.FactoshisPerEC, err = buf.PopVarInt()
