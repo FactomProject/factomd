@@ -158,7 +158,7 @@ func NetStart(w *worker.Thread, p *globals.FactomParams, listenToStdin bool) {
 	startLiveFeed(w, p)
 	startWebserver(w)
 	startControlPanel(w)
-	simulation.StartSimControl(w, p.ListenTo, listenToStdin)
+	simulation.StartSimControl(w, p.ListenTo, listenToStdin, Build)
 }
 
 // initialize package-level vars
