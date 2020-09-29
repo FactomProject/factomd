@@ -489,5 +489,5 @@ const (
 
 //Fast boot save state version (savestate)
 //To be increased whenever the data being saved changes from the last version
-const SaveStateVersion = 13
+const SaveStateVersion = 14
 const PreBootWindow = 20 // allow an N minute window before boot where messages will be accepted
