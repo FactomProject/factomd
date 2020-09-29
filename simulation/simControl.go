@@ -16,7 +16,9 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/modules/pubsub"
+	"github.com/FactomProject/factomd/p2p"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -89,7 +91,7 @@ func GetFocus() *fnode.FactomNode {
 	return nil
 }
 
-func StartSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
+func StartSimControl(w *worker.Thread, listenTo int, listenStdin bool, build string) {
 	var _ = time.Sleep
 	var summary int
 	var elections int
@@ -137,11 +139,10 @@ func StartSimControl(w *worker.Thread, listenTo int, listenStdin bool) {
 				ListenTo = v
 				os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", ListenTo))
 				// Update which node will be displayed on the controlPanel page
-				//connectionMetricsChannel := make(chan interface{}, 5000)
+				connectionMetricsChannel := make(chan map[string]p2p.PeerMetrics, 5000)
 				// REVIEW: to make this visible to thread registry
 				// would need to relocate outside of this worker.Thread.Run() block
-				// KLUDGE: remove control panel
-				//go controlPanel.ServeControlPanel(fnode.Get(ListenTo).State.ControlPanelChannel, fnode.Get(ListenTo).State, connectionMetricsChannel, p2pNetwork, Build, "")
+				go controlPanel.ServeControlPanel(fnode.Get(ListenTo).State.ControlPanelChannel, fnode.Get(ListenTo).State, connectionMetricsChannel, fnode.Get(ListenTo).State.NetworkController, build, "")
 			} else {
 				switch {
 				//case '!' == b[0]:
