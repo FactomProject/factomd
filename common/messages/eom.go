@@ -18,7 +18,7 @@ import (
 )
 
 // eLogger is for EOM Messages and extends packageLogger
-var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
+//var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
 
 type EOM struct {
 	msgbase.MessageBase
@@ -125,6 +125,12 @@ func (m *EOM) Type() byte {
 	return constants.EOM_MSG
 }
 
+func (m *EOM) WellFormed() bool {
+	// TODO: Flush this out
+
+	return true
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
@@ -153,7 +159,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	eomSigned, err := m.VerifySignature()
 	if err != nil || !eomSigned {
 		vlog := func(format string, args ...interface{}) {
-			eLogger.WithFields(log.Fields{"func": "Validate", "lheight": state.GetLeaderHeight()}).WithFields(m.LogFields()).Errorf(format, args...)
+			//			//			eLogger.WithFields(log.Fields{"func": "Validate", "lheight": state.GetLeaderHeight()}).WithFields(m.LogFields()).Errorf(format, args...)
 		}
 
 		if err != nil {
@@ -347,7 +353,7 @@ func (m *EOM) String() string {
 	}
 	return fmt.Sprintf("%6s-%30s FF %2d %1s-Leader[%x] hash[%x] ts %d %s %s",
 		"EOM",
-		fmt.Sprintf("DBh/VMh/h %d/%02d/-- minute %2d", m.DBHeight, m.VMIndex, m.Minute),
+		fmt.Sprintf("DBh/VMh/h %7d/%02d/-- minute %2d", m.DBHeight, m.VMIndex, m.Minute),
 		m.SysHeight,
 		f,
 		m.ChainID.Bytes()[3:6],
@@ -361,4 +367,8 @@ func (m *EOM) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "eom", "dbheight": m.DBHeight, "vm": m.VMIndex,
 		"minute": m.Minute, "chainid": m.ChainID.String(), "sysheight": m.SysHeight,
 		"hash": m.GetMsgHash().String()}
+}
+
+func (m *EOM) Label() string {
+	return msgbase.GetLabel(m)
 }

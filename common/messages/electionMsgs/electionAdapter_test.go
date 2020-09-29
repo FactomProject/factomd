@@ -95,7 +95,8 @@ func TestElectionAdapterSimple(t *testing.T) {
 }
 
 func NewTestElection() *elections.Elections {
-	e := new(elections.Elections)
+	st := CreateAndPopulateTestStateAndStartValidator()
+	e := elections.New(st)
 	e.FedID, _ = primitives.NewShaHashFromStr("888888f0b7e308974afc34b2c7f703f25ed2699cb05f818e84e8745644896c55")
 	e.Federated = make([]interfaces.IServer, 3)
 	e.Audit = make([]interfaces.IServer, 3)

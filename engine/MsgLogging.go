@@ -8,13 +8,15 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/FactomProject/factomd/fnode"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ = fmt.Print
 
 type msglist struct {
-	fnode *FactomNode
+	fnode *fnode.FactomNode
 	out   bool // True if this is an output.
 	name  string
 	peer  string
@@ -50,7 +52,7 @@ func (m *MsgLog) Init(enable bool, nodecnt int) {
 	}
 }
 
-func (m *MsgLog) Add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
+func (m *MsgLog) Add2(fnode *fnode.FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
 	if !m.Enable {
 		return
 	}

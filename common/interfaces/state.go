@@ -22,8 +22,8 @@ type IQueue interface {
 	Length() int
 	Cap() int
 	Enqueue(msg IMsg)
+	DequeueNonBlocking() IMsg
 	Dequeue() IMsg
-	BlockingDequeue() IMsg
 }
 
 // Holds the state information for factomd.  This does imply that we will be
@@ -33,20 +33,17 @@ type IQueue interface {
 // accidentally
 type IState interface {
 	GetRunState() runstate.RunState
+	GetRunLeader() bool
 	// Server
 	GetFactomNodeName() string
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
-	Clone(number int) IState
 	GetCfg() IFactomConfig
 	GetConfigPath() string
 	LoadConfig(filename string, networkFlag string)
-	Init()
 	String() string
 	GetIdentityChainID() IHash
 	SetIdentityChainID(IHash)
 	Sign([]byte) IFullSignature
-	Log(level string, message string)
-	Logf(level string, format string, args ...interface{})
 	GetServerPublicKeyString() string
 
 	GetDBStatesSent() []*DBStateSent
@@ -118,10 +115,6 @@ type IState interface {
 	NetworkOutMsgQueue() IQueue
 	NetworkInvalidMsgQueue() chan IMsg
 
-	// Journaling
-	JournalMessage(IMsg)
-	GetJournalMessages() [][]byte
-
 	// Consensus
 	APIQueue() IQueue    // Input Queue from the API
 	InMsgQueue() IQueue  // Read by Validate
@@ -173,7 +166,6 @@ type IState interface {
 	// and what lists they are responsible for.
 	ComputeVMIndex(hash []byte) int // Returns the VMIndex determined by some hash (usually) for the current processlist
 	IsLeader() bool                 // Returns true if this is the leader in the current minute
-	IsRunLeader() bool              // Returns true if the node is finished syncing up it's database
 	GetLeaderVM() int               // Get the Leader VM (only good within a minute)
 	// Returns the list of VirtualServers at a given directory block height and minute
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
@@ -206,11 +198,10 @@ type IState interface {
 	IncFactoidTrans()
 	IncDBStateAnswerCnt()
 
-	GetPendingTransactions(interface{}) []IPendingTransaction
+	GetPendingTransactions(string) []IPendingTransaction
 	// MISC
 	// ====
 
-	Reset()                                    // Trim back the state to the last saved block
 	GetSystemMsg(dbheight, height uint32) IMsg // Return the system message at the given height.
 	SendDBSig(dbheight uint32, vmIndex int)    // If a Leader, we have to send a DBSig out for the previous block
 
@@ -218,8 +209,6 @@ type IState interface {
 	FollowerExecuteEOM(IMsg)          // Messages that go into the process list
 	FollowerExecuteAck(IMsg)          // Ack Msg calls this function.
 	FollowerExecuteDBState(IMsg)      // Add the given DBState to this server
-	FollowerExecuteSFault(IMsg)       // Handling of Server Fault Messages
-	FollowerExecuteFullFault(IMsg)    // Handle Server Full-Fault Messages
 	FollowerExecuteMMR(IMsg)          // Handle Missing Message Responses
 	FollowerExecuteDataResponse(IMsg) // Handle Data Response
 	FollowerExecuteMissingMsg(IMsg)   // Handle requests for missing messages
@@ -253,11 +242,7 @@ type IState interface {
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
 
-	ValidatorLoop()
-
 	UpdateECs(IEntryCreditBlock)
-	SetIsReplaying()
-	SetIsDoneReplaying()
 
 	CrossReplayAddSalt(height uint32, salt [8]byte) error
 
@@ -311,7 +296,6 @@ type IState interface {
 	GetAuthorityInterface(chainid IHash) IAuthority
 	GetLeaderPL() IProcessList
 	GetLLeaderHeight() uint32
-	GetEntryDBHeightComplete() uint32
 	GetMissingEntryCount() uint32
 	GetEntryBlockDBHeightProcessing() uint32
 	GetEntryBlockDBHeightComplete() uint32
@@ -334,16 +318,9 @@ type IState interface {
 	Validate(msg IMsg) (validToSend int, validToExecute int)
 	GetIgnoreDone() bool
 
-	// Emit DBState events to the livefeed api from a specified height
-	EmitDirectoryBlockEventsFromHeight(height uint32, end uint32)
-
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
 	LoadAcksMap() map[[32]byte]IMsg
-
-	// Plugins
-	UsingTorrent() bool
-	GetMissingDBState(height uint32) error
 
 	LogMessage(logName string, comment string, msg IMsg)
 	LogPrintf(logName string, format string, more ...interface{})
@@ -375,4 +352,5 @@ type IState interface {
 	GotHeartbeat(heartbeatTS Timestamp, dbheight uint32)
 	GetDBFinished() bool
 	FactomSecond() time.Duration
+	EmitDirectoryBlockEventsFromHeight(uint32, uint32)
 }

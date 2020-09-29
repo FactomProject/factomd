@@ -3,8 +3,6 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,9 +10,15 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/modules/events"
+	"github.com/FactomProject/factomd/modules/pubsub"
+	"github.com/FactomProject/factomd/simulation"
 
-	"github.com/FactomProject/factom"
+	"github.com/FactomProject/factomd/modules/registry"
+	"github.com/FactomProject/factomd/modules/worker"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -32,18 +36,23 @@ var BlockCount int = 10
 var DefaultCoinbaseAmount uint64 = 100000000
 
 func CreateEmptyTestState() *state.State {
+	pubsub.Reset()
 	s := new(state.State)
+	s.BuildPubRegistry()
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
-	s.EventService = events.NewEventService()
-	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.LoadConfig("", "")
 	s.Network = "LOCAL"
 	s.LogPath = "stdout"
-	s.Init()
+
+	p := registry.New()
+	p.Register(func(w *worker.Thread) { s.Initialize(w, new(electionMsgs.ElectionsFactory)) })
+	go p.Run()
+	p.WaitForRunning()
+
 	s.Network = "LOCAL"
 	s.CheckChainHeads.CheckChainHeads = false
-	state.LoadDatabase(s)
+	s.LoadDatabase()
 	s.Process()
 	s.DBFinished = true
 	return s
@@ -51,7 +60,12 @@ func CreateEmptyTestState() *state.State {
 
 func CreateAndPopulateTestStateAndStartValidator() *state.State {
 	s := CreateAndPopulateTestState()
-	go s.ValidatorLoop()
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		w.OnRun(s.MsgSort)
+	})
+	go p.Run()
+
 	time.Sleep(30 * time.Millisecond)
 
 	return s
@@ -60,61 +74,26 @@ func CreateAndPopulateTestStateAndStartValidator() *state.State {
 func CreatePopulateAndExecuteTestState() *state.State {
 	s := CreateAndPopulateTestState()
 	ExecuteAllBlocksFromDatabases(s)
-	go s.ValidatorLoop()
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		s.MsgSort()
+	})
+	go p.Run()
 	time.Sleep(30 * time.Millisecond)
 
 	return s
 }
 
-func CreateAndPopulateStaleHolding() *state.State {
-	s := CreateAndPopulateTestState()
-
-	// TODO: refactor into test helpers
-	a := AccountFromFctSecret("Fs2zQ3egq2j99j37aYzaCddPq9AF3mgh64uG9gRaDAnrkjRx3eHs")
-
-	encode := func(s string) []byte {
-		b := bytes.Buffer{}
-		b.WriteString(s)
-		return b.Bytes()
-	}
-
-	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
-	extids := [][]byte{encode(fmt.Sprintf("makeStaleMessages"))}
-
-	e := factom.Entry{
-		ChainID: id,
-		ExtIDs:  extids,
-		Content: encode(fmt.Sprintf("this is a stale message")),
-	}
-
-	// create stale MilliTime
-	mockTime := func() (r []byte) {
-		buf := new(bytes.Buffer)
-		t := time.Now().UnixNano()
-		m := t/1e6 - state.FilterTimeLimit // make msg too old
-		binary.Write(buf, binary.BigEndian, m)
-		return buf.Bytes()[2:]
-	}
-
-	// adding a commit w/ no REVEAL
-	m, _ := ComposeCommitEntryMsg(a.Priv, e)
-	copy(m.CommitEntry.MilliTime[:], mockTime())
-
-	// add commit to holding
-	s.Hold.Add(m.GetMsgHash().Fixed(), m)
-
-	return s
-}
-
 func CreateAndPopulateTestState() *state.State {
+	pubsub.Reset() // clear existing pubsub paths between tests
 	s := new(state.State)
-	s.EventService = events.NewEventService()
+	s.BuildPubRegistry()
 	s.TimestampAtBoot = new(primitives.Timestamp)
 	s.TimestampAtBoot.SetTime(0)
-	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
 	s.LoadConfig("", "")
+	s.EventService = events.NewEventService()
 
 	s.DirectoryBlockInSeconds = 20
 
@@ -127,7 +106,11 @@ func CreateAndPopulateTestState() *state.State {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
 	s.LogPath = "stdout"
 
-	s.Init()
+	p := registry.New()
+	p.Register(func(w *worker.Thread) { s.Initialize(w, new(electionMsgs.ElectionsFactory)) })
+	go p.Run()
+	p.WaitForRunning()
+
 	s.Network = "LOCAL"
 	/*err := s.RecalculateBalances()
 	if err != nil {
@@ -135,7 +118,7 @@ func CreateAndPopulateTestState() *state.State {
 	}*/
 	s.SetFactoshisPerEC(1)
 	s.MMRDummy() // Need to start MMR to ensure queues don't fill up
-	state.LoadDatabase(s)
+	s.LoadDatabase()
 	s.Process()
 	s.UpdateState()
 
@@ -320,6 +303,10 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 
 // Transactions says whether or not to add a transaction
 func CreateTestBlockSetWithNetworkID(prev *BlockSet, networkID uint32, transactions bool) *BlockSet {
+	return CreateTestBlockSetWithNetworkIDAndEBlocks(prev, networkID, transactions, true)
+}
+
+func CreateTestBlockSetWithNetworkIDAndEBlocks(prev *BlockSet, networkID uint32, transactions bool, includeEBlocks bool) *BlockSet {
 	var err error
 	height := 0
 	if prev != nil {
@@ -359,34 +346,41 @@ func CreateTestBlockSetWithNetworkID(prev *BlockSet, networkID uint32, transacti
 	de.KeyMR = answer.FBlock.DatabasePrimaryIndex()
 	dbEntries = append(dbEntries, de)
 
-	//EBlock
-	answer.EBlock, answer.Entries = CreateTestEntryBlock(prev.EBlock)
+	if includeEBlocks {
+		//EBlock
+		answer.EBlock, answer.Entries = CreateTestEntryBlock(prev.EBlock)
 
-	de = new(directoryBlock.DBEntry)
-	de.ChainID, err = primitives.NewShaHash(answer.EBlock.GetChainID().Bytes())
-	if err != nil {
-		panic(err)
+		de = new(directoryBlock.DBEntry)
+		de.ChainID, err = primitives.NewShaHash(answer.EBlock.GetChainID().Bytes())
+		if err != nil {
+			panic(err)
+		}
+		de.KeyMR = answer.EBlock.DatabasePrimaryIndex()
+		dbEntries = append(dbEntries, de)
+
+		//Anchor EBlock
+		anchor, entries := CreateTestAnchorEntryBlock(prev.AnchorEBlock, prev.DBlock)
+		answer.AnchorEBlock = anchor
+		answer.Entries = append(answer.Entries, entries...)
+
+		de = new(directoryBlock.DBEntry)
+		de.ChainID, err = primitives.NewShaHash(answer.AnchorEBlock.GetChainID().Bytes())
+		if err != nil {
+			panic(err)
+		}
+		de.KeyMR = answer.AnchorEBlock.DatabasePrimaryIndex()
+		dbEntries = append(dbEntries, de)
 	}
-	de.KeyMR = answer.EBlock.DatabasePrimaryIndex()
-	dbEntries = append(dbEntries, de)
-
-	//Anchor EBlock
-	anchor, entries := CreateTestAnchorEntryBlock(prev.AnchorEBlock, prev.DBlock)
-	answer.AnchorEBlock = anchor
-	answer.Entries = append(answer.Entries, entries...)
-
-	de = new(directoryBlock.DBEntry)
-	de.ChainID, err = primitives.NewShaHash(answer.AnchorEBlock.GetChainID().Bytes())
-	if err != nil {
-		panic(err)
-	}
-	de.KeyMR = answer.AnchorEBlock.DatabasePrimaryIndex()
-	dbEntries = append(dbEntries, de)
 
 	//ECBlock
 	answer.ECBlock = CreateTestEntryCreditBlock(prev.ECBlock)
-	ecEntries := createECEntriesfromBlocks(answer.FBlock, []*entryBlock.EBlock{answer.EBlock, answer.AnchorEBlock}, height)
-	answer.ECBlock.GetBody().SetEntries(ecEntries)
+	if includeEBlocks {
+		ecEntries := createECEntriesfromBlocks(answer.FBlock, []*entryBlock.EBlock{answer.EBlock, answer.AnchorEBlock}, height)
+		answer.ECBlock.GetBody().SetEntries(ecEntries)
+	} else {
+		ecEntries := createECEntriesfromBlocks(answer.FBlock, nil, height)
+		answer.ECBlock.GetBody().SetEntries(ecEntries)
+	}
 
 	de = new(directoryBlock.DBEntry)
 	de.ChainID, err = primitives.NewShaHash(answer.ECBlock.GetChainID().Bytes())
@@ -449,4 +443,60 @@ func GetTestName() (name string) {
 	}
 
 	return name
+}
+
+func NewTestCommitChainMsg() interfaces.IMsg {
+	msg := new(messages.CommitChainMsg)
+	msg.CommitChain = NewTestCommitChain()
+	return msg
+}
+
+func NewTestCommitChain() *entryCreditBlock.CommitChain {
+	commitChain := entryCreditBlock.NewCommitChain()
+	commitChain.ChainIDHash.SetBytes([]byte(""))
+	commitChain.ECPubKey = new(primitives.ByteSlice32)
+	commitChain.Sig = new(primitives.ByteSlice64)
+	commitChain.Weld.SetBytes([]byte("1"))
+	return commitChain
+}
+
+func NewTestCommitEntryMsg() interfaces.IMsg {
+	msg := messages.NewCommitEntryMsg()
+	msg.CommitEntry = NewTestCommitEntry()
+	return msg
+}
+
+func NewTestCommitEntry() *entryCreditBlock.CommitEntry {
+	commitEntry := entryCreditBlock.NewCommitEntry()
+	commitEntry.Init()
+	commitEntry.EntryHash = commitEntry.Hash()
+	return commitEntry
+}
+
+func NewTestEntryRevealMsg() interfaces.IMsg {
+	msg := messages.NewRevealEntryMsg()
+	msg.Entry = simulation.RandomEntry()
+	msg.Timestamp = primitives.NewTimestampNow()
+	return msg
+}
+
+func NewTestEntryReveal() interfaces.IEntry {
+	return simulation.RandomEntry()
+}
+
+func NewTestDirectoryBlockStateMsg() interfaces.IDBState {
+	set := CreateTestBlockSet(nil)
+	set = CreateTestBlockSet(set)
+
+	msg := new(state.DBState)
+	msg.DirectoryBlock = set.DBlock
+	msg.AdminBlock = set.ABlock
+	msg.FactoidBlock = set.FBlock
+	msg.EntryCreditBlock = set.ECBlock
+
+	return msg
+}
+
+func NewTestDirectoryBlockInfo() interfaces.IDirBlockInfo {
+	return CreateTestDirBlockInfo(&dbInfo.DirBlockInfo{DBHeight: 910})
 }

@@ -9,7 +9,7 @@ package state_test
 
 //"time"
 
-//"github.com/FactomProject/factomd/common/messages"
+//"github.com/FactomProject/factomd/common/inMessages"
 
 //. "github.com/FactomProject/factomd/state"
 

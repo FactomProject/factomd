@@ -43,7 +43,7 @@ func (list *DBStateList) Catchup() {
 
 	factomSecond := list.State.FactomSecond()
 
-	requestTimeout := time.Duration(list.State.RequestTimeout) * factomSecond
+	requestTimeout := time.Duration(list.State.RequestTimeout.Seconds()) * factomSecond
 	requestLimit := list.State.RequestLimit
 
 	// Wait for db to be loaded
@@ -173,7 +173,7 @@ func (list *DBStateList) Catchup() {
 				list.State.LogPrintf("dbstatecatchup", "{hf (%d, %d)} notify missing %d [%t]", hk, max, n, r)
 			}
 
-			list.State.LogPrintf("dbstatecatchup", "height update took %s. Base:%d/%d/%d, Miss[v%d, ^_, T%d], Wait [v_, ^%d, T%d], Rec[v%d, ^%d, T%d]",
+			list.State.LogPrintf("dbstatecatchup", "height update took %s. SubBase:%d/%d/%d, Miss[v%d, ^_, T%d], Wait [v_, ^%d, T%d], Rec[v%d, ^%d, T%d]",
 				time.Since(start),
 				received.Base(), hs, list.State.GetDBHeightAtBoot(),
 				getHeightSafe(missing.GetFront()), missing.Len(),
@@ -247,7 +247,7 @@ func (list *DBStateList) Catchup() {
 				msg.SendOut(list.State, msg)
 				list.State.DBStateAskCnt += 1 // Total number of dbstates requests
 				for i := b; i <= e; i++ {
-					list.State.LogPrintf("dbstatecatchup", "\tdbstate requested : missing -> waiting %d", i)
+					list.State.LogPrintf("dbstatecatchup", "dbstate requested : missing -> waiting %d", i)
 					missing.LockAndDelete(i)
 					waiting.Add(i)
 				}
@@ -605,7 +605,7 @@ func NewStatesReceived() *StatesReceived {
 	return l
 }
 
-// Base returns the base height of the StatesReceived list
+// SubBase returns the base height of the StatesReceived list
 func (l *StatesReceived) Base() uint32 {
 	return l.base
 }

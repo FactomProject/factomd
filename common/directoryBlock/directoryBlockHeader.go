@@ -285,7 +285,7 @@ func (b *DBlockHeader) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 
 	if b.BlockCount > 100000 {
-		panic("Receive: Blockcount too great in directory block" + fmt.Sprintf(":::: %d", b.BlockCount))
+		panic("Read: Blockcount too great in directory block" + fmt.Sprintf(":::: %d", b.BlockCount))
 	}
 
 	return buf.DeepCopyBytes(), nil

@@ -11,7 +11,7 @@ func (db *Overlay) SaveIncludedIn(entry, block interfaces.IHash) error {
 	}
 	batch := []interfaces.Record{}
 
-	batch = append(batch, interfaces.Record{INCLUDED_IN, entry.Bytes(), block})
+	batch = append(batch, interfaces.Record{Bucket: INCLUDED_IN, Key: entry.Bytes(), Data: block})
 
 	err := db.DB.PutInBatch(batch)
 	if err != nil {
@@ -56,7 +56,7 @@ func (db *Overlay) SaveIncludedInMultiMultiBatch(entries []interfaces.IHash, blo
 				continue
 			}
 		}
-		batch = append(batch, interfaces.Record{INCLUDED_IN, entry.Bytes(), block})
+		batch = append(batch, interfaces.Record{Bucket: INCLUDED_IN, Key: entry.Bytes(), Data: block})
 	}
 
 	db.PutInMultiBatch(batch)
@@ -80,7 +80,7 @@ func (db *Overlay) SaveIncludedInMulti(entries []interfaces.IHash, block interfa
 				continue
 			}
 		}
-		batch = append(batch, interfaces.Record{INCLUDED_IN, entry.Bytes(), block})
+		batch = append(batch, interfaces.Record{Bucket: INCLUDED_IN, Key: entry.Bytes(), Data: block})
 	}
 
 	err := db.DB.PutInBatch(batch)

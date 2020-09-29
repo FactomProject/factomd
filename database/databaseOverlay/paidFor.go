@@ -13,7 +13,7 @@ func (db *Overlay) SavePaidFor(entry, ecEntry interfaces.IHash) error {
 	}
 	batch := []interfaces.Record{}
 
-	batch = append(batch, interfaces.Record{PAID_FOR, entry.Bytes(), ecEntry})
+	batch = append(batch, interfaces.Record{Bucket: PAID_FOR, Key: entry.Bytes(), Data: ecEntry})
 
 	err := db.DB.PutInBatch(batch)
 	if err != nil {
@@ -51,7 +51,7 @@ func (db *Overlay) SavePaidForMultiFromBlockMultiBatch(block interfaces.IEntryCr
 				continue
 			}
 		}
-		batch = append(batch, interfaces.Record{PAID_FOR, entryHash.Bytes(), entry.GetSigHash()})
+		batch = append(batch, interfaces.Record{Bucket: PAID_FOR, Key: entryHash.Bytes(), Data: entry.GetSigHash()})
 	}
 	if len(batch) == 0 {
 		return nil
@@ -90,7 +90,7 @@ func (db *Overlay) SavePaidForMultiFromBlock(block interfaces.IEntryCreditBlock,
 				continue
 			}
 		}
-		batch = append(batch, interfaces.Record{PAID_FOR, entryHash.Bytes(), entry.Hash()})
+		batch = append(batch, interfaces.Record{Bucket: PAID_FOR, Key: entryHash.Bytes(), Data: entry.Hash()})
 	}
 	if len(batch) == 0 {
 		return nil

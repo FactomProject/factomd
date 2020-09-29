@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"testing"
 
+	simulation2 "github.com/FactomProject/factomd/testHelper/simulation"
+
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/simulation"
 	. "github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util"
 	"github.com/stretchr/testify/assert"
@@ -143,7 +145,7 @@ func TestFeeTxnCreate(t *testing.T) {
 	outAddress := "FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u"
 
 	for i := 0; i < 10; i++ {
-		txn, _ := engine.NewTransaction(balance, inUser, outAddress, ecPrice)
+		txn, _ := simulation.NewTransaction(balance, inUser, outAddress, ecPrice)
 		fee, _ := txn.CalculateFee(ecPrice)
 		balance = balance - fee
 		assert.Equal(t, 12*ecPrice, fee)
@@ -158,7 +160,7 @@ func TestTxnCreate(t *testing.T) {
 	//outUser := "Fs2GCfAa2HBKaGEUWCtw8eGDkN1CfyS6HhdgLv8783shkrCgvcpJ" // FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u
 	outAddress := "FA2s2SJ5Cxmv4MzpbGxVS9zbNCjpNRJoTX4Vy7EZaTwLq3YTur4u"
 
-	txn, err := engine.NewTransaction(amt, inUser, outAddress, ecPrice)
+	txn, err := simulation.NewTransaction(amt, inUser, outAddress, ecPrice)
 	assert.Nil(t, err)
 
 	err = txn.ValidateSignatures()
@@ -195,7 +197,7 @@ func TestCommitEntry(t *testing.T) {
 		Content: encode("Hello World!"),
 	}
 
-	commit, _ := ComposeCommitEntryMsg(pkey, e)
+	commit, _ := simulation2.ComposeCommitEntryMsg(pkey, e)
 
 	assert.True(t, commit.CommitEntry.IsValid())
 	assert.True(t, commit.IsValid())
@@ -217,7 +219,7 @@ func TestRevealEntry(t *testing.T) {
 		Content: encode("Hello World!"),
 	}
 
-	reveal, err := ComposeRevealEntryMsg(pkey, &e)
+	reveal, err := simulation2.ComposeRevealEntryMsg(pkey, &e)
 	assert.Nil(t, err)
 	assert.True(t, reveal.IsValid())
 	//println(reveal.String())
@@ -226,12 +228,12 @@ func TestRevealEntry(t *testing.T) {
 
 func TestAccountHelper(t *testing.T) {
 	fctS := "Fs1d5u3kambHECzarPsXWQTtYyf7womvg9u6kmFDm8F9cv5bSysh"
-	a := AccountFromFctSecret(fctS)
+	a := simulation2.AccountFromFctSecret(fctS)
 	assert.Equal(t, a.FctPriv(), fctS)
 }
 
 func TestChainCommit(t *testing.T) {
-	b := GetBankAccount()
+	b := simulation2.GetBankAccount()
 	id := "92475004e70f41b94750f4a77bf7b430551113b25d3d57169eadca5692bb043d"
 	extids := [][]byte{encode("foo"), encode("bar")}
 
@@ -239,7 +241,7 @@ func TestChainCommit(t *testing.T) {
 	c := factom.NewChain(&e)
 	assert.Equal(t, c.ChainID, id)
 
-	m, err := ComposeChainCommit(b.Priv, c)
+	m, err := simulation2.ComposeChainCommit(b.Priv, c)
 
 	assert.Nil(t, err)
 	assert.True(t, m.CommitChain.IsValid())
@@ -256,10 +258,10 @@ func TestGetName(t *testing.T) {
 }
 
 func TestResetFactomHome(t *testing.T) {
-	s := GetSimTestHome(t)
+	s := simulation2.GetSimTestHome(t)
 	t.Logf("simhome: %v", s)
 
-	h := ResetSimHome(t)
+	h := simulation2.ResetSimHome(t)
 
 	t.Logf("reset home: %v", h)
 	t.Logf("util home: %v", util.GetHomeDir())

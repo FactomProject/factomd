@@ -2,6 +2,7 @@ package electionMsgTesting
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/testHelper"
 	"reflect"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -12,7 +13,6 @@ import (
 	"github.com/FactomProject/factomd/electionsCore/election"
 	priminterpreter "github.com/FactomProject/factomd/electionsCore/interpreter/primitives"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/testHelper"
 )
 
 var _ = fmt.Println
@@ -48,7 +48,8 @@ func NewController(feds, auds int) *Controller {
 	c.Elections = make([]*elections.Elections, len(c.feds))
 
 	for i := range c.feds {
-		e := new(elections.Elections)
+		st := testHelper.CreateAndPopulateTestStateAndStartValidator()
+		e := elections.New(st)
 		s := state.Server{}
 		s.ChainID, _ = primitives.HexToHash("888888" + fmt.Sprintf("%058d", i))
 		e.FedID = s.ChainID
@@ -56,7 +57,6 @@ func NewController(feds, auds int) *Controller {
 		s.Online = true
 
 		c.feds[i] = &s
-		e.State = testHelper.CreateAndPopulateTestStateAndStartValidator()
 		e.State.SetIdentityChainID(s.ChainID)
 		c.Elections[i] = e
 	}
@@ -100,7 +100,7 @@ func NewController(feds, auds int) *Controller {
 
 	c.Volunteers = make([]*electionMsgs.FedVoteVolunteerMsg, len(c.auds))
 
-	for i, _ := range c.auds {
+	for i := range c.auds {
 		c.Volunteers[i] = NewTestVolunteerMessage(c.Elections[0], 2, 0)
 	}
 

@@ -67,14 +67,14 @@ type SaveState struct {
 
 	Newblk  bool // True if we are starting a new block, and a dbsig is needed.
 	Saving  bool // True if we are in the process of saving to the database
-	Syncing bool // Looking for messages from leaders to sync
+	Syncing bool // Looking for inMessages from leaders to sync
 
 	//	Replay *Replay
 
 	LeaderTimestamp interfaces.Timestamp
 
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
-	XReview []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	XReview []interfaces.IMsg            // After the EOM, we must review the inMessages in Holding
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgements
 	Commits *SafeMsgMap                  // map[[32]byte]interfaces.IMsg // Commit Messages
 
@@ -84,18 +84,6 @@ type SaveState struct {
 	EntryBlockDBHeightComplete uint32
 	// DBlock Height at which we have started asking for entry blocks
 	EntryBlockDBHeightProcessing uint32
-	// Entry Blocks we don't have that we are asking our neighbors for
-	MissingEntryBlocks []MissingEntryBlock
-
-	// DBlock Height at which node has a complete set of eblocks+entries
-	EntryDBHeightComplete uint32
-	// Height in the DBlock where we have all the entries
-	EntryHeightComplete int
-	// DBlock Height at which we have started asking for or have all entries
-	EntryDBHeightProcessing uint32
-	// Height in the Directory Block where we have
-	// Entries we don't have that we are asking our neighbors for
-	MissingEntries []MissingEntry
 
 	// FER section
 	FactoshisPerEC                 uint64
@@ -270,15 +258,6 @@ func (a *SaveState) IsSameAs(b *SaveState) bool {
 	}
 	//MissingEntryBlocks []MissingEntryBlock
 
-	if a.EntryDBHeightComplete != b.EntryDBHeightComplete {
-		return false
-	}
-	if a.EntryHeightComplete != b.EntryHeightComplete {
-		return false
-	}
-	if a.EntryDBHeightProcessing != b.EntryDBHeightProcessing {
-		return false
-	}
 	//MissingEntries []MissingEntry
 
 	if a.FactoshisPerEC != b.FactoshisPerEC {
@@ -432,71 +411,72 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		atomic.WhereAmIMsg("no identity manager")
 	}
 
+	ss.EntryBlockDBHeightComplete = state.EntryBlockDBHeightComplete
+	// don't save processing
+
 	return ss
 }
 
 func (ss *SaveState) TrimBack(s *State, d *DBState) {
-	return
-	pdbstate := d
-	d = s.DBStates.Get(int(ss.DBHeight + 1))
-	if pdbstate == nil {
-		return
-	}
-	// Don't do anything until we are within the current day
-	if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 144 {
-		return
-	}
+	// pdbstate := d
+	// d = s.DBStates.Get(int(ss.DBHeight + 1))
+	// if pdbstate == nil {
+	// 	return
+	// }
+	// // Don't do anything until we are within the current day
+	// if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 144 {
+	// 	return
+	// }
 
-	pss := pdbstate.SaveStruct
-	if pss == nil {
-		return
-	}
-	ppl := s.ProcessLists.Get(ss.DBHeight)
-	if ppl == nil {
-		return
-	}
-	pl := s.ProcessLists.Get(ss.DBHeight + 1)
-	if pl == nil {
-		return
-	}
+	// pss := pdbstate.SaveStruct
+	// if pss == nil {
+	// 	return
+	// }
+	// ppl := s.ProcessLists.Get(ss.DBHeight)
+	// if ppl == nil {
+	// 	return
+	// }
+	// pl := s.ProcessLists.Get(ss.DBHeight + 1)
+	// if pl == nil {
+	// 	return
+	// }
 
-	for _, vm := range pl.VMs {
-		vm.LeaderMinute = 0
-		if vm.Height > 0 {
-			vm.Signed = true
-			vm.Synced = true
-			vm.Height = 0
-			vm.List = vm.List[:0]
-			vm.ListAck = vm.ListAck[:0]
-		} else {
-			vm.Signed = false
-			vm.Synced = false
-			vm.List = vm.List[:0]
-			vm.ListAck = vm.ListAck[:0]
-		}
-	}
+	// for _, vm := range pl.VMs {
+	// 	vm.LeaderMinute = 0
+	// 	if vm.Height > 0 {
+	// 		vm.Signed = true
+	// 		vm.Synced = true
+	// 		vm.Height = 0
+	// 		vm.List = vm.List[:0]
+	// 		vm.ListAck = vm.ListAck[:0]
+	// 	} else {
+	// 		vm.Signed = false
+	// 		vm.Synced = false
+	// 		vm.List = vm.List[:0]
+	// 		vm.ListAck = vm.ListAck[:0]
+	// 	}
+	// }
 
-	ss.EOMsyncing = s.EOMsyncing
+	// ss.EOMsyncing = s.EOMsyncing
 
-	s.EOM = pss.EOM
-	s.EOMLimit = pss.EOMLimit
-	s.EOMProcessed = pss.EOMProcessed
-	s.EOMDone = pss.EOMDone
-	s.EOMMinute = pss.EOMMinute
-	s.EOMSys = pss.EOMSys
-	s.DBSig = pss.DBSig
-	s.DBSigLimit = pss.DBSigLimit
-	s.DBSigProcessed = pss.DBSigProcessed
-	s.DBSigDone = pss.DBSigDone
-	s.DBSigSys = pss.DBSigSys
-	s.Saving = pss.Saving
-	s.Syncing = pss.Syncing
+	// s.EOM = pss.EOM
+	// s.EOMLimit = pss.EOMLimit
+	// s.EOMProcessed = pss.EOMProcessed
+	// s.EOMDone = pss.EOMDone
+	// s.EOMMinute = pss.EOMMinute
+	// s.EOMSys = pss.EOMSys
+	// s.DBSig = pss.DBSig
+	// s.DBSigLimit = pss.DBSigLimit
+	// s.DBSigProcessed = pss.DBSigProcessed
+	// s.DBSigDone = pss.DBSigDone
+	// s.DBSigSys = pss.DBSigSys
+	// s.Saving = pss.Saving
+	// s.Syncing = pss.Syncing
 
 	//s.Replay = pss.Replay.Save()
 	//s.Replay.s = s
 	//s.Replay.name = "Replay"
 
-	return
 	/*
 		pl.FedServers = append(pl.FedServers[0:], ppl.FedServers...)
 		pl.AuditServers = append(pl.AuditServers[0:], ppl.AuditServers...)
@@ -881,7 +861,7 @@ func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
 	}
 	/*
 		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
-		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+		XReview []interfaces.IMsg              // After the EOM, we must review the inMessages in Holding
 		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgements
 		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
 
@@ -892,44 +872,40 @@ func (ss *SaveState) MarshalBinary() (rval []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushUInt32(ss.EntryBlockDBHeightProcessing)
+
+	// formerly EntryBlockDBHeightProcessing, deprecated
+	err = buf.PushUInt32(0)
 	if err != nil {
 		return nil, err
 	}
-	l = len(ss.MissingEntryBlocks)
-	err = buf.PushVarInt(uint64(l))
+	// formerly len(MissingEntryBlocks), deprecated
+	err = buf.PushVarInt(0)
 	if err != nil {
 		return nil, err
-	}
-	for _, v := range ss.MissingEntryBlocks {
-		err = buf.PushBinaryMarshallable(&v)
-		if err != nil {
-			return nil, err
-		}
 	}
 
-	err = buf.PushUInt32(ss.EntryDBHeightComplete)
+	// formerly EntryDBHeightComplete, deprecated
+	err = buf.PushUInt32(0)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushVarInt(uint64(ss.EntryHeightComplete))
+
+	// formerly EntryHeightComplete, deprecated
+	err = buf.PushVarInt(0)
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushUInt32(ss.EntryDBHeightProcessing)
+
+	// formerly EntryDBHeightProcessing, deprecated
+	err = buf.PushUInt32(0)
 	if err != nil {
 		return nil, err
 	}
-	l = len(ss.MissingEntries)
-	err = buf.PushVarInt(uint64(l))
+
+	// formerly len(MissingEntries), deprecated
+	err = buf.PushVarInt(0)
 	if err != nil {
 		return nil, err
-	}
-	for _, v := range ss.MissingEntries {
-		err = buf.PushBinaryMarshallable(&v)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	err = buf.PushVarInt(ss.FactoshisPerEC)
@@ -1144,7 +1120,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 
 	/*
 		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
-		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+		XReview []interfaces.IMsg              // After the EOM, we must review the inMessages in Holding
 		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgements
 		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
 
@@ -1160,6 +1136,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
+	// deprecated
 	l, err = buf.PopVarInt()
 	if err != nil {
 		return
@@ -1170,25 +1147,27 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		if err != nil {
 			return
 		}
-		ss.MissingEntryBlocks = append(ss.MissingEntryBlocks, *s)
 	}
 
-	ss.EntryDBHeightComplete, err = buf.PopUInt32()
+	// formerly EntryDBHeightComplete, deprecated
+	_, err = buf.PopUInt32()
 	if err != nil {
 		return
 	}
 
-	l, err = buf.PopVarInt()
-	if err != nil {
-		return
-	}
-	ss.EntryHeightComplete = int(l)
-
-	ss.EntryDBHeightProcessing, err = buf.PopUInt32()
+	// formerly EntryHeightComplete, deprecated
+	_, err = buf.PopVarInt()
 	if err != nil {
 		return
 	}
 
+	// formerly EntryDBHeightProcessing, deprecated
+	_, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	// deprecated
 	l, err = buf.PopVarInt()
 	if err != nil {
 		return
@@ -1199,7 +1178,6 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		if err != nil {
 			return
 		}
-		ss.MissingEntries = append(ss.MissingEntries, *s)
 	}
 
 	ss.FactoshisPerEC, err = buf.PopVarInt()

@@ -2,11 +2,16 @@ package elections
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
+	"github.com/FactomProject/factomd/modules/query"
+	"github.com/FactomProject/factomd/modules/worker"
+	"github.com/FactomProject/factomd/queue"
+
+	"github.com/FactomProject/factomd/common"
 	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util/atomic"
@@ -25,8 +30,10 @@ type FaultId struct {
 }
 
 type Elections struct {
-	FedID     interfaces.IHash
-	Name      string
+	common.Name
+
+	FedID interfaces.IHash
+	//	Name      string
 	Sync      []bool // List of servers that have Synced
 	Federated []interfaces.IServer
 	Audit     []interfaces.IServer
@@ -59,6 +66,24 @@ type Elections struct {
 
 	// Messages that are not valid. They can be processed when an election finishes
 	Waiting chan interfaces.IElectionMsg
+	exit    chan interface{}
+}
+
+func New(is interfaces.IState) *Elections {
+	e := new(Elections)
+	s := is.(*state.State)
+	e.NameInit(s, s.GetFactomNodeName()+"Election", reflect.TypeOf(e).String())
+	query.Module(s.GetFactomNodeName()).Election = e
+	e.State = s
+	e.Electing = -1
+	e.Timeout = time.Duration(FaultTimeout) * time.Second
+	e.RoundTimeout = time.Duration(RoundTimeout) * time.Second
+	s.Elections = e // inject reference from state
+	e.Input = s.ElectionsQueue()
+	e.Waiting = make(chan interfaces.IElectionMsg, 500)
+	e.exit = make(chan interface{})
+
+	return e
 }
 
 func (e *Elections) GetFedID() interfaces.IHash {
@@ -217,7 +242,7 @@ func (e *Elections) FeedBackStr(v string, fed bool, index int) string {
 }
 
 func (e *Elections) String() string {
-	str := fmt.Sprintf("eee %10s %s  dbht %d\n", e.State.GetFactomNodeName(), e.Name, e.DBHeight)
+	str := fmt.Sprintf("eee %10s %s  dbht %d\n", e.State.GetFactomNodeName(), e.Name.String(), e.DBHeight)
 	str += fmt.Sprintf("eee %10s  %s\n", e.State.GetFactomNodeName(), "Federated Servers")
 	for _, s := range e.Federated {
 		str += fmt.Sprintf("eee %10s     %x\n", e.State.GetFactomNodeName(), s.GetChainID().Bytes())
@@ -301,23 +326,8 @@ func (e *Elections) debugExec() (ret bool) {
 	return globals.Params.DebugLogRegEx != ""
 }
 
-func (e *Elections) LogMessage(logName string, comment string, msg interfaces.IMsg) {
-	s := e.State.(*state.State)
-	if e.debugExec() {
-		logFileName := s.FactomNodeName + "_" + logName + ".txt"
-		var t string
-		if s.LeaderPL != nil {
-			t = fmt.Sprintf("%d-:-%d ", s.LeaderPL.DBHeight, s.CurrentMinute)
-		} else {
-			t = "--:--"
-		}
-
-		messages.LogMessage(logFileName, t+comment, msg)
-	}
-}
-
 func (e *Elections) LogPrintLeaders(log string) {
-	e.LogPrintf(log, "%20s | %20s", "Fed", "Aud")
+	e.LogPrintf(log, "%6s | %6s", "Fed", "Aud")
 	limit := len(e.Federated)
 	if limit < len(e.Audit) {
 		limit = len(e.Audit)
@@ -326,12 +336,12 @@ func (e *Elections) LogPrintLeaders(log string) {
 		f := ""
 		a := ""
 		if i < len(e.Federated) {
-			f = fmt.Sprintf("%x", e.Federated[i].GetChainID().Bytes()[3:6])
+			f = fmt.Sprintf("%6x", e.Federated[i].GetChainID().Bytes()[3:6])
 		}
 		if i < len(e.Audit) {
-			a = fmt.Sprintf("%x", e.Audit[i].GetChainID().Bytes()[3:6])
+			a = fmt.Sprintf("%6x", e.Audit[i].GetChainID().Bytes()[3:6])
 		}
-		e.LogPrintf(log, "%s | %s", f, a)
+		e.LogPrintf(log, "%6s | %6s", f, a)
 	}
 
 }
@@ -339,13 +349,14 @@ func (e *Elections) LogPrintLeaders(log string) {
 func (e *Elections) LogPrintf(logName string, format string, more ...interface{}) {
 	s := e.State.(*state.State)
 	if e.debugExec() {
-		logFileName := s.FactomNodeName + "_" + logName + ".txt"
-		h := 0
-		if s.LeaderPL != nil {
-			h = int(s.LeaderPL.DBHeight)
-		}
-		t := fmt.Sprintf("%d-:-%d ", h, s.CurrentMinute)
-		messages.LogPrintf(logFileName, t+format, more...)
+		s.LogPrintf(logName, format, more...)
+	}
+}
+
+func (e *Elections) LogMessage(logName string, comment string, msg interfaces.IMsg) {
+	s := e.State.(*state.State)
+	if e.debugExec() {
+		s.LogMessage(logName, comment, msg)
 	}
 }
 
@@ -371,7 +382,7 @@ func CheckAuthSetsMatch(caller string, e *Elections, s *state.State) {
 		s.LogPrintf("executeMsg", caller+":"+format, more...)
 	}
 
-	var dummy state.Server = state.Server{primitives.ZeroHash, "dummy", false, primitives.ZeroHash}
+	var dummy state.Server = state.Server{ChainID: primitives.ZeroHash, Name: "dummy", Online: false, Replace: primitives.ZeroHash}
 
 	// Force the lists to be the same size by adding Dummy
 	for len(s_fservers) > len(e_fservers) {
@@ -473,41 +484,41 @@ func (e *Elections) ProcessWaiting() {
 }
 
 // Runs the main loop for elections for this instance of factomd
-func Run(s *state.State) {
-	e := new(Elections)
-	s.Elections = e
-	e.State = s
-	e.Name = s.FactomNodeName
-	e.Input = s.ElectionsQueue()
-	e.Electing = -1
+func Run(w *worker.Thread, s *state.State) {
+	e := New(s)
 
-	e.Timeout = time.Duration(FaultTimeout) * time.Second
-	e.RoundTimeout = time.Duration(RoundTimeout) * time.Second
-	e.Waiting = make(chan interfaces.IElectionMsg, 500)
+	w.Spawn("Elections", func(w *worker.Thread) {
+		w.OnExit(func() {
+			close(e.exit)
+		})
+		w.OnRun(func() {
+			var msg interfaces.IElectionMsg
+			msgIn := e.Input.(*queue.MsgQueue).Channel
 
-	// Actually run the elections
-	for {
-		msg := e.Input.BlockingDequeue().(interfaces.IElectionMsg)
-		e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
+			for {
+				select {
+				case <-e.exit:
+					return
+				case v := <-msgIn:
+					msg = v.(interfaces.IElectionMsg)
+					e.LogMessage("election", fmt.Sprintf("exec %d", e.Electing), msg.(interfaces.IMsg))
+				}
 
-		valid := msg.ElectionValidate(e)
-		switch valid {
-		case -1:
-			// Do not process
-			continue
-		case 0:
-			// Drop the oldest message if at capacity
-			if len(e.Waiting) > 9*cap(e.Waiting)/10 {
-				<-e.Waiting
+				switch valid := msg.ElectionValidate(e); valid {
+				case -1:
+					// Do not process
+					continue
+				case 0:
+					// Drop the oldest message if at capacity
+					if len(e.Waiting) > 9*cap(e.Waiting)/10 {
+						<-e.Waiting
+					}
+					e.Waiting <- msg // Waiting will get drained when a new election begins, or we move forward
+					continue
+				}
+				msg.ElectionProcess(s, e)
 			}
-			// Waiting will get drained when a new election begins, or we move forward
-			e.Waiting <- msg
-			continue
-		}
-		msg.ElectionProcess(s, e)
+		})
 
-		//if msg.(interfaces.IMsg).Type() != constants.INTERNALEOMSIG { // If it's not an EOM check the authority set
-		//	CheckAuthSetsMatch("election.Run", e, s)
-		//}
-	}
+	})
 }

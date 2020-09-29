@@ -48,39 +48,39 @@ func (m *SyncMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElecti
 var _ interfaces.IMsg = (*SyncMsg)(nil)
 var _ interfaces.IElectionMsg = (*SyncMsg)(nil)
 
-func (a *SyncMsg) IsSameAs(msg interfaces.IMsg) bool {
+func (m *SyncMsg) IsSameAs(msg interfaces.IMsg) bool {
 	b, ok := msg.(*SyncMsg)
 	if !ok {
 		return false
 	}
-	if a.TS.GetTimeMilli() != b.TS.GetTimeMilli() {
+	if m.TS.GetTimeMilli() != b.TS.GetTimeMilli() {
 		return false
 	}
-	if a.Name != b.Name {
+	if m.Name != b.Name {
 		return false
 	}
-	if a.SigType != b.SigType {
+	if m.SigType != b.SigType {
 		return false
 	}
-	if a.ServerIdx != b.ServerIdx {
+	if m.ServerIdx != b.ServerIdx {
 		return false
 	}
-	if a.ServerID.Fixed() != b.ServerID.Fixed() {
+	if m.ServerID.Fixed() != b.ServerID.Fixed() {
 		return false
 	}
-	if a.Weight.Fixed() != b.Weight.Fixed() {
+	if m.Weight.Fixed() != b.Weight.Fixed() {
 		return false
 	}
-	if a.DBHeight != b.DBHeight {
+	if m.DBHeight != b.DBHeight {
 		return false
 	}
-	if a.VMIndex != b.VMIndex {
+	if m.VMIndex != b.VMIndex {
 		return false
 	}
-	if a.Round != b.Round {
+	if m.Round != b.Round {
 		return false
 	}
-	if a.Minute != b.Minute {
+	if m.Minute != b.Minute {
 		return false
 	}
 	return true
@@ -128,6 +128,11 @@ func (m *SyncMsg) GetMsgHash() (rval interfaces.IHash) {
 
 func (m *SyncMsg) Type() byte {
 	return constants.SYNC_MSG
+}
+
+func (m *SyncMsg) WellFormed() bool {
+	// TODO: Flush this out
+	return true
 }
 
 func (m *SyncMsg) Validate(state interfaces.IState) int {
@@ -199,16 +204,16 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *SyncMsg) Process(dbheight uint32, state interfaces.IState) bool {
+func (m *SyncMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *SyncMsg) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *SyncMsg) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *SyncMsg) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *SyncMsg) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
 func (m *SyncMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -274,4 +279,8 @@ func (m *SyncMsg) String() string {
 		m.Round,
 		m.DBHeight,
 		m.Minute)
+}
+
+func (m *SyncMsg) Label() string {
+	return msgbase.GetLabel(m)
 }

@@ -1,4 +1,13 @@
-#!/usr/bin/env bash
+f#!/usr/bin/env bash
+
+# mmr2.sh <node> 
+
+if [ "$#" -gt 1  ]; then
+    echo "mmr2.sh <node> "
+fi
+fnode=$1
+shift
+
 ################################
 # AWK scripts                  #
 ################################
@@ -162,5 +171,5 @@ EOF
 ################################
 
  
-(grep -hE "Send.*:MissingMsg " $1_networkoutputs.txt; grep -hE "enqueue.*:MissingMsgResponse" $1_networkinputs.txt) | sort -n | awk "$scriptVariable"
+(grep -hE "Send.*:MissingMsg " ${fnode:-fnode0}_networkoutputs.txt; grep -hE "enqueue.*:MissingMsgResponse" ${fnode:-fnode0}_networkinputs.txt) | sort -n | awk "$scriptVariable"
 

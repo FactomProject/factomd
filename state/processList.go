@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -21,9 +19,9 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/modules/events/eventmessages/generated/eventmessages"
+	"github.com/FactomProject/factomd/modules/internalevents"
 	"github.com/FactomProject/factomd/util/atomic"
-
-	//"github.com/FactomProject/factomd/database/databaseOverlay"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -31,7 +29,8 @@ import (
 var _ = fmt.Print
 var _ = log.Print
 
-var plLogger = packageLogger.WithFields(log.Fields{"subpack": "process-list"})
+//
+//var plLogger = packageLogger.WithFields(log.Fields{"subpack": "process-list"})
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
@@ -45,11 +44,11 @@ type ProcessList struct {
 	State        *State
 	VMs          []*VM       // Process list for each server (up to 32)
 	ServerMap    [10][64]int // Map of FedServers to all Servers for each minute
-	System       VM          // System Faults and other system wide messages
+	System       VM          // System Faults and other system wide inMessages
 	diffSigTally int         /* Tally of how many VMs have provided different
 		                    					             Directory Block Signatures than what we have
 	                                            (discard DBlock if > 1/2 have sig differences) */
-	// messages processed in this list
+	// inMessages processed in this list
 	OldMsgs     map[[32]byte]interfaces.IMsg
 	oldmsgslock sync.Mutex
 
@@ -104,11 +103,11 @@ type DBSig struct {
 }
 
 type VM struct {
-	List            []interfaces.IMsg    // Lists of acknowledged messages
+	List            []interfaces.IMsg    // Lists of acknowledged inMessages
 	ListAck         []*messages.Ack      // Acknowledgements
-	Height          int                  // Height of first unprocessed message (count of messages processed)
+	Height          int                  // Height of first unprocessed message (count of inMessages processed)
 	EomMinuteIssued int                  // Last Minute Issued on this VM (from the leader, when we are the leader)
-	LeaderMinute    int                  // Where the leader is in acknowledging messages
+	LeaderMinute    int                  // Where the leader is in acknowledging inMessages
 	Synced          bool                 // Is this VM synced yet?
 	heartBeat       int64                // Just ping ever so often if we have heard nothing.
 	Signed          bool                 // We have signed the previous block.
@@ -174,10 +173,6 @@ func (p *ProcessList) Complete() bool {
 
 // Returns the Virtual Server index for this hash for the given minute
 func (p *ProcessList) VMIndexFor(hash []byte) int {
-
-	if p == nil || p.State.OneLeader {
-		return 0
-	}
 
 	v := uint64(0)
 	for _, b := range hash {
@@ -360,15 +355,10 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 	return false, -1
 }
 
-// Returns true and the index of this server, or false and the insertion point for this server
-func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
-	if p == nil {
-		return false, 0
-	}
-
+func GetFedServerIndexHash(fedServers []interfaces.IServer, identityChainID interfaces.IHash) (bool, int) {
 	scid := identityChainID.Bytes()
 
-	for i, fs := range p.FedServers {
+	for i, fs := range fedServers {
 		// Find and remove
 		// Check first byte first.
 		chainID := fs.GetChainID().Bytes()
@@ -380,7 +370,16 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 		}
 	}
 
-	return false, len(p.FedServers)
+	return false, len(fedServers)
+}
+
+// Returns true and the index of this server, or false and the insertion point for this server
+func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
+	if p == nil {
+		return false, 0
+	}
+
+	return GetFedServerIndexHash(p.FedServers, identityChainID)
 }
 
 // Returns true and the index of this server, or false and the insertion point for this server
@@ -708,7 +707,7 @@ func (p *ProcessList) TrimVMList(h uint32, vmIndex int) {
 			p.State.LogPrintf("processList", "Attempt to trim higher than processed list=%d p=%d h=%d", len(p.VMs[vmIndex].List), p.VMs[vmIndex].Height, height)
 			return
 		}
-		p.State.LogPrintf("processList", "TrimVMList() %d/%d/%d, trimmed %d", p.DBHeight, vmIndex, height, len(p.VMs[vmIndex].List)-height)
+		p.State.LogPrintf("processList", "TrimVMList() %7d/%02d/%-5d, trimmed %d", p.DBHeight, vmIndex, height, len(p.VMs[vmIndex].List)-height)
 		p.VMs[vmIndex].List = p.VMs[vmIndex].List[:height]
 		if len(p.VMs[vmIndex].ListAck) > height { // Also trim ListAck
 			p.VMs[vmIndex].ListAck = p.VMs[vmIndex].ListAck[:height]
@@ -813,22 +812,21 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 		if s.EOM || s.DBSig {
 			// means that we are missing an EOM or DBSig
 			vm.ReportMissing(vm.Height, 0) // ask for it now
-		}
-		// If we haven't heard anything from a VM in 2 seconds, ask for a message at the last-known height
-		if now.GetTimeMilli()-vm.ProcessTime.GetTimeMilli() > int64(s.FactomSecond()/time.Millisecond) {
+		} else if now.GetTimeMilli()-vm.ProcessTime.GetTimeMilli() > int64(s.FactomSecond()/time.Millisecond) {
+			// If we haven't heard anything from a VM in 2 seconds, ask for a message at the last-known height
 			vm.ReportMissing(vm.Height, int64(2*s.FactomSecond()/time.Millisecond)) // Ask for one past the end of the list
 		}
 		return false
 	}
 
 	if ValidationDebug {
-		s.LogPrintf("process", "start process for VM %d/%d/%d", vm.p.DBHeight, vm.VmIndex, vm.Height)
-		defer s.LogPrintf("process", "stop  process for VM %d/%d/%d", vm.p.DBHeight, vm.VmIndex, vm.Height)
+		s.LogPrintf("process", "start process for VM %7d/%02d/%d", vm.p.DBHeight, vm.VmIndex, vm.Height)
+		defer s.LogPrintf("process", "stop  process for VM %7d/%02d/%d", vm.p.DBHeight, vm.VmIndex, vm.Height)
 	}
 
 	defer p.UpdateStatus(s) // update the status after each VM
 
-	progress = false // assume we will not process any messages
+	progress = false // assume we will not process any inMessages
 
 	for j := vm.Height; j < len(vm.List); j++ {
 
@@ -860,7 +858,7 @@ func (p *ProcessList) processVM(vm *VM) (progress bool) {
 				p.RemoveFromPL(vm, j, "Error making hash "+err.Error())
 				return progress
 			}
-			s.LogPrintf("serialhashs", "%d/%d/%d\t%x %x", ack.DBHeight, ack.VMIndex, ack.Height, ack.SerialHash.Fixed(), expectedSerialHash.Fixed())
+			s.LogPrintf("serialhashs", "%7d/%02d/%-5d\t%x %x", ack.DBHeight, ack.VMIndex, ack.Height, ack.SerialHash.Fixed(), expectedSerialHash.Fixed())
 
 			// compare the SerialHash of this acknowledgement with the
 			// expected serialHash (generated above)
@@ -946,7 +944,7 @@ func (p *ProcessList) UpdateStatus(s *State) {
 
 }
 
-// Process messages and update our state.
+// Process inMessages and update our state.
 func (p *ProcessList) Process(s *State) (progress bool) {
 	dbht := s.GetHighestSavedBlk()
 	if dbht >= p.DBHeight {
@@ -956,14 +954,14 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 
 	// So here is the deal.  After we have processed a block, we have to allow the DirectoryBlockSignatures a chance to save
 	// to disk.  Then we can insist on having the entry blocks.
-	diff := (int(s.LLeaderHeight)*10 + int(s.CurrentMinute)) - int(s.EntryDBHeightComplete)*10
+	diff := (int(s.LLeaderHeight)*10 + int(s.CurrentMinute)) - int(s.EntryBlockDBHeightComplete)*10
 
 	// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
 	// Until the first couple signatures are processed, we will be 2 behind.
 	//TODO: Why is this in the execution per message per VM when it's global to the processlist -- clay
 	if s.WaitForEntries {
-		s.LogPrintf("processList", "s.WaitForEntries %d-:-%d [%d] > %d + 2", p.DBHeight, s.CurrentMinute, s.EntryDBHeightComplete)
-		return progress // Don't process further in this list, go to the next.
+		s.LogPrintf("processList", "s.WaitForEntries %d-:-%d [%d]", p.DBHeight, s.CurrentMinute, s.EntryBlockDBHeightComplete)
+		return false // Don't process further in this list, go to the next.
 	}
 
 	// If the block is not yet being written to disk (22 minutes old...)
@@ -971,12 +969,12 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 	// this prevent you from becoming a leader when you don't have complete identities
 	if diff > 22 {
 		s.LogPrintf("process", "Waiting on saving")
-		s.LogPrintf("EntrySync", "Waiting on saving EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+		s.LogPrintf("EntrySync", "Waiting on saving EntryBlockDBHeightComplete = %d", s.EntryBlockDBHeightComplete)
 
 		// If we don't have the Entry Blocks (or we haven't processed the signatures) we can't do more.
-		// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, s.EntryDBHeightComplete))
+		// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, s.EntryBlockDBHeightComplete))
 		if extraDebug {
-			p.State.LogPrintf("process", "Waiting on saving blocks to progress complete %d processing %d-:-%d", s.EntryDBHeightComplete, s.LLeaderHeight, s.CurrentMinute)
+			p.State.LogPrintf("process", "Waiting on saving blocks to progress complete %d processing %d-:-%d", s.EntryBlockDBHeightComplete, s.LLeaderHeight, s.CurrentMinute)
 		}
 		return false
 	}
@@ -990,6 +988,10 @@ func (p *ProcessList) Process(s *State) (progress bool) {
 		p := p.processVM(vm)
 		progress = p || progress
 	}
+
+	// publish process list
+	info := &internalevents.ProcessListInfo{ProcessTime: p.State.ProcessTime, Dump: p.String(), PrintMap: p.PrintMap()}
+	p.State.Pub.ProcessListInfo.Write(info)
 	return progress
 }
 
@@ -1144,7 +1146,7 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 		s.adds <- plRef{int(p.DBHeight), ack.VMIndex, int(ack.Height)}
 	}
 
-	s.LogMessage("processList", fmt.Sprintf("Added %d/%d/%d", ack.DBHeight, ack.VMIndex, ack.Height), m)
+	s.LogMessage("processList", fmt.Sprintf("Added %7d/%02d/%-5d", ack.DBHeight, ack.VMIndex, ack.Height), m)
 
 	// If we add the message to the process list, ensure we actually process that
 	// message, so the next msg will be able to added without going into holding.
@@ -1168,7 +1170,10 @@ func (p *ProcessList) AddToProcessList(s *State, ack *messages.Ack, m interfaces
 	// also add the msg and ack to our missing msg request handler
 	s.MissingMessageResponseHandler.NotifyNewMsgPair(ack, m)
 
-	s.EventService.EmitStateChangeEvent(m, eventmessages.EntityState_ACCEPTED)
+	internalevents.EmitEventFromMessage(s, m, internalevents.RequestState_ACCEPTED)
+	if s.EventService != nil {
+		s.EventService.EmitStateChangeEvent(m, eventmessages.EntityState_ACCEPTED)
+	}
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {
@@ -1223,7 +1228,7 @@ func (p *ProcessList) String() string {
 			p.State.DBSig,
 			p.State.EOM,
 			saved,
-			p.State.EntryDBHeightComplete))
+			p.State.EntryBlockDBHeightComplete))
 
 		for i := 0; i < len(p.FedServers); i++ {
 			vm := p.VMs[i]
@@ -1280,7 +1285,7 @@ func (p *ProcessList) String() string {
 // Intended to let a demoted leader come back before the next DB state but interfered with boot under load so disable for now
 // that means demoted leaders are not sane till the next DBState (up to 10 minutes). Maybe revisit after the missing message storms are fixed.
 func (p *ProcessList) Reset() bool {
-	p.State.LogPrintf("processList", "ProcessList.Reset %d minute %s @ %s", p.DBHeight, p.State.CurrentMinute, atomic.WhereAmIString(1))
+	p.State.LogPrintf("processList", "ProcessList.Reset %d minute %v @ %s", p.DBHeight, p.State.CurrentMinute, atomic.WhereAmIString(1))
 
 	return true
 }

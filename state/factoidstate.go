@@ -327,11 +327,11 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 	for _, output := range trans.GetOutputs() {
 		adr := output.GetAddress().Fixed()
 		oldv := fs.State.GetF(rt, adr)
+		fs.State.PutF(rt, adr, oldv+int64(output.GetAmount()))
 
 		//		fs.State.LogPrintf("dependentHolding", "process FCT Deposit %x %s", adr, trans.String())
 		fs.State.ExecuteFromHolding(adr) // Process deposit of FCT
 
-		fs.State.PutF(rt, adr, oldv+int64(output.GetAmount()))
 	}
 	if len(trans.GetECOutputs()) > 0 {
 		//		fs.State.LogPrintf("entrycredits", "At %d process %s", fs.DBHeight, trans.String())

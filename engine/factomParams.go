@@ -5,23 +5,24 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	. "github.com/FactomProject/factomd/common/globals"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
-	"github.com/FactomProject/factomd/p2p"
 )
 
 func init() {
-	p := &Params // Global copy of decoded Params global.Params
+	p := &globals.Params // Global copy of decoded Params global.Params
 
 	flag.StringVar(&p.DebugConsole, "debugconsole", "", "Enable DebugConsole on port. localhost:8093 open 8093 and spawns a telnet console, remotehost:8093 open 8093")
 	flag.StringVar(&p.StdoutLog, "stdoutlog", "", "Log stdout to a file")
@@ -29,7 +30,7 @@ func init() {
 	flag.StringVar(&p.DebugLogRegEx, "debuglog", "", "regex to pick which logs to save")
 	flag.IntVar(&p.FaultTimeout, "faulttimeout", 120, "Seconds before considering Federated servers at-fault. Default is 120.")
 	flag.IntVar(&p.RoundTimeout, "roundtimeout", 30, "Seconds before audit servers will increment rounds and volunteer.")
-	flag.IntVar(&p2p.NumberPeersToBroadcast, "broadcastnum", 16, "Number of peers to broadcast to in the peer to peer networking")
+	//flag.IntVar(&p2p.NumberPeersToBroadcast, "broadcastnum", 16, "Number of peers to broadcast to in the peer to peer networking")
 	flag.IntVar(&p.P2PIncoming, "p2pIncoming", 0, "Override the maximum number of other peers dialing into this node that will be accepted; default 200")
 	flag.IntVar(&p.P2POutgoing, "p2pOutgoing", 0, "Override the maximum number of peers this node will attempt to dial into; default 32")
 	flag.StringVar(&p.ConfigPath, "config", "", "Override the config file location (factomd.conf)")
@@ -43,10 +44,6 @@ func init() {
 	flag.StringVar(&p.Net, "net", "alot+", "The default algorithm to build the network connections")
 	flag.StringVar(&p.Fnet, "fnet", "", "Read the given file to build the network connections")
 	flag.IntVar(&p.DropRate, "drop", 0, "Number of messages to drop out of every thousand")
-	flag.StringVar(&p.Journal, "journal", "", "Rerun a Journal of messages")
-	flag.BoolVar(&p.Journaling, "journaling", false, "Write a journal of all messages received. Default is off.")
-	flag.BoolVar(&p.Follower, "follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
-	flag.BoolVar(&p.Leader, "leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
 	flag.StringVar(&p.Db, "db", "", "Override the Database in the Config file and use this Database implementation. Options Map, LDB, or Bolt")
 	flag.StringVar(&p.CloneDB, "clonedb", "", "Override the main node and use this database for the clones in a Network.")
 	flag.StringVar(&p.NetworkName, "network", "", "Network to join: MAIN, TEST or LOCAL")
@@ -74,14 +71,11 @@ func init() {
 	flag.BoolVar(&p.Fast, "fast", true, "If true, Factomd will fast-boot from a file.")
 	flag.IntVar(&p.FastSaveRate, "fastsaverate", 1000, "Save a fastboot file every so many blocks. Should be > 1000 for live systems.")
 	flag.StringVar(&p.FastLocation, "fastlocation", "", "Directory to put the Fast-boot file in.")
-	flag.StringVar(&p.Loglvl, "loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
+	flag.StringVar(&p.Loglvl, "loglvl", "info", "Set log level to either: none, debug, info, warning, error, fatal or panic")
 	flag.BoolVar(&p.Logjson, "logjson", false, "Use to set logging to use a json formatting")
 	flag.BoolVar(&p.Sim_Stdin, "sim_stdin", true, "If true, sim control reads from stdin.")
 	// Plugins
 	flag.StringVar(&p.PluginPath, "plugin", "", "Input the path to any plugin binaries")
-	// 	Torrent Plugin
-	flag.BoolVar(&p.TorManage, "tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
-	flag.BoolVar(&p.TorUpload, "torupload", false, "Be a torrent uploader")
 	// Logstash connection (if used)
 	flag.BoolVar(&p.UseLogstash, "logstash", false, "If true, use Logstash")
 	flag.StringVar(&p.LogstashURL, "logurl", "localhost:8345", "Endpoint URL for Logstash")
@@ -108,14 +102,31 @@ func init() {
 
 }
 
-func ParseCmdLine(args []string) *FactomParams {
-	p := &Params // Global copy of decoded Params global.Params
+func ParseCmdLine(args []string) *globals.FactomParams {
+	p := &globals.Params // Global copy of decoded Params global.Params
 
 	flag.CommandLine.Parse(args)
 
 	// Handle the global (not Factom server specific parameters
 	if p.StdoutLog != "" || p.StderrLog != "" {
 		handleLogfiles(p.StdoutLog, p.StderrLog)
+	}
+
+	switch strings.ToLower(p.Loglvl) {
+	case "none":
+		log.SetOutput(ioutil.Discard)
+	case "debug":
+		log.SetLevel(log.DebugLevel)
+	case "info":
+		log.SetLevel(log.InfoLevel)
+	case "warning", "warn":
+		log.SetLevel(log.WarnLevel)
+	case "error":
+		log.SetLevel(log.ErrorLevel)
+	case "fatal":
+		log.SetLevel(log.FatalLevel)
+	case "panic":
+		log.SetLevel(log.PanicLevel)
 	}
 
 	fmt.Print("//////////////////////// Copyright 2017 Factom Foundation\n")
@@ -139,11 +150,6 @@ func ParseCmdLine(args []string) *FactomParams {
 		}
 
 	}
-	if !isCompilerVersionOK() {
-		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
-		time.Sleep(3 * time.Second)
-		os.Exit(1)
-	}
 
 	// launch debug console if requested
 	if p.DebugConsole != "" {
@@ -151,39 +157,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	}
 
 	return p
-}
-
-func isCompilerVersionOK() bool {
-	goodenough := false
-
-	if strings.Contains(runtime.Version(), "1.7") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.8") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.9") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.10") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.11") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.12") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.13") {
-		goodenough = true
-	}
-	return goodenough
 }
 
 var handleLogfilesOnce sync.Once

@@ -326,14 +326,6 @@ func TestSaveRestore(t *testing.T) {
 		ss2.EntryBlockDBHeightComplete = v
 	}
 	{
-		v := ss.EntryHeightComplete
-		ss2.EntryHeightComplete = v + 1
-		if ss.IsSameAs(ss2) {
-			t.Error("Note that we should be able to detect changes.")
-		}
-		ss2.EntryHeightComplete = v
-	}
-	{
 		v := ss.DBSigLimit
 		ss2.DBSigLimit = v + 1
 		if ss.IsSameAs(ss2) {

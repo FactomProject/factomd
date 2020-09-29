@@ -52,7 +52,7 @@ func main() {
 	dbo := databaseOverlay.NewOverlay(dbase)
 	err = FixBlockHeads(dbo)
 	if err != nil {
-		fmt.Errorf("ERROR: %v", err)
+		panic(fmt.Errorf("ERROR: %v", err))
 	}
 
 	head, err := dbo.FetchDirectoryBlockHead()
@@ -121,6 +121,4 @@ func FixBlockHeads(dbo *databaseOverlay.Overlay) error {
 			prevs = prevs[1:]
 		}
 	}
-
-	return nil
 }

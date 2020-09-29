@@ -81,7 +81,7 @@ func testFactomSecond(t *testing.T, s *State, blktime int, second time.Duration)
 	s.DirectoryBlockInSeconds = blktime
 	fs := s.FactomSecond()
 	// We set the floor on FactomSeconds at 250ms because as blocks speed up the network and processing delays don't and
-	// we can have storms of messages because the repeat frequency gets too high.
+	// we can have storms of inMessages because the repeat frequency gets too high.
 	if second.Nanoseconds()/1e6 < 250 {
 		second = 250 * time.Millisecond
 	}

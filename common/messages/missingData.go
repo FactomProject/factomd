@@ -30,19 +30,19 @@ type MissingData struct {
 
 var _ interfaces.IMsg = (*MissingData)(nil)
 
-func (a *MissingData) IsSameAs(b *MissingData) bool {
+func (m *MissingData) IsSameAs(b *MissingData) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
+	if m.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
-	if a.RequestHash == nil && b.RequestHash != nil {
+	if m.RequestHash == nil && b.RequestHash != nil {
 		return false
 	}
-	if a.RequestHash != nil {
-		if a.RequestHash.IsSameAs(b.RequestHash) == false {
+	if m.RequestHash != nil {
+		if m.RequestHash.IsSameAs(b.RequestHash) == false {
 			return false
 		}
 	}
@@ -154,6 +154,11 @@ func (m *MissingData) LogFields() log.Fields {
 		"hash": m.GetHash().String(), "requesthash": m.RequestHash.String()}
 }
 
+func (m *MissingData) WellFormed() bool {
+	// TODO: Flush this out
+	return true
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
@@ -170,7 +175,9 @@ func (m *MissingData) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *MissingData) FollowerExecute(state interfaces.IState) {
+	// FIXME: fully replace missing data handling w/ Pub/Sub framework
 	panic("deprecated") // go routine in NetworkProcessorNet now handles this
+	//m.SendResponse(state)
 }
 
 func (m *MissingData) SendResponse(state interfaces.IState) {
@@ -184,8 +191,7 @@ func (m *MissingData) SendResponse(state interfaces.IState) {
 			dataObject = rawObject.(interfaces.IEBEntry)
 			//dataHash = dataObject.(interfaces.IEBEntry).GetHash()
 		case 1: // DataType = eblock
-			dataObject = rawObject.(interfaces.IEntryBlock)
-			//dataHash, _ = dataObject.(interfaces.IEntryBlock).Hash()
+			return // this functionality has been deprecated
 		default:
 			return
 		}
@@ -199,20 +205,24 @@ func (m *MissingData) SendResponse(state interfaces.IState) {
 	return
 }
 
-func (e *MissingData) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *MissingData) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *MissingData) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *MissingData) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
 }
 
-func NewMissingData(state interfaces.IState, requestHash interfaces.IHash) interfaces.IMsg {
+func NewMissingData(timestamp interfaces.Timestamp, requestHash interfaces.IHash) *MissingData {
 	msg := new(MissingData)
 
 	msg.Peer2Peer = true // Always a peer2peer request.
-	msg.Timestamp = state.GetTimestamp()
+	msg.Timestamp = timestamp
 	msg.RequestHash = requestHash
 
 	return msg
+}
+
+func (m *MissingData) Label() string {
+	return msgbase.GetLabel(m)
 }

@@ -43,7 +43,7 @@ var _ interfaces.IMsg = (*Bounce)(nil)
 
 func (m *Bounce) AddData(dataSize int) {
 	m.Data = make([]byte, dataSize)
-	for i, _ := range m.Data {
+	for i := range m.Data {
 		m.Data[i] = byte(rand.Int())
 	}
 }
@@ -95,6 +95,11 @@ func (m *Bounce) VerifySignature() (bool, error) {
 func (m *Bounce) SetValid(v int) {
 	m.setValid = true
 	m.valid = v
+}
+
+func (m *Bounce) WellFormed() bool {
+	// TODO: Flush this out
+	return true
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -309,4 +314,8 @@ func (m *Bounce) LogFields() log.Fields {
 
 func (a *Bounce) IsSameAs(b *Bounce) bool {
 	return true
+}
+
+func (a *Bounce) Label() string {
+	return msgbase.GetLabel(a)
 }

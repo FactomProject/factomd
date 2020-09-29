@@ -27,7 +27,7 @@ func (lists *ProcessLists) LastList() *ProcessList {
 }
 
 // UpdateState is executed from a Follower's perspective.  So the block we are building
-// is always the block above the HighestRecordedBlock, but we only care about messages that
+// is always the block above the HighestRecordedBlock, but we only care about inMessages that
 // are at the highest known block, as long as that is above the highest recorded block.
 func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 	// Look and see if we need to toss some previous blocks under construction.

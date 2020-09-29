@@ -42,11 +42,11 @@ func (s *State) CrossReplayAddSalt(height uint32, salt [8]byte) error {
 	return s.CrossReplay.AddSalt(height, salt)
 }
 
-// CrossReplayFilter checks for old messages across reboots based on the salts
-// inside the ack messages. It saves all salts of leaders it sees while running.
-// On reboot, it will ignore all messages that have an old salt (for a set duration).
+// CrossReplayFilter checks for old inMessages across reboots based on the salts
+// inside the ack inMessages. It saves all salts of leaders it sees while running.
+// On reboot, it will ignore all inMessages that have an old salt (for a set duration).
 // After the duration, no new salts are saved (extra overhead we don't need) and will stop
-// ignoring messages based on salts (so a single leader reboot will rejoin the network).
+// ignoring inMessages based on salts (so a single leader reboot will rejoin the network).
 type CrossReplayFilter struct {
 	Currentheight int
 	LowestHeight  int

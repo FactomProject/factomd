@@ -33,12 +33,12 @@ type FactoidTransaction struct {
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
 
-func (a *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
+func (m *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
 	if b == nil {
 		return false
 	}
 
-	ok, err := primitives.AreBinaryMarshallablesEqual(a.Transaction, b.Transaction)
+	ok, err := primitives.AreBinaryMarshallablesEqual(m.Transaction, b.Transaction)
 	if err != nil || ok == false {
 		return false
 	}
@@ -95,6 +95,12 @@ func (m *FactoidTransaction) SetTransaction(transaction interfaces.ITransaction)
 
 func (m *FactoidTransaction) Type() byte {
 	return constants.FACTOID_TRANSACTION_MSG
+}
+
+func (m *FactoidTransaction) WellFormed() bool {
+	// TODO: Flush this out
+
+	return true
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -169,13 +175,6 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 
 func (m *FactoidTransaction) UnmarshalTransData(datax []byte) (newData []byte, err error) {
 	newData = datax
-	defer func() {
-		return
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Transaction Factoid: %v", r)
-			llog.LogPrintf("recovery", "Error unmarshalling Transaction Factoid: %v", r)
-		}
-	}()
 
 	m.Transaction = new(factoid.Transaction)
 	newData, err = m.Transaction.UnmarshalBinaryData(newData)
@@ -284,10 +283,14 @@ func (m *FactoidTransaction) LogFields() log.Fields {
 		"hash":    m.GetHash().String()}
 }
 
-func (e *FactoidTransaction) JSONByte() ([]byte, error) {
-	return primitives.EncodeJSON(e)
+func (m *FactoidTransaction) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(m)
 }
 
-func (e *FactoidTransaction) JSONString() (string, error) {
-	return primitives.EncodeJSONString(e)
+func (m *FactoidTransaction) JSONString() (string, error) {
+	return primitives.EncodeJSONString(m)
+}
+
+func (m *FactoidTransaction) Label() string {
+	return msgbase.GetLabel(m)
 }

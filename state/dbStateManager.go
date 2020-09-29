@@ -23,6 +23,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/modules/internalevents"
 	"github.com/FactomProject/factomd/util/atomic"
 
 	llog "github.com/FactomProject/factomd/log"
@@ -590,8 +591,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	// This node cannot be validated until the previous node (d) has been saved to disk, which means processed
 	// and signed as well.
 	if d == nil {
-		state.LogPrintf("dbstateprocess", "Cannot validate because DBState is nil",
-			dbheight)
+		state.LogPrintf("dbstateprocess", "Cannot validate because DBState is nil at height %v", dbheight)
 		return 0
 	}
 	if !d.Locked || !d.Signed || !d.Saved {
@@ -633,7 +633,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 
 func (list *DBStateList) String() string {
 	str := "\n========DBStates Start=======\nddddd DBStates\n"
-	str = fmt.Sprintf("dddd %s  Base      = %d\n", str, list.Base)
+	str = fmt.Sprintf("dddd %s  SubBase      = %d\n", str, list.Base)
 	ts := "-nil-"
 	if list.TimeToAsk != nil {
 		ts = list.TimeToAsk.String()
@@ -961,7 +961,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	return
 }
 
-func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
+func (list *DBStateList) ProcessBlock(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
 	s := list.State
@@ -971,7 +971,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
 
-		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v) : ", dbht, d.Locked, d.IsNew, d.Repeat)
+		s.LogPrintf("dbstateprocess", "ProcessBlock(%d) Skipping d.Locked(%v) || d.IsNew(%v) || d.Repeat(%v) : ", dbht, d.Locked, d.IsNew, d.Repeat)
 		return false
 	}
 
@@ -981,7 +981,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	if dbht > 0 && dbht < list.ProcessHeight {
 		progress = true
 		d.Repeat = true
-		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping old(repeat) state", dbht)
+		s.LogPrintf("dbstateprocess", "ProcessBlock(%d) Skipping old(repeat) state", dbht)
 		return false
 	}
 
@@ -991,7 +991,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	if dbht > 0 && dbht == list.ProcessHeight && list.State.CurrentMinute > 0 {
 		progress = true
 		d.Repeat = true
-		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping Repeated current block", dbht, d.Locked, d.IsNew, d.Repeat)
+		s.LogPrintf("dbstateprocess", "ProcessBlock(%d) Skipping Repeated current block locked/new/repeat %v/%v/%v", dbht, d.Locked, d.IsNew, d.Repeat)
 		return false
 	}
 
@@ -999,12 +999,12 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		pd := list.State.DBStates.Get(int(dbht - 1))
 
 		if pd == nil {
-			s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping Prev Block Missing", dbht)
+			s.LogPrintf("dbstateprocess", "ProcessBlock(%d) Skipping Prev Block Missing", dbht)
 			s.LogPrintf("dbstateprocess", "list: %v", list.State.DBStates.String())
 			return false // Can't process out of order
 		}
 		if !pd.Saved {
-			s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping Prev Block not saved", dbht)
+			s.LogPrintf("dbstateprocess", "ProcessBlock(%d) Skipping Prev Block not saved", dbht)
 			return false // can't process till the prev is saved
 		}
 	}
@@ -1021,11 +1021,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	if pl == nil {
 
-		s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Skipping No ProcessList", dbht)
+		s.LogPrintf("dbstateprocess", "ProcessBlock(%d) Skipping No ProcessList", dbht)
 		return false
 	}
 
-	s.LogPrintf("dbstateprocess", "ProcessBlocks(%d)", dbht)
+	s.LogPrintf("dbstateprocess", "ProcessBlock(%d)", dbht)
 
 	//
 	// ***** Apply the AdminBlock changes to the next DBState
@@ -1033,7 +1033,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
 	err := d.AdminBlock.UpdateState(list.State)
 
-	s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) after update auth %d/%d ", dbht, len(pl.FedServers), len(pl.AuditServers))
+	s.LogPrintf("dbstateprocess", "ProcessBlock(%d) after update auth %d/%d ", dbht, len(pl.FedServers), len(pl.AuditServers))
 
 	if err != nil {
 		panic(err)
@@ -1064,7 +1064,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// *******************
 	fs := list.State.GetFactoidState()
 
-	s.LogPrintf("dbstateprocess", "ProcessBlocks(%d) Process Factoids dbht %d factoid",
+	s.LogPrintf("dbstateprocess", "ProcessBlock(%d) Process Factoids dbht %d factoid",
 		dbht, fs.(*FactoidState).DBHeight)
 
 	// get all the prior balances of the Factoid addresses that may have changed
@@ -1120,6 +1120,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	if list.State.DBFinished {
 		fs.(*FactoidState).DBHeight = dbht
 		list.State.Balancehash = fs.GetBalanceHash(false)
+		list.State.Pub.Bank.Write(&internalevents.Balance{DBHeight: dbht, BalanceHash: list.State.Balancehash})
 	}
 
 	// Make the current exchange rate whatever we had in the previous block.
@@ -1182,13 +1183,13 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// now := s.GetTimestamp()
 	// for k, msg := range s.Commits {
 	// 	{
-	// 		c, ok := msg.(*messages.CommitChainMsg)
+	// 		c, ok := msg.(*inMessages.CommitChainMsg)
 	// 		if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
 	// 			delete(s.Commits, k)
 	// 			continue
 	// 		}
 	// 	}
-	// 	c, ok := msg.(*messages.CommitEntryMsg)
+	// 	c, ok := msg.(*inMessages.CommitEntryMsg)
 	// 	if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
 	// 		delete(s.Commits, k)
 	// 		continue
@@ -1228,7 +1229,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		// if we are following by blocks then this move us forward but if we are following by minutes the
 		// code in ProcessEOM for minute 10 will have moved us forward
 		s.SetLeaderTimestamp(d.DirectoryBlock.GetTimestamp())
-		// todo: is there a reason not to do this in MoveStateToHeight?
+		// TODO: is there a reason not to do this in MoveStateToHeight?
 		fs.(*FactoidState).DBHeight = dbht + 1
 		s.MoveStateToHeight(dbht+1, 0)
 	}
@@ -1544,7 +1545,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		if err != nil {
 			list.State.LogPrintf("dbstateprocess", err.Error())
 			panic(fmt.Sprintf("%20s At Directory Block Height %d", list.State.FactomNodeName, dbheight))
-			return
 		}
 		if mr == nil {
 			list.State.LogPrintf("dbstateprocess", "There is no mr returned by list.State.DB.FetchDBKeyMRByHeight() at %d\n", dbheight)
@@ -1560,13 +1560,11 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				list.State.LogPrintf("dbstateprocess", "Could not get directory block by primary key at Block Height %d\n", dbheight)
 			}
 			panic(fmt.Sprintf("%20s Error reading db by mr at Directory Block Height %d", list.State.FactomNodeName, dbheight))
-			return
 		}
 		if td.GetKeyMR().Fixed() != mr.Fixed() {
 			list.State.LogPrintf("dbstateprocess", "Key MR is wrong at Directory Block Height %d\n", dbheight)
 			fmt.Fprintln(os.Stderr, d.DirectoryBlock.String(), "\n==============================================\n Should be:\n", td.String())
 			panic(fmt.Sprintf("%20s KeyMR is wrong at Directory Block Height %d", list.State.FactomNodeName, dbheight))
-			return
 		}
 		if !good {
 			return
@@ -1644,9 +1642,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 	saved := 0
 	for i, d := range list.DBStates {
 		// loop only thru this and future blocks
-		//for i := int(list.State.LLeaderHeight); i < int(list.Base)+len(list.DBStates); i++ {
+		//for i := int(list.State.LLeaderHeight); i < int(list.SubBase)+len(list.DBStates); i++ {
 		//	d := list.Get(i)
-		//	//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "DBStateList Update", list.State.FactomNodeName, "Looking at", i, "DBHeight", list.Base+uint32(i))
+		//	//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "DBStateList Update", list.State.FactomNodeName, "Looking at", i, "DBHeight", list.SubBase+uint32(i))
 
 		// Must process blocks in sequence.  Missing a block says we must stop.
 		if d == nil {
@@ -1669,13 +1667,13 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			progress = p || progress
 		}
 
-		p = list.ProcessBlocks(d)
+		p = list.ProcessBlock(d)
 		progress = p || progress
 
 		p = list.SignDB(d)
 		progress = p || progress
 
-		wasSaved := d.Saved
+		wasSavedBefore := d.Saved
 		p = list.SaveDBStateToDB(d)
 		progress = p || progress
 
@@ -1687,8 +1685,15 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			saved = i
 		}
 
-		if progress && d.Saved && d.Signed && !wasSaved {
-			s.EventService.EmitDirectoryBlockCommitEvent(d)
+		if progress && d.Saved && d.Signed && !wasSavedBefore {
+			dbStateCommitEvent := &internalevents.DBStateCommit{
+				DBHeight: d.DirectoryBlock.GetDatabaseHeight(),
+				DBState:  d,
+			}
+			s.Pub.CommitDBState.Write(dbStateCommitEvent)
+			if s.EventService != nil {
+				s.EventService.EmitDirectoryBlockCommitEvent(d)
+			}
 		}
 
 		// only process one block past the last saved block
@@ -1821,6 +1826,7 @@ func (list *DBStateList) NewDBState(isNew bool,
 				}
 				pdbs := list.State.DBStates.Get(int(ht - 1))
 				if pdbs != nil {
+					// Warning: TrimBack is currently not doing anything
 					pdbs.SaveStruct.TrimBack(list.State, dbState)
 				}
 			}
