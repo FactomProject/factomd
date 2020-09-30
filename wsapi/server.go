@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"runtime/debug"
 	"strconv"
 
 	"github.com/FactomProject/factomd/modules/worker"
@@ -114,9 +113,9 @@ func PanicRecovery() Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
-				if rec := recover(); r != nil {
-					trace := debug.Stack()
-					wsLog.Errorf("Recovered from a panic: %v: %s", rec, string(trace))
+				if recover(); r != nil {
+					//trace := debug.Stack()
+					//wsLog.Errorf("Recovered from a panic: %v: %s", rec, string(trace))
 					HandleV2Error(w, nil, NewInternalError())
 				}
 			}()
