@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/FactomProject/factomd/modules/registry"
 	"github.com/FactomProject/factomd/modules/worker"
@@ -21,6 +22,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func waitUntilStarted(t *testing.T, url string, timeout time.Duration) {
+	transCfg := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
+	}
+	client := &http.Client{Transport: transCfg}
+
+	start := time.Now()
+	for time.Since(start) < timeout {
+		_, err := client.Get(url)
+		if err == nil {
+			return
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+	t.Fatalf("unable to connect to %s in %s", url, timeout)
+}
+
 func TestGetEndpoints(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	p := registry.New()
@@ -29,6 +47,8 @@ func TestGetEndpoints(t *testing.T) {
 	})
 	go p.Run()
 	p.WaitForRunning()
+
+	waitUntilStarted(t, "http://localhost:8088", time.Second*5)
 
 	cases := map[string]struct {
 		Method   string
@@ -73,6 +93,8 @@ func TestAuthenticatedUnauthorizedRequest(t *testing.T) {
 	})
 	go p.Run()
 	p.WaitForRunning()
+
+	waitUntilStarted(t, "http://localhost:18088", time.Second*5)
 
 	cases := map[string]struct {
 		Method       string
@@ -142,6 +164,8 @@ func TestHTTPS(t *testing.T) {
 	})
 	go p.Run()
 	p.WaitForRunning()
+
+	waitUntilStarted(t, "https://localhost:10443", time.Second*5)
 
 	url := "https://localhost:10443/v1/heights/"
 	transCfg := &http.Transport{
