@@ -113,7 +113,7 @@ func PanicRecovery() Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
-				if recover(); r != nil {
+				if rec := recover(); rec != nil {
 					//trace := debug.Stack()
 					//wsLog.Errorf("Recovered from a panic: %v: %s", rec, string(trace))
 					HandleV2Error(w, nil, NewInternalError())
