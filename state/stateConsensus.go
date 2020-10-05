@@ -2543,7 +2543,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			uint32(0),
 			msg.GetVMIndex(),
 			uint32(vm.Height),
-			dbs.LeaderChainID,
+			dbs.GetLeaderChainID(),
 		)
 		s.electionsQueue.Enqueue(InMsg)
 	}
