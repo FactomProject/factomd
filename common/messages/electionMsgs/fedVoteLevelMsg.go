@@ -258,6 +258,9 @@ func (m *FedVoteLevelMsg) FollowerExecute(is interfaces.IState) {
 
 		// Add to the process list (which will get immediately processed)
 		is.LogMessage("executeMsg", "add to pl", m.Volunteer.Ack)
+
+		// make sure the message has leaderchainid set
+		m.Volunteer.Missing.SetLeaderChainID(m.Volunteer.Ack.GetLeaderChainID())
 		pl.AddToProcessList(pl.State, m.Volunteer.Ack.(*messages.Ack), m.Volunteer.Missing)
 	} else {
 		is.ElectionsQueue().Enqueue(m)
