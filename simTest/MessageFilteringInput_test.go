@@ -1,9 +1,10 @@
 package simtest
 
 import (
-	"github.com/FactomProject/factomd/testHelper/simulation"
 	"strings"
 	"testing"
+
+	"github.com/FactomProject/factomd/testHelper/simulation"
 
 	"github.com/FactomProject/factomd/fnode"
 

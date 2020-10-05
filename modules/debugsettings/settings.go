@@ -59,7 +59,7 @@ func (s *Settings) UpdateInputRegex(re string) error {
 	return nil
 }
 
-func (s *Settings) UpdateOuputRegex(re string) error {
+func (s *Settings) UpdateOutputRegex(re string) error {
 	v, err := regexp.Compile(re)
 	if err != nil {
 		return err
