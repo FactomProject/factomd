@@ -23,23 +23,29 @@ var (
 	history     *([16384][32]byte) // Last 16k messages logged
 	h           int                // head of history
 	msgmap      map[[32]byte]interfaces.IMsg
+	once        sync.Once
 )
 
 func SetupGlobalLogger(regex string) {
-	// Create a global FileLogger that assigned the filenames based on thread and logname
-	// Create a global logger that adds sequence numbers and timestamps
-	GlobalLogger = NewSequenceLogger(NewFileLogger(regex))
-	GlobalLogger.AddNameField("fnode", Formatter("%s"), "")
-	GlobalLogger.AddNameField("logname", Formatter("%s.txt"), "unknown-log")
-	//Add the default print fields comment then message
-	GlobalLogger.AddPrintField("dbht", Formatter("%12s"), "")
-	GlobalLogger.AddPrintField("comment", Formatter("[%-45v]"), "")
-	GlobalLogger.AddPrintField("hash", Formatter("%-38v"), "")
-	GlobalLogger.AddPrintField("message", MsgFormatter, "")
+	once.Do(func() {
+		// Create a global FileLogger that assigned the filenames based on thread and logname
+		// Create a global logger that adds sequence numbers and timestamps
+		GlobalLogger = NewSequenceLogger(NewFileLogger(regex))
+		GlobalLogger.AddNameField("fnode", Formatter("%s"), "")
+		GlobalLogger.AddNameField("logname", Formatter("%s.txt"), "unknown-log")
+		//Add the default print fields comment then message
+		GlobalLogger.AddPrintField("dbht", Formatter("%12s"), "")
+		GlobalLogger.AddPrintField("comment", Formatter("[%-45v]"), "")
+		GlobalLogger.AddPrintField("hash", Formatter("%-38v"), "")
+		GlobalLogger.AddPrintField("message", MsgFormatter, "")
+	})
 }
 
 func LogPrintf(name string, format string, more ...interface{}) {
-
+	// this will happen when code runs without a full node being started, ie in unit tests
+	if GlobalLogger == nil {
+		SetupGlobalLogger("./.")
+	}
 	/* todo: add multiline support
 	lines := strings.Split(fmt.Sprintf(format, more...), "\n")
 	now := time.Now().Local()
@@ -60,6 +66,10 @@ func LogPrintf(name string, format string, more ...interface{}) {
 }
 
 func LogMessage(name string, note string, msg interfaces.IMsg) {
+	// this will happen when code runs without a full node being started, ie in unit tests
+	if GlobalLogger == nil {
+		SetupGlobalLogger("./.")
+	}
 
 	if msg == nil {
 		// include nonempty hash to get spacing right
