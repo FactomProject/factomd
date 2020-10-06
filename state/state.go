@@ -29,6 +29,7 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/FactomProject/factomd/modules/debugsettings"
 	"github.com/FactomProject/factomd/modules/events"
 	"github.com/FactomProject/factomd/modules/pubsub"
 	"github.com/FactomProject/factomd/modules/pubsub/pubregistry"
@@ -2376,6 +2377,9 @@ func (s *State) PassOutputRegEx(RegEx *regexp.Regexp, RegExString string) {
 	s.LogPrintf("networkOutputs", "SetOutputRegEx to '%s'", RegExString)
 	s.OutputRegEx = RegEx
 	s.OutputRegExString = RegExString
+	// this returns an error but the function that calls PassOutputRegEx already ran a
+	// .MustCompile on the string, so it will compile a second time
+	debugsettings.GetSettings(s.GetFactomNodeName()).UpdateOutputRegex(RegExString)
 }
 
 func (s *State) GetOutputRegEx() (*regexp.Regexp, string) {
@@ -2386,6 +2390,9 @@ func (s *State) PassInputRegEx(RegEx *regexp.Regexp, RegExString string) {
 	s.LogPrintf("networkInputs", "SetInputRegEx to '%s'", RegExString)
 	s.InputRegEx = RegEx
 	s.InputRegExString = RegExString
+	// this returns an error but the function that calls PassInputRegEx already ran a
+	// .MustCompile on the string, so it will compile a second time
+	debugsettings.GetSettings(s.GetFactomNodeName()).UpdateInputRegex(RegExString)
 }
 
 func (s *State) GetInputRegEx() (*regexp.Regexp, string) {
