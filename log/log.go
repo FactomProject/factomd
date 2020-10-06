@@ -25,11 +25,10 @@ var (
 	msgmap      map[[32]byte]interfaces.IMsg
 )
 
-func init() {
+func SetupGlobalLogger(regex string) {
 	// Create a global FileLogger that assigned the filenames based on thread and logname
-
 	// Create a global logger that adds sequence numbers and timestamps
-	GlobalLogger = NewSequenceLogger(NewFileLogger("./."))
+	GlobalLogger = NewSequenceLogger(NewFileLogger(regex))
 	GlobalLogger.AddNameField("fnode", Formatter("%s"), "")
 	GlobalLogger.AddNameField("logname", Formatter("%s.txt"), "unknown-log")
 	//Add the default print fields comment then message

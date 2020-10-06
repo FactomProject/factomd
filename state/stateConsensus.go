@@ -57,7 +57,7 @@ func (s *State) DebugExec() (ret bool) {
 func (s *State) LogMessage(logName string, comment string, msg interfaces.IMsg) {
 	if s.DebugExec() {
 		log.GlobalLogger.Log(LogData{
-			"fnode":   "fnodeX", // don't know the fnode number
+			"fnode":   s.FactomNodeName,
 			"logname": logName,
 			"dbht":    "unknown",
 			"comment": comment,
