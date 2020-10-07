@@ -428,7 +428,7 @@ func TestDBsigEOMElection(t *testing.T) {
 		s := GetFnodes()[0].State
 		// wait till minute flips
 		for s.CurrentMinute != 0 {
-			time.Sleep(time.Millisecond * 25)
+			time.Sleep(time.Millisecond * 100)
 		}
 		s.SetNetStateOff(true)
 		wait.Done()
@@ -439,12 +439,12 @@ func TestDBsigEOMElection(t *testing.T) {
 	stop1 := func() {
 		s := GetFnodes()[1].State
 		for s.CurrentMinute != 0 {
-			time.Sleep(time.Millisecond * 25)
+			time.Sleep(time.Millisecond * 100)
 		}
 		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		vm := pl.VMs[s.LeaderVMIndex]
 		for s.CurrentMinute == 0 && vm.Height == 0 {
-			time.Sleep(time.Millisecond * 25)
+			time.Sleep(time.Millisecond * 100)
 		}
 		s.SetNetStateOff(true)
 		wait.Done()
