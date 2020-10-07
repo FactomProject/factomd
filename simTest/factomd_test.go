@@ -1370,19 +1370,16 @@ func TestDebugLocation(t *testing.T) {
 	}
 	simulation.RanSimTest = true
 
-	tempdir := os.TempDir() + string(os.PathSeparator) + "logs" + string(os.PathSeparator) // get os agnostic path to the temp directory
-
-	// toss any files that might preexist this run so we don't see old files
-	err := os.RemoveAll(tempdir)
+	tempdir, err := ioutil.TempDir("", "logs")
 	if err != nil {
 		panic(err)
 	}
 
-	// make sure the directory exists
-	err = os.MkdirAll(tempdir, os.ModePerm)
-	if err != nil {
-		panic(err)
-	}
+	defer func() {
+		os.Remove(tempdir)
+	}()
+
+	tempdir += string(os.PathSeparator)
 
 	// start a sim with a select set of logs
 	state0 := simulation.SetupSim("LF", map[string]string{"--debuglog": tempdir + "holding|networkinputs|ackqueue"}, 6, 0, 0, t)
@@ -1395,13 +1392,6 @@ func TestDebugLocation(t *testing.T) {
 	DoesFileExists(tempdir+"fnode0_networkinputs.txt", t)
 	DoesFileExists(tempdir+"fnode01_networkinputs.txt", t)
 	DoesFileExists(tempdir+"fnode01_ackqueue.txt", t)
-
-	// toss the files we created since they are no longer needed
-	err = os.RemoveAll(tempdir)
-	if err != nil {
-		panic(err)
-	}
-
 }
 
 func TestDebugLocationParse(t *testing.T) {

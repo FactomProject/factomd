@@ -18,6 +18,7 @@ import (
 	"time"
 
 	. "github.com/FactomProject/factomd/common/globals"
+	logger "github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/modules/registry"
 	"github.com/FactomProject/factomd/modules/worker"
 	log "github.com/sirupsen/logrus"
@@ -42,6 +43,9 @@ func Run(params *FactomParams) {
 }
 
 func Factomd(w *worker.Thread, params *FactomParams, listenToStdin bool) {
+	// combination of path + regex
+	logger.SetupGlobalLogger(params.DebugLogRegEx)
+
 	fmt.Printf("Compiler version: %s\n", runtime.Version())
 	fmt.Printf("Build: %s\n", Build)
 	fmt.Printf("Version: %s\n", FactomdVersion)
