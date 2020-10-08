@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"sync"
 	"time"
 
@@ -304,6 +305,14 @@ func startNetwork(w *worker.Thread, p *globals.FactomParams) {
 		constants.SetCustomCoinBaseConstants()
 	default:
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
+	}
+
+	if p.Peers != "" {
+		configPeers = p.Peers
+	}
+
+	if p.NetworkPortOverride > 0 {
+		networkPort = strconv.Itoa(p.NetworkPortOverride)
 	}
 
 	// FIXME: should this be relocated?
