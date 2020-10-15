@@ -20,14 +20,6 @@ func TestCheckDatabaseFromState(t *testing.T) {
 	CheckDatabase(state.DB.(interfaces.DBOverlay))
 }
 
-func TestCheckDatabaseFromWSAPI(t *testing.T) {
-	ctx := testHelper.CreateWebContext()
-	state := ctx.Server.Env["state"].(interfaces.IState)
-	dbase := state.GetDB().(interfaces.DBOverlay)
-
-	CheckDatabase(dbase)
-}
-
 var dbFilename string = "levelTest.db"
 
 func TestCheckDatabaseForLevelDB(t *testing.T) {

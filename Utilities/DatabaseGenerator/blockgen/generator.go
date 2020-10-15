@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/modules/registry"
+	"github.com/FactomProject/factomd/modules/worker"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/identity"
@@ -96,7 +97,7 @@ func NewGeneratorState(conf *DBGeneratorConfig, starttime interfaces.Timestamp) 
 	s.StateSaverStruct.FastBoot = false
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	p := registry.New()
-	p.Register(s.Initialize)
+	p.Register(func(w *worker.Thread) { s.Initialize(w, new(electionMsgs.ElectionsFactory)) })
 	go p.Run()
 	p.WaitForRunning()
 	s.NetworkNumber = constants.NETWORK_CUSTOM

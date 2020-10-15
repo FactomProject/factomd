@@ -17,6 +17,8 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/modules/registry"
+	"github.com/FactomProject/factomd/modules/worker"
 	"github.com/FactomProject/factomd/p2p"
 )
 
@@ -103,10 +105,14 @@ func InitNetwork() {
 	}
 
 	// Setup the proxy (Which translates from network parcels to Factom messages, handling addressing for directed messages)
-	p2pProxy = new(engine.P2PProxy).Init("testnode", "P2P Network").(*engine.P2PProxy)
+	p2pProxy = new(engine.P2PProxy).Initialize("testnode", "P2P Network").(*engine.P2PProxy)
 	p2pProxy.Network = network
 
-	p2pProxy.StartProxy()
+	p := registry.New()
+	p.Register(func(w *worker.Thread) {
+		p2pProxy.StartProxy(w)
+	})
+	p.Run()
 }
 
 var cntreq int32
