@@ -12,6 +12,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -160,7 +161,7 @@ func NetStart(w *worker.Thread, p *globals.FactomParams, listenToStdin bool) {
 	startFnodes(w)
 	startLiveFeed(w, p)
 	startWebserver(w)
-	startControlPanel(w)
+	startControlPanel(w, p)
 	simulation.StartSimControl(w, p.ListenTo, listenToStdin, Build)
 }
 
@@ -229,10 +230,17 @@ func startWebserver(w *worker.Thread) {
 	launchPrometheus(9876)
 }
 
-func startControlPanel(w *worker.Thread) {
+func startControlPanel(w *worker.Thread, p *globals.FactomParams) {
 	state0 := fnode.Get(0).State
 	w.Run("controlpanel", func() {
-		controlPanel.ServeControlPanel(state0.ControlPanelChannel, state0, connectionMetricsChannel, network, Build, state0.FactomNodeName)
+		var nodename string
+		if strings.Trim(p.NodeName, " ") != "" {
+			nodename = p.NodeName
+		} else {
+			nodename = state0.GetFactomNodeName()
+		}
+
+		controlPanel.ServeControlPanel(state0.ControlPanelChannel, state0, connectionMetricsChannel, network, Build, nodename)
 
 		/*		controlPanelConfig := &controlpanel.Config{
 					Port:       state0.ControlPanelPort,
