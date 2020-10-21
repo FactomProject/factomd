@@ -1,6 +1,9 @@
 package p2p
 
 import (
+	"crypto/sha1"
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 )
@@ -158,6 +161,8 @@ func Test_controller_manageData(t *testing.T) {
 	}()
 
 	net.controller.manageData()
+	// give asynchronous requests some time to finish before checking
+	time.Sleep(time.Millisecond * 500)
 
 	if len(ping.send) != 1 {
 		t.Errorf("ping peer did not receive pong")
@@ -175,5 +180,36 @@ func Test_controller_manageData(t *testing.T) {
 		t.Errorf("async response did not deliver")
 	} else if p := <-async; p.ptype != TypePeerResponse {
 		t.Errorf("peer response did not send right response. got = %s, want = %s", p.ptype, TypePeerResponse)
+	}
+}
+
+func Test_controller_selectNoReplayPeers(t *testing.T) {
+	payload := make([]byte, 1024)
+	rand.Read(payload)
+	hash := sha1.Sum(payload)
+
+	net := testNetworkHarness(t)
+	net.conf.MaxPeers = 8
+	for i := 0; i < int(net.conf.MaxPeers); i++ {
+		net.controller.peers.Add(testRandomPeer(net))
+	}
+
+	peers := net.controller.peers.Slice()
+
+	for i := 0; i < 4; i++ {
+		peers[i].resend.Add(hash)
+		fmt.Printf("registered hash with peer %s\n", peers[i].Hash)
+	}
+
+	filtered := net.controller.selectNoResendPeers(payload)
+	if len(filtered) != 4 {
+		t.Errorf("invalid number of peers selected. got = %d, want = 4", len(filtered))
+	}
+	for _, f := range filtered {
+		for i := 0; i < 4; i++ {
+			if f.Hash == peers[i].Hash {
+				t.Errorf("peer %s was mistakenly included", f.Hash)
+			}
+		}
 	}
 }

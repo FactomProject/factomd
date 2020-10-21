@@ -29,6 +29,9 @@ func testRandomPeer(net *Network) *Peer {
 	p.send = newParcelChannel(p.net.conf.ChannelCapacity)
 	p.IsIncoming = net.rng.Intn(1) == 0
 	p.connected = time.Now()
+	if net.conf.PeerResendFilter {
+		p.resend = NewPeerHashCache(net.conf.PeerResendBuckets, net.conf.PeerResendInterval)
+	}
 	return p
 }
 

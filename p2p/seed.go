@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"net"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -31,6 +32,10 @@ func (s *seed) retrieve() []Endpoint {
 
 	eps := make([]Endpoint, 0)
 	err := WebScanner(s.url, func(line string) {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			return
+		}
 		host, port, err := net.SplitHostPort(line)
 		if err != nil {
 			s.logger.Errorf("Badly formatted line [%s]", line)

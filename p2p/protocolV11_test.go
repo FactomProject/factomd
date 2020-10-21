@@ -41,7 +41,7 @@ func TestProtocolV11_readWriteCheck(t *testing.T) {
 	// write 100 random byte slices
 	data := make([][]byte, 100)
 	for i := 0; i < len(data); i++ {
-		data[i] = make([]byte, rand.Intn(4094)+4) // between 4 byte and 4KiB
+		data[i] = make([]byte, rand.Intn(4093)+4) // between 4 byte and 4KiB
 		rand.Read(data[i])
 	}
 
