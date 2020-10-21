@@ -159,8 +159,8 @@ func (n *testNode) DiscoverPeers(minPeers int) {
 }
 
 // get list of peers from our local node
-func (n *testNode) GetPeers() map[string]p2p.Peer {
-	return n.state.NetworkController.GetKnownPeers()
+func (n *testNode) GetPeers() map[string]p2p.PeerMetrics {
+	return n.state.NetworkController.GetPeerMetrics()
 }
 
 // build url for debug API
