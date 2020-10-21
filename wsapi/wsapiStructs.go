@@ -271,6 +271,11 @@ type AddressRequest struct {
 	Address string `json:"address"`
 }
 
+type ReplayRequest struct {
+	StartHeight uint32 `json:"startheight"`
+	EndHeight   uint32 `json:"endheight,omitempty"`
+}
+
 type HeightRequest struct {
 	Height int64 `json:"height"`
 	NoRaw  bool  `json:"noraw,omitempty"`
