@@ -184,12 +184,11 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.CheckChainHeads.Fix = p.FixChainHeads
 
 	p2pconf := p2p.DefaultP2PConfiguration()
-	p2pconf.ListenPort = "8108"
 	p2pconf.TargetPeers = 32
 	p2pconf.DropTo = 30
 	p2pconf.MaxPeers = 36
 	p2pconf.Fanout = 16
-	p2pconf.ChannelCapacity = 1000
+	p2pconf.ChannelCapacity = 5000
 	p2pconf.PingInterval = time.Second * 15
 	p2pconf.ProtocolVersion = 10
 
@@ -387,6 +386,11 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		constants.SetCustomCoinBaseConstants()
 	default:
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
+	}
+
+	// use special peers from command line
+	if p.Peers != "" {
+		configPeers = p.Peers
 	}
 
 	p2pconf.Network = networkID
