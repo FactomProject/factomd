@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -98,10 +97,12 @@ func init() {
 	flag.StringVar(&p.EventReceiverProtocol, "eventreceiverprotocol", "", "Transport protocol for the events receiver; default udp")
 	flag.StringVar(&p.EventReceiverHost, "eventreceiverhost", "", "Host address for the events receiver; default 127.0.0.1")
 	flag.IntVar(&p.EventReceiverPort, "eventreceiverport", 0, "Port for the events receiver; default 8040")
+	flag.IntVar(&p.EventSenderPort, "eventsenderport", 0, "Port for the events sender (client)")
 	flag.StringVar(&p.EventFormat, "eventformat", "", "Event output format for the events receiver, protobuf|json; default protobuf")
 	flag.BoolVar(&p.EventSendStateChange, "eventsendstatechange", false, "Send only StateChange events when the state of an entity changes instead of the full entity; default false")
 	flag.StringVar(&p.EventBroadcastContent, "eventbroadcastcontent", "", "Settings for including content in the event messages always|once|never; default once")
 	flag.BoolVar(&p.EventReplayDuringStartup, "eventreplayduringstartup", false, "Replay events since the last save state during startup; default false")
+	flag.BoolVar(&p.PersistentReconnect, "persistentreconnect", false, "Persistently try to reconnect with LiveFeed listener(s)")
 
 }
 
@@ -136,11 +137,6 @@ func ParseCmdLine(args []string) *FactomParams {
 		}
 
 	}
-	if !isCompilerVersionOK() {
-		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
-		time.Sleep(3 * time.Second)
-		os.Exit(1)
-	}
 
 	// launch debug console if requested
 	if p.DebugConsole != "" {
@@ -148,39 +144,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	}
 
 	return p
-}
-
-func isCompilerVersionOK() bool {
-	goodenough := false
-
-	if strings.Contains(runtime.Version(), "1.7") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.8") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.9") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.10") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.11") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.12") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.13") {
-		goodenough = true
-	}
-	return goodenough
 }
 
 var handleLogfilesOnce sync.Once
