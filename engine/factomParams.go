@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -139,11 +138,6 @@ func ParseCmdLine(args []string) *FactomParams {
 		}
 
 	}
-	if !isCompilerVersionOK() {
-		fmt.Println("!!! !!! !!! ERROR: unsupported compiler version !!! !!! !!!")
-		time.Sleep(3 * time.Second)
-		os.Exit(1)
-	}
 
 	// launch debug console if requested
 	if p.DebugConsole != "" {
@@ -151,39 +145,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	}
 
 	return p
-}
-
-func isCompilerVersionOK() bool {
-	goodenough := false
-
-	if strings.Contains(runtime.Version(), "1.7") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.8") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.9") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.10") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.11") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.12") {
-		goodenough = true
-	}
-
-	if strings.Contains(runtime.Version(), "1.13") {
-		goodenough = true
-	}
-	return goodenough
 }
 
 var handleLogfilesOnce sync.Once
