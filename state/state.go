@@ -353,22 +353,15 @@ type State struct {
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
 
-	// State for the Entry Syncing process
-	EntrySyncState *EntrySync
+	// EntrySync handles the downloading of entries
+	EntrySync *EntrySync
 
 	MissingEntryBlockRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
 	EntryBlockDBHeightComplete uint32
 	// DBlock Height at which we have started asking for entry blocks
 	EntryBlockDBHeightProcessing uint32
-	// Entry Blocks we don't have that we are asking our neighbors for
-	MissingEntryBlocks []MissingEntryBlock
 
-	MissingEntryRepeat interfaces.Timestamp
-	// DBlock Height at which node has a complete set of eblocks+entries
-	EntryDBHeightComplete uint32
-	// DBlock Height at which we have started asking for or have all entries
-	EntryDBHeightProcessing uint32
 	// Height in the Directory Block where we have
 	// Entries we don't have that we are asking our neighbors for
 	MissingEntries chan *MissingEntry
@@ -1292,7 +1285,10 @@ func (s *State) GetEntryBlockDBHeightComplete() uint32 {
 }
 
 func (s *State) SetEntryBlockDBHeightComplete(newHeight uint32) {
-	s.EntryBlockDBHeightComplete = newHeight
+	if newHeight > s.EntryBlockDBHeightComplete {
+		s.EntryBlockDBHeightComplete = newHeight
+		s.DB.SaveDatabaseEntryHeight(newHeight)
+	}
 }
 
 func (s *State) GetEntryBlockDBHeightProcessing() uint32 {
@@ -1300,7 +1296,9 @@ func (s *State) GetEntryBlockDBHeightProcessing() uint32 {
 }
 
 func (s *State) SetEntryBlockDBHeightProcessing(newHeight uint32) {
-	s.EntryBlockDBHeightProcessing = newHeight
+	if newHeight > s.EntryBlockDBHeightProcessing {
+		s.EntryBlockDBHeightProcessing = newHeight
+	}
 }
 
 func (s *State) GetLLeaderHeight() uint32 {
@@ -1313,10 +1311,6 @@ func (s *State) GetFaultTimeout() int {
 
 func (s *State) GetFaultWait() int {
 	return s.FaultWait
-}
-
-func (s *State) GetEntryDBHeightComplete() uint32 {
-	return s.EntryDBHeightComplete
 }
 
 func (s *State) GetMissingEntryCount() uint32 {
@@ -3121,6 +3115,8 @@ func (s *State) GetIgnoreDone() bool {
 func (s *State) ShutdownNode(exitCode int) {
 	fmt.Println(fmt.Sprintf("Initiating a graceful shutdown of node %s. The exit code is %v.", s.FactomNodeName, exitCode))
 	s.RunState = runstate.Stopping
+	close(s.WriteEntry)
+	s.EntrySync.Stop()
 	s.ShutdownChan <- exitCode
 }
 

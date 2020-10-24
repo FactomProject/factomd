@@ -15,8 +15,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/activations"
-	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -24,6 +22,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
 
@@ -1105,9 +1104,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
-	// ignore if too old. If its under EntryDBHeightComplete
-	//todo: Is this better to be GetEntryDBHeightComplete()
-	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() && dbheight < s.EntryDBHeightComplete {
+	// ignore if too old. If its under EntryBlockDBHeightComplete
+	//todo: Is this better to be GetEntryBlockDBHeightComplete()
+	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() && dbheight < s.EntryBlockDBHeightComplete {
 		return
 	}
 
@@ -1320,48 +1319,24 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 	msg, ok := m.(*messages.DataResponse)
 	if !ok {
-		s.LogMessage("executeMsg", "Drop, not a DataResponce", msg)
+		s.LogMessage("executeMsg", "drop, not a DataResponse", msg)
 		return
 	}
 
 	switch msg.DataType {
 	case 1: // Data is an entryBlock
-		eblock, ok := msg.DataObject.(interfaces.IEntryBlock)
-		if !ok {
-			return
-		}
-
-		ebKeyMR, _ := eblock.KeyMR()
-		if ebKeyMR == nil {
-			return
-		}
-
-		for i, missing := range s.MissingEntryBlocks {
-			eb := missing.EBHash
-			if !eb.IsSameAs(ebKeyMR) {
-				continue
-			}
-
-			db, err := s.DB.FetchDBlockByHeight(eblock.GetHeader().GetDBHeight())
-			if err != nil || db == nil {
-				return
-			}
-
-			var missing []MissingEntryBlock
-			missing = append(missing, s.MissingEntryBlocks[:i]...)
-			missing = append(missing, s.MissingEntryBlocks[i+1:]...)
-			s.MissingEntryBlocks = missing
-
-			s.DB.ProcessEBlockBatch(eblock, true)
-
-			break
-		}
-
+		s.LogMessage("executeMsg", "unprompted eblock response was sent", msg)
+		return
 	case 0: // Data is an entry
 		entry, ok := msg.DataObject.(interfaces.IEBEntry)
 		if !ok {
 			return
 		}
+
+		if !s.EntrySync.AskedFor(entry.GetHash()) {
+			return
+		}
+
 		s.WriteEntry <- entry // DataResponse
 	}
 }
