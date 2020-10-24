@@ -27,14 +27,14 @@ func (s *State) StartTorrentSyncing() error {
 		// Leaders do not need to sync torrents, they need to upload
 		if s.IsLeader() || s.TorrentUploader() {
 			// If we have not uploaded a height we have completed, increment done and upload
-			if done < s.EntryDBHeightComplete {
-				for done < s.EntryDBHeightComplete {
+			if done < s.EntryBlockDBHeightComplete {
+				for done < s.EntryBlockDBHeightComplete {
 					s.UploadDBState(done)
 					done++
 				}
 			} else {
 				// If we did not just launch, and we are synced, and uploaded --> Long sleep
-				if s.EntryDBHeightComplete > 0 && s.GetHighestKnownBlock() == s.EntryDBHeightComplete {
+				if s.EntryBlockDBHeightComplete > 0 && s.GetHighestKnownBlock() == s.EntryBlockDBHeightComplete {
 					time.Sleep(30 * time.Second)
 				}
 				// Short sleep otherwise, still loading some from disk
@@ -66,7 +66,7 @@ func (s *State) StartTorrentSyncing() error {
 
 		// If the first pass is caught up, work on the second pass
 		if upper-(BATCH_SIZE*2) < lower {
-			lower = s.EntryDBHeightComplete + 1
+			lower = s.EntryBlockDBHeightComplete + 1
 			// Reduce the allowed for second pass
 			allowed = 1750
 		}
@@ -126,10 +126,10 @@ func (s *State) StartTorrentSyncing() error {
 		}
 
 		if lower > s.EntryBlockDBHeightComplete {
-			s.DBStateManager.RetrieveDBStateByHeight(s.EntryDBHeightComplete + 1)
+			s.DBStateManager.RetrieveDBStateByHeight(s.EntryBlockDBHeightComplete + 1)
 		}
 		// This tells our plugin to ignore any heights below this for retrieval
-		s.DBStateManager.CompletedHeightTo(s.EntryDBHeightComplete)
+		s.DBStateManager.CompletedHeightTo(s.EntryBlockDBHeightComplete)
 		time.Sleep(rightDuration)
 	}
 }

@@ -256,17 +256,17 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.SetDropRate(p.DropRate)
 
 	if p.Sync2 >= 0 {
-		s.EntryDBHeightComplete = uint32(p.Sync2)
-		s.LogPrintf("EntrySync", "Force with Sync2 NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+		s.EntryBlockDBHeightComplete = uint32(p.Sync2)
+		s.LogPrintf("EntrySync", "Force with Sync2 NetStart EntryBlockDBHeightComplete = %d", s.EntryBlockDBHeightComplete)
 
 	} else {
 		height, err := s.DB.FetchDatabaseEntryHeight()
 		if err != nil {
-			s.LogPrintf("EntrySync", "Error reading EntryDBHeightComplete NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+			s.LogPrintf("EntrySync", "Error reading EntryBlockDBHeightComplete NetStart EntryBlockDBHeightComplete = %d", s.EntryBlockDBHeightComplete)
 			os.Stderr.WriteString(fmt.Sprintf("ERROR reading Entry DBHeight Complete: %v\n", err))
 		} else {
-			s.EntryDBHeightComplete = height
-			s.LogPrintf("EntrySync", "NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+			s.EntryBlockDBHeightComplete = height
+			s.LogPrintf("EntrySync", "NetStart EntryBlockDBHeightComplete = %d", s.EntryBlockDBHeightComplete)
 		}
 	}
 
@@ -308,7 +308,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "corsdomains", s.CorsDomains))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryBlockDBHeightComplete))
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", elections.FaultTimeout))
 
@@ -658,7 +658,12 @@ func startServer(i int, fnode *FactomNode, load bool) {
 	if load {
 		go state.LoadDatabase(fnode.State)
 	}
-	go fnode.State.GoSyncEntries()
+
+	entrySync := state.NewEntrySync(fnode.State)
+	fnode.State.EntrySync = entrySync
+	go fnode.State.EntrySync.SyncHeight()
+	go fnode.State.WriteEntries()
+
 	go Timer(fnode.State)
 	go elections.Run(fnode.State)
 	go fnode.State.ValidatorLoop()
