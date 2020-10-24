@@ -1,53 +1,58 @@
-package p2p_test
+package p2p
 
 import (
-	"math/rand"
+	"strings"
 	"testing"
-
-	"github.com/FactomProject/factomd/common/primitives/random"
-	"github.com/FactomProject/factomd/p2p"
 )
 
-func BenchmarkBroadcastWithSliceBuild(b *testing.B) {
-	conns := make(map[string]*p2p.Peer)
-	for i := 0; i < 100; i++ {
-		con := new(p2p.Peer)
-		con.Hash = random.RandomString()
-		conns[con.Hash] = con
-	}
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		// Make list
-		regularPeers := make([]string, 0)
+func Test_controller_setSpecial(t *testing.T) {
+	add1 := []Endpoint{Endpoint{"aa", "1"}, Endpoint{"aa", "2"}, Endpoint{"ab", "3"}, Endpoint{"ab", "4"}}
+	add2 := []Endpoint{Endpoint{"ba", "1"}, Endpoint{"ba", "2"}, Endpoint{"bb", "3"}, Endpoint{"bb", "4"}}
+	add3 := []Endpoint{Endpoint{"c", "1"}}
 
-		for peerHash, _ := range conns {
-			regularPeers = append(regularPeers, peerHash)
+	c := new(controller)
+	c.logger = packageLogger
+	c.setSpecial("a:1,localhost:80,127.0.0.1:8110") // parseSpecial has its own unit tests
+
+	addf := func(el []Endpoint) {
+		var eps []string
+		for _, e := range el {
+			eps = append(eps, e.String())
 		}
 
-		rand.Shuffle(len(regularPeers), func(i, j int) {
-			regularPeers[i], regularPeers[j] = regularPeers[j], regularPeers[i]
-		})
-
-		for peerHash := range regularPeers {
-			var _ = peerHash
-		}
+		c.setSpecial(strings.Join(eps, ","))
 	}
-}
 
-func BenchmarkBroadcastWithoutSliceBuild(b *testing.B) {
-	conns := make(map[string]*p2p.Peer)
-	for i := 0; i < 100; i++ {
-		con := new(p2p.Peer)
-		con.Hash = random.RandomString()
-		conns[con.Hash] = con
-	}
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		// Make list
-
-		for peerHash, _ := range conns {
-			var _ = peerHash
+	cmp := func(el []Endpoint, prev []Endpoint) {
+		for _, e := range el {
+			if c.isSpecial(e) {
+				t.Errorf("Endpoint %s was already special before being added", e)
+			} else if c.isSpecialIP(e.IP) {
+				t.Errorf("IP %s was already special before being added", e.IP)
+			}
 		}
 
+		addf(el)
+
+		for _, e := range el {
+			if !c.isSpecial(e) {
+				t.Errorf("Endpoint %s was not set as special", e)
+			} else if !c.isSpecialIP(e.IP) {
+				t.Errorf("IP %s was not set as special", e.IP)
+			}
+		}
+
+		for _, e := range prev {
+			if c.isSpecial(e) {
+				t.Errorf("Old endpoint %s was not removed", e)
+			} else if c.isSpecialIP(e.IP) {
+				t.Errorf("Old IP %s was not removed", e.IP)
+			}
+		}
 	}
+
+	cmp(add1, nil)
+	cmp(add2, add1)
+	cmp(add3, add2)
+	cmp(nil, add3) // will call setSpecial("")
 }

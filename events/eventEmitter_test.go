@@ -9,7 +9,6 @@ import (
 	"github.com/FactomProject/factomd/events/eventconfig"
 	"github.com/FactomProject/factomd/events/eventinput"
 	"github.com/FactomProject/factomd/events/eventmessages/generated/eventmessages"
-	"github.com/FactomProject/factomd/p2p"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
@@ -41,7 +40,7 @@ func TestEventEmitter_Send(t *testing.T) {
 		"not-running": {
 			Emitter: &eventEmitter{
 				eventSender: &mockEventSender{
-					eventsOutQueue: make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
+					eventsOutQueue: make(chan *eventmessages.FactomEvent, 5000),
 				},
 				parentState: StateMock{
 					RunState: runstate.Stopping,
@@ -56,7 +55,7 @@ func TestEventEmitter_Send(t *testing.T) {
 		"nil-event": {
 			Emitter: &eventEmitter{
 				eventSender: &mockEventSender{
-					eventsOutQueue:      make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
+					eventsOutQueue:      make(chan *eventmessages.FactomEvent, 5000),
 					replayDuringStartup: true,
 				},
 				parentState: StateMock{},
@@ -70,7 +69,7 @@ func TestEventEmitter_Send(t *testing.T) {
 		"mute-replay-starting": {
 			Emitter: &eventEmitter{
 				eventSender: &mockEventSender{
-					eventsOutQueue:      make(chan *eventmessages.FactomEvent, p2p.StandardChannelSize),
+					eventsOutQueue:      make(chan *eventmessages.FactomEvent, 5000),
 					replayDuringStartup: false,
 				},
 				parentState: StateMock{

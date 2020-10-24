@@ -55,7 +55,7 @@ var _ = fmt.Print
 type State struct {
 	Logger            *log.Entry
 	RunState          runstate.RunState
-	NetworkController *p2p.Controller
+	NetworkController *p2p.Network
 	Salt              interfaces.IHash
 	Cfg               interfaces.IFactomConfig
 	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
@@ -941,13 +941,6 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		} else {
 			s.IdentityChainID = identity
 			s.LogPrintf("AckChange", "Load IdentityChainID \"%v\"", s.IdentityChainID.String())
-		}
-
-		if cfg.App.P2PIncoming > 0 {
-			p2p.MaxNumberIncomingConnections = cfg.App.P2PIncoming
-		}
-		if cfg.App.P2POutgoing > 0 {
-			p2p.NumberPeersToConnect = cfg.App.P2POutgoing
 		}
 	} else {
 		s.LogPath = "database/"
@@ -3073,7 +3066,7 @@ func (s *State) updateNetworkControllerConfig() {
 		panic(fmt.Sprintf("Invalid Network: %s", s.Network))
 	}
 
-	s.NetworkController.ReloadSpecialPeers(newPeersConfig)
+	s.NetworkController.SetSpecial(newPeersConfig)
 }
 
 // Check and Add a hash to the network replay filter

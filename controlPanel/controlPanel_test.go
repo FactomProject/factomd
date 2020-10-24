@@ -13,6 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/p2p"
+
 	//"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	//"github.com/FactomProject/factomd/common/primitives/random"
@@ -64,7 +66,7 @@ func addTrans(rc *LastDirectoryBlockTransactions) {
 func TestControlPanel(t *testing.T) {
 	if LongTest {
 		var i uint32
-		connections := make(chan interface{})
+		connections := make(chan map[string]p2p.PeerMetrics)
 		emptyState := CreateAndPopulateTestStateAndStartValidator()
 
 		gitBuild := "Test Is Running"
