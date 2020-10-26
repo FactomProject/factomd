@@ -5,47 +5,35 @@ jobs:
   build:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.14
 
     steps:
       - checkout
 
       - restore_cache:
           keys:
-            - v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
-
-      - run:
-          name: Get glide
-          command: |
-            go get -v github.com/Masterminds/glide
-            cd $GOPATH/src/github.com/Masterminds/glide
-            git checkout tags/v0.13.1
-            go install
+            - v3-factomd-go-build-cache-{{ checksum "go.sum" }}
       - run:
           name: Get goveralls
           command: |
             go get github.com/mattn/goveralls
       - run:
-          name: Get the dependencies
-          command: |
-            glide install
-      - run:
           name: Build and install the executable
-          command: go install -v && cp -r $GOPATH/ /tmp
+          command: make install && cp -r $GOPATH/ /tmp
 
       - persist_to_workspace:
           root: /tmp
           paths: go
 
       - save_cache:
-          key: v2-factomd-go-build-cache-{{ checksum "glide.lock" }}
+          key: v3-factomd-go-build-cache-{{ checksum "go.sum" }}
           paths:
-            - vendor
+            - "/tmp/go/pkg/mod"
 
   test:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.14
 
     parallelism: 8
 
@@ -65,7 +53,7 @@ jobs:
   test_full:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.14
 
     parallelism: 8
 
@@ -85,7 +73,7 @@ jobs:
   coveralls:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.14
 
     steps:
       - attach_workspace:
@@ -98,13 +86,13 @@ jobs:
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
             cd /tmp/go/src/github.com/FactomProject/factomd/
-            go test $(glide nv | grep -v Utilities | grep -v longTest | grep -v peerTest | grep -v simTest | grep '...') -vet=off -v -cover -coverprofile=coverage.out
+            go test $(go list ./... | grep -v 'Utilities|longTest|peerTest|simTest') -vet=off -v -cover -coverprofile=coverage.out
             goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
   gofmt:
     working_directory: /tmp
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.14
 
     steps:
       - attach_workspace:
@@ -133,11 +121,9 @@ jobs:
       - setup_remote_docker:
           version: 18.03.1-ce
 
-      # The main (only) thing we care about is caching the /vendor dir.
-      #   Hence, checksumming glide.lock
       - restore_cache:
           keys:
-            - v6-factomd-cache-{{ checksum "glide.lock" }}
+            - v6-factomd-cache-{{ checksum "go.sum" }}
 
       # Load the images if the cache hit
       - run:
@@ -332,22 +318,10 @@ jobs:
             docker save -o /images/factomd.tar factomd $(docker history -q factomd |grep -v missing | grep -v none)
 
       - save_cache:
-          key: v6-factomd-cache-{{ checksum "glide.lock" }}
+          key: v6-factomd-cache-{{ checksum "go.sum" }}
           paths:
             - /images
 
-# The flow is
-#    build
-#      |
-#      ---------- test
-#                   |
-#                   ---------- gofmt
-#                   |
-#                   ---------- docker_build
-#                   |
-#                   ---------- test_full
-#
-#
 
 workflows:
   version: 2
@@ -357,18 +331,18 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - test:
-          filters:
-            tags:
-              only: /.*/
-          requires:
-            - build
       - gofmt:
           filters:
             tags:
               only: /.*/
           requires:
-            - test
+            - build
+      - test:
+          filters:
+            tags:
+              only: /.*/
+          requires:
+            - gofmt
       - docker_build:
           filters:
             branches:
