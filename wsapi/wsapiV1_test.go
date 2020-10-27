@@ -40,7 +40,7 @@ func TestHandleGetRaw(t *testing.T) {
 	raw.Hash2 = aBlock.DatabaseSecondaryIndex().String()
 	hex, err := aBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling ablock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //1
@@ -51,7 +51,7 @@ func TestHandleGetRaw(t *testing.T) {
 	raw.Hash2 = eBlock.DatabaseSecondaryIndex().String()
 	hex, err = eBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling eblock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //2
@@ -62,7 +62,7 @@ func TestHandleGetRaw(t *testing.T) {
 	raw.Hash2 = ecBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
 	hex, err = ecBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling ecblock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //3
@@ -73,7 +73,7 @@ func TestHandleGetRaw(t *testing.T) {
 	raw.Hash2 = fBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
 	hex, err = fBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling fblock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //4
@@ -84,7 +84,7 @@ func TestHandleGetRaw(t *testing.T) {
 	raw.Hash2 = dBlock.DatabaseSecondaryIndex().String()
 	hex, err = dBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling dblock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //5
@@ -343,7 +343,9 @@ func TestHandleHeights(t *testing.T) {
 func v1RequestGet(t *testing.T, url string, expectederror bool, result interface{}) {
 	response, err := http.Get(fmt.Sprintf("http://localhost:8088/%s", url))
 	assert.Nil(t, err, "response: %v", response)
-	defer response.Body.Close()
+	if response.Body != nil {
+		defer response.Body.Close()
+	}
 
 	body, err := ioutil.ReadAll(response.Body)
 
