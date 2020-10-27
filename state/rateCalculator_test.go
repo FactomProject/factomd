@@ -97,6 +97,7 @@ func shouldbe(awa, abu, cwa float64, e *Exposer) error {
 
 // Most of the time is sleeping, so run 10 in parallel
 func TestRateCalculator(t *testing.T) {
+	t.Skip("this unit test is flaky on some hardware due to race conditions")
 	for i := 0; i < 10; i++ {
 		t.Run(fmt.Sprintf("ParallelTest%d", i), testRateCalculator)
 	}
