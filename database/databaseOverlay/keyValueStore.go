@@ -11,7 +11,7 @@ func (db *Overlay) SaveKeyValueStore(kvs interfaces.BinaryMarshallable, key []by
 	}
 	batch := []interfaces.Record{}
 
-	batch = append(batch, interfaces.Record{KEY_VALUE_STORE, key, kvs})
+	batch = append(batch, interfaces.Record{Bucket: KEY_VALUE_STORE, Key: key, Data: kvs})
 
 	err := db.DB.PutInBatch(batch)
 	if err != nil {

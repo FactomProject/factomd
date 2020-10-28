@@ -65,8 +65,6 @@ func AddCommas(v int64) (ret string) {
 			v = v / 1000
 		}
 	}
-
-	return
 }
 
 /*********************************

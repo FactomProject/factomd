@@ -39,14 +39,14 @@ func (p IdentitySort) Less(i, j int) bool {
 type Identity struct {
 	IdentityChainID    interfaces.IHash `json:"identity_chainid"`
 	IdentityChainSync  EntryBlockSync   `json:"-"`
-	IdentityRegistered uint32           `json:"identity_registered`
-	IdentityCreated    uint32           `json:"identity_created`
+	IdentityRegistered uint32           `json:"identity_registered"`
+	IdentityCreated    uint32           `json:"identity_created"`
 
-	ManagementChainID    interfaces.IHash `json:"management_chaind`
+	ManagementChainID    interfaces.IHash `json:"management_chaind"`
 	ManagementChainSync  EntryBlockSync   `json:"-"`
-	ManagementRegistered uint32           `json:"management_registered`
-	ManagementCreated    uint32           `json:"management_created`
-	MatryoshkaHash       interfaces.IHash `json:"matryoshka_hash`
+	ManagementRegistered uint32           `json:"management_registered"`
+	ManagementCreated    uint32           `json:"management_created"`
+	MatryoshkaHash       interfaces.IHash `json:"matryoshka_hash"`
 
 	// All 4 levels keys, 0 indexed.
 	//		Keys[0] --> Key 1
