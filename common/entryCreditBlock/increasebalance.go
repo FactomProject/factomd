@@ -94,7 +94,7 @@ func NewIncreaseBalance() *IncreaseBalance {
 func (e *IncreaseBalance) GetEntryHash() (rval interfaces.IHash) {
 	// reenable if this function is implemented
 	// defer func() { rval = primitives.CheckNil(rval, "IncreaseBalance.GetEntryHash") }()
-	
+
 	return nil
 }
 

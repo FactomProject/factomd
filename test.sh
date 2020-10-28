@@ -111,9 +111,8 @@ function testGoFmt() {
 	FILES=$(find . -name '*.go')
 
 	for FILE in ${FILES[*]}; do
-		gofmt -w $FILE
 
-		if [[ $? != 0 ]]; then
+		if [[ $(gofmt -l $FILE) != "" ]]; then
 			FAIL=1
 			FAILURES+=($FILE)
 		fi

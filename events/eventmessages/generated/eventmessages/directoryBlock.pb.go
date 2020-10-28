@@ -396,7 +396,9 @@ func init() {
 	proto.RegisterType((*DirectoryBlockAnchor)(nil), "eventmessages.DirectoryBlockAnchor")
 }
 
-func init() { proto.RegisterFile("eventmessages/directoryBlock.proto", fileDescriptor_470a6f1df5755130) }
+func init() {
+	proto.RegisterFile("eventmessages/directoryBlock.proto", fileDescriptor_470a6f1df5755130)
+}
 
 var fileDescriptor_470a6f1df5755130 = []byte{
 	// 544 bytes of a gzipped FileDescriptorProto
