@@ -265,7 +265,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	raw.Hash2 = aBlock.DatabaseSecondaryIndex().String()
 	hex, err := aBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling ablock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //1
@@ -276,7 +276,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	raw.Hash2 = eBlock.DatabaseSecondaryIndex().String()
 	hex, err = eBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling eblock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //2
@@ -287,7 +287,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	raw.Hash2 = ecBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
 	hex, err = ecBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling ecblock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //3
@@ -298,7 +298,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	raw.Hash2 = fBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
 	hex, err = fBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling fblock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //4
@@ -309,7 +309,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	raw.Hash2 = dBlock.DatabaseSecondaryIndex().String()
 	hex, err = dBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling dblock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //5

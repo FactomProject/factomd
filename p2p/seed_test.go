@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"reflect"
 	"testing"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -24,6 +25,7 @@ func testServer() {
 	})
 
 	go http.ListenAndServe("127.0.0.1:8000", mux)
+	time.Sleep(time.Millisecond * 500)
 }
 
 func Test_seed_retrieve(t *testing.T) {
