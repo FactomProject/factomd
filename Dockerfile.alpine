@@ -3,17 +3,8 @@ FROM golang:1.14-alpine  as builder
 # Get git, make...
 RUN apk add --no-cache curl git make gcc libc-dev
 
-# Get glide
-RUN go get github.com/Masterminds/glide
-
 # Where factomd sources will live
 WORKDIR $GOPATH/src/github.com/FactomProject/factomd
-
-# Get the dependencies
-COPY glide.yaml glide.lock ./
-
-# Install dependencies
-RUN glide install -v
 
 # Populate the rest of the source
 COPY . .
