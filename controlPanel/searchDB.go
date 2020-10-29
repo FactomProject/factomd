@@ -29,7 +29,7 @@ func newSearchResponse(ftype string, found foundItemInterface) string {
 	return searchJson
 }
 
-func searchDB(searchitem string, st state.State) (bool, string) {
+func searchDB(searchitem string, st *state.State) (bool, string) {
 	if len(searchitem) < 32 {
 		heightInt, err := strconv.Atoi(searchitem)
 		if err != nil {

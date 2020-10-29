@@ -322,6 +322,15 @@ jobs:
           paths:
             - /images
 
+  govet:
+    docker: 
+      - image: circleci/golang:1.14
+
+    steps:
+      - checkout
+      - run:
+          name: "Go vet"
+          command: go vet $(go list ./... | grep -v -e /Utilities -e /ET2)
 
 workflows:
   version: 2
@@ -337,12 +346,18 @@ workflows:
               only: /.*/
           requires:
             - build
+      - govet:
+          filters:
+            tags:
+              only: /.*/
+          requires:
+            - build
       - test:
           filters:
             tags:
               only: /.*/
           requires:
-            - gofmt
+            - build
       - docker_build:
           filters:
             branches:
@@ -376,6 +391,9 @@ workflows:
     jobs:
       - build
       - gofmt:
+          requires:
+            - build
+      - govet:
           requires:
             - build
       - test_full:

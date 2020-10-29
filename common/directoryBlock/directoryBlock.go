@@ -24,7 +24,7 @@ type DirectoryBlock struct {
 	DBHash     interfaces.IHash `json:"dbhash"`
 	KeyMR      interfaces.IHash `json:"keymr"`
 	HeaderHash interfaces.IHash `json:"headerhash"`
-	keyMRset   bool             `json:"keymrset"`
+	keyMRset   bool
 
 	//Marshalized
 	Header    interfaces.IDirectoryBlockHeader `json:"header"`
