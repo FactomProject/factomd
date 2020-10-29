@@ -291,7 +291,7 @@ type State struct {
 	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
-	InvalidMessagesMutex sync.RWMutex
+	InvalidMessagesMutex *sync.RWMutex
 
 	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
 
@@ -1038,6 +1038,7 @@ func (s *State) Init() {
 	s.TimeOffset = new(primitives.Timestamp) //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
+	s.InvalidMessagesMutex = new(sync.RWMutex)
 
 	s.ShutdownChan = make(chan int, 1)                //Channel to gracefully shut down.
 	s.tickerQueue = make(chan int, 100)               //ticks from a clock

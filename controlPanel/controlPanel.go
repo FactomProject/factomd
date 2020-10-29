@@ -237,7 +237,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	method := r.FormValue("method")
 	switch method {
 	case "search":
-		found, respose := searchDB(r.FormValue("search"), *StatePointer)
+		found, respose := searchDB(r.FormValue("search"), StatePointer)
 		if found {
 			w.Write([]byte(respose))
 			return
