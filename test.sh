@@ -13,8 +13,8 @@ GO_TEST="go test -v -timeout=10m"
 
 # list modules for CI testing
 function listModules() {
-	glide nv | grep -v Utilities | grep -v elections | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v activations | grep -v netTest | grep "\.\.\."
-}
+    go list ./... | grep -Ev 'Utilities|elections|longTest|peerTest|simTest|activations|netTest'
+}	
 
 # formatted list of simTest/<testname>
 function listSimTest() {
@@ -162,7 +162,7 @@ function testPeer() {
 
 # run unit tests per module this ignores all simtests
 function unitTest() {
-	$GO_TEST $1 | egrep "PASS|FAIL|panic|bind|Timeout"
+	$GO_TEST $1 | egrep "PASS|FAIL|panic|bind|Timeout|no test files"
 }
 
 # run a simtest

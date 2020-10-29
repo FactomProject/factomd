@@ -38,7 +38,7 @@ var cmd *exec.Cmd
 var stdin io.Writer
 var scanner *bufio.Scanner
 
-func init() {
+func (sim *EventServerSim) StartExternal() error {
 	log.Info("Event server simulator")
 	sim = &EventServerSim{}
 	flag.StringVar(&sim.Protocol, "protocol", "tcp", "Protocol")
@@ -46,12 +46,10 @@ func init() {
 	flag.IntVar(&sim.ExpectedEvents, "expectedevents", 0, "Expected events")
 	flag.Parse()
 	scanner = bufio.NewScanner(os.Stdin)
-}
 
-func (sim *EventServerSim) StartExternal() error {
 	sim.CorrectSendEvents = 0
 	goPath := os.Getenv("GOROOT") + "/bin/go"
-	cmd = exec.Command(goPath, "test", "-v", "./", "-run", "TestRunExternal", "-protocol="+sim.Protocol,
+	cmd = exec.Command(goPath, "test", "-v", "./", "-run", "RunExternal", "-protocol="+sim.Protocol,
 		"-address="+sim.Address, "-expectedevents="+strconv.Itoa(sim.ExpectedEvents))
 	cmd.Env = os.Environ()
 	cmd.Stderr = os.Stderr
@@ -67,7 +65,7 @@ func (sim *EventServerSim) StartExternal() error {
 	return nil
 }
 
-func TestRunExternal(t *testing.T) {
+func RunExternal(t *testing.T) {
 	defer func() { fmt.Println("exit") }()
 
 	sim.test = t
