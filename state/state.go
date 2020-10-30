@@ -20,13 +20,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/events"
-
-	"github.com/FactomProject/factomd/common/constants/runstate"
-
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -36,13 +33,14 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/modules/chainheadfix"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
 
-	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -1157,10 +1155,9 @@ func (s *State) Init() {
 				}
 			}
 		}
-		correctChainHeads.FindHeads(s.DB.(*databaseOverlay.Overlay), correctChainHeads.CorrectChainHeadConfig{
-			PrintFreq: 5000,
-			Fix:       s.CheckChainHeads.Fix,
-		})
+		if err := chainheadfix.FindHeads(s.DB.(*databaseOverlay.Overlay), s.CheckChainHeads.Fix); err != nil {
+			panic(fmt.Errorf("chainheadfix encountered fatal error: %v\n", err))
+		}
 	}
 	if s.ExportData {
 		s.DB.SetExportData(s.ExportDataSubpath)
