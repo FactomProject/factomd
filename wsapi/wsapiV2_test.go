@@ -21,7 +21,7 @@ import (
 
 func TestHandleV2Requests(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
+	delayedStart(t, state)
 
 	cases := map[string]struct {
 		Method     string
@@ -316,7 +316,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 
 	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
+	delayedStart(t, state)
 
 	for i, v := range toTest {
 		data := new(HashRequest)
