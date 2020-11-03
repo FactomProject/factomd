@@ -56,16 +56,18 @@ func TestGetEndpoints(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	delayedStart(t, state)
 
+	base := fmt.Sprintf("http://localhost:%d", state.GetPort())
+
 	cases := map[string]struct {
 		Method   string
 		Url      string
 		Expected int
 		Body     io.Reader
 	}{
-		"baseGetUrl":       {"GET", "http://localhost:8088", http.StatusNotFound, nil},
-		"basePostUrl":      {"POST", "http://localhost:8088", http.StatusNotFound, body("")},
-		"trailing-slashes": {"GET", "http://localhost:8088/v2/", http.StatusNotFound, nil},
-		"wrong-method":     {"GET", "http://localhost:8088/v1/factoid-submit/", http.StatusNotFound, nil},
+		"baseGetUrl":       {"GET", base, http.StatusNotFound, nil},
+		"basePostUrl":      {"POST", base, http.StatusNotFound, body("")},
+		"trailing-slashes": {"GET", base + "/v2/", http.StatusNotFound, nil},
+		"wrong-method":     {"GET", base + "/v1/factoid-submit/", http.StatusNotFound, nil},
 	}
 	client := &http.Client{}
 	for name, testCase := range cases {

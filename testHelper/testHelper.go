@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"regexp"
@@ -115,6 +116,7 @@ func CreateAndPopulateTestState() *state.State {
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
 	s.LoadConfig("", "")
+	s.SetPort(GetFreePort())
 
 	s.DirectoryBlockInSeconds = 20
 
@@ -460,4 +462,20 @@ func GetTestName() (name string) {
 	}
 
 	return name
+}
+
+func GetFreePort() int {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		panic(err)
+	}
+
+	listener, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		panic(err)
+	}
+
+	port := listener.Addr().(*net.TCPAddr).Port
+	listener.Close()
+	return port
 }

@@ -3,6 +3,7 @@ package wsapi_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
@@ -227,7 +228,7 @@ func TestHandleV2Requests(t *testing.T) {
 		t.Logf("test case '%s'", name)
 
 		request := primitives.NewJSON2Request(testCase.Method, 0, testCase.Message)
-		response, err := v2Request(request)
+		response, err := v2Request(request, state.GetPort())
 
 		assert.Nil(t, err, "test '%s' failed: %v \nresponse: %v", name, err, response)
 		assert.Equal(t, testCase.Error, response.Error, "test '%s' failed contains different error that expected: %v", name, response.Error)
@@ -324,13 +325,13 @@ func TestHandleV2GetRaw(t *testing.T) {
 		req := primitives.NewJSON2Request("raw-data", 1, data)
 
 		time.Sleep(time.Millisecond * 100)
-		resp, err := v2Request(req)
+		resp, err := v2Request(req, state.GetPort())
 		assert.Nil(t, err)
 		assert.True(t, strings.Contains(resp.String(), v.Raw), "Looking for %v but got %v \nGetRaw %v/%v from Hash1 failed - %v", v.Hash1, v.Raw, i, len(toTest), resp.String())
 
 		data.Hash = v.Hash2
 		req = primitives.NewJSON2Request("raw-data", 1, data)
-		resp, err = v2Request(req)
+		resp, err = v2Request(req, state.GetPort())
 		assert.Nil(t, err)
 		assert.True(t, strings.Contains(resp.String(), v.Raw), "Looking for %v \nGetRaw %v/%v from Hash2 failed - %v", v.Hash1, i, len(toTest), resp.String())
 	}
@@ -488,13 +489,13 @@ func Test_ecBlockToResp(t *testing.T) {
 	}
 }
 
-func v2Request(req *primitives.JSON2Request) (*primitives.JSON2Response, error) {
+func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Response, error) {
 	j, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := http.Post("http://localhost:8088/v2", "application/json", bytes.NewBuffer(j))
+	resp, err := http.Post(fmt.Sprintf("http://localhost:%d/v2", port), "application/json", bytes.NewBuffer(j))
 	if err != nil {
 		return nil, err
 	}
