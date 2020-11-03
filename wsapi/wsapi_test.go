@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
@@ -26,7 +28,7 @@ func waitUntilStarted(t *testing.T, url string, timeout time.Duration) {
 
 	start := time.Now()
 	for time.Since(start) < timeout {
-		_, err := client.Get(url)
+		_, err := client.Get(url) // err == nil if it can connect, even if it 404s
 		if err == nil {
 			return
 		}
@@ -35,10 +37,26 @@ func waitUntilStarted(t *testing.T, url string, timeout time.Duration) {
 	t.Fatalf("unable to connect to %s in %s", url, timeout)
 }
 
+// start the server and then wait for it to be responsive
+func delayedStart(t *testing.T, state interfaces.IState) {
+	Start(state)
+
+	tls, _, _ := state.GetTlsInfo()
+	protocol := "http"
+	if tls {
+		protocol = "https"
+	}
+
+	// don't need to point it at a method, just checking if it's responsive
+	url := fmt.Sprintf("%s://localhost:%d/", protocol, state.GetPort())
+	waitUntilStarted(t, url, time.Second*5)
+}
+
 func TestGetEndpoints(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
-	waitUntilStarted(t, "http://localhost:8088", time.Second*5)
+	delayedStart(t, state)
+
+	base := fmt.Sprintf("http://localhost:%d", state.GetPort())
 
 	cases := map[string]struct {
 		Method   string
@@ -46,10 +64,10 @@ func TestGetEndpoints(t *testing.T) {
 		Expected int
 		Body     io.Reader
 	}{
-		"baseGetUrl":       {"GET", "http://localhost:8088", http.StatusNotFound, nil},
-		"basePostUrl":      {"POST", "http://localhost:8088", http.StatusNotFound, body("")},
-		"trailing-slashes": {"GET", "http://localhost:8088/v2/", http.StatusNotFound, nil},
-		"wrong-method":     {"GET", "http://localhost:8088/v1/factoid-submit/", http.StatusNotFound, nil},
+		"baseGetUrl":       {"GET", base, http.StatusNotFound, nil},
+		"basePostUrl":      {"POST", base, http.StatusNotFound, body("")},
+		"trailing-slashes": {"GET", base + "/v2/", http.StatusNotFound, nil},
+		"wrong-method":     {"GET", base + "/v1/factoid-submit/", http.StatusNotFound, nil},
 	}
 	client := &http.Client{}
 	for name, testCase := range cases {
@@ -77,9 +95,7 @@ func TestAuthenticatedUnauthorizedRequest(t *testing.T) {
 	state.RpcUser = username
 	state.RpcPass = password
 	state.SetPort(18088)
-	Start(state)
-
-	waitUntilStarted(t, "http://localhost:18088", time.Second*5)
+	delayedStart(t, state)
 
 	cases := map[string]struct {
 		Method       string
@@ -131,8 +147,7 @@ func TestHTTPS(t *testing.T) {
 	state.FactomdTLSKeyFile = pkFile
 	state.FactomdTLSCertFile = certFile
 
-	Start(state)
-	waitUntilStarted(t, "https://localhost:10443", time.Second*5)
+	delayedStart(t, state)
 
 	url := "https://localhost:10443/v1/heights/"
 	transCfg := &http.Transport{
