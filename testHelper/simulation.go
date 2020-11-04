@@ -24,8 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var par = globals.FactomParams{}
-
 var quit = make(chan struct{})
 var ExpectedHeight, Leaders, Audits, Followers int
 var startTime, endTime time.Time
@@ -628,6 +626,7 @@ func ResetTestHome(homeDir string, t *testing.T) {
 }
 
 func ResetSimHome(t *testing.T) string {
+	engine.ResetFNodes()
 	h := GetSimTestHome(t)
 	ResetTestHome(h, t)
 	return h
