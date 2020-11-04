@@ -133,6 +133,7 @@ func StartPeer(CmdLineOptions map[string]string) *state.State {
 // this is useful for creating scripts that will start/stop a simulation outside of the context of a unit test
 // this allows for consistent tweaking of a simulation to induce load add message loss or adjust timing
 func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
+	quit = make(chan struct{})
 	UserAddedOptions["--count"] = fmt.Sprintf("%v", nodeCount)
 	params := optionsToParams(UserAddedOptions)
 	return engine.Factomd(params, false).(*state.State)
