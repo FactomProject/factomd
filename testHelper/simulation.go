@@ -618,8 +618,12 @@ func GetLongTestHome(t *testing.T) string {
 // remove files from a home dir and remake .factom config dir
 func ResetTestHome(homeDir string, t *testing.T) {
 	t.Logf("Removing old test run in %s", homeDir)
-	os.RemoveAll(homeDir)
-	os.MkdirAll(homeDir+"/.factom/m2", 0755)
+	if err := os.RemoveAll(homeDir); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(homeDir+"/.factom/m2", 0755); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func ResetSimHome(t *testing.T) string {
