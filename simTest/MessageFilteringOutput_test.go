@@ -9,7 +9,7 @@ import (
 )
 
 func TestFilterAPIOutput(t *testing.T) {
-
+	ResetSimHome(t)
 	state0 := SetupSim("LLLLLAAF", map[string]string{}, 25, 1, 1, t)
 
 	RunCmd("1")

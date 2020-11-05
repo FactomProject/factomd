@@ -32,6 +32,7 @@ func TestOne(t *testing.T) {
 		return
 	}
 	state.MMR_enable = false // No MMR for you!
+	ResetSimHome(t)
 
 	RanSimTest = true
 
