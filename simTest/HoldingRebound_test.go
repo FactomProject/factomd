@@ -14,6 +14,7 @@ import (
 )
 
 func TestHoldingRebound(t *testing.T) {
+	ResetSimHome(t)
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}
 		b.WriteString(s)
@@ -49,8 +50,8 @@ func TestHoldingRebound(t *testing.T) {
 	newHt := state0.GetDBHeightComplete()
 	assert.True(t, ht < newHt, "block height should progress")
 
-	ShutDownEverything(t)
 	WaitForAllNodes(state0)
+	ShutDownEverything(t)
 
 	for _, ml := range state0.Hold.Messages() {
 		for _, m := range ml {
@@ -60,7 +61,6 @@ func TestHoldingRebound(t *testing.T) {
 }
 
 func GenerateCommitsAndRevealsInBatches(t *testing.T, state0 *state.State) {
-
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}
 		b.WriteString(s)

@@ -13,6 +13,7 @@ import (
 )
 
 func TestEntriesBeforeChain(t *testing.T) {
+	ResetSimHome(t)
 
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}
@@ -98,8 +99,8 @@ func TestEntriesBeforeChain(t *testing.T) {
 	WaitForEcBalanceUnder(state0, a.EcPub(), int64(ecMargin+1))
 	WaitForEntry(state0, lastentry)
 
-	ShutDownEverything(t)
 	WaitForAllNodes(state0)
+	ShutDownEverything(t)
 
 	assert.Equal(t, int64(ecMargin), a.GetECBalance()) // should have 100 extra EC's
 

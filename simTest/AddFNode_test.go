@@ -23,6 +23,6 @@ func TestAddFNode(t *testing.T) {
 	AddFNode()
 	state7 := engine.GetFnodes()[7].State // Get new node
 	WaitForBlock(state7, 7)
-	AssertAuthoritySet(t, "LLLLLAAF")
 	ShutDownEverything(t)
+	AssertAuthoritySet(t, "LLLLLAAF")
 }

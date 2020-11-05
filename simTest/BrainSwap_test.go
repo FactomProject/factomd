@@ -39,7 +39,8 @@ func TestBrainSwap(t *testing.T) {
 	RunCmd("x")
 	WaitBlocks(state0, 1)
 
+	ShutDownEverything(t)
 	WaitForAllNodes(state0)
 	AssertAuthoritySet(t, "LLFFLA")
-	ShutDownEverything(t)
+
 }

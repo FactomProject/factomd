@@ -14,6 +14,7 @@ import (
 
 // this applies chain & entry creation in 'proper' chronological order
 func TestEntryBatch(t *testing.T) {
+	ResetSimHome(t)
 
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}
@@ -91,8 +92,8 @@ func TestEntryBatch(t *testing.T) {
 	WaitForEcBalanceUnder(state0, a.EcPub(), int64(ecMargin+1)) // wait for all entries to process
 	WaitBlocks(state0, 1)                                       // give time for holding to clear
 
-	ShutDownEverything(t)
 	WaitForAllNodes(state0)
+	ShutDownEverything(t)
 
 	assert.Equal(t, int64(ecMargin), a.GetECBalance()) // should have 100 extra EC's
 
