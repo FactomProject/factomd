@@ -47,7 +47,7 @@ var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c
 var once bool
 
 //var InputChan = make(chan string)
-func GetLine(listenToStdin bool) string {
+func GetLine(ListenToStdin bool) string {
 
 	if !once {
 		once = true
@@ -89,7 +89,7 @@ func GetFocus() *FactomNode {
 	return nil
 }
 
-func SimControl(listenTo int, listenStdin bool) {
+func SimControl(initialListen int, listenStdin bool) {
 	var _ = time.Sleep
 	var summary int
 	var elections int
@@ -102,7 +102,7 @@ func SimControl(listenTo int, listenStdin bool) {
 	var cancelindex int = -1
 	var initchainCost = 11
 
-	ListenTo = listenTo
+	ListenTo = initialListen
 
 	if loadGenerator == nil {
 		loadGenerator = NewLoadGenerator(fnodes[0].State)
@@ -283,8 +283,8 @@ func SimControl(listenTo int, listenStdin bool) {
 			case 'E' == b[0]:
 				if len(b) == 2 {
 					if b[1] == 's' {
-						if fnodes[listenTo].State.GetElections() != nil && fnodes[listenTo].State.GetElections().GetAdapter() != nil {
-							os.Stderr.WriteString(fnodes[listenTo].State.GetElections().GetAdapter().Status())
+						if fnodes[ListenTo].State.GetElections() != nil && fnodes[ListenTo].State.GetElections().GetAdapter() != nil {
+							os.Stderr.WriteString(fnodes[ListenTo].State.GetElections().GetAdapter().Status())
 							break
 						}
 					}
@@ -651,9 +651,9 @@ func SimControl(listenTo int, listenStdin bool) {
 
 					// Advance to the next node. Makes taking a number of nodes off or on line easier
 					fnodes[ListenTo].State.SetOut(false)
-					listenTo++
-					if listenTo >= len(fnodes) {
-						listenTo = 0
+					ListenTo++
+					if ListenTo >= len(fnodes) {
+						ListenTo = 0
 					}
 					fnodes[ListenTo].State.SetOut(true)
 					os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
@@ -733,7 +733,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					break
 				}
 
-				fnodes[listenTo].State.InMsgQueue().Enqueue(msg)
+				fnodes[ListenTo].State.InMsgQueue().Enqueue(msg)
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[ListenTo].State.GetFactomNodeName(), "as a server"))
 
 				fallthrough
@@ -810,7 +810,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(fmt.Sprintln("Could not make a leader,", err.Error()))
 						break
 					}
-					fnodes[listenTo].State.InMsgQueue().Enqueue(msg)
+					fnodes[ListenTo].State.InMsgQueue().Enqueue(msg)
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[ListenTo].State.GetFactomNodeName(), "a Leader"))
 				}
 				fallthrough
@@ -1167,10 +1167,10 @@ func SimControl(listenTo int, listenStdin bool) {
 					}
 				}
 			case 'J' == b[0]:
-				elect := fnodes[listenTo].State.Elections.(*elections2.Elections)
+				elect := fnodes[ListenTo].State.Elections.(*elections2.Elections)
 				flist := elect.Federated
 				alist := elect.Audit
-				os.Stderr.WriteString(fmt.Sprintf(fnodes[listenTo].State.Elections.String()))
+				os.Stderr.WriteString(fmt.Sprintf(fnodes[ListenTo].State.Elections.String()))
 				for _, n := range fnodes {
 					founddif := false
 					str := "\n - " + n.State.GetFactomNodeName()
@@ -1356,7 +1356,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						num = len(fnodes)
 					}
 
-					for listenTo < num {
+					for ListenTo < num {
 						err = cancelCoinbase(fnodes[ListenTo].State.IdentityChainID, fnodes[ListenTo].State, uint32(cancelheight), uint32(cancelindex))
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("%s\n", err.Error()))
@@ -1507,10 +1507,10 @@ func rotateWSAPI(rotate *int, value int, wsapiNode *int) {
 	}
 }
 
-func printProcessList(watchPL *int, value int, listenTo *int) {
+func printProcessList(watchPL *int, value int, ListenTo *int) {
 	out := ""
 	for *watchPL == value {
-		fnode := fnodes[*listenTo]
+		fnode := fnodes[*ListenTo]
 		nprt := fnode.State.DBStates.String()
 		b := fnode.State.GetHighestSavedBlk()
 		fnode.State.ProcessLists.SetString = true
@@ -1527,10 +1527,10 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 	}
 }
 
-func printMessages(Messages *int, value int, listenTo *int) {
+func printMessages(Messages *int, value int, ListenTo *int) {
 	fmt.Println("Printing Messages")
 	for *Messages == value {
-		fnode := fnodes[*listenTo]
+		fnode := fnodes[*ListenTo]
 		fnode.MLog.PrtMsgs(fnode.State)
 
 		time.Sleep(2 * time.Second)
