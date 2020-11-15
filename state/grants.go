@@ -67,6 +67,8 @@ func GetHardCodedGrants() []HardGrant {
 
 	case "MAIN":
 		// Note to future grant implementers.  On mainnet, grants should be on blocks divisible by 25 + 1.  See function CheckGrants().
+		// Activation heights
+		grant2020_04 := uint32(272801)
 		hardcodegrants = []HardGrant{
 			// Initial grants approved June 9, 2018 https://drive.google.com/drive/folders/1e_xmKgJb375EcAwwkz2d3mdYs0PVVih3
 			// https://factomize.com/forums/threads/implementing-the-initial-grants.428/
@@ -1295,6 +1297,96 @@ func GetHardCodedGrants() []HardGrant {
 
 			// MaxCollab total: 6066 FCT
 			HardGrant{259651, 6066e8, validateAddress("FA3TV1SjP8nVjVsWsYZhxvGX89orBFbXBeAp7ZDYRyE8aA4knqrF")},
+			// --------------------------------------------------------
+
+			// ********************************
+			// **** Grant Round 2020-04 ****
+			// ********************************
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-The Factoid Authority-De Facto -- 3600 FCT
+			// Factom Open Node 2020-10-19 - 2020-11-10
+
+			// The Factoid Authority total: 750 FCT
+			HardGrant{grant2020_04, 750e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
+
+			// De Facto total: 2850 FCT
+			HardGrant{grant2020_04, 2850e8, validateAddress("FA2YeMbN8Z1SsT7Yqw6Np85kWwtFVg2CyJKMDFnuXTawWuWPtzvX")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Paul B.-Luciap -- 5820 FCT
+			// Backpay core dev grant 2020-10-19 - 2020-11-10
+
+			// Luciap total: 5820 FCT
+			HardGrant{grant2020_04, 5820e8, validateAddress("FA3FMfH7wHkdxjaHi2CPVmDeoRkkKjWVhwcMGoz6hMqK451kaJEj")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-Factom Inc-De Facto -- 900 FCT
+			// Factom Oracle Master 2020-10-19 - 2020-11-10
+
+			// Factom Inc total: 450 FCT
+			HardGrant{grant2020_04, 450e8, validateAddress("FA3fpiZ91MCRRFjVGfNXK4pg7vx3BT3aSRyoVqgptZCX7N5BNR8P")},
+
+			// De Facto total: 450 FCT
+			HardGrant{grant2020_04, 450e8, validateAddress("FA2YeMbN8Z1SsT7Yqw6Np85kWwtFVg2CyJKMDFnuXTawWuWPtzvX")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// WB -- 1800 FCT
+			// Continued Governance Work 2020-10-19 - 2020-11-10
+
+			// WB total: 1800 FCT
+			HardGrant{grant2020_04, 1800e8, validateAddress("FA3Cac5xkEgvZc5uc3gWLhMK4CAvbw9Gi47FsFXydXEcBv3gcyDG")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-Website Committee -- 2010 FCT
+			// Website Committee grant 2020-10-19 - 2020-11-10
+
+			// Website Committee total: 2010 FCT
+			HardGrant{grant2020_04, 2010e8, validateAddress("FA3TG1mi25XfJSVeNT5vS9uLi8VQxjK8ju9pGCp8Po6rrk5RXPLH")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Jason Gregoire-Kompendium -- 18000 FCT
+			// Factom-Ethereum Bridge System - Continuation (Part 2 of 2) 2020-10-19 - 2020-11-10
+
+			// Kompendium total: 18000 FCT
+			HardGrant{grant2020_04, 18000e8, validateAddress("FA2H1Vwsq6VLcKJEtnpBRTHTXFzSQYJNFkd82ZB4N77bfe7JmWPD")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-De Facto -- 9600 FCT
+			// W3C Factom DID Golang Library backpay 2020-10-19 - 2020-11-10
+
+			// De Facto total: 9600 FCT
+			HardGrant{grant2020_04, 9600e8, validateAddress("FA2rrwFVvkFYwyGFHVBMwRqTpycuZiagrQdcbPWzuoEwJQxjDwi3")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// David Chapman -- 20000 FCT
+			// Usage Via Zoints 2020-10-19 - 2020-11-10
+
+			// David Chapman total: 20000 FCT
+			HardGrant{grant2020_04, 20000e8, validateAddress("FA2z4Z8KycQhxtYPG4YxVk3zkPFN9ar65odcRZQY4YoKLtvyqE23")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-De Facto -- 3600 FCT
+			// FCT Anchoring specification + binary 2020-10-19 - 2020-11-10
+
+			// De Facto total: 3600 FCT
+			HardGrant{grant2020_04, 3600e8, validateAddress("FA2rrwFVvkFYwyGFHVBMwRqTpycuZiagrQdcbPWzuoEwJQxjDwi3")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-De Facto -- 20000 FCT
+			// Liquidity funds for WFCT/FCT exchange pair — no liquidation grant 2020-10-19 - 2020-11-10
+
+			// De Facto total: 20000 FCT
+			HardGrant{grant2020_04, 20000e8, validateAddress("FA2rrwFVvkFYwyGFHVBMwRqTpycuZiagrQdcbPWzuoEwJQxjDwi3")},
 			// --------------------------------------------------------
 
 		}
