@@ -3076,14 +3076,18 @@ func (s *State) AddToReplayFilter(mask int, hash [32]byte, timestamp interfaces.
 func (s *State) IsActive(id activations.ActivationType) bool {
 	highestCompletedBlk := s.GetHighestCompletedBlk()
 
-	rval := activations.IsActive(id, int(highestCompletedBlk))
+	active := activations.IsActive(id, int(highestCompletedBlk))
 
-	if rval && !s.reportedActivations[id] {
-		s.LogPrintf("executeMsg", "Activating Feature %s at height %v", id.String(), highestCompletedBlk)
+	if !s.reportedActivations[id] {
+		if active {
+			s.LogPrintf("executeMsg", "Activating Feature %s at height %v", id.String(), highestCompletedBlk)
+		} else {
+			s.LogPrintf("executeMsg", "Never activating feature %s", id.String())
+		}
 		s.reportedActivations[id] = true
 	}
 
-	return rval
+	return active
 }
 
 func (s *State) PassOutputRegEx(RegEx *regexp.Regexp, RegExString string) {
