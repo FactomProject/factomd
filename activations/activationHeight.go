@@ -113,10 +113,8 @@ func IsActive(id ActivationType, height int) bool {
 
 	// use default
 	if a.defaultHeight < math.MaxInt32 {
-		fmt.Fprintf(os.Stderr, "Activation %s uses default value for network \"%s\". Activating at %d.\n", id.String(), netName, a.defaultHeight)
 		return height >= a.defaultHeight
 	}
 
-	fmt.Fprintf(os.Stderr, "Activation %s uses default value for network \"%s\". Never activating.\n", id.String(), netName)
 	return false
 }
