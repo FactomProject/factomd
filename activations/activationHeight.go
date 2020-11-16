@@ -39,7 +39,7 @@ func init() {
 	var activations []activation = []activation{
 		{"TestNetCoinBasePeriod", TESTNET_COINBASE_PERIOD,
 			"Change testnet coin base payout delay to 140 blocks",
-			math.MaxInt32, // inactive unless overridden below
+			0, // always active for consistency
 			map[string]int{
 				"MAIN":                      math.MaxInt32,
 				"LOCAL":                     25,
@@ -48,7 +48,7 @@ func init() {
 		},
 		{"AuthorityMaxDelta", AUTHRORITY_SET_MAX_DELTA,
 			"Ensures fewer than half of federated notes are replaced in a single election",
-			math.MaxInt32, // inactive unless overridden below
+			0, // always active for consistency
 			map[string]int{
 				"MAIN":                      222874,
 				"LOCAL":                     25,

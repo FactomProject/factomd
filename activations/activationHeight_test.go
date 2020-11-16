@@ -68,17 +68,17 @@ func TestDefaults(t *testing.T) {
 
 	netName = "XXXXX:default"
 
-	assert.False(t, IsActive(TESTNET_COINBASE_PERIOD, 0))
-	assert.False(t, IsActive(TESTNET_COINBASE_PERIOD, 1))
-	assert.False(t, IsActive(TESTNET_COINBASE_PERIOD, 25))
-	assert.False(t, IsActive(TESTNET_COINBASE_PERIOD, 45335))
-	assert.False(t, IsActive(TESTNET_COINBASE_PERIOD, 222874))
-	assert.False(t, IsActive(TESTNET_COINBASE_PERIOD, math.MaxInt32-1))
+	assert.True(t, IsActive(TESTNET_COINBASE_PERIOD, 0))
+	assert.True(t, IsActive(TESTNET_COINBASE_PERIOD, 1))
+	assert.True(t, IsActive(TESTNET_COINBASE_PERIOD, 25))
+	assert.True(t, IsActive(TESTNET_COINBASE_PERIOD, 45335))
+	assert.True(t, IsActive(TESTNET_COINBASE_PERIOD, 222874))
+	assert.True(t, IsActive(TESTNET_COINBASE_PERIOD, math.MaxInt32-1))
 
-	assert.False(t, IsActive(AUTHRORITY_SET_MAX_DELTA, 0))
-	assert.False(t, IsActive(AUTHRORITY_SET_MAX_DELTA, 1))
-	assert.False(t, IsActive(AUTHRORITY_SET_MAX_DELTA, 25))
-	assert.False(t, IsActive(AUTHRORITY_SET_MAX_DELTA, 45335))
-	assert.False(t, IsActive(AUTHRORITY_SET_MAX_DELTA, 222874))
-	assert.False(t, IsActive(AUTHRORITY_SET_MAX_DELTA, math.MaxInt32-1))
+	assert.True(t, IsActive(AUTHRORITY_SET_MAX_DELTA, 0))
+	assert.True(t, IsActive(AUTHRORITY_SET_MAX_DELTA, 1))
+	assert.True(t, IsActive(AUTHRORITY_SET_MAX_DELTA, 25))
+	assert.True(t, IsActive(AUTHRORITY_SET_MAX_DELTA, 45335))
+	assert.True(t, IsActive(AUTHRORITY_SET_MAX_DELTA, 222874))
+	assert.True(t, IsActive(AUTHRORITY_SET_MAX_DELTA, math.MaxInt32-1))
 }
