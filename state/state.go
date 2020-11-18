@@ -3080,7 +3080,7 @@ func (s *State) IsActive(id activations.ActivationType) bool {
 
 	if !s.reportedActivations[id] {
 		if active {
-			s.LogPrintf("executeMsg", "Activating Feature %s at height %v", id.String(), highestCompletedBlk)
+			s.LogPrintf("executeMsg", "Activating Feature %s at height %d", id.String(), highestCompletedBlk)
 		} else {
 			s.LogPrintf("executeMsg", "Never activating feature %s", id.String())
 		}

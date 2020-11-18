@@ -72,12 +72,10 @@ func init() {
 
 // String converts an Activation ID to a name
 func (id ActivationType) String() string {
-
-	n, ok := activationNameMap[id]
-	if !ok {
-		//n = fmt.Sprintf("ActivationId(%v)", id)
+	if n, ok := activationNameMap[id]; ok {
+		return n
 	}
-	return n
+	return fmt.Sprintf("ActivationId(%d)", id)
 }
 
 var netNameOnce sync.Once
@@ -102,7 +100,7 @@ func IsActive(id ActivationType, height int) bool {
 	a, ok := activationMap[id]
 
 	if !ok {
-		fmt.Fprintf(os.Stderr, "Invalid %v (%s)\n", id, id.String())
+		fmt.Fprintf(os.Stderr, "Invalid %d (%s)\n", id, id.String())
 		return false
 	}
 
