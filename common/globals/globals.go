@@ -1,8 +1,12 @@
 package globals
 
 import (
+	"fmt"
 	"io"
+	"os"
+	"reflect"
 	"sync"
+	"text/tabwriter"
 	"time"
 )
 
@@ -104,3 +108,19 @@ var Hashlog io.Writer
 var Hashes map[[32]byte]bool
 var HashesInOrder [10000]*[32]byte
 var HashNext int
+
+// PrettyPrint will print all the struct fields and their values to Stdout
+func (p *FactomParams) PrettyPrint() {
+	fmt.Println("Parameters:")
+	tw := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
+
+	s := reflect.ValueOf(p).Elem()
+	t := s.Type()
+
+	for i := 0; i < s.NumField(); i++ {
+		fmt.Fprintf(tw, "%2d:\t%25s\t%s\t=\t%v\t\n",
+			i, t.Field(i).Name, s.Field(i).Type(), s.Field(i).Interface())
+	}
+
+	tw.Flush()
+}

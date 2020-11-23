@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 
-	"reflect"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants/runstate"
@@ -23,19 +22,7 @@ func main() {
 	}
 
 	params := engine.ParseCmdLine(os.Args[1:])
-	fmt.Println()
-
-	fmt.Println("Parameter:")
-	s := reflect.ValueOf(params).Elem()
-	typeOfT := s.Type()
-
-	for i := 0; i < s.NumField(); i++ {
-		f := s.Field(i)
-		fmt.Printf("%d: %25s %s = %v\n", i,
-			typeOfT.Field(i).Name, f.Type(), f.Interface())
-	}
-
-	fmt.Println()
+	params.PrettyPrint()
 
 	state := engine.Factomd(params)
 	for state.GetRunState() != runstate.Stopped {
