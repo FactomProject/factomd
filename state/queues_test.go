@@ -1,7 +1,6 @@
 package state_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -9,8 +8,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/state"
 )
-
-var _ = fmt.Println
 
 func TestTimeSinceNegative(t *testing.T) {
 	RegisterPrometheus()

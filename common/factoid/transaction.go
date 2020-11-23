@@ -7,15 +7,12 @@ package factoid
 import (
 	"fmt"
 	"os"
-	"runtime/debug"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
-
-var _ = debug.PrintStack
 
 type Transaction struct {
 	// Not marshalled in MarshalBinary()

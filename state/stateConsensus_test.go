@@ -15,8 +15,6 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
-var _ = NewProcessList
-
 func TestIsHighestCommit(t *testing.T) {
 	s := testHelper.CreateAndPopulateTestStateAndStartValidator()
 

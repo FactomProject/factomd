@@ -33,8 +33,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var _ = fmt.Print
-
 type FactomNode struct {
 	Index    int
 	State    *state.State

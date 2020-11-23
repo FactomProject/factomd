@@ -6,7 +6,6 @@ package messages_test
 
 import (
 	"encoding/hex"
-	"fmt"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -20,8 +19,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 )
-
-var _ = fmt.Println
 
 func TestUnmarshalNilRevealEntryMsg(t *testing.T) {
 	defer func() {

@@ -5,7 +5,6 @@
 package state_test
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 	"testing"
@@ -21,7 +20,6 @@ import (
 )
 
 var fs interfaces.IFactoidState
-var _ = fmt.Print
 
 func RandBal() int64 {
 	switch rand.Int() & 7 {

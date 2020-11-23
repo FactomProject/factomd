@@ -28,9 +28,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var _ = fmt.Print
-var _ = log.Print
-
 var plLogger = packageLogger.WithFields(log.Fields{"subpack": "process-list"})
 
 type ProcessList struct {

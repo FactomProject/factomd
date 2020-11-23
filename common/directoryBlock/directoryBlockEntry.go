@@ -12,8 +12,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-var _ = fmt.Print
-
 type DBEntry struct {
 	ChainID interfaces.IHash `json:"chainid"`
 	KeyMR   interfaces.IHash `json:"keymr"` // Different MR in EBlockHeader

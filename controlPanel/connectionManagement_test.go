@@ -10,8 +10,6 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 )
 
-var _ = fmt.Sprintf("")
-
 func TestFormatDuration(t *testing.T) {
 	initial := time.Now().Add(-49 * time.Hour)
 	if FormatDuration(initial) != "2 days" {

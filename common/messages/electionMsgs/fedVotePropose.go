@@ -20,8 +20,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var _ = fmt.Print
-
 // FedVoteProposalMsg is not a majority, it is just proposing a volunteer
 type FedVoteProposalMsg struct {
 	FedVoteMsg

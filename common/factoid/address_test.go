@@ -6,18 +6,13 @@ package factoid_test
 
 import (
 	"bytes"
-	"math/rand"
 	"strings"
 	"testing"
 
-	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/primitives"
 )
-
-var _ = ed25519.Sign
-var _ = rand.New
 
 // An address
 var address1 = [constants.ADDRESS_LENGTH]byte{

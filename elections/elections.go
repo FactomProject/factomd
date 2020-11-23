@@ -12,9 +12,6 @@ import (
 	"github.com/FactomProject/factomd/util/atomic"
 )
 
-var _ = fmt.Print
-var _ = time.Tick
-
 var FaultTimeout int = 60 // This value only lasts till the command line is parse which will set it.
 var RoundTimeout int = 20 // This value only lasts till the command line is parse which will set it.
 

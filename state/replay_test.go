@@ -7,7 +7,6 @@ package state_test
 import (
 	"fmt"
 	"math/rand"
-	"net/http/pprof"
 	"testing"
 	"time"
 
@@ -17,16 +16,12 @@ import (
 	. "github.com/FactomProject/factomd/state"
 )
 
-var _ = fmt.Printf
-var _ = rand.New
-
 var hour = int64(60 * 60)
 
 var r = Replay{}
 
 var spanMin int64 = 60 // How many hours +/- that will be valid (1== valid 1 hour in the past to 1 hour in the future)
 var speed int64 = 1000 // Speed in milliseconds (max) that we will move the clock
-var _ = pprof.Cmdline
 
 func Test_Replay(test *testing.T) {
 	type mh struct {

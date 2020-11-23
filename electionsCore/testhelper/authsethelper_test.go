@@ -1,15 +1,12 @@
 package testhelper_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/FactomProject/factomd/electionsCore/messages"
 	"github.com/FactomProject/factomd/electionsCore/primitives"
 	. "github.com/FactomProject/factomd/electionsCore/testhelper"
 )
-
-var _ = fmt.Println
 
 func TestMajority(t *testing.T) {
 	ah := NewAuthSetHelper(5, 5)

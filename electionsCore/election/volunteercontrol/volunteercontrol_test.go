@@ -1,14 +1,8 @@
 package volunteercontrol_test
 
 import (
-	"fmt"
 	"testing"
-
-	. "github.com/FactomProject/factomd/electionsCore/election/volunteercontrol"
 )
-
-var _ = NewVolunteerControl
-var _ = fmt.Println
 
 //func TestSimpleVolunteerControl(t *testing.T) {
 //	as := testhelper.NewAuthSetHelper(3, 3)

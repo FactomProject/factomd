@@ -5,18 +5,12 @@
 package factoid_test
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 
-	"github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
-
-var _ = fmt.Printf
-var _ = ed25519.Sign
-var _ = rand.New
 
 func TestUnmarshalNilBinaryAuth(t *testing.T) {
 	defer func() {

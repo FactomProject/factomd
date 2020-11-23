@@ -13,8 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-var _ = fmt.Print
-
 // FEREntry stands for 'Factoid Exchange Rate' (FER) entry.
 type FEREntry struct {
 	Version string `json:"version"` // This appears unused

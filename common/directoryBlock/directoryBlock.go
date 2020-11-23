@@ -17,8 +17,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-var _ = fmt.Print
-
 type DirectoryBlock struct {
 	//Not Marshalized
 	DBHash     interfaces.IHash `json:"dbhash"`

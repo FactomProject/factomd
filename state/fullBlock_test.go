@@ -2,15 +2,12 @@ package state_test
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/primitives/random"
 	. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 )
-
-var _ = fmt.Sprint
 
 func TestUInt32Bytes(t *testing.T) {
 	var i uint32 = 0

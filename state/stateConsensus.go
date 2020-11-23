@@ -33,7 +33,6 @@ import (
 // or create more context loggers off of this
 var consenLogger = packageLogger.WithFields(log.Fields{"subpack": "consensus"})
 
-var _ = fmt.Print
 var _ = (*hash.Hash32)(nil)
 
 //***************************************************************

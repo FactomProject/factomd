@@ -6,13 +6,9 @@ package state
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 )
-
-var _ = fmt.Print
-var _ = log.Print
 
 type ProcessLists struct {
 	State        *State         // Pointer to the state object

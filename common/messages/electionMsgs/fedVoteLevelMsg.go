@@ -24,8 +24,6 @@ import (
 	"github.com/FactomProject/factomd/elections"
 )
 
-var _ = fmt.Print
-
 // FedVoteLevelMsg
 // We can vote on a majority of votes seen and issuing a vote at a particular
 // level. Only 1 vote per level can be issued per leader.

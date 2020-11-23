@@ -5,8 +5,6 @@
 package entryCreditBlock
 
 import (
-	"fmt"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -17,7 +15,6 @@ type ECBlockBody struct {
 	Entries []interfaces.IECBlockEntry `json:"entries"` // The EC block entries
 }
 
-var _ = fmt.Print
 var _ interfaces.Printable = (*ECBlockBody)(nil)
 var _ interfaces.IECBlockBody = (*ECBlockBody)(nil)
 

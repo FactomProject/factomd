@@ -14,8 +14,6 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
-var _ = fmt.Print
-
 func TestBadUnmarshal(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

@@ -1,7 +1,6 @@
 package controlPanel_test
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http/httptest"
 	"strings"
@@ -20,10 +19,6 @@ import (
 	//"github.com/FactomProject/factomd/common/primitives/random"
 	. "github.com/FactomProject/factomd/testHelper"
 )
-
-var _ = time.Now()
-
-var _ = fmt.Sprintf("")
 
 // Enable for long test
 var LongTest bool = false

@@ -10,8 +10,6 @@ import (
 	llog "github.com/FactomProject/factomd/log"
 )
 
-var _ = fmt.Sprint
-
 type SecureDBMetaData struct {
 	Salt      primitives.ByteSlice
 	Challenge primitives.ByteSlice

@@ -19,9 +19,6 @@ import (
 // How often to check the plugin if it has messages ready
 var CHECK_BUFFER time.Duration = 2 * time.Second
 
-var _ log.Logger
-var _ = ioutil.Discard
-
 // pluginMap is the map of plugins we can dispense.
 var pluginMap = map[string]plugin.Plugin{
 	"manager": &IManagerPlugin{},

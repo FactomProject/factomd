@@ -22,8 +22,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var _ = fmt.Print
-
 // FedVoteMsg
 // We vote on the Audit Server to replace a Federated Server that fails
 // We vote to move to the next round, if the audit server fails.

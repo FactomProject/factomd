@@ -9,8 +9,6 @@ import (
 	"github.com/FactomProject/factomd/util/atomic"
 )
 
-var _ = fmt.Println
-
 // SafeMsgMap is a threadsafe map[[32]byte]interfaces.IMsg
 type SafeMsgMap struct {
 	msgmap map[[32]byte]interfaces.IMsg

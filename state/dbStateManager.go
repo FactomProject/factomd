@@ -5,12 +5,10 @@
 package state
 
 import (
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -27,10 +25,6 @@ import (
 
 	llog "github.com/FactomProject/factomd/log"
 )
-
-var _ = hex.EncodeToString
-var _ = fmt.Print
-var _ = time.Now()
 
 type DBState struct {
 	IsNew bool

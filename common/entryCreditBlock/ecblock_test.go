@@ -3,7 +3,6 @@ package entryCreditBlock_test
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -14,8 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/go-spew/spew"
 )
-
-var _ = fmt.Sprint("testing")
 
 // TestUnmarshalNilECBlock checks that unmarshalling nil and the empty interface result in appropriate errors
 func TestUnmarshalNilECBlock(t *testing.T) {

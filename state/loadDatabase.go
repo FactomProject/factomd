@@ -21,8 +21,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-var _ = fmt.Print
-
 func humanizeDuration(duration time.Duration) string {
 	hours := int64(duration.Hours())
 	minutes := int64(math.Mod(duration.Minutes(), 60))

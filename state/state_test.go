@@ -16,12 +16,8 @@ import (
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
-	"github.com/FactomProject/factomd/util"
 	log "github.com/sirupsen/logrus"
 )
-
-var _ = log.Print
-var _ = util.ReadConfig
 
 func TestInit(t *testing.T) {
 	s := testHelper.CreateEmptyTestState()

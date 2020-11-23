@@ -16,8 +16,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var _ = fmt.Print
-
 // SyncMsg
 // If we have timed out on a message, then we sync with the other leaders on 1) the Federated Server that we
 // need to replace, and 2) the audit server that we will replace it with.

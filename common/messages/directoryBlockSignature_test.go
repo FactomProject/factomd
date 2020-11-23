@@ -19,8 +19,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var _ = log.Println
-
 func TestUnmarshalNilDirectoryBlockSignature(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

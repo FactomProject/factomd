@@ -48,8 +48,6 @@ import (
 // or create more context loggers off of this
 var packageLogger = log.WithFields(log.Fields{"package": "state"})
 
-var _ = fmt.Print
-
 type State struct {
 	Logger            *log.Entry
 	RunState          runstate.RunState

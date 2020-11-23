@@ -21,8 +21,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
-var _ = fmt.Print
-
 type FEREntryWithHeight struct {
 	AnFEREntry interfaces.IEBEntry
 	Height     uint32

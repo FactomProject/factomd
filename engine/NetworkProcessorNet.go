@@ -17,8 +17,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-var _ = fmt.Print
-
 func NetworkProcessorNet(fnode *FactomNode) {
 	go Peers(fnode)
 	go NetworkOutputs(fnode)

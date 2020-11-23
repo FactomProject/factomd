@@ -15,8 +15,6 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
-var _ = fmt.Println
-
 // Controller will be able to route messages to a set of nodes and control various
 // communication patterns
 type Controller struct {

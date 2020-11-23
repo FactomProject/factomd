@@ -11,8 +11,6 @@ import (
 	. "github.com/FactomProject/factomd/electionsCore/primitives"
 )
 
-var _ = fmt.Println
-
 type Election struct {
 	// Level 0 volunteer votes map[vol]map[leader]msg
 	VolunteerVotes map[Identity]map[Identity]*messages.VoteMessage

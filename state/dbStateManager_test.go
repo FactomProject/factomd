@@ -16,10 +16,6 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
-var _ = fmt.Printf
-var _ = factoid.GetGenesisFBlock
-var _ = constants.SIGNATURE_LENGTH
-
 // Will verify a directory blc
 func verifyBlocks(s *State, dbstates []interfaces.IMsg) []string {
 	errs := make([]string, 0)

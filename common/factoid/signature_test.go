@@ -5,7 +5,6 @@
 package factoid_test
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/FactomProject/ed25519"
@@ -14,9 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
 )
-
-var _ = ed25519.Sign
-var _ = rand.New
 
 var sig1 [64]byte
 var sig2 [64]byte

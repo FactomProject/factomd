@@ -1,14 +1,11 @@
 package controller_test
 
 import (
-	"fmt"
 	"testing"
 
 	. "github.com/FactomProject/factomd/electionsCore/controller"
 	. "github.com/FactomProject/factomd/electionsCore/errorhandling"
 )
-
-var _ = fmt.Println
 
 /*
 Scenario found

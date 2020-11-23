@@ -24,8 +24,6 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 )
 
-var _ = htemp.HTMLEscaper("sdf")
-
 func HandleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 	// Functions able to be used within the html
 	funcMap := template.FuncMap{

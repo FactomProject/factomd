@@ -11,15 +11,11 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
 )
-
-var _ interfaces.IMsg
-var _ = NewProcessList
 
 func TestIsStateFullySynced(t *testing.T) {
 	s1_good := CreateAndPopulateTestStateAndStartValidator()

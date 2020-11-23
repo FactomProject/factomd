@@ -2,13 +2,10 @@ package elections
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
-
-var _ = fmt.Print
 
 func (e *Elections) Sort(serv []interfaces.IServer) bool {
 	changed := false

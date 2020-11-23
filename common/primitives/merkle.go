@@ -5,14 +5,11 @@
 package primitives
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
-
-var _ = fmt.Println
 
 // NextPowerOfTwo returns the next highest power of two from a given number if
 // it is not already a power of two.  This is a helper function used during the

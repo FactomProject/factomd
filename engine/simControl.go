@@ -30,7 +30,6 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 )
 
-var _ = fmt.Print
 var SortByID bool
 var VerboseFaultOutput = false
 var VerboseAuthoritySet = false
@@ -90,7 +89,6 @@ func GetFocus() *FactomNode {
 }
 
 func SimControl(listenTo int, listenStdin bool) {
-	var _ = time.Sleep
 	var summary int
 	var elections int
 	var simelections int

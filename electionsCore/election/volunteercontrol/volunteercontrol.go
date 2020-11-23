@@ -3,13 +3,9 @@ package volunteercontrol
 import (
 	"math"
 
-	"fmt"
-
 	"github.com/FactomProject/factomd/electionsCore/messages"
 	. "github.com/FactomProject/factomd/electionsCore/primitives"
 )
-
-var _ = fmt.Println
 
 // VolunteerControl will keep a record of all votes
 // for a given volunteer and produce the best vote

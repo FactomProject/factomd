@@ -12,8 +12,6 @@ import (
 	"github.com/FactomProject/factomd/electionsCore/testhelper"
 )
 
-var _ = fmt.Println
-
 type ControllerInterpreter struct {
 	*Controller
 

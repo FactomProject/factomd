@@ -13,8 +13,6 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 )
 
-var _ = fmt.Println
-
 // DB Buckets
 var (
 	heightBucket = []byte("Heights")

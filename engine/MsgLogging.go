@@ -11,8 +11,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-var _ = fmt.Print
-
 type msglist struct {
 	fnode *FactomNode
 	out   bool // True if this is an output.

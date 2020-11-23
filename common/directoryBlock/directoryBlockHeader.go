@@ -13,8 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-var _ = fmt.Print
-
 type DBlockHeader struct {
 	Version   byte   `json:"version"`
 	NetworkID uint32 `json:"networkid"`

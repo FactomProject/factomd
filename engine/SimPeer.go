@@ -5,7 +5,6 @@
 package engine
 
 import (
-	"bytes"
 	"fmt"
 	"time"
 
@@ -14,9 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 )
-
-var _ = fmt.Print
-var _ = bytes.Compare
 
 type SimPacket struct {
 	data []byte

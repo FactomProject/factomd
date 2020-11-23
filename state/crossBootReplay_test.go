@@ -8,8 +8,6 @@ import (
 	. "github.com/FactomProject/factomd/state"
 )
 
-var _ = fmt.Printf
-
 func TestMarshalableUint32_MarshalBinary(t *testing.T) {
 	for i := 0; i < 5000; i++ {
 		u := random.RandUInt32()

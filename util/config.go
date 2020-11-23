@@ -13,8 +13,6 @@ import (
 	gcfg "gopkg.in/gcfg.v1"
 )
 
-var _ = fmt.Print
-
 type FactomdConfig struct {
 	App struct {
 		PortNumber                             int

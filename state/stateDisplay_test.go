@@ -11,10 +11,7 @@ import (
 	//"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/util"
 )
-
-var _ = util.ReadConfig
 
 func TestDisplay(t *testing.T) {
 	s := new(state.State)

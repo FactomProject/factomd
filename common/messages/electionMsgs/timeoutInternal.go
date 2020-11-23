@@ -18,8 +18,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var _ = state.MakeMap
-
 //General acknowledge message
 type TimeoutInternal struct {
 	msgbase.MessageBase

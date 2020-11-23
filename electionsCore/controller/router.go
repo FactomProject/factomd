@@ -7,8 +7,6 @@ import (
 	"github.com/FactomProject/factomd/electionsCore/imessage"
 )
 
-var _ = fmt.Println
-
 // Router helps keep route patterns for returning messages
 // Each election has a queue, and each step consumes 1 message from the queue
 // and adds to some number of queues
