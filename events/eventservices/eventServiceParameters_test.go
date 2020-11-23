@@ -12,7 +12,7 @@ import (
 
 func TestEventServiceParameters_DefaultParameters(t *testing.T) {
 	config := &util.FactomdConfig{}
-	factomParams := &globals.Params
+	factomParams := globals.Params
 
 	params := selectParameters(factomParams, config)
 
@@ -75,7 +75,7 @@ func TestEventServiceParameters_ConfigParameters(t *testing.T) {
 		"never",
 		true,
 	)
-	factomParams := &globals.Params
+	factomParams := globals.Params
 
 	testParams := selectParameters(factomParams, config)
 
@@ -118,7 +118,7 @@ func TestEventServiceParameters_ParseBroadcastErrorOverride(t *testing.T) {
 		"nevers",
 		false,
 	)
-	factomParams := &globals.Params
+	factomParams := globals.Params
 	params := selectParameters(factomParams, config)
 	assert.Equal(t, eventconfig.BroadcastOnce, params.BroadcastContent)
 }

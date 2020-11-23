@@ -13,13 +13,13 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/FactomProject/factomd/common/globals"
+	"github.com/FactomProject/factomd/common/globals"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 )
 
 func init() {
-	p := &Params // Global copy of decoded Params global.Params
+	p := globals.Params // Local reference to make it easier to type
 
 	flag.StringVar(&p.DebugConsole, "debugconsole", "", "Enable DebugConsole on port. localhost:8093 open 8093 and spawns a telnet console, remotehost:8093 open 8093")
 	flag.StringVar(&p.StdoutLog, "stdoutlog", "", "Log stdout to a file")
@@ -106,8 +106,8 @@ func init() {
 
 }
 
-func ParseCmdLine(args []string) *FactomParams {
-	p := &Params // Global copy of decoded Params global.Params
+func ParseCmdLine(args []string) *globals.FactomParams {
+	p := globals.Params // Local reference to make it easier to type
 
 	flag.CommandLine.Parse(args)
 
