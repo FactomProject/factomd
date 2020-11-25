@@ -19,7 +19,7 @@ type MapDB struct {
 
 var _ interfaces.IDatabase = (*MapDB)(nil)
 
-func (MapDB) Close() error {
+func (*MapDB) Close() error {
 	return nil
 }
 

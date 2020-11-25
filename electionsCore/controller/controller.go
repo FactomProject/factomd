@@ -177,7 +177,7 @@ func (c *Controller) RouteMessage(msg imessage.IMessage, nodes []int) {
 
 func (c *Controller) routeSingleNode(msg imessage.IMessage, node int) {
 	if c.BufferingMessages {
-		c.BufferedMessages = append(c.BufferedMessages, &DirectedMessage{node, msg})
+		c.BufferedMessages = append(c.BufferedMessages, &DirectedMessage{LeaderIdx: node, Msg: msg})
 		if c.PrintingTrace {
 			str := fmt.Sprintf("L%d: ", node)
 			str += fmt.Sprintf(" Buffered(%s)", c.Elections[node].Display.FormatMessage(msg))

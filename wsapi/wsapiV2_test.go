@@ -3,6 +3,7 @@ package wsapi_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
@@ -21,7 +22,7 @@ import (
 
 func TestHandleV2Requests(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
+	delayedStart(t, state)
 
 	cases := map[string]struct {
 		Method     string
@@ -227,7 +228,7 @@ func TestHandleV2Requests(t *testing.T) {
 		t.Logf("test case '%s'", name)
 
 		request := primitives.NewJSON2Request(testCase.Method, 0, testCase.Message)
-		response, err := v2Request(request)
+		response, err := v2Request(request, state.GetPort())
 
 		assert.Nil(t, err, "test '%s' failed: %v \nresponse: %v", name, err, response)
 		assert.Equal(t, testCase.Error, response.Error, "test '%s' failed contains different error that expected: %v", name, response.Error)
@@ -265,7 +266,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	raw.Hash2 = aBlock.DatabaseSecondaryIndex().String()
 	hex, err := aBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling ablock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //1
@@ -276,7 +277,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	raw.Hash2 = eBlock.DatabaseSecondaryIndex().String()
 	hex, err = eBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling eblock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //2
@@ -287,7 +288,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	raw.Hash2 = ecBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
 	hex, err = ecBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling ecblock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //3
@@ -298,7 +299,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 	raw.Hash2 = fBlock.(interfaces.DatabaseBatchable).DatabaseSecondaryIndex().String()
 	hex, err = fBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling fblock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //4
@@ -309,14 +310,14 @@ func TestHandleV2GetRaw(t *testing.T) {
 	raw.Hash2 = dBlock.DatabaseSecondaryIndex().String()
 	hex, err = dBlock.MarshalBinary()
 	if err != nil {
-		panic(err)
+		t.Fatalf("error marshalling dblock: %v", err)
 	}
 	raw.Raw = primitives.EncodeBinary(hex)
 	toTest = append(toTest, raw) //5
 
 	//initializing server
 	state := testHelper.CreateAndPopulateTestState()
-	Start(state)
+	delayedStart(t, state)
 
 	for i, v := range toTest {
 		data := new(HashRequest)
@@ -324,13 +325,13 @@ func TestHandleV2GetRaw(t *testing.T) {
 		req := primitives.NewJSON2Request("raw-data", 1, data)
 
 		time.Sleep(time.Millisecond * 100)
-		resp, err := v2Request(req)
+		resp, err := v2Request(req, state.GetPort())
 		assert.Nil(t, err)
 		assert.True(t, strings.Contains(resp.String(), v.Raw), "Looking for %v but got %v \nGetRaw %v/%v from Hash1 failed - %v", v.Hash1, v.Raw, i, len(toTest), resp.String())
 
 		data.Hash = v.Hash2
 		req = primitives.NewJSON2Request("raw-data", 1, data)
-		resp, err = v2Request(req)
+		resp, err = v2Request(req, state.GetPort())
 		assert.Nil(t, err)
 		assert.True(t, strings.Contains(resp.String(), v.Raw), "Looking for %v \nGetRaw %v/%v from Hash2 failed - %v", v.Hash1, i, len(toTest), resp.String())
 	}
@@ -481,20 +482,20 @@ func Test_ecBlockToResp(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			got, got1 := ECBlockToResp(tt.args.block)
+			got, got1 := ECBlockToResp(tt.args.block, true)
 			assert.True(t, reflect.DeepEqual(got, tt.want), "ecBlockToResp() got = %v, want %v", got, tt.want)
 			assert.True(t, reflect.DeepEqual(got1, tt.want1), "ecBlockToResp() got1 = %v, want %v", got1, tt.want1)
 		})
 	}
 }
 
-func v2Request(req *primitives.JSON2Request) (*primitives.JSON2Response, error) {
+func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Response, error) {
 	j, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := http.Post("http://localhost:8088/v2", "application/json", bytes.NewBuffer(j))
+	resp, err := http.Post(fmt.Sprintf("http://localhost:%d/v2", port), "application/json", bytes.NewBuffer(j))
 	if err != nil {
 		return nil, err
 	}

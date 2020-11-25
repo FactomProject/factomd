@@ -51,12 +51,12 @@ func TestFormatDuration(t *testing.T) {
 
 func TestTallyTotals(t *testing.T) {
 	cm := NewConnectionsMap()
-	var i uint32
+	var i uint64
 	for i = 0; i < 10; i++ {
-		cm.Connect(fmt.Sprintf("%d", i), NewP2PConnection(i, i, i, i, fmt.Sprintf("%d", i), i))
+		cm.Connect(fmt.Sprintf("%d", i), NewP2PConnection(i, i, i, i, fmt.Sprintf("%d", i), int32(i)))
 	}
 	for i = 10; i < 20; i++ {
-		cm.Disconnect(fmt.Sprintf("%d", i), NewP2PConnection(i, i, i, i, fmt.Sprintf("%d", i), i))
+		cm.Disconnect(fmt.Sprintf("%d", i), NewP2PConnection(i, i, i, i, fmt.Sprintf("%d", i), int32(i)))
 	}
 	cm.TallyTotals()
 	cm.Lock.Lock()
@@ -107,12 +107,12 @@ func TestTallyTotals(t *testing.T) {
 	AllConnectionsString()
 }
 
-func PopulateConnectionChan(total uint32, connections chan interface{}) {
+func PopulateConnectionChan(total uint32, connections chan map[string]p2p.PeerMetrics) {
 	time.Sleep(3 * time.Second)
 	var i uint32
-	temp := make(map[string]p2p.ConnectionMetrics)
+	temp := make(map[string]p2p.PeerMetrics)
 	for i = 0; i < total; i++ {
-		peer := NewSeededP2PConnection(i)
+		peer := NewSeededP2PConnection(uint64(i))
 		if i%2 == 0 {
 			peer.MomentConnected = time.Now().Add(-(time.Duration(i)) * time.Hour)
 		} else {
@@ -127,12 +127,12 @@ func TestAccessors(t *testing.T) {
 	cm := NewConnectionsMap()
 
 	// Test Disconnect
-	for count := uint32(0); count < 2; count++ {
+	for count := uint64(0); count < 2; count++ {
 		peer := NewSeededP2PConnection(count)
 		cm.Disconnect(peer.PeerAddress, peer)
 	}
 
-	for count := uint32(0); count < 2; count++ {
+	for count := uint64(0); count < 2; count++ {
 		cp := cm.GetDisconnectedCopy()
 		if len(cp) != 2 {
 			t.Error("Should have 2 Disconnections")
@@ -140,12 +140,12 @@ func TestAccessors(t *testing.T) {
 	}
 
 	// Test Connect
-	for count := uint32(0); count < 2; count++ {
+	for count := uint64(0); count < 2; count++ {
 		peer := NewSeededP2PConnection(count)
 		cm.AddConnection(peer.PeerAddress, *peer)
 	}
 
-	for count := uint32(0); count < 2; count++ {
+	for count := uint64(0); count < 2; count++ {
 		cp := cm.GetConnectedCopy()
 		if len(cp) != 2 {
 			t.Error("Should have 2 connections")
@@ -158,17 +158,17 @@ func TestAccessors(t *testing.T) {
 	}
 
 	// Connect with nil, but exists in disconnections
-	for count := uint32(0); count < 2; count++ {
+	for count := uint64(0); count < 2; count++ {
 		peer := NewSeededP2PConnection(count)
 		cm.Disconnect(peer.PeerAddress, peer)
 	}
 
-	for count := uint32(0); count < 2; count++ {
+	for count := uint64(0); count < 2; count++ {
 		peer := NewSeededP2PConnection(count)
 		cm.Connect(peer.PeerAddress, nil)
 	}
 
-	for count := uint32(0); count < 2; count++ {
+	for count := uint64(0); count < 2; count++ {
 		cp := cm.GetConnectedCopy()
 		if len(cp) != 2 {
 			t.Error("Should have 2 Connections")
@@ -176,12 +176,12 @@ func TestAccessors(t *testing.T) {
 	}
 
 	// Disconnect with nil, but exists in connections
-	for count := uint32(0); count < 2; count++ {
+	for count := uint64(0); count < 2; count++ {
 		peer := NewSeededP2PConnection(count)
 		cm.Disconnect(peer.PeerAddress, nil)
 	}
 
-	for count := uint32(0); count < 2; count++ {
+	for count := uint64(0); count < 2; count++ {
 		cp := cm.GetDisconnectedCopy()
 		if len(cp) != 2 {
 			t.Error("Should have 2 Connections")
@@ -193,18 +193,18 @@ func TestAccessors(t *testing.T) {
 // Absurd map accessing
 func TestConcurrency(t *testing.T) {
 	cm := NewConnectionsMap()
-	connectionMap := make(map[string]p2p.ConnectionMetrics)
-	var count uint32
+	connectionMap := make(map[string]p2p.PeerMetrics)
+	var count uint64
 	for count = 0; count < 100; count++ {
 		peer := NewSeededP2PConnection(count)
 
 		connectionMap[peer.PeerAddress] = *peer
 	}
-	var i uint32
+	var i uint64
 	for i = 0; i < 100; i++ {
 		// Random Connections
 		go func() {
-			randPeers := make([]p2p.ConnectionMetrics, 0)
+			randPeers := make([]p2p.PeerMetrics, 0)
 			for ii := 0; ii < 10; ii++ {
 				randPeer := NewRandomP2PConnection()
 				cm.Connect(randPeer.PeerAddress, randPeer)
@@ -228,8 +228,8 @@ func TestConcurrency(t *testing.T) {
 		}()
 
 		go func() {
-			randPeers := make([]p2p.ConnectionMetrics, 0)
-			var ii uint32
+			randPeers := make([]p2p.PeerMetrics, 0)
+			var ii uint64
 			for ii = 0; ii < 10; ii++ {
 				randPeer1 := NewSeededP2PConnection(ii)
 				cm.Connect(randPeer1.PeerAddress, randPeer1)
@@ -255,7 +255,7 @@ func TestConcurrency(t *testing.T) {
 			}
 		}()
 		go func() {
-			var ii uint32
+			var ii uint64
 			for ii = 30; ii < 60; ii++ {
 				p := NewRandomP2PConnection()
 				ps := NewSeededP2PConnection(ii)
@@ -265,7 +265,7 @@ func TestConcurrency(t *testing.T) {
 			}
 		}()
 		go func() {
-			var ii uint32
+			var ii uint64
 			for ii = 30; ii < 60; ii++ {
 				p := NewRandomP2PConnection()
 				ps := NewSeededP2PConnection(ii)
@@ -276,7 +276,7 @@ func TestConcurrency(t *testing.T) {
 		}()
 
 		go func() {
-			var ii uint32
+			var ii uint64
 			for ii = 100; ii < 120; ii++ {
 				cm.UpdateConnections(connectionMap)
 			}
@@ -285,25 +285,25 @@ func TestConcurrency(t *testing.T) {
 	}
 }
 
-func NewRandomP2PConnection() *p2p.ConnectionMetrics {
-	con := NewP2PConnection(rand.Uint32(), rand.Uint32(), rand.Uint32(), rand.Uint32(), string(rand.Uint32()), rand.Uint32())
+func NewRandomP2PConnection() *p2p.PeerMetrics {
+	con := NewP2PConnection(rand.Uint64(), rand.Uint64(), rand.Uint64(), rand.Uint64(), fmt.Sprintf("%x", rand.Uint32()), rand.Int31())
 	return con
 }
 
-func NewSeededP2PConnection(seed uint32) *p2p.ConnectionMetrics {
-	con := NewP2PConnection(seed, seed, seed, seed, fmt.Sprintf("%d", seed), seed)
+func NewSeededP2PConnection(seed uint64) *p2p.PeerMetrics {
+	con := NewP2PConnection(seed, seed, seed, seed, fmt.Sprintf("%d", seed), int32(seed))
 	return con
 }
 
-func NewP2PConnection(bs uint32, br uint32, ms uint32, mr uint32, addr string, pq uint32) *p2p.ConnectionMetrics {
-	pc := new(p2p.ConnectionMetrics)
+func NewP2PConnection(bs uint64, br uint64, ms uint64, mr uint64, addr string, pq int32) *p2p.PeerMetrics {
+	pc := new(p2p.PeerMetrics)
 	pc.MomentConnected = time.Now()
 	pc.BytesSent = bs
 	pc.BytesReceived = br
 	pc.MessagesSent = ms
 	pc.MessagesReceived = mr
 	pc.PeerAddress = "10.1.1" + addr
-	pc.PeerQuality = int32(pq)
+	pc.PeerQuality = pq
 
 	return pc
 }

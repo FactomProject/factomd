@@ -411,7 +411,6 @@ func (im *IdentityManager) ProcessOldEntries() (bool, error) {
 			return change, nil
 		}
 	}
-	return change, nil
 }
 
 func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock, dBlock interfaces.IDirectoryBlock, prevHeader []byte) error {

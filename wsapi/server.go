@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"runtime/debug"
 	"strconv"
 	"time"
 
@@ -34,7 +35,6 @@ func InitServer(state interfaces.IState) *Server {
 	server := Server{State: state, router: router, tlsEnabled: tlsIsEnabled, certFile: certFile, keyFile: keyFile, Port: port}
 
 	if tlsIsEnabled {
-		router.Schemes("HTTPS")
 		wsLog.Info("Starting encrypted API server")
 		if !fileExists(keyFile) && !fileExists(certFile) {
 			err := genCertPair(certFile, keyFile, state.GetFactomdLocations())
@@ -108,10 +108,26 @@ func IDInjector(server *Server) Middleware {
 	}
 }
 
+func PanicRecovery() Middleware {
+	return func(f http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				if rec := recover(); rec != nil {
+					trace := debug.Stack()
+					wsLog.Errorf("Recovered from a panic: %v: %s", rec, string(trace))
+					HandleV2Error(w, nil, NewInternalError())
+				}
+			}()
+			f(w, r)
+		}
+	}
+}
+
 // add route and Chain applies middlewares to a http.HandlerFunc
 func (server *Server) addRoute(path string, f func(http.ResponseWriter, *http.Request), middlewares ...Middleware) *mux.Route {
 	middlewares = append(middlewares, APILogger())
 	middlewares = append(middlewares, IDInjector(server))
+	middlewares = append(middlewares, PanicRecovery()) // keep this last
 	for _, m := range middlewares {
 		f = m(f)
 	}

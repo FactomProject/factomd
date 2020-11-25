@@ -9,12 +9,12 @@ cd $DIR                                                             # always fro
 set -o pipefail
 
 # base go test command
-GO_TEST="go test -v -timeout=10m -vet=off"
+GO_TEST="go test -v -timeout=10m"
 
 # list modules for CI testing
 function listModules() {
-	glide nv | grep -v Utilities | grep -v elections | grep -v longTest | grep -v peerTest | grep -v simTest | grep -v activations | grep -v netTest | grep "\.\.\."
-}
+    go list ./... | grep -Ev 'Utilities|elections|longTest|peerTest|simTest|activations|netTest'
+}	
 
 # formatted list of simTest/<testname>
 function listSimTest() {
@@ -111,9 +111,8 @@ function testGoFmt() {
 	FILES=$(find . -name '*.go')
 
 	for FILE in ${FILES[*]}; do
-		gofmt -w $FILE
 
-		if [[ $? != 0 ]]; then
+		if [[ $(gofmt -l $FILE) != "" ]]; then
 			FAIL=1
 			FAILURES+=($FILE)
 		fi
@@ -163,7 +162,7 @@ function testPeer() {
 
 # run unit tests per module this ignores all simtests
 function unitTest() {
-	$GO_TEST $1 | egrep "PASS|FAIL|panic|bind|Timeout"
+	$GO_TEST $1 | egrep "PASS|FAIL|panic|bind|Timeout|no test files"
 }
 
 # run a simtest

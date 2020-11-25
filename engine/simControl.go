@@ -136,8 +136,8 @@ func SimControl(listenTo int, listenStdin bool) {
 			ListenTo = v
 			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", ListenTo))
 			// Update which node will be displayed on the controlPanel page
-			connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
-			go controlPanel.ServeControlPanel(fnodes[ListenTo].State.ControlPanelChannel, fnodes[ListenTo].State, connectionMetricsChannel, p2pNetwork, Build, "")
+			connectionMetricsChannel := make(chan map[string]p2p.PeerMetrics, 100)
+			go controlPanel.ServeControlPanel(fnodes[ListenTo].State.ControlPanelChannel, fnodes[ListenTo].State, connectionMetricsChannel, network, Build, "")
 		} else {
 			switch {
 			case '!' == b[0]:
@@ -1079,7 +1079,7 @@ func SimControl(listenTo int, listenStdin bool) {
 			case 'j' == b[0]:
 				var fpl []interfaces.IPendingTransaction
 				if len(b) > 1 {
-					fpl = fnodes[ListenTo].State.GetPendingTransactions(b[1])
+					fpl = fnodes[ListenTo].State.GetPendingTransactions(b[1:])
 				} else {
 					fpl = fnodes[ListenTo].State.GetPendingTransactions("")
 				}
@@ -1216,7 +1216,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(fmt.Sprintf("%2d DBState            nil\n", i))
 					} else {
 						os.Stderr.WriteString(fmt.Sprintf("%2d DBState                          Eht: [%5d] IsNew[%5v]  ReadyToSave [%5v] Locked [%5v] Signed [%5v] Saved [%5v]\n%v", i,
-							s.EntryDBHeightComplete,
+							s.EntryBlockDBHeightComplete,
 							dbs.IsNew,
 							dbs.ReadyToSave,
 							dbs.Locked,
@@ -1347,7 +1347,7 @@ func SimControl(listenTo int, listenStdin bool) {
 			case 'L' == b[0]:
 				if len(b) <= 2 {
 					if cancelheight == -1 {
-						fmt.Errorf("Exp LH.I")
+						fmt.Println("Exp LH.I")
 						break
 					}
 
@@ -1377,18 +1377,18 @@ func SimControl(listenTo int, listenStdin bool) {
 				str := b[1:]
 				res := strings.Split(str, ".")
 				if len(res) != 2 {
-					fmt.Errorf("Exp Lh.i")
+					fmt.Println("Exp Lh.i")
 					break
 				}
 				height, err := strconv.Atoi(res[0])
 				if err != nil {
-					fmt.Errorf("%s", err.Error())
+					fmt.Println(err.Error())
 					break
 				}
 
 				index, err := strconv.Atoi(res[1])
 				if err != nil {
-					fmt.Errorf("%s", err.Error())
+					fmt.Println(err.Error())
 					break
 				}
 

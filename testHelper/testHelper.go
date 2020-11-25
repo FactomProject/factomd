@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"regexp"
@@ -115,6 +116,7 @@ func CreateAndPopulateTestState() *state.State {
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
 	s.LoadConfig("", "")
+	s.SetPort(GetFreePort())
 
 	s.DirectoryBlockInSeconds = 20
 
@@ -320,6 +322,10 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 
 // Transactions says whether or not to add a transaction
 func CreateTestBlockSetWithNetworkID(prev *BlockSet, networkID uint32, transactions bool) *BlockSet {
+	return CreateTestBlockSetWithNetworkIDAndEBlocks(prev, networkID, transactions, true)
+}
+
+func CreateTestBlockSetWithNetworkIDAndEBlocks(prev *BlockSet, networkID uint32, transactions bool, includeEBlocks bool) *BlockSet {
 	var err error
 	height := 0
 	if prev != nil {
@@ -359,34 +365,41 @@ func CreateTestBlockSetWithNetworkID(prev *BlockSet, networkID uint32, transacti
 	de.KeyMR = answer.FBlock.DatabasePrimaryIndex()
 	dbEntries = append(dbEntries, de)
 
-	//EBlock
-	answer.EBlock, answer.Entries = CreateTestEntryBlock(prev.EBlock)
+	if includeEBlocks {
+		//EBlock
+		answer.EBlock, answer.Entries = CreateTestEntryBlock(prev.EBlock)
 
-	de = new(directoryBlock.DBEntry)
-	de.ChainID, err = primitives.NewShaHash(answer.EBlock.GetChainID().Bytes())
-	if err != nil {
-		panic(err)
+		de = new(directoryBlock.DBEntry)
+		de.ChainID, err = primitives.NewShaHash(answer.EBlock.GetChainID().Bytes())
+		if err != nil {
+			panic(err)
+		}
+		de.KeyMR = answer.EBlock.DatabasePrimaryIndex()
+		dbEntries = append(dbEntries, de)
+
+		//Anchor EBlock
+		anchor, entries := CreateTestAnchorEntryBlock(prev.AnchorEBlock, prev.DBlock)
+		answer.AnchorEBlock = anchor
+		answer.Entries = append(answer.Entries, entries...)
+
+		de = new(directoryBlock.DBEntry)
+		de.ChainID, err = primitives.NewShaHash(answer.AnchorEBlock.GetChainID().Bytes())
+		if err != nil {
+			panic(err)
+		}
+		de.KeyMR = answer.AnchorEBlock.DatabasePrimaryIndex()
+		dbEntries = append(dbEntries, de)
 	}
-	de.KeyMR = answer.EBlock.DatabasePrimaryIndex()
-	dbEntries = append(dbEntries, de)
-
-	//Anchor EBlock
-	anchor, entries := CreateTestAnchorEntryBlock(prev.AnchorEBlock, prev.DBlock)
-	answer.AnchorEBlock = anchor
-	answer.Entries = append(answer.Entries, entries...)
-
-	de = new(directoryBlock.DBEntry)
-	de.ChainID, err = primitives.NewShaHash(answer.AnchorEBlock.GetChainID().Bytes())
-	if err != nil {
-		panic(err)
-	}
-	de.KeyMR = answer.AnchorEBlock.DatabasePrimaryIndex()
-	dbEntries = append(dbEntries, de)
 
 	//ECBlock
 	answer.ECBlock = CreateTestEntryCreditBlock(prev.ECBlock)
-	ecEntries := createECEntriesfromBlocks(answer.FBlock, []*entryBlock.EBlock{answer.EBlock, answer.AnchorEBlock}, height)
-	answer.ECBlock.GetBody().SetEntries(ecEntries)
+	if includeEBlocks {
+		ecEntries := createECEntriesfromBlocks(answer.FBlock, []*entryBlock.EBlock{answer.EBlock, answer.AnchorEBlock}, height)
+		answer.ECBlock.GetBody().SetEntries(ecEntries)
+	} else {
+		ecEntries := createECEntriesfromBlocks(answer.FBlock, nil, height)
+		answer.ECBlock.GetBody().SetEntries(ecEntries)
+	}
 
 	de = new(directoryBlock.DBEntry)
 	de.ChainID, err = primitives.NewShaHash(answer.ECBlock.GetChainID().Bytes())
@@ -449,4 +462,20 @@ func GetTestName() (name string) {
 	}
 
 	return name
+}
+
+func GetFreePort() int {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		panic(err)
+	}
+
+	listener, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		panic(err)
+	}
+
+	port := listener.Addr().(*net.TCPAddr).Port
+	listener.Close()
+	return port
 }

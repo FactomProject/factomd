@@ -166,7 +166,7 @@ func HandleAuditServers(state interfaces.IState, params interface{}) (interface{
 
 func HandleAuthorities(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	type ret struct {
-		Authorities []interfaces.IAuthority `json: "authorities"`
+		Authorities []interfaces.IAuthority `json:"authorities"`
 	}
 	r := new(ret)
 
@@ -329,8 +329,6 @@ func HandleReloadConfig(state interfaces.IState, params interface{}) (interface{
 }
 
 func HandleWriteConfig(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	fmt.Sprintf("WRITE_CONFIG: %v", params)
-
 	type testCfg struct {
 		Config string
 	}

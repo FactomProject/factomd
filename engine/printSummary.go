@@ -80,7 +80,7 @@ func GetSystemStatus(listenTo int, wsapiNode int) string {
 	}
 
 	if listenTo < len(fnodes) {
-		prt = fmt.Sprintf("%s EB Complete %d EB Processing %d Entries Complete %d Faults %d\n", prt, f.State.EntryBlockDBHeightComplete, f.State.EntryBlockDBHeightProcessing, f.State.EntryDBHeightComplete, totalServerFaults)
+		prt = fmt.Sprintf("%s EB Complete %d EB Processing %d Entries Complete %d Faults %d\n", prt, f.State.EntryBlockDBHeightComplete, f.State.EntryBlockDBHeightProcessing, f.State.EntryBlockDBHeightComplete, totalServerFaults)
 	}
 
 	sumOut := 0

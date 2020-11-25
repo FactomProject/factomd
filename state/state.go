@@ -20,13 +20,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FactomProject/factomd/events"
-
-	"github.com/FactomProject/factomd/common/constants/runstate"
-
 	"github.com/FactomProject/factomd/activations"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants/runstate"
 	"github.com/FactomProject/factomd/common/globals"
 	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -36,13 +33,14 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
+	"github.com/FactomProject/factomd/events"
+	"github.com/FactomProject/factomd/modules/chainheadfix"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
 
-	"github.com/FactomProject/factomd/Utilities/CorrectChainHeads/correctChainHeads"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -55,7 +53,7 @@ var _ = fmt.Print
 type State struct {
 	Logger            *log.Entry
 	RunState          runstate.RunState
-	NetworkController *p2p.Controller
+	NetworkController *p2p.Network
 	Salt              interfaces.IHash
 	Cfg               interfaces.IFactomConfig
 	ConfigFilePath    string // $HOME/.factom/m2/factomd.conf by default
@@ -291,7 +289,7 @@ type State struct {
 	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
-	InvalidMessagesMutex sync.RWMutex
+	InvalidMessagesMutex *sync.RWMutex
 
 	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
 
@@ -353,22 +351,15 @@ type State struct {
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
 
-	// State for the Entry Syncing process
-	EntrySyncState *EntrySync
+	// EntrySync handles the downloading of entries
+	EntrySync *EntrySync
 
 	MissingEntryBlockRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
 	EntryBlockDBHeightComplete uint32
 	// DBlock Height at which we have started asking for entry blocks
 	EntryBlockDBHeightProcessing uint32
-	// Entry Blocks we don't have that we are asking our neighbors for
-	MissingEntryBlocks []MissingEntryBlock
 
-	MissingEntryRepeat interfaces.Timestamp
-	// DBlock Height at which node has a complete set of eblocks+entries
-	EntryDBHeightComplete uint32
-	// DBlock Height at which we have started asking for or have all entries
-	EntryDBHeightProcessing uint32
 	// Height in the Directory Block where we have
 	// Entries we don't have that we are asking our neighbors for
 	MissingEntries chan *MissingEntry
@@ -949,13 +940,6 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 			s.IdentityChainID = identity
 			s.LogPrintf("AckChange", "Load IdentityChainID \"%v\"", s.IdentityChainID.String())
 		}
-
-		if cfg.App.P2PIncoming > 0 {
-			p2p.MaxNumberIncomingConnections = cfg.App.P2PIncoming
-		}
-		if cfg.App.P2POutgoing > 0 {
-			p2p.NumberPeersToConnect = cfg.App.P2POutgoing
-		}
 	} else {
 		s.LogPath = "database/"
 		s.LdbPath = "database/ldb"
@@ -1052,6 +1036,7 @@ func (s *State) Init() {
 	s.TimeOffset = new(primitives.Timestamp) //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
+	s.InvalidMessagesMutex = new(sync.RWMutex)
 
 	s.ShutdownChan = make(chan int, 1)                //Channel to gracefully shut down.
 	s.tickerQueue = make(chan int, 100)               //ticks from a clock
@@ -1170,10 +1155,9 @@ func (s *State) Init() {
 				}
 			}
 		}
-		correctChainHeads.FindHeads(s.DB.(*databaseOverlay.Overlay), correctChainHeads.CorrectChainHeadConfig{
-			PrintFreq: 5000,
-			Fix:       s.CheckChainHeads.Fix,
-		})
+		if err := chainheadfix.FindHeads(s.DB.(*databaseOverlay.Overlay), s.CheckChainHeads.Fix); err != nil {
+			panic(fmt.Errorf("chainheadfix encountered fatal error: %v\n", err))
+		}
 	}
 	if s.ExportData {
 		s.DB.SetExportData(s.ExportDataSubpath)
@@ -1299,7 +1283,10 @@ func (s *State) GetEntryBlockDBHeightComplete() uint32 {
 }
 
 func (s *State) SetEntryBlockDBHeightComplete(newHeight uint32) {
-	s.EntryBlockDBHeightComplete = newHeight
+	if newHeight > s.EntryBlockDBHeightComplete {
+		s.EntryBlockDBHeightComplete = newHeight
+		s.DB.SaveDatabaseEntryHeight(newHeight)
+	}
 }
 
 func (s *State) GetEntryBlockDBHeightProcessing() uint32 {
@@ -1307,7 +1294,9 @@ func (s *State) GetEntryBlockDBHeightProcessing() uint32 {
 }
 
 func (s *State) SetEntryBlockDBHeightProcessing(newHeight uint32) {
-	s.EntryBlockDBHeightProcessing = newHeight
+	if newHeight > s.EntryBlockDBHeightProcessing {
+		s.EntryBlockDBHeightProcessing = newHeight
+	}
 }
 
 func (s *State) GetLLeaderHeight() uint32 {
@@ -1320,10 +1309,6 @@ func (s *State) GetFaultTimeout() int {
 
 func (s *State) GetFaultWait() int {
 	return s.FaultWait
-}
-
-func (s *State) GetEntryDBHeightComplete() uint32 {
-	return s.EntryDBHeightComplete
 }
 
 func (s *State) GetMissingEntryCount() uint32 {
@@ -1766,55 +1751,41 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 	return resp
 }
 
-func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPendingTransaction {
+// GetPendingTransactions returns a list of transactions that will be included in the upcoming or future blocks
+func (s *State) GetPendingTransactions(params string) []interfaces.IPendingTransaction {
 	var flgFound bool
 
 	var currentHeightComplete = s.GetDBHeightComplete()
 	resp := make([]interfaces.IPendingTransaction, 0)
-	pls := s.ProcessLists.Lists
-	for _, pl := range pls {
-		if pl != nil {
-			// ignore old process lists
-			if pl.DBHeight > currentHeightComplete {
-				cb := pl.State.FactoidState.GetCurrentBlock()
-				ct := cb.GetTransactions()
-				for i, tran := range ct {
-					var tmp interfaces.IPendingTransaction
-					tmp.TransactionID = tran.GetSigHash()
-					if tran.GetBlockHeight() > 0 {
-						tmp.Status = constants.AckStatusDBlockConfirmedString
-					} else {
-						tmp.Status = constants.AckStatusACKString
-					}
-
-					tmp.Inputs = tran.GetInputs()
-					tmp.Outputs = tran.GetOutputs()
-					tmp.ECOutputs = tran.GetECOutputs()
-					if i > 0 {
-						ecrate := s.GetPredictiveFER()
-						ecrate, _ = tran.CalculateFee(ecrate)
-						tmp.Fees = ecrate
-					}
-
-					if params.(string) == "" {
-						flgFound = true
-					} else {
-						flgFound = tran.HasUserAddress(params.(string))
-					}
-					if flgFound == true {
-						//working through multiple process lists.  Is this transaction already in the list?
-						for _, pt := range resp {
-							if pt.TransactionID.String() == tmp.TransactionID.String() {
-								flgFound = false
-							}
-						}
-						//  flag was true to be added to the list and not already in the list
-						if flgFound == true {
-							resp = append(resp, tmp)
-						}
-					}
-				}
+	cb := s.GetFactoidState().GetCurrentBlock()
+	if cb.GetDBHeight() > currentHeightComplete {
+		for i, ta := range cb.GetTransactions() {
+			// don't return coinbase until the real timestamp is in
+			if i == 0 && !cb.IsCoinbasePatched() {
+				continue
 			}
+
+			if params != "" && !ta.HasUserAddress(params) {
+				continue
+			}
+
+			var tmp interfaces.IPendingTransaction
+			tmp.TransactionID = ta.GetSigHash()
+			tmp.DBHeight = cb.GetDBHeight()
+			if ta.GetBlockHeight() > 0 {
+				tmp.Status = constants.AckStatusDBlockConfirmedString
+			} else {
+				tmp.Status = constants.AckStatusACKString
+			}
+			tmp.Inputs = ta.GetInputs()
+			tmp.Outputs = ta.GetOutputs()
+			tmp.ECOutputs = ta.GetECOutputs()
+			if len(tmp.Inputs) > 0 {
+				ecrate := s.GetPredictiveFER()
+				ecrate, _ = ta.CalculateFee(ecrate)
+				tmp.Fees = ecrate
+			}
+			resp = append(resp, tmp)
 		}
 	}
 
@@ -1834,7 +1805,7 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			var tmp interfaces.IPendingTransaction
 			tmp.TransactionID = tempTran.GetSigHash()
 			tmp.Status = constants.AckStatusNotConfirmedString
-			flgFound = tempTran.HasUserAddress(params.(string))
+			flgFound = tempTran.HasUserAddress(params)
 			tmp.Inputs = tempTran.GetInputs()
 			tmp.Outputs = tempTran.GetOutputs()
 			tmp.ECOutputs = tempTran.GetECOutputs()
@@ -3093,7 +3064,7 @@ func (s *State) updateNetworkControllerConfig() {
 		panic(fmt.Sprintf("Invalid Network: %s", s.Network))
 	}
 
-	s.NetworkController.ReloadSpecialPeers(newPeersConfig)
+	s.NetworkController.SetSpecial(newPeersConfig)
 }
 
 // Check and Add a hash to the network replay filter
@@ -3105,14 +3076,18 @@ func (s *State) AddToReplayFilter(mask int, hash [32]byte, timestamp interfaces.
 func (s *State) IsActive(id activations.ActivationType) bool {
 	highestCompletedBlk := s.GetHighestCompletedBlk()
 
-	rval := activations.IsActive(id, int(highestCompletedBlk))
+	active := activations.IsActive(id, int(highestCompletedBlk))
 
-	if rval && !s.reportedActivations[id] {
-		s.LogPrintf("executeMsg", "Activating Feature %s at height %v", id.String(), highestCompletedBlk)
+	if !s.reportedActivations[id] {
+		if active {
+			s.LogPrintf("executeMsg", "Activating Feature %s at height %d", id.String(), highestCompletedBlk)
+		} else {
+			s.LogPrintf("executeMsg", "Never activating feature %s", id.String())
+		}
 		s.reportedActivations[id] = true
 	}
 
-	return rval
+	return active
 }
 
 func (s *State) PassOutputRegEx(RegEx *regexp.Regexp, RegExString string) {
@@ -3142,6 +3117,8 @@ func (s *State) GetIgnoreDone() bool {
 func (s *State) ShutdownNode(exitCode int) {
 	fmt.Println(fmt.Sprintf("Initiating a graceful shutdown of node %s. The exit code is %v.", s.FactomNodeName, exitCode))
 	s.RunState = runstate.Stopping
+	close(s.WriteEntry)
+	s.EntrySync.Stop()
 	s.ShutdownChan <- exitCode
 }
 

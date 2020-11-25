@@ -120,7 +120,7 @@ func DeepStateDisplayCopyDifference(s *State, prev *DisplayState) (*DisplayState
 	lheight := s.GetTrueLeaderHeight()
 	// Acks are from the current block being built, and at +1
 	ds.CurrentLeaderHeight = s.GetLeaderHeight()
-	ds.CurrentEBDBHeight = s.EntryDBHeightComplete
+	ds.CurrentEBDBHeight = s.EntryBlockDBHeightComplete
 	ds.LeaderHeight = lheight
 
 	// Only copies the directory block if it is new

@@ -1,7 +1,7 @@
 package state
 
 import (
-	"sync/atomic"
+	"sync"
 	"time"
 )
 
@@ -24,24 +24,22 @@ type IPrometheusRateMethods interface {
 type RateCalculator struct {
 	// Accessed on potentially Multiple Threads
 	prometheusMethods IPrometheusRateMethods
-	arrival           *int32
-	completed         *int32
-	line              *int32
+	arrival           int32
+	completed         int32
+	line              int32
 
 	// Single threaded
 	tickerTime      time.Duration
 	rollingArrival  *MovingAverage
 	rollingComplete *MovingAverage
+
+	mtx sync.Mutex
 }
 
 // NewRateCalculatorTime is good for unit tests, or if you want to change the measureing time
 func NewRateCalculatorTime(p IPrometheusRateMethods, td time.Duration) *RateCalculator {
 	r := new(RateCalculator)
 	r.prometheusMethods = p
-
-	r.arrival = new(int32)
-	r.completed = new(int32)
-	r.line = new(int32)
 	r.tickerTime = td
 
 	r.rollingArrival = NewMovingAverage(10)
@@ -66,20 +64,14 @@ func (r *RateCalculator) StartTime(start time.Time) {
 
 	ticker := time.NewTicker(r.tickerTime)
 	// Every 2 seconds calculate the instant rate and adjust the total avg
-	for _ = range ticker.C {
-		na, nc := int32(0), int32(0)
+	for range ticker.C {
+		r.mtx.Lock()
 
-		//
-		// Grab the current values and reset
-		ca := atomic.SwapInt32(r.arrival, na)
-		cc := atomic.SwapInt32(r.completed, nc)
-		cl := atomic.LoadInt32(r.line)
+		totalArrival += r.arrival
+		totalComplete += r.completed
 
-		totalArrival += ca
-		totalComplete += cc
-
-		r.rollingArrival.Add(float64(ca))
-		r.rollingComplete.Add(float64(cc))
+		r.rollingArrival.Add(float64(r.arrival))
+		r.rollingComplete.Add(float64(r.completed))
 
 		// Calculate Total Avg
 		totalTime := time.Since(start).Seconds()
@@ -87,28 +79,37 @@ func (r *RateCalculator) StartTime(start time.Time) {
 		r.prometheusMethods.SetCompleteTotalAvg(float64(totalComplete) / totalTime)
 
 		// Calculate 2s Avg
-		r.prometheusMethods.SetArrivalInstantAvg(float64(ca) / r.tickerTime.Seconds())
-		r.prometheusMethods.SetCompleteInstantAvg(float64(cc) / r.tickerTime.Seconds())
+		r.prometheusMethods.SetArrivalInstantAvg(float64(r.arrival) / r.tickerTime.Seconds())
+		r.prometheusMethods.SetCompleteInstantAvg(float64(r.completed) / r.tickerTime.Seconds())
 
 		// Moving Avg
 		r.prometheusMethods.SetMovingArrival(r.rollingArrival.Avg() / r.tickerTime.Seconds())
 		r.prometheusMethods.SetMovingComplete(r.rollingComplete.Avg() / r.tickerTime.Seconds())
 
 		// Set the backup
-		r.prometheusMethods.SetArrivalBackup(float64(cl))
+		r.prometheusMethods.SetArrivalBackup(float64(r.line))
+
+		r.arrival = 0
+		r.completed = 0
+
+		r.mtx.Unlock()
 	}
 }
 
 // Arrival indicates a new item added to the queue
 func (r *RateCalculator) Arrival() {
-	atomic.AddInt32(r.arrival, 1)
-	atomic.AddInt32(r.line, 1)
+	r.mtx.Lock()
+	r.arrival++
+	r.line++
+	r.mtx.Unlock()
 }
 
 // Complete indicates something left the queue
 func (r *RateCalculator) Complete() {
-	atomic.AddInt32(r.completed, 1)
-	atomic.AddInt32(r.line, -1)
+	r.mtx.Lock()
+	r.completed++
+	r.line--
+	r.mtx.Unlock()
 }
 
 type MovingAverage struct {

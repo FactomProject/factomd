@@ -169,13 +169,6 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 
 func (m *FactoidTransaction) UnmarshalTransData(datax []byte) (newData []byte, err error) {
 	newData = datax
-	defer func() {
-		return
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Transaction Factoid: %v", r)
-			llog.LogPrintf("recovery", "Error unmarshalling Transaction Factoid: %v", r)
-		}
-	}()
 
 	m.Transaction = new(factoid.Transaction)
 	newData, err = m.Transaction.UnmarshalBinaryData(newData)

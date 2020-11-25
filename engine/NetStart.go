@@ -7,7 +7,6 @@ package engine
 import (
 	"bufio"
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -49,7 +48,7 @@ var fnodes []*FactomNode
 var networkpattern string
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
-var p2pNetwork *p2p.Controller
+var network *p2p.Network
 var logPort string
 
 func GetFnodes() []*FactomNode {
@@ -184,12 +183,14 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.CheckChainHeads.CheckChainHeads = p.CheckChainHeads
 	s.CheckChainHeads.Fix = p.FixChainHeads
 
-	if p.P2PIncoming > 0 {
-		p2p.MaxNumberIncomingConnections = p.P2PIncoming
-	}
-	if p.P2POutgoing > 0 {
-		p2p.NumberPeersToConnect = p.P2POutgoing
-	}
+	p2pconf := p2p.DefaultP2PConfiguration()
+	p2pconf.TargetPeers = 32
+	p2pconf.DropTo = 30
+	p2pconf.MaxPeers = 36
+	p2pconf.Fanout = 16
+	p2pconf.ChannelCapacity = 5000
+	p2pconf.PingInterval = time.Second * 15
+	p2pconf.ProtocolVersion = 10
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")
@@ -204,7 +205,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 			fnode.State.ShutdownNode(0)
 		}
 		if p.EnableNet {
-			p2pNetwork.NetworkStop()
+			network.Stop()
 		}
 		fmt.Print("Waiting...\r\n")
 		time.Sleep(3 * time.Second)
@@ -256,17 +257,17 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.SetDropRate(p.DropRate)
 
 	if p.Sync2 >= 0 {
-		s.EntryDBHeightComplete = uint32(p.Sync2)
-		s.LogPrintf("EntrySync", "Force with Sync2 NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+		s.EntryBlockDBHeightComplete = uint32(p.Sync2)
+		s.LogPrintf("EntrySync", "Force with Sync2 NetStart EntryBlockDBHeightComplete = %d", s.EntryBlockDBHeightComplete)
 
 	} else {
 		height, err := s.DB.FetchDatabaseEntryHeight()
 		if err != nil {
-			s.LogPrintf("EntrySync", "Error reading EntryDBHeightComplete NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+			s.LogPrintf("EntrySync", "Error reading EntryBlockDBHeightComplete NetStart EntryBlockDBHeightComplete = %d", s.EntryBlockDBHeightComplete)
 			os.Stderr.WriteString(fmt.Sprintf("ERROR reading Entry DBHeight Complete: %v\n", err))
 		} else {
-			s.EntryDBHeightComplete = height
-			s.LogPrintf("EntrySync", "NetStart EntryDBHeightComplete = %d", s.EntryDBHeightComplete)
+			s.EntryBlockDBHeightComplete = height
+			s.LogPrintf("EntrySync", "NetStart EntryBlockDBHeightComplete = %d", s.EntryBlockDBHeightComplete)
 		}
 	}
 
@@ -279,8 +280,8 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "balancehash", messages.AckBalanceHash))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", fmt.Sprintf("%s Salt", s.GetFactomNodeName()), s.Salt.String()[:16]))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", p.EnableNet))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net incoming", p2p.MaxNumberIncomingConnections))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net outgoing", p2p.NumberPeersToConnect))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net target", p2pconf.TargetPeers))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "net max", p2pconf.MaxPeers))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "waitentries", p.WaitEntries))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", p.ListenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", p.Prefix))
@@ -308,7 +309,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "corsdomains", s.CorsDomains))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryBlockDBHeightComplete))
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", elections.FaultTimeout))
 
@@ -372,7 +373,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 			panic("Please specify a custom network with -customnet=<something unique here>")
 		}
 		s.CustomNetworkID = p.CustomNet
-		networkID = p2p.NetworkID(binary.BigEndian.Uint32(p.CustomNet))
+		networkID = p2p.NewNetworkID(p.CustomNetName)
 		for i := range fnodes {
 			fnodes[i].State.CustomNetworkID = p.CustomNet
 		}
@@ -387,38 +388,52 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}
 
-	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
-	p2p.NetworkDeadline = time.Duration(p.Deadline) * time.Millisecond
+	// use special peers from command line
+	if p.Peers != "" {
+		configPeers = p.Peers
+	}
+
+	if 0 < p.NetworkPortOverride {
+		networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
+	}
+
+	p2pconf.NodeName = fnodes[0].State.FactomNodeName
+	p2pconf.Network = networkID
+	p2pconf.SeedURL = seedURL
+	p2pconf.ListenPort = networkPort
+	p2pconf.Special = configPeers
+
+	connectionMetricsChannel := make(chan map[string]p2p.PeerMetrics, 50)
+	p2pconf.ReadDeadline = time.Minute * 5
+	p2pconf.WriteDeadline = time.Minute * 5
 
 	if p.EnableNet {
-		nodeName := fnodes[0].State.FactomNodeName
-		if 0 < p.NetworkPortOverride {
-			networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
+
+		if net, err := p2p.NewNetwork(p2pconf); err != nil {
+			fmt.Println(err)
+			panic("Unable to start p2p network")
+		} else {
+			network = net
+
+			network.SetMetricsHook(func(pm map[string]p2p.PeerMetrics) {
+				select {
+				case connectionMetricsChannel <- pm:
+				default:
+				}
+			})
+			network.Run()
+			fnodes[0].State.NetworkController = net
+
+			p2pProxy = new(P2PProxy).Init(p2pconf.NodeName, "P2P Network").(*P2PProxy)
+			p2pProxy.Network = network
+
+			fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
+			p2pProxy.StartProxy()
+
+			go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
+
 		}
 
-		ci := p2p.ControllerInit{
-			NodeName:                 nodeName,
-			Port:                     networkPort,
-			PeersFile:                s.PeersFile,
-			Network:                  networkID,
-			Exclusive:                p.Exclusive,
-			ExclusiveIn:              p.ExclusiveIn,
-			SeedURL:                  seedURL,
-			ConfigPeers:              configPeers,
-			CmdLinePeers:             p.Peers,
-			ConnectionMetricsChannel: connectionMetricsChannel,
-		}
-		p2pNetwork = new(p2p.Controller).Init(ci)
-		fnodes[0].State.NetworkController = p2pNetwork
-		p2pNetwork.StartNetwork()
-		p2pProxy = new(P2PProxy).Init(nodeName, "P2P Network").(*P2PProxy)
-		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
-		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
-
-		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-		p2pProxy.StartProxy()
-
-		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}
 
 	// Start live feed service
@@ -596,11 +611,11 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	launchPrometheus(9876)
 	// Start Package's prometheus
 	state.RegisterPrometheus()
-	p2p.RegisterPrometheus()
+	//	p2pold.RegisterPrometheus()
 	leveldb.RegisterPrometheus()
 	RegisterPrometheus()
 
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build, p.NodeName)
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, network, Build, p.NodeName)
 
 	go SimControl(p.ListenTo, listenToStdin)
 
@@ -658,7 +673,12 @@ func startServer(i int, fnode *FactomNode, load bool) {
 	if load {
 		go state.LoadDatabase(fnode.State)
 	}
-	go fnode.State.GoSyncEntries()
+
+	entrySync := state.NewEntrySync(fnode.State)
+	fnode.State.EntrySync = entrySync
+	go fnode.State.EntrySync.SyncHeight()
+	go fnode.State.WriteEntries()
+
 	go Timer(fnode.State)
 	go elections.Run(fnode.State)
 	go fnode.State.ValidatorLoop()
@@ -681,7 +701,7 @@ func setupFirstAuthority(s *state.State) {
 func networkHousekeeping() {
 	for {
 		time.Sleep(1 * time.Second)
-		p2pProxy.SetWeight(p2pNetwork.GetNumberOfConnections())
+		p2pProxy.SetWeight(network.GetInfo().Peers)
 	}
 }
 

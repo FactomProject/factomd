@@ -242,7 +242,7 @@ func composeChainCommitMsg(c *factom.Chain, ec *factom.ECAddress) (*bytes.Buffer
 func PrivateKeyToECAddress(key *primitives.PrivateKey) *factom.ECAddress {
 	// KLUDGE is there a better way to do this?
 	ecPub, _ := factoid.PublicKeyStringToECAddress(key.PublicKeyString())
-	addr := factom.ECAddress{&[32]byte{}, &[64]byte{}}
+	addr := factom.ECAddress{Pub: &[32]byte{}, Sec: &[64]byte{}}
 	copy(addr.Pub[:], ecPub.Bytes())
 	copy(addr.Sec[:], key.Key[:])
 	return &addr

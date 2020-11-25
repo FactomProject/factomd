@@ -37,6 +37,8 @@ type FBlock struct {
 	// the NEXT period.  This entry may not exist.  The Coinbase transaction is considered
 	// to be in the first period.  Factom's periods will initially be a minute long, and
 	// there will be 10 of them.  This may change in the future.
+
+	coinbasePatched bool
 }
 
 var _ interfaces.IFBlock = (*FBlock)(nil)
@@ -637,6 +639,20 @@ func (b *FBlock) AddCoinbase(trans interfaces.ITransaction) error {
 
 	b.Transactions = append(b.Transactions, trans)
 	return nil
+}
+
+// PatchCoinbase updates the coinbase transaction with the leader's real timestamp.
+// This timestamp is not known at the time of creation.
+func (b *FBlock) PatchCoinbase(ts interfaces.Timestamp) {
+	if len(b.Transactions) > 0 {
+		b.Transactions[0].SetTimestamp(ts)
+		b.coinbasePatched = true
+	}
+}
+
+// IsCoinbasePatched returns true when the coinbase has been patched with the real timestamp
+func (b *FBlock) IsCoinbasePatched() bool {
+	return b.coinbasePatched
 }
 
 // Add the given transaction to this block.  Reports an error if this

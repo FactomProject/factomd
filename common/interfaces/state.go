@@ -206,7 +206,7 @@ type IState interface {
 	IncFactoidTrans()
 	IncDBStateAnswerCnt()
 
-	GetPendingTransactions(interface{}) []IPendingTransaction
+	GetPendingTransactions(string) []IPendingTransaction
 	// MISC
 	// ====
 
@@ -311,7 +311,6 @@ type IState interface {
 	GetAuthorityInterface(chainid IHash) IAuthority
 	GetLeaderPL() IProcessList
 	GetLLeaderHeight() uint32
-	GetEntryDBHeightComplete() uint32
 	GetMissingEntryCount() uint32
 	GetEntryBlockDBHeightProcessing() uint32
 	GetEntryBlockDBHeightComplete() uint32
