@@ -126,7 +126,7 @@ func optionsToParams(UserAddedOptions map[string]string) *globals.FactomParams {
 // start a single node meant to connect to an existing network
 func StartPeer(CmdLineOptions map[string]string) *state.State {
 	params := engine.ParseCmdLine(optionsToCmdLine(CmdLineOptions))
-	return engine.Factomd(params, false).(*state.State)
+	return engine.Factomd(params).(*state.State)
 }
 
 // start simulation without promoting nodes to the authority set
@@ -135,7 +135,7 @@ func StartPeer(CmdLineOptions map[string]string) *state.State {
 func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
 	UserAddedOptions["--count"] = fmt.Sprintf("%v", nodeCount)
 	params := optionsToParams(UserAddedOptions)
-	return engine.Factomd(params, false).(*state.State)
+	return engine.Factomd(params).(*state.State)
 }
 
 func setTestTimeouts(state0 *state.State, calcTime time.Duration) {

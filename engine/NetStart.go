@@ -60,7 +60,7 @@ func init() {
 	primitives.General = messages.General
 }
 
-func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
+func NetStart(s *state.State, p *FactomParams) {
 
 	s.PortNumber = 8088
 	s.ControlPanelPort = 8090
@@ -617,7 +617,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, network, Build, p.NodeName)
 
-	go SimControl(p.ListenTo, listenToStdin)
+	go SimControl(p.ListenTo, p.Sim_Stdin)
 
 }
 
