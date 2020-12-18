@@ -4,7 +4,7 @@ Official Golang implementation of the Factom Protocol.
 
 [![CircleCI](https://circleci.com/gh/FactomProject/factomd/tree/master.svg?style=shield)](https://circleci.com/gh/FactomProject/factomd/tree/master)
 
-Factom is an open-source blockahin project designed to store structured data immutably at a fixed cost. Data integrity verification is one of the many uses cases the protocol excels at. The Factom Protocol represents opportunities for businesses, governments, and other entities to record and preserve their data in an immutable and cost-efficient way. 
+Factom is an open-source blockchain project designed to store structured data immutably at a fixed cost. Data integrity verification is one of the many uses cases the protocol excels at. The Factom Protocol represents opportunities for businesses, governments, and other entities to record and preserve their data in an immutable and cost-efficient way. 
 [Visit the Factom Protocol website for more information](https://www.factomprotocol.org/)
 
 ## Community
