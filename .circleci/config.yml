@@ -35,7 +35,7 @@ jobs:
     docker:
       - image: circleci/golang:1.14
 
-    parallelism: 8
+    parallelism: 5
 
     steps:
       - attach_workspace:
@@ -55,7 +55,7 @@ jobs:
     docker:
       - image: circleci/golang:1.14
 
-    parallelism: 8
+    parallelism: 5
 
     steps:
       - attach_workspace:
