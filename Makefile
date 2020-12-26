@@ -1,7 +1,9 @@
-REVISION = $(shell git describe --tags | cut -c 2-)
-$(info    Make factomd v$(REVISION))
+REVISION = $(shell git describe --tags)
+$(info    Make factomd $(REVISION))
 
-LDFLAGS = "-s -w -X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD` -X github.com/FactomProject/factomd/engine.FactomdVersion=$(REVISION)"
+# Strip leading 'v'
+VERSION = $(shell echo $(REVISION) | cut -c 2-)
+LDFLAGS = "-s -w -X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD` -X github.com/FactomProject/factomd/engine.FactomdVersion=$(VERSION)"
 
 build:
 	go build -trimpath -ldflags $(LDFLAGS) -v
