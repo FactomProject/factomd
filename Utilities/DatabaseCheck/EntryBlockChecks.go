@@ -21,7 +21,8 @@ func main() {
 		"-startdelay=100")
 
 	params := engine.ParseCmdLine(args)
-	state := engine.Factomd(params, true)
+	params.Sim_Stdin = true
+	state := engine.Factomd(params)
 
 	CheckEntryBlocks(state.GetDB(), true)
 

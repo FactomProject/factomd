@@ -41,7 +41,7 @@ var _ = fmt.Print
 // or create more context loggers off of this
 var packageLogger = log.WithFields(log.Fields{"package": "engine"})
 
-func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
+func Factomd(params *FactomParams) interfaces.IState {
 	fmt.Printf("Go compiler version: %s\n", runtime.Version())
 	fmt.Printf("Using build: %s\n", Build)
 	fmt.Printf("Version: %s\n", FactomdVersion)
@@ -62,7 +62,7 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	state0.EFactory = new(electionMsgs.ElectionsFactory)
 	state0.EventService = events.NewEventService()
 
-	NetStart(state0, params, listenToStdin)
+	NetStart(state0, params)
 	return state0
 }
 
