@@ -26,6 +26,7 @@ out
 # Folders
 _obj
 _test
+build
 bin
 pkg
 .vagrant

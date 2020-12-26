@@ -38,6 +38,8 @@ make
 # or `make install` to install factomd into GOBIN folder
 ```
 
+Also `make all` cross compiles factomd for various platforms.
+
 ### Running factomd
 
 Factomd can be run with default configuration with this simple command:
