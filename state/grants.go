@@ -66,9 +66,11 @@ func GetHardCodedGrants() []HardGrant {
 		hardcodegrants = []HardGrant{}
 
 	case "MAIN":
-		// Note to future grant implementers.  On mainnet, grants should be on blocks divisible by 25 + 1.  See function CheckGrants().
+		// Note to future grant implementers: grants should be on blocks divisible by 25 + 1. See function CheckGrants().
 		// Activation heights
 		grant2020_04 := uint32(272801)
+		grant2021_01 := uint32(285651)
+
 		hardcodegrants = []HardGrant{
 			// Initial grants approved June 9, 2018 https://drive.google.com/drive/folders/1e_xmKgJb375EcAwwkz2d3mdYs0PVVih3
 			// https://factomize.com/forums/threads/implementing-the-initial-grants.428/
@@ -1389,6 +1391,73 @@ func GetHardCodedGrants() []HardGrant {
 			HardGrant{grant2020_04, 20000e8, validateAddress("FA2rrwFVvkFYwyGFHVBMwRqTpycuZiagrQdcbPWzuoEwJQxjDwi3")},
 			// --------------------------------------------------------
 
+			// ********************************
+			// **** Grant Round 2021-01 ****
+			// ********************************
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-The Factoid Authority-De Facto -- 3125 FCT
+			// Factom Open Node 2021-01-25 - 2021-02-16
+
+			// The Factoid Authority total: 625 FCT
+			HardGrant{grant2021_01, 625e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
+
+			// De Facto total: 2500 FCT
+			HardGrant{grant2021_01, 2500e8, validateAddress("FA3X3d3ceDYD7v3aBCeEBcvvgiTZNeiFkN8jJ897EbMuBzHt6xhP")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-Website Committee -- 1675 FCT
+			// Website Committee grant 2021-01-25 - 2021-02-16
+
+			// Website Committee total: 1675 FCT
+			HardGrant{grant2021_01, 1675e8, validateAddress("FA3TG1mi25XfJSVeNT5vS9uLi8VQxjK8ju9pGCp8Po6rrk5RXPLH")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// PaulSnow-Anton Ilzheev-De Facto -- 900 FCT
+			// Factom Oracle Master 2021-01-25 - 2021-02-16
+
+			// PaulSnow total: 450 FCT
+			HardGrant{grant2021_01, 450e8, validateAddress("FA29PLacx8jVBMZoQrjgES5RBsfooMsWHG5Ep8uUhVmeesGFY4xp")},
+
+			// De Facto total: 450 FCT
+			HardGrant{grant2021_01, 450e8, validateAddress("FA3X3d3ceDYD7v3aBCeEBcvvgiTZNeiFkN8jJ897EbMuBzHt6xhP")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// WB -- 50000 FCT
+			// Initial FCT for Council/Director 2021-01-25 - 2021-02-16
+
+			// WB total: 50000 FCT
+			HardGrant{grant2021_01, 50000e8, validateAddress("FA3m63HmmkqqtUwxsxPRZLdoq2JJgU2LFC92hcM5jnauVAnYE2W6")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-De Facto -- 6500 FCT
+			// WFCT gateway development backpay 2021-01-25 - 2021-02-16
+
+			// De Facto total: 6500 FCT
+			HardGrant{grant2021_01, 6500e8, validateAddress("FA3X3d3ceDYD7v3aBCeEBcvvgiTZNeiFkN8jJ897EbMuBzHt6xhP")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// PaulSnow-Factom Inc-De Facto-Core Committee -- 23880 FCT
+			// Anchor Rework 2021-01-25 - 2021-02-16
+			// Per agreement during question of the grant, the FCT price should be adjusted at the rate
+			// specified by the 144 block average reported by the EC Rate Bot on discord ( #ec-rate-alert )
+			// at a date prior to deploying the grant. On 2021-2-17 , this rate was $2.57. This changes the
+			// tokens issued from 43,000 to 23,880 (11,440 * 2 + 1000)
+
+			// Factom Inc total: 11440 FCT
+			HardGrant{grant2021_01, 11440e8, validateAddress("FA29PLacx8jVBMZoQrjgES5RBsfooMsWHG5Ep8uUhVmeesGFY4xp")},
+
+			// De Facto total: 11440 FCT
+			HardGrant{grant2021_01, 11440e8, validateAddress("FA3X3d3ceDYD7v3aBCeEBcvvgiTZNeiFkN8jJ897EbMuBzHt6xhP")},
+
+			// Core Committee total: 1000 FCT
+			HardGrant{grant2021_01, 1000e8, validateAddress("FA2qFVCLDoFodSsjoBM2dNpybiQFrv86d3q6ZoWsWHTSVYfxps1j")},
+			// --------------------------------------------------------
 		}
 
 	default:

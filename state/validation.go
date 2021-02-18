@@ -89,7 +89,7 @@ func (s *State) ValidatorLoop() {
 		if r := recover(); r != nil {
 			s.EventService.EmitNodeErrorMessage(eventmessages.NodeMessageCode_GENERAL,
 				"A panic state occurred in ValidatorLoop.", r)
-
+			fmt.Println(r)
 			shutdown(s)
 		}
 	}()
