@@ -1442,14 +1442,18 @@ func GetHardCodedGrants() []HardGrant {
 			// --------------------------------------------------------
 
 			// --------------------------------------------------------
-			// PaulSnow-Factom Inc-De Facto-Core Committee -- 43000 FCT
+			// PaulSnow-Factom Inc-De Facto-Core Committee -- 23880 FCT
 			// Anchor Rework 2021-01-25 - 2021-02-16
+			// Per agreement during question of the grant, the FCT price should be adjusted at the rate
+			// specified by the 144 block average reported by the EC Rate Bot on discord ( #ec-rate-alert )
+			// at a date prior to deploying the grant. On 2021-2-17 , this rate was $2.57. This changes the
+			// tokens issued from 43,000 to 23,880 (11,440 * 2 + 1000)
 
-			// Factom Inc total: 21000 FCT
-			HardGrant{grant2021_01, 21000e8, validateAddress("FA29PLacx8jVBMZoQrjgES5RBsfooMsWHG5Ep8uUhVmeesGFY4xp")},
+			// Factom Inc total: 11440 FCT
+			HardGrant{grant2021_01, 11440e8, validateAddress("FA29PLacx8jVBMZoQrjgES5RBsfooMsWHG5Ep8uUhVmeesGFY4xp")},
 
-			// De Facto total: 21000 FCT
-			HardGrant{grant2021_01, 21000e8, validateAddress("FA3X3d3ceDYD7v3aBCeEBcvvgiTZNeiFkN8jJ897EbMuBzHt6xhP")},
+			// De Facto total: 11440 FCT
+			HardGrant{grant2021_01, 11440e8, validateAddress("FA3X3d3ceDYD7v3aBCeEBcvvgiTZNeiFkN8jJ897EbMuBzHt6xhP")},
 
 			// Core Committee total: 1000 FCT
 			HardGrant{grant2021_01, 1000e8, validateAddress("FA2qFVCLDoFodSsjoBM2dNpybiQFrv86d3q6ZoWsWHTSVYfxps1j")},
