@@ -9,7 +9,7 @@ import (
 )
 
 func TestSimWallet(t *testing.T) {
-
+	ResetSimHome(t)
 	a := AccountFromFctSecret("Fs31kMMKBSCDwa7tSEzjQ4EfGeXARdUS22oBEJKNSJWbLAMTsEHr")
 	b := AccountFromFctSecret("Fs2BNvoDgSoGJpWg4PvRUxqvLE28CQexp5FZM9X5qU6QvzFBUn6D")
 

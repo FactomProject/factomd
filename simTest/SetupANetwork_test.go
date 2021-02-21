@@ -1,16 +1,15 @@
 package simtest
 
-import "time"
-
 import (
 	"testing"
+	"time"
 
 	. "github.com/FactomProject/factomd/engine"
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
 func TestSetupANetwork(t *testing.T) {
-
+	ResetSimHome(t)
 	state0 := SetupSim("LLLLAAAFFF", map[string]string{"--debuglog": ""}, 20, 0, 0, t)
 
 	RunCmd("9")  // Puts the focus on node 9

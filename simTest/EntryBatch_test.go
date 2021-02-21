@@ -14,7 +14,7 @@ import (
 
 // this applies chain & entry creation in 'proper' chronological order
 func TestEntryBatch(t *testing.T) {
-
+	ResetSimHome(t)
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}
 		b.WriteString(s)

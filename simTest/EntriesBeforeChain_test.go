@@ -13,7 +13,7 @@ import (
 )
 
 func TestEntriesBeforeChain(t *testing.T) {
-
+	ResetSimHome(t)
 	encode := func(s string) []byte {
 		b := bytes.Buffer{}
 		b.WriteString(s)
