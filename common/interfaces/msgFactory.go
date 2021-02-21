@@ -14,3 +14,10 @@ type Signable interface {
 	IsValid() bool // Signature already checked
 	SetValid()     // Mark as validated so we don't have to repeat.
 }
+
+type MultiSignable interface {
+	AddSignature(Signer) error
+	MarshalForSignature() ([]byte, error)
+	GetSignatures() []IFullSignature
+	VerifySignatures() ([]IFullSignature, error)
+}

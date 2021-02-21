@@ -6,11 +6,15 @@ package messages
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"os"
+	"sort"
+	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -27,11 +31,16 @@ type RemoveServerMsg struct {
 	ServerChainID interfaces.IHash     // ChainID of new server
 	ServerType    int                  // 0 = Federated, 1 = Audit
 
-	Signature interfaces.IFullSignature
+	Signatures interfaces.IFullSignatureBlock
+
+	sigMtx   sync.Mutex
+	sigCache bool // true if this set of Signatures has been verified
+	// List of validated pubkey/sig pairs, sorted by byte order
+	validSignatures []interfaces.IFullSignature
 }
 
 var _ interfaces.IMsg = (*RemoveServerMsg)(nil)
-var _ interfaces.Signable = (*RemoveServerMsg)(nil)
+var _ interfaces.MultiSignable = (*RemoveServerMsg)(nil)
 
 func (m *RemoveServerMsg) GetRepeatHash() (rval interfaces.IHash) {
 	defer func() { rval = primitives.CheckNil(rval, "RemoveServerMsg.GetRepeatHash") }()
@@ -67,28 +76,47 @@ func (m *RemoveServerMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *RemoveServerMsg) Validate(state interfaces.IState) int {
-	// Check to see if identity exists and is audit or fed server
-	if !state.VerifyIsAuthority(m.ServerChainID) {
-		//fmt.Printf("RemoveServerMsg Error: [%s] is not a server, cannot be removed\n", m.ServerChainID.String()[:8])
+	auth := state.GetAuthorities()
+	found := false
+	for _, a := range auth {
+		if a.GetAuthorityChainID().IsSameAs(m.ServerChainID) {
+			found = true
+			break
+		}
+	}
+	if !found {
 		return -1
 	}
 
-	authoritativeKey := state.GetNetworkSkeletonKey().Bytes()
-	if m.GetSignature() == nil || bytes.Compare(m.GetSignature().GetKey(), authoritativeKey) != 0 {
-		// the message was not signed with the proper authoritative signing key (from conf file)
-		// it is therefore considered invalid
+	valid, err := m.VerifySignatures()
+	if err != nil { // unable to marshal
 		return -1
 	}
 
-	isVer, err := m.VerifySignature()
-	if err != nil || !isVer {
-		// if there is an error during signature verification
-		// or if the signature is invalid
-		// the message is considered invalid
+	// not enough signatures
+	if len(valid) < (len(auth)/2 + 1) {
+		return -1
+	}
+
+	realKeys := 0
+	for _, v := range valid {
+		for _, a := range auth {
+			if bytes.Equal(v.GetKey(), a.GetSigningKey()) {
+				realKeys++
+				break
+			}
+		}
+	}
+
+	if realKeys < len(auth)/2+1 {
 		return -1
 	}
 
 	return 1
+}
+
+func (m *RemoveServerMsg) GetSignatures() []interfaces.IFullSignature {
+	return m.Signatures.GetSignatures()
 }
 
 // Returns true if this is a message for this server to execute as
@@ -119,21 +147,53 @@ func (e *RemoveServerMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (m *RemoveServerMsg) Sign(key interfaces.Signer) error {
-	signature, err := msgbase.SignSignable(m, key)
+func (m *RemoveServerMsg) AddSignature(key interfaces.Signer) error {
+	data, err := m.MarshalForKambani()
 	if err != nil {
 		return err
 	}
-	m.Signature = signature
+	signature := key.Sign(data)
+
+	m.sigMtx.Lock()
+	defer m.sigMtx.Unlock()
+	m.sigCache = false
+	m.validSignatures = nil
+
+	m.Signatures.AddSignature(signature)
 	return nil
 }
 
-func (m *RemoveServerMsg) GetSignature() interfaces.IFullSignature {
-	return m.Signature
-}
+func (m *RemoveServerMsg) VerifySignatures() ([]interfaces.IFullSignature, error) {
+	m.sigMtx.Lock()
+	defer m.sigMtx.Unlock()
 
-func (m *RemoveServerMsg) VerifySignature() (bool, error) {
-	return msgbase.VerifyMessage(m)
+	if m.sigCache {
+		return m.validSignatures, nil
+	}
+
+	data, err := m.MarshalForKambani()
+	if err != nil {
+		return nil, err
+	}
+
+	sigs := m.Signatures.GetSignatures()
+
+	duplicate := make(map[string]bool)
+	valid := make([]interfaces.IFullSignature, 0, len(sigs)) // might be fewer if duplicate
+	for _, sig := range sigs {
+		key := fmt.Sprintf("%x", sig.GetKey())
+		if !duplicate[key] && sig.Verify(data) {
+			duplicate[key] = true
+			valid = append(valid, sig)
+		}
+	}
+
+	sort.Slice(valid, func(i, j int) bool {
+		return bytes.Compare(valid[i].GetKey(), valid[j].GetKey()) < 0
+	})
+
+	m.validSignatures = valid
+	return valid, nil
 }
 
 func (m *RemoveServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -165,12 +225,15 @@ func (m *RemoveServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err 
 	m.ServerType = int(newData[0])
 	newData = newData[1:]
 
-	if len(newData) > 32 {
-		m.Signature = new(primitives.Signature)
-		newData, err = m.Signature.UnmarshalBinaryData(newData)
-		if err != nil {
-			return nil, err
-		}
+	m.sigMtx.Lock()
+	defer m.sigMtx.Unlock()
+	m.sigCache = false
+	m.validSignatures = nil
+
+	m.Signatures = new(factoid.FullSignatureBlock)
+	newData, err = m.Signatures.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
 	}
 	return
 }
@@ -208,6 +271,17 @@ func (m *RemoveServerMsg) MarshalForSignature() (rval []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+func (m *RemoveServerMsg) MarshalForKambani() ([]byte, error) {
+	data, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	// transform to kambani compatible format
+	data = []byte(fmt.Sprintf("%x", data))
+	datahash := sha256.Sum256(data)
+	return datahash[:], nil
+}
+
 func (m *RemoveServerMsg) MarshalBinary() (rval []byte, err error) {
 	defer func(pe *error) {
 		if *pe != nil {
@@ -222,8 +296,8 @@ func (m *RemoveServerMsg) MarshalBinary() (rval []byte, err error) {
 	}
 	buf.Write(data)
 
-	if m.Signature != nil {
-		data, err = m.Signature.MarshalBinary()
+	if m.Signatures != nil {
+		data, err = m.Signatures.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
@@ -268,13 +342,8 @@ func (m *RemoveServerMsg) IsSameAs(b *RemoveServerMsg) bool {
 	if m.ServerType != b.ServerType {
 		return false
 	}
-	if m.Signature == nil && b.Signature != nil {
+	if !m.Signatures.IsSameAs(b.Signatures) {
 		return false
-	}
-	if m.Signature != nil {
-		if m.Signature.IsSameAs(b.Signature) == false {
-			return false
-		}
 	}
 	return true
 }
@@ -284,6 +353,7 @@ func NewRemoveServerMsg(state interfaces.IState, chainId interfaces.IHash, serve
 	msg.ServerChainID = chainId
 	msg.ServerType = serverType
 	msg.Timestamp = state.GetTimestamp()
+	msg.Signatures = factoid.NewFullSignatureBlock()
 
 	return msg
 

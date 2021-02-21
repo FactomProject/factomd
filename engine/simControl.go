@@ -727,7 +727,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					os.Stderr.WriteString(fmt.Sprintln("Could not remove server,", err.Error()))
 					break
 				}
-				err = msg.(*messages.RemoveServerMsg).Sign(priv)
+				err = msg.(*messages.RemoveServerMsg).AddSignature(priv)
 				if err != nil {
 					os.Stderr.WriteString(fmt.Sprintln("Could not remove server,", err.Error()))
 					break
@@ -761,7 +761,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(fmt.Sprintln("Could not make an audit server,", err.Error()))
 						break
 					}
-					err = msg.(*messages.AddServerMsg).Sign(priv)
+					err = msg.(*messages.AddServerMsg).AddSignature(priv)
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintln("Could not make an audit server,", err.Error()))
 						break
@@ -805,7 +805,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(fmt.Sprintln("Could not make a leader,", err.Error()))
 						break
 					}
-					err = msg.(*messages.AddServerMsg).Sign(priv)
+					err = msg.(*messages.AddServerMsg).AddSignature(priv)
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintln("Could not make a leader,", err.Error()))
 						break
