@@ -70,6 +70,7 @@ func GetHardCodedGrants() []HardGrant {
 		// Activation heights
 		grant2020_04 := uint32(272801)
 		grant2021_01 := uint32(285651)
+		grant2021_03 := uint32(311501)
 
 		hardcodegrants = []HardGrant{
 			// Initial grants approved June 9, 2018 https://drive.google.com/drive/folders/1e_xmKgJb375EcAwwkz2d3mdYs0PVVih3
@@ -1457,6 +1458,91 @@ func GetHardCodedGrants() []HardGrant {
 
 			// Core Committee total: 1000 FCT
 			HardGrant{grant2021_01, 1000e8, validateAddress("FA2qFVCLDoFodSsjoBM2dNpybiQFrv86d3q6ZoWsWHTSVYfxps1j")},
+			// --------------------------------------------------------
+
+			// ********************************
+			// **** Grant Round 2021-02 ****
+			// ********************************
+			// No grants have been submitted in round 2021-02
+
+			// ********************************
+			// **** Grant Round 2021-03 ****
+			// ********************************
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-Julian Fletcher-Taylor-WB -- 6000 FCT
+			// Council Compensation 2021-07-20 - 2021-08-10
+
+			// Anton Ilzheev total: 2000 FCT
+			HardGrant{grant2021_03, 2000e8, validateAddress("FA2sfe9hJpgKwVuYcsx3dp653uE3a7ZesjWHVLqhHtqFfCWKxnLt")},
+
+			// Julian Fletcher-Taylor total: 2000 FCT
+			HardGrant{grant2021_03, 2000e8, validateAddress("FA23SavqZrF7Sp7TnsWVPnnxN7ebAkb7pDfbSRmXp3XEPPed9foE")},
+
+			// WB total: 2000 FCT
+			HardGrant{grant2021_03, 2000e8, validateAddress("FA2BBojkz5P5o9fqRKtAjmMHn8ir8uvirWbcor6sJ46K9z5kemhD")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-The Factoid Authority-De Facto -- 6000 FCT
+			// Factom Open Node 2021-07-20 - 2021-08-10
+
+			// The Factoid Authority total: 1200 FCT
+			HardGrant{grant2021_03, 1200e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
+
+			// De Facto total: 4800 FCT
+			HardGrant{grant2021_03, 4800e8, validateAddress("FA3X3d3ceDYD7v3aBCeEBcvvgiTZNeiFkN8jJ897EbMuBzHt6xhP")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// PaulSnow-Anton Ilzheev-De Facto -- 1800 FCT
+			// Factom Oracle Master 2021-07-20 - 2021-08-10
+
+			// PaulSnow total: 900 FCT
+			HardGrant{grant2021_03, 900e8, validateAddress("FA29PLacx8jVBMZoQrjgES5RBsfooMsWHG5Ep8uUhVmeesGFY4xp")},
+
+			// De Facto total: 900 FCT
+			HardGrant{grant2021_03, 900e8, validateAddress("FA3X3d3ceDYD7v3aBCeEBcvvgiTZNeiFkN8jJ897EbMuBzHt6xhP")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-Exchange Working Group -- 125000 FCT
+			// Uniswap pool liquidity 2021-07-20 - 2021-08-10
+
+			// Exchange Working Group total: 125000 FCT
+			HardGrant{grant2021_03, 125000e8, validateAddress("FA2KfBT5kVd9PgecJmaowtLfoYwWx8pWC3SwvVAcPykigyGBsvNW")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-Website Committee -- 1536 FCT
+			// Website Committee grant 2021-07-20 - 2021-08-10
+
+			// Website Committee total: 1536 FCT
+			HardGrant{grant2021_03, 1536e8, validateAddress("FA3TG1mi25XfJSVeNT5vS9uLi8VQxjK8ju9pGCp8Po6rrk5RXPLH")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Jason Gregoire-Kompendium -- 6500 FCT
+			// Advanced NFT Specification & Module Development 2021-07-20 - 2021-08-10
+
+			// Kompendium total: 6500 FCT
+			HardGrant{grant2021_03, 6500e8, validateAddress("FA2H1Vwsq6VLcKJEtnpBRTHTXFzSQYJNFkd82ZB4N77bfe7JmWPD")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Jason Gregoire-Kompendium -- 37000 FCT
+			// Mobile Wallets for the Factom Ecosystem 2021-07-20 - 2021-08-10
+
+			// Kompendium total: 37000 FCT
+			HardGrant{grant2021_03, 37000e8, validateAddress("FA2H1Vwsq6VLcKJEtnpBRTHTXFzSQYJNFkd82ZB4N77bfe7JmWPD")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Jason Gregoire-Kompendium -- 6500 FCT
+			// Rust DID Library and L2 DID Module 2021-07-20 - 2021-08-10
+
+			// Kompendium total: 6500 FCT
+			HardGrant{grant2021_03, 6500e8, validateAddress("FA2H1Vwsq6VLcKJEtnpBRTHTXFzSQYJNFkd82ZB4N77bfe7JmWPD")},
 			// --------------------------------------------------------
 		}
 
