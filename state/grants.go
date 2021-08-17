@@ -70,7 +70,7 @@ func GetHardCodedGrants() []HardGrant {
 		// Activation heights
 		grant2020_04 := uint32(272801)
 		grant2021_01 := uint32(285651)
-		grant2021_03 := uint32(311501)
+		grant2021_03 := uint32(311601)
 
 		hardcodegrants = []HardGrant{
 			// Initial grants approved June 9, 2018 https://drive.google.com/drive/folders/1e_xmKgJb375EcAwwkz2d3mdYs0PVVih3
