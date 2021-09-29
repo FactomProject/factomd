@@ -9,8 +9,8 @@ import (
 
 	"github.com/FactomProject/factomd/common/primitives"
 
-	llog "github.com/FactomProject/factomd/log"
-	gcfg "gopkg.in/gcfg.v1"
+	"github.com/FactomProject/factomd/log" //deleted 'llog' from beginning
+	"gopkg.in/gcfg.v1" //deleted 'gcfg' from beginning
 )
 
 var _ = fmt.Print
@@ -197,7 +197,7 @@ RequestTimeout						= 30
 RequestLimit						= 200
 
 ; This paramater allows Cross-Origin Resource Sharing (CORS) so web browsers will use data returned from the API when called from the listed URLs
-; Example paramaters are "http://www.example.com, http://anotherexample.com, *"
+; Example paramaters are "https://www.example.com, https://anotherexample.com, *" 
 CorsDomains                           = ""
 
 ; Specifying when to change ACKs for switching leader servers
@@ -259,80 +259,293 @@ PersistentReconnect                   = false
 func (s *FactomdConfig) String() string {
 	var out primitives.Buffer
 
-	out.WriteString(fmt.Sprintf("\nFactomd Config"))
-	out.WriteString(fmt.Sprintf("\n  App"))
-	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.App.PortNumber))
-	out.WriteString(fmt.Sprintf("\n    HomeDir                 %v", s.App.HomeDir))
-	out.WriteString(fmt.Sprintf("\n    ControlPanelPort        %v", s.App.ControlPanelPort))
-	out.WriteString(fmt.Sprintf("\n    ControlPanelFilesPath   %v", s.App.ControlPanelFilesPath))
-	out.WriteString(fmt.Sprintf("\n    ControlPanelSetting     %v", s.App.ControlPanelSetting))
-	out.WriteString(fmt.Sprintf("\n    DBType                  %v", s.App.DBType))
-	out.WriteString(fmt.Sprintf("\n    LdbPath                 %v", s.App.LdbPath))
-	out.WriteString(fmt.Sprintf("\n    BoltDBPath              %v", s.App.BoltDBPath))
-	out.WriteString(fmt.Sprintf("\n    DataStorePath           %v", s.App.DataStorePath))
-	out.WriteString(fmt.Sprintf("\n    DirectoryBlockInSeconds %v", s.App.DirectoryBlockInSeconds))
-	out.WriteString(fmt.Sprintf("\n    ExportData              %v", s.App.ExportData))
-	out.WriteString(fmt.Sprintf("\n    ExportDataSubpath       %v", s.App.ExportDataSubpath))
-	out.WriteString(fmt.Sprintf("\n    Network                 %v", s.App.Network))
-	out.WriteString(fmt.Sprintf("\n    MainNetworkPort         %v", s.App.MainNetworkPort))
-	out.WriteString(fmt.Sprintf("\n    PeersFile               %v", s.App.PeersFile))
-	out.WriteString(fmt.Sprintf("\n    MainSeedURL             %v", s.App.MainSeedURL))
-	out.WriteString(fmt.Sprintf("\n    MainSpecialPeers        %v", s.App.MainSpecialPeers))
-	out.WriteString(fmt.Sprintf("\n    TestNetworkPort         %v", s.App.TestNetworkPort))
-	out.WriteString(fmt.Sprintf("\n    TestSeedURL             %v", s.App.TestSeedURL))
-	out.WriteString(fmt.Sprintf("\n    TestSpecialPeers        %v", s.App.TestSpecialPeers))
-	out.WriteString(fmt.Sprintf("\n    LocalNetworkPort        %v", s.App.LocalNetworkPort))
-	out.WriteString(fmt.Sprintf("\n    LocalSeedURL            %v", s.App.LocalSeedURL))
-	out.WriteString(fmt.Sprintf("\n    LocalSpecialPeers       %v", s.App.LocalSpecialPeers))
-	out.WriteString(fmt.Sprintf("\n    CustomNetworkPort       %v", s.App.CustomNetworkPort))
-	out.WriteString(fmt.Sprintf("\n    CustomSeedURL           %v", s.App.CustomSeedURL))
-	out.WriteString(fmt.Sprintf("\n    CustomSpecialPeers      %v", s.App.CustomSpecialPeers))
-	out.WriteString(fmt.Sprintf("\n    CustomBootstrapIdentity %v", s.App.CustomBootstrapIdentity))
-	out.WriteString(fmt.Sprintf("\n    CustomBootstrapKey      %v", s.App.CustomBootstrapKey))
-	out.WriteString(fmt.Sprintf("\n    P2PIncoming             %v", s.App.P2PIncoming))
-	out.WriteString(fmt.Sprintf("\n    P2POutgoing             %v", s.App.P2POutgoing))
-	out.WriteString(fmt.Sprintf("\n    NodeMode                %v", s.App.NodeMode))
-	out.WriteString(fmt.Sprintf("\n    IdentityChainID         %v", s.App.IdentityChainID))
-	out.WriteString(fmt.Sprintf("\n    LocalServerPrivKey      %v", s.App.LocalServerPrivKey))
-	out.WriteString(fmt.Sprintf("\n    LocalServerPublicKey    %v", s.App.LocalServerPublicKey))
-	out.WriteString(fmt.Sprintf("\n    ExchangeRate            %v", s.App.ExchangeRate))
-	out.WriteString(fmt.Sprintf("\n    ExchangeRateChainId     %v", s.App.ExchangeRateChainId))
-	out.WriteString(fmt.Sprintf("\n    ExchangeRateAuthorityPublicKey   %v", s.App.ExchangeRateAuthorityPublicKey))
-	out.WriteString(fmt.Sprintf("\n    FactomdTlsEnabled        %v", s.App.FactomdTlsEnabled))
-	out.WriteString(fmt.Sprintf("\n    FactomdTlsPrivateKey     %v", s.App.FactomdTlsPrivateKey))
-	out.WriteString(fmt.Sprintf("\n    FactomdTlsPublicCert     %v", s.App.FactomdTlsPublicCert))
-	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          	%v", s.App.FactomdRpcUser))
-	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          	%v", s.App.FactomdRpcPass))
-	out.WriteString(fmt.Sprintf("\n    ChangeAcksHeight         %v", s.App.ChangeAcksHeight))
-	out.WriteString(fmt.Sprintf("\n    BitcoinAnchorRecordPublicKeys    %v", s.App.BitcoinAnchorRecordPublicKeys))
-	out.WriteString(fmt.Sprintf("\n    EthereumAnchorRecordPublicKeys    %v", s.App.EthereumAnchorRecordPublicKeys))
+	_, err24 := out.WriteString(fmt.Sprintf("\nFactomd Config"))
+	if err24 != nil {
+		return ""
+	}
+	_, err23 := out.WriteString(fmt.Sprintf("\n  App"))
+	if err23 != nil {
+		return ""
+	}
+	_, err22 := out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.App.PortNumber))
+	if err22 != nil {
+		return ""
+	}
+	_, err21 := out.WriteString(fmt.Sprintf("\n    HomeDir                 %v", s.App.HomeDir))
+	if err21 != nil {
+		return ""
+	}
+	_, err20 := out.WriteString(fmt.Sprintf("\n    ControlPanelPort        %v", s.App.ControlPanelPort))
+	if err20 != nil {
+		return ""
+	}
+	_, err19 := out.WriteString(fmt.Sprintf("\n    ControlPanelFilesPath   %v", s.App.ControlPanelFilesPath))
+	if err19 != nil {
+		return ""
+	}
+	_, err32 := out.WriteString(fmt.Sprintf("\n    ControlPanelSetting     %v", s.App.ControlPanelSetting))
+	if err32 != nil {
+		return ""
+	}
+	_, err18 := out.WriteString(fmt.Sprintf("\n    DBType                  %v", s.App.DBType))
+	if err18 != nil {
+		return ""
+	}
+	_, err17 := out.WriteString(fmt.Sprintf("\n    LdbPath                 %v", s.App.LdbPath))
+	if err17 != nil {
+		return ""
+	}
+	_, err16 := out.WriteString(fmt.Sprintf("\n    BoltDBPath              %v", s.App.BoltDBPath))
+	if err16 != nil {
+		return ""
+	}
+	_, err15 := out.WriteString(fmt.Sprintf("\n    DataStorePath           %v", s.App.DataStorePath))
+	if err15 != nil {
+		return ""
+	}
+	_, err14 := out.WriteString(fmt.Sprintf("\n    DirectoryBlockInSeconds %v", s.App.DirectoryBlockInSeconds))
+	if err14 != nil {
+		return ""
+	}
+	_, err13 := out.WriteString(fmt.Sprintf("\n    ExportData              %v", s.App.ExportData))
+	if err13 != nil {
+		return ""
+	}
+	_, err12 := out.WriteString(fmt.Sprintf("\n    ExportDataSubpath       %v", s.App.ExportDataSubpath))
+	if err12 != nil {
+		return ""
+	}
+	_, err11 := out.WriteString(fmt.Sprintf("\n    Network                 %v", s.App.Network))
+	if err11 != nil {
+		return ""
+	}
+	_, err10 := out.WriteString(fmt.Sprintf("\n    MainNetworkPort         %v", s.App.MainNetworkPort))
+	if err10 != nil {
+		return ""
+	}
+	_, err9 := out.WriteString(fmt.Sprintf("\n    PeersFile               %v", s.App.PeersFile))
+	if err9 != nil {
+		return ""
+	}
+	_, err8 := out.WriteString(fmt.Sprintf("\n    MainSeedURL             %v", s.App.MainSeedURL))
+	if err8 != nil {
+		return ""
+	}
+	_, err7 := out.WriteString(fmt.Sprintf("\n    MainSpecialPeers        %v", s.App.MainSpecialPeers))
+	if err7 != nil {
+		return ""
+	}
+	_, err6 := out.WriteString(fmt.Sprintf("\n    TestNetworkPort         %v", s.App.TestNetworkPort))
+	if err6 != nil {
+		return ""
+	}
+	_, err2 := out.WriteString(fmt.Sprintf("\n    TestSeedURL             %v", s.App.TestSeedURL))
+	if err2 != nil {
+		return ""
+	}
+	_, err3 := out.WriteString(fmt.Sprintf("\n    TestSpecialPeers        %v", s.App.TestSpecialPeers))
+	if err3 != nil {
+		return ""
+	}
+	_, err4 := out.WriteString(fmt.Sprintf("\n    LocalNetworkPort        %v", s.App.LocalNetworkPort))
+	if err4 != nil {
+		return ""
+	}
+	_, err5 := out.WriteString(fmt.Sprintf("\n    LocalSeedURL            %v", s.App.LocalSeedURL))
+	if err5 != nil {
+		return ""
+	}
+	_, err27 := out.WriteString(fmt.Sprintf("\n    LocalSpecialPeers       %v", s.App.LocalSpecialPeers))
+	if err27 != nil {
+		return ""
+	}
+	_, err28 := out.WriteString(fmt.Sprintf("\n    CustomNetworkPort       %v", s.App.CustomNetworkPort))
+	if err28 != nil {
+		return ""
+	}
+	_, err29 := out.WriteString(fmt.Sprintf("\n    CustomSeedURL           %v", s.App.CustomSeedURL))
+	if err29 != nil {
+		return ""
+	}
+	_, err30 := out.WriteString(fmt.Sprintf("\n    CustomSpecialPeers      %v", s.App.CustomSpecialPeers))
+	if err30 != nil {
+		return ""
+	}
+	_, err26 := out.WriteString(fmt.Sprintf("\n    CustomBootstrapIdentity %v", s.App.CustomBootstrapIdentity))
+	if err26 != nil {
+		return ""
+	}
+	_, err25 := out.WriteString(fmt.Sprintf("\n    CustomBootstrapKey      %v", s.App.CustomBootstrapKey))
+	if err25 != nil {
+		return ""
+	}
+	_, err31 := out.WriteString(fmt.Sprintf("\n    P2PIncoming             %v", s.App.P2PIncoming))
+	if err31 != nil {
+		return ""
+	}
+	_, err := out.WriteString(fmt.Sprintf("\n    P2POutgoing             %v", s.App.P2POutgoing))
+	if err != nil {
+		return ""
+	}
+	_, err33 := out.WriteString(fmt.Sprintf("\n    NodeMode                %v", s.App.NodeMode))
+	if err33 != nil {
+		return ""
+	}
+	_, err34 := out.WriteString(fmt.Sprintf("\n    IdentityChainID         %v", s.App.IdentityChainID))
+	if err34 != nil {
+		return ""
+	}
+	_, err35 := out.WriteString(fmt.Sprintf("\n    LocalServerPrivKey      %v", s.App.LocalServerPrivKey))
+	if err35 != nil {
+		return ""
+	}
+	_, err36 := out.WriteString(fmt.Sprintf("\n    LocalServerPublicKey    %v", s.App.LocalServerPublicKey))
+	if err36 != nil {
+		return ""
+	}
+	_, err37 := out.WriteString(fmt.Sprintf("\n    ExchangeRate            %v", s.App.ExchangeRate))
+	if err37 != nil {
+		return ""
+	}
+	_, err38 := out.WriteString(fmt.Sprintf("\n    ExchangeRateChainId     %v", s.App.ExchangeRateChainId))
+	if err38 != nil {
+		return ""
+	}
+	_, err39 := out.WriteString(fmt.Sprintf("\n    ExchangeRateAuthorityPublicKey   %v", s.App.ExchangeRateAuthorityPublicKey))
+	if err39 != nil {
+		return ""
+	}
+	_, err40 := out.WriteString(fmt.Sprintf("\n    FactomdTlsEnabled        %v", s.App.FactomdTlsEnabled))
+	if err40 != nil {
+		return ""
+	}
+	_, err41 := out.WriteString(fmt.Sprintf("\n    FactomdTlsPrivateKey     %v", s.App.FactomdTlsPrivateKey))
+	if err41 != nil {
+		return ""
+	}
+	_, err42 := out.WriteString(fmt.Sprintf("\n    FactomdTlsPublicCert     %v", s.App.FactomdTlsPublicCert))
+	if err42 != nil {
+		return ""
+	}
+	_, err43 := out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          	%v", s.App.FactomdRpcUser))
+	if err43 != nil {
+		return ""
+	}
+	_, err44 := out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          	%v", s.App.FactomdRpcPass))
+	if err44 != nil {
+		return ""
+	}
+	_, err45 := out.WriteString(fmt.Sprintf("\n    ChangeAcksHeight         %v", s.App.ChangeAcksHeight))
+	if err45 != nil {
+		return ""
+	}
+	_, err46 := out.WriteString(fmt.Sprintf("\n    BitcoinAnchorRecordPublicKeys    %v", s.App.BitcoinAnchorRecordPublicKeys))
+	if err46 != nil {
+		return ""
+	}
+	_, err47 := out.WriteString(fmt.Sprintf("\n    EthereumAnchorRecordPublicKeys    %v", s.App.EthereumAnchorRecordPublicKeys))
+	if err47 != nil {
+		return ""
+	}
 
-	out.WriteString(fmt.Sprintf("\n  Log"))
-	out.WriteString(fmt.Sprintf("\n    LogPath                 %v", s.Log.LogPath))
-	out.WriteString(fmt.Sprintf("\n    LogLevel                %v", s.Log.LogLevel))
-	out.WriteString(fmt.Sprintf("\n    ConsoleLogLevel         %v", s.Log.ConsoleLogLevel))
+	_, err48 := out.WriteString(fmt.Sprintf("\n  Log"))
+	if err48 != nil {
+		return ""
+	}
+	_, err49 := out.WriteString(fmt.Sprintf("\n    LogPath                 %v", s.Log.LogPath))
+	if err49 != nil {
+		return ""
+	}
+	_, err50 := out.WriteString(fmt.Sprintf("\n    LogLevel                %v", s.Log.LogLevel))
+	if err50 != nil {
+		return ""
+	}
+	_, err51 := out.WriteString(fmt.Sprintf("\n    ConsoleLogLevel         %v", s.Log.ConsoleLogLevel))
+	if err51 != nil {
+		return ""
+	}
 
-	out.WriteString(fmt.Sprintf("\n  Walletd"))
-	out.WriteString(fmt.Sprintf("\n    WalletRpcUser           %v", s.Walletd.WalletRpcUser))
-	out.WriteString(fmt.Sprintf("\n    WalletRpcPass           %v", s.Walletd.WalletRpcPass))
-	out.WriteString(fmt.Sprintf("\n    WalletTlsEnabled        %v", s.Walletd.WalletTlsEnabled))
-	out.WriteString(fmt.Sprintf("\n    WalletTlsPrivateKey     %v", s.Walletd.WalletTlsPrivateKey))
-	out.WriteString(fmt.Sprintf("\n    WalletTlsPublicCert     %v", s.Walletd.WalletTlsPublicCert))
-	out.WriteString(fmt.Sprintf("\n    FactomdLocation         %v", s.Walletd.FactomdLocation))
-	out.WriteString(fmt.Sprintf("\n    WalletdLocation         %v", s.Walletd.WalletdLocation))
-	out.WriteString(fmt.Sprintf("\n    WalletEncryption        %v", s.Walletd.WalletEncrypted))
+	_, err52 := out.WriteString(fmt.Sprintf("\n  Walletd"))
+	if err52 != nil {
+		return ""
+	}
+	_, err53 := out.WriteString(fmt.Sprintf("\n    WalletRpcUser           %v", s.Walletd.WalletRpcUser))
+	if err53 != nil {
+		return ""
+	}
+	_, err54 := out.WriteString(fmt.Sprintf("\n    WalletRpcPass           %v", s.Walletd.WalletRpcPass))
+	if err54 != nil {
+		return ""
+	}
+	_, err55 := out.WriteString(fmt.Sprintf("\n    WalletTlsEnabled        %v", s.Walletd.WalletTlsEnabled))
+	if err55 != nil {
+		return ""
+	}
+	_, err56 := out.WriteString(fmt.Sprintf("\n    WalletTlsPrivateKey     %v", s.Walletd.WalletTlsPrivateKey))
+	if err56 != nil {
+		return ""
+	}
+	_, err57 := out.WriteString(fmt.Sprintf("\n    WalletTlsPublicCert     %v", s.Walletd.WalletTlsPublicCert))
+	if err57 != nil {
+		return ""
+	}
+	_, err58 := out.WriteString(fmt.Sprintf("\n    FactomdLocation         %v", s.Walletd.FactomdLocation))
+	if err58 != nil {
+		return ""
+	}
+	_, err59 := out.WriteString(fmt.Sprintf("\n    WalletdLocation         %v", s.Walletd.WalletdLocation))
+	if err59 != nil {
+		return ""
+	}
+	_, err60 := out.WriteString(fmt.Sprintf("\n    WalletEncryption        %v", s.Walletd.WalletEncrypted))
+	if err60 != nil {
+		return ""
+	}
 
-	out.WriteString(fmt.Sprintf("\n  LiveFeedAPI"))
-	out.WriteString(fmt.Sprintf("\n    EnableLiveFeedAPI        %v", s.LiveFeedAPI.EnableLiveFeedAPI))
-	out.WriteString(fmt.Sprintf("\n    EventReceiverProtocol    %v", s.LiveFeedAPI.EventReceiverProtocol))
-	out.WriteString(fmt.Sprintf("\n    EventReceiverHost        %v", s.LiveFeedAPI.EventReceiverHost))
-	out.WriteString(fmt.Sprintf("\n    EventReceiverPort        %v", s.LiveFeedAPI.EventReceiverPort))
-	out.WriteString(fmt.Sprintf("\n    EventSenderPort          %v", s.LiveFeedAPI.EventSenderPort))
-	out.WriteString(fmt.Sprintf("\n    EventFormat              %v", s.LiveFeedAPI.EventFormat))
-	out.WriteString(fmt.Sprintf("\n    EventBroadcastContent    %v", s.LiveFeedAPI.EventBroadcastContent))
-	out.WriteString(fmt.Sprintf("\n    EventSendStateChange     %v", s.LiveFeedAPI.EventSendStateChange))
-	out.WriteString(fmt.Sprintf("\n    EventReplayDuringStartup %v", s.LiveFeedAPI.EventReplayDuringStartup))
-	out.WriteString(fmt.Sprintf("\n    PersistentReconnect      %v", s.LiveFeedAPI.PersistentReconnect))
+	_, err61 := out.WriteString(fmt.Sprintf("\n  LiveFeedAPI"))
+	if err61 != nil {
+		return ""
+	}
+	_, err62 := out.WriteString(fmt.Sprintf("\n    EnableLiveFeedAPI        %v", s.LiveFeedAPI.EnableLiveFeedAPI))
+	if err62 != nil {
+		return ""
+	}
+	_, err63 := out.WriteString(fmt.Sprintf("\n    EventReceiverProtocol    %v", s.LiveFeedAPI.EventReceiverProtocol))
+	if err63 != nil {
+		return ""
+	}
+	_, err64 := out.WriteString(fmt.Sprintf("\n    EventReceiverHost        %v", s.LiveFeedAPI.EventReceiverHost))
+	if err64 != nil {
+		return ""
+	}
+	_, err65 := out.WriteString(fmt.Sprintf("\n    EventReceiverPort        %v", s.LiveFeedAPI.EventReceiverPort))
+	if err65 != nil {
+		return ""
+	}
+	_, err66 := out.WriteString(fmt.Sprintf("\n    EventSenderPort          %v", s.LiveFeedAPI.EventSenderPort))
+	if err66 != nil {
+		return ""
+	}
+	_, err67 := out.WriteString(fmt.Sprintf("\n    EventFormat              %v", s.LiveFeedAPI.EventFormat))
+	if err67 != nil {
+		return ""
+	}
+	_, err68 := out.WriteString(fmt.Sprintf("\n    EventBroadcastContent    %v", s.LiveFeedAPI.EventBroadcastContent))
+	if err68 != nil {
+		return ""
+	}
+	_, err69 := out.WriteString(fmt.Sprintf("\n    EventSendStateChange     %v", s.LiveFeedAPI.EventSendStateChange))
+	if err69 != nil {
+		return ""
+	}
+	_, err70 := out.WriteString(fmt.Sprintf("\n    EventReplayDuringStartup %v", s.LiveFeedAPI.EventReplayDuringStartup))
+	if err70 != nil {
+		return ""
+	}
+	_, err71 := out.WriteString(fmt.Sprintf("\n    PersistentReconnect      %v", s.LiveFeedAPI.PersistentReconnect))
+	if err71 != nil {
+		return ""
+	}
 
 	return out.String()
 }
@@ -349,7 +562,7 @@ func GetChangeAcksHeight(filename string) (change uint32, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error getting acks - %v\n", r)
-			llog.LogPrintf("recovery", "Error getting acks - %v", r)
+			log.LogPrintf("recovery", "Error getting acks - %v", r)
 		}
 	}()
 
@@ -380,7 +593,7 @@ func CheckConfigFileName(filename string) string {
 }
 
 // Track a filename-error pair so we don't report the same error repeatedly
-var reportedError map[string]string = make(map[string]string)
+var reportedError = make(map[string]string)
 
 func ReadConfig(filename string) *FactomdConfig {
 	if filename == "" {
