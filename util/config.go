@@ -10,7 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/log" //deleted 'llog' from beginning
-	"gopkg.in/gcfg.v1" //deleted 'gcfg' from beginning
+	"gopkg.in/gcfg.v1"                     //deleted 'gcfg' from beginning
 )
 
 var _ = fmt.Print
