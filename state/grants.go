@@ -71,6 +71,7 @@ func GetHardCodedGrants() []HardGrant {
 		grant2020_04 := uint32(272801)
 		grant2021_01 := uint32(285651)
 		grant2021_03 := uint32(311601)
+		grant2021_04 := uint32(325001)
 
 		hardcodegrants = []HardGrant{
 			// Initial grants approved June 9, 2018 https://drive.google.com/drive/folders/1e_xmKgJb375EcAwwkz2d3mdYs0PVVih3
@@ -1544,6 +1545,42 @@ func GetHardCodedGrants() []HardGrant {
 			// Kompendium total: 6500 FCT
 			HardGrant{grant2021_03, 6500e8, validateAddress("FA2H1Vwsq6VLcKJEtnpBRTHTXFzSQYJNFkd82ZB4N77bfe7JmWPD")},
 			// --------------------------------------------------------
+
+			// ********************************
+			// **** Grant Round 2021-04 ****
+			// ********************************
+
+
+			// --------------------------------------------------------
+			// PaulSnow-De Facto -- 1800 FCT
+			// Factom Oracle Master 2021-10-18 - 2021-11-09
+
+			// PaulSnow total: 900 FCT
+			HardGrant{grant2021_04, 900e8, validateAddress("FA29PLacx8jVBMZoQrjgES5RBsfooMsWHG5Ep8uUhVmeesGFY4xp")},
+
+			// De Facto total: 900 FCT
+			HardGrant{grant2021_04, 900e8, validateAddress("FA3X3d3ceDYD7v3aBCeEBcvvgiTZNeiFkN8jJ897EbMuBzHt6xhP")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Website Committee -- 768 FCT
+			// Website Committee grant 2021-10-18 - 2021-11-09
+
+			// Website Committee total: 768 FCT
+			HardGrant{grant2021_04, 768e8, validateAddress("FA3TG1mi25XfJSVeNT5vS9uLi8VQxjK8ju9pGCp8Po6rrk5RXPLH")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// The Factoid Authority-De Facto -- 3000 FCT
+			// Factom Open Node 2021-10-18 - 2021-11-09
+
+			// The Factoid Authority total: 600 FCT
+			HardGrant{grant2021_04, 600e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
+
+			// De Facto total: 2400 FCT
+			HardGrant{grant2021_04, 2400e8, validateAddress("FA3X3d3ceDYD7v3aBCeEBcvvgiTZNeiFkN8jJ897EbMuBzHt6xhP")},
+			// --------------------------------------------------------
+
 		}
 
 	default:
