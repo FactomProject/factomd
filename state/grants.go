@@ -1550,7 +1550,6 @@ func GetHardCodedGrants() []HardGrant {
 			// **** Grant Round 2021-04 ****
 			// ********************************
 
-
 			// --------------------------------------------------------
 			// PaulSnow-De Facto -- 1800 FCT
 			// Factom Oracle Master 2021-10-18 - 2021-11-09
