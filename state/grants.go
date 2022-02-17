@@ -72,6 +72,7 @@ func GetHardCodedGrants() []HardGrant {
 		grant2021_01 := uint32(285651)
 		grant2021_03 := uint32(311601)
 		grant2021_04 := uint32(325001)
+		grant2022_01 := uint32(338501)
 
 		hardcodegrants = []HardGrant{
 			// Initial grants approved June 9, 2018 https://drive.google.com/drive/folders/1e_xmKgJb375EcAwwkz2d3mdYs0PVVih3
@@ -1578,6 +1579,51 @@ func GetHardCodedGrants() []HardGrant {
 
 			// De Facto total: 2400 FCT
 			HardGrant{grant2021_04, 2400e8, validateAddress("FA3X3d3ceDYD7v3aBCeEBcvvgiTZNeiFkN8jJ897EbMuBzHt6xhP")},
+			// --------------------------------------------------------
+
+			// ********************************
+			// **** Grant Round 2022-01 ****
+			// ********************************
+
+			// --------------------------------------------------------
+			// De Facto -- 30000 FCT
+			// WFCT–ACME Burn Portal 2022-01-25 - 2022-02-16
+
+			// De Facto total: 30000 FCT
+			HardGrant{grant2022_01, 30000e8, validateAddress("FA3i67D1iejswC3ki4cYNnG1QSK1f1Ybo3XHtQoGs2LrqL472WxN")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// The Factoid Authority-De Facto -- 1250 FCT
+			// Factom Open Node 2022-01-25 - 2022-02-16
+
+			// The Factoid Authority total: 250 FCT
+			HardGrant{grant2022_01, 250e8, validateAddress("FA2LV4s7LKA9BTgWaJNvcr9Yq8rpiH2XD3vEPY3nwSiNSrnRgkpK")},
+
+			// De Facto total: 1000 FCT
+			HardGrant{grant2022_01, 1000e8, validateAddress("FA3i67D1iejswC3ki4cYNnG1QSK1f1Ybo3XHtQoGs2LrqL472WxN")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Anton Ilzheev-Julian Fletcher-Taylor-WB -- 4500 FCT
+			// Council Compensation 2022-01-25 - 2022-02-16
+
+			// Anton Ilzheev total: 1500 FCT
+			HardGrant{grant2022_01, 1500e8, validateAddress("FA2sfe9hJpgKwVuYcsx3dp653uE3a7ZesjWHVLqhHtqFfCWKxnLt")},
+
+			// Julian Fletcher-Taylor total: 1500 FCT
+			HardGrant{grant2022_01, 1500e8, validateAddress("FA23SavqZrF7Sp7TnsWVPnnxN7ebAkb7pDfbSRmXp3XEPPed9foE")},
+
+			// WB total: 1500 FCT
+			HardGrant{grant2022_01, 1500e8, validateAddress("FA2BBojkz5P5o9fqRKtAjmMHn8ir8uvirWbcor6sJ46K9z5kemhD")},
+			// --------------------------------------------------------
+
+			// --------------------------------------------------------
+			// Niels Klomp -- 8000 FCT
+			// Factom Interim Director remuneration 2022-01-25 - 2022-02-16
+
+			// Niels Klomp total: 8000 FCT
+			HardGrant{grant2022_01, 8000e8, validateAddress("FA2dPXvGZUkW6JJMwFTZhrSoRqemPhmLJQahQ79XrxYRmvsoPLLU")},
 			// --------------------------------------------------------
 
 		}
