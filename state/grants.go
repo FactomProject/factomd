@@ -72,7 +72,7 @@ func GetHardCodedGrants() []HardGrant {
 		grant2021_01 := uint32(285651)
 		grant2021_03 := uint32(311601)
 		grant2021_04 := uint32(325001)
-		grant2022_01 := uint32(338501)
+		grant2022_01 := uint32(339001)
 
 		hardcodegrants = []HardGrant{
 			// Initial grants approved June 9, 2018 https://drive.google.com/drive/folders/1e_xmKgJb375EcAwwkz2d3mdYs0PVVih3
