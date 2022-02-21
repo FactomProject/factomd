@@ -6,9 +6,9 @@ import (
 )
 
 func Test_controller_setSpecial(t *testing.T) {
-	add1 := []Endpoint{Endpoint{"aa", "1"}, Endpoint{"aa", "2"}, Endpoint{"ab", "3"}, Endpoint{"ab", "4"}}
-	add2 := []Endpoint{Endpoint{"ba", "1"}, Endpoint{"ba", "2"}, Endpoint{"bb", "3"}, Endpoint{"bb", "4"}}
-	add3 := []Endpoint{Endpoint{"c", "1"}}
+	add1 := []Endpoint{{"aa", "1"}, {"aa", "2"}, {"ab", "3"}, {"ab", "4"}}
+	add2 := []Endpoint{{"ba", "1"}, {"ba", "2"}, {"bb", "3"}, {"bb", "4"}}
+	add3 := []Endpoint{{"c", "1"}}
 
 	c := new(controller)
 	c.logger = packageLogger
