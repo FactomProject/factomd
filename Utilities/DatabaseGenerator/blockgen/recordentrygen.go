@@ -33,10 +33,10 @@ func (r *RecordEntryGenerator) NewEntry(chain interfaces.IHash) *entryBlock.Entr
 	// Putting the ASCII number so you can read in explorer
 	ent.ExtIDs = []primitives.ByteSlice{
 		{Bytes: primitives.RandomHash().Bytes()},
-		{Bytes:primitives.RandomHash().Bytes()},
-		{Bytes:primitives.RandomHash().Bytes()},
-		{Bytes:primitives.RandomHash().Bytes()},
-		{Bytes:primitives.RandomHash().Bytes()},
+		{Bytes: primitives.RandomHash().Bytes()},
+		{Bytes: primitives.RandomHash().Bytes()},
+		{Bytes: primitives.RandomHash().Bytes()},
+		{Bytes: primitives.RandomHash().Bytes()},
 	}
 
 	ent.ChainID = chain
