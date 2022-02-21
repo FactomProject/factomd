@@ -124,7 +124,6 @@ func (g *DBGenerator) loadGenesis() {
 		customIdentity, err = primitives.HexToHash(g.FactomdState.CustomBootstrapIdentity)
 		if err != nil {
 			panic(fmt.Sprintf("Could not decode Custom Bootstrap Identity (likely in config file) found: %s\n", g.FactomdState.CustomBootstrapIdentity))
-			panic(err)
 		}
 	}
 	dblk, ablk, fblk, ecblk := state.GenerateGenesisBlocks(g.FactomdState.GetNetworkID(), customIdentity)
