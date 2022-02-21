@@ -720,3 +720,8 @@ func AddNode() {
 	AddSimPeer(fnodes, i, i-1) // KLUDGE peer w/ only last node
 	startServer(i, fnodes[i], true)
 }
+
+// ResetFNodes clears the fnode slice for unit tests
+func ResetFNodes() {
+	fnodes = nil
+}
