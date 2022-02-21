@@ -137,7 +137,7 @@ func Test_controller_manageData(t *testing.T) {
 		next := func() *Parcel {
 			select {
 			case <-time.After(time.Second):
-				t.Fatal("stuck waiting for application parcel")
+				t.Error("stuck waiting for application parcel")
 			case p := <-net.fromNetwork:
 				return p
 			}

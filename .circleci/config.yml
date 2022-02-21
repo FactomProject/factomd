@@ -86,7 +86,7 @@ jobs:
             export PATH="/tmp/go/bin:$PATH"
             export GOPATH=/tmp/go
             cd /tmp/go/src/github.com/FactomProject/factomd/
-            go test $(go list ./... | grep -v 'Utilities|longTest|peerTest|simTest') -vet=off -v -cover -coverprofile=coverage.out
+            go test $( go list ./... | grep -v 'Utilities|longTest|peerTest|simTest') -vet=off -v -cover -coverprofile=coverage.out
             goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
   gofmt:
