@@ -34,13 +34,13 @@ func (bs *balanceSnapshot) Dump(w io.Writer) error {
 	height := bs.NextHeight - 1
 	_, _ = fmt.Fprintf(w, "height %d\n", height)
 	for k, v := range bs.FCTAddressMap {
-		_, err := fmt.Fprintf(w, "%s: %d", primitives.ConvertFctAddressToUserStr(factoid.NewAddress(k[:])), v)
+		_, err := fmt.Fprintf(w, "%s: %d\n", primitives.ConvertFctAddressToUserStr(factoid.NewAddress(k[:])), v)
 		if err != nil {
 			return fmt.Errorf("write fct addr: %w", err)
 		}
 	}
 	for k, v := range bs.ECAddressMap {
-		_, err := fmt.Fprintf(w, "%s: %d", primitives.ConvertECAddressToUserStr(factoid.NewAddress(k[:])), v)
+		_, err := fmt.Fprintf(w, "%s: %d\n", primitives.ConvertECAddressToUserStr(factoid.NewAddress(k[:])), v)
 		if err != nil {
 			return fmt.Errorf("write ec addr: %w", err)
 		}
