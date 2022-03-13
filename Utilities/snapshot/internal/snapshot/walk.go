@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/FactomProject/factomd/Utilities/snapshot/internal"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -40,7 +42,7 @@ func (s *Snapshotter) Dump() error {
 	}
 
 	// Dump balances
-	balPath := filepath.Join(s.dumpDir, "balances")
+	balPath := filepath.Join(s.dumpDir, internal.DefaultBalanceFile)
 	file, err := os.OpenFile(balPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0766)
 	if err != nil {
 		return fmt.Errorf("open %s: %w", balPath, err)

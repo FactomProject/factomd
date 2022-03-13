@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/FactomProject/factomd/Utilities/snapshot/internal"
+
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -58,7 +60,7 @@ func cleanCmd() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVarP(&skipYes, "yes", "y", false, "skip yes prompt")
-	cmd.Flags().StringVarP(&dumpDirectory, "dump-dir", "d", "snapshot", "where to dump snapshot data. empty means do not dump")
+	cmd.Flags().StringVarP(&dumpDirectory, "dump-dir", "d", internal.DefaultSnapshotDir, "where to dump snapshot data. empty means do not dump")
 
 	return cmd
 }

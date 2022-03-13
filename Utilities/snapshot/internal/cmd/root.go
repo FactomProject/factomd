@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/FactomProject/factomd/Utilities/snapshot/internal"
 	"github.com/FactomProject/factomd/Utilities/snapshot/internal/snapshot"
 	"github.com/FactomProject/factomd/Utilities/tools"
 	"github.com/sirupsen/logrus"
@@ -34,6 +35,7 @@ func RootCmd() *cobra.Command {
 
 	cmd.AddCommand(snapshotCmd())
 	cmd.AddCommand(cleanCmd())
+	cmd.AddCommand(verifyCmd())
 	cmd.PersistentFlags().String("log", "debug", "set the log level")
 
 	return cmd
@@ -108,7 +110,7 @@ func snapshotCmd() *cobra.Command {
 	cmd.Flags().StringVar(&dbPath, "db", "$HOME/.factom/m2/main-database/ldb/MAIN/factoid_level.db",
 		"the location of the database to use")
 	cmd.Flags().Var(&debugHeights, "debug-heights", "heights to print diagnostic information at")
-	cmd.Flags().StringVarP(&dumpDirectory, "dump-dir", "d", "snapshot", "where to dump snapshot data. empty means do not dump")
+	cmd.Flags().StringVarP(&dumpDirectory, "dump-dir", "d", internal.DefaultSnapshotDir, "where to dump snapshot data. empty means do not dump")
 
 	return cmd
 }

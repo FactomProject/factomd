@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/FactomProject/factomd/Utilities/snapshot/internal"
+
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/sirupsen/logrus"
 )
@@ -37,7 +39,7 @@ func New(cfg Config) (*Snapshotter, error) {
 		db:            cfg.DB,
 		debugHeights:  cfg.DebugHeights,
 		balances:      newBalanceSnapshot(),
-		entries:       NewEntrySnapshot(filepath.Join(cfg.DumpDir, "chains")),
+		entries:       NewEntrySnapshot(filepath.Join(cfg.DumpDir, internal.DefaultChainDir)),
 		stop:          cfg.Stop,
 		dumpDir:       cfg.DumpDir,
 		recordEntries: cfg.RecordEntries,
