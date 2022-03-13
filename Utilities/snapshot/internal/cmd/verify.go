@@ -90,7 +90,11 @@ func verifyEntries() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "chains",
 		Aliases: []string{"entries"},
-		Short:   "verify found chains",
+		Short:   "verify all recorded chains are correct",
+		Long: "This will ensure all recorded chains have the correct chain heads and all eblocks are correct." +
+			" It will not check to see if all chains were recorded, so there might exist untracked chains." +
+			" We can check for untracked chains by checking the total number of chains recorded against the expected" +
+			" number.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			dumpDirectory, err := cmd.Flags().GetString("dump-dir")

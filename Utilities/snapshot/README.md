@@ -62,8 +62,11 @@ You can verify the snapshot against a running node. Keep in mind, if a node is o
 
 ```
 snapshot verify balances
+snapshot verify chains
 ```
 
 # TODO
 
 It could be optimized with go routines, and there might be a file limit for chains. So I might need to rotate the file cache and only have N number of file descriptors open. Eg use something like https://github.com/hashicorp/golang-lru
+
+Currently `verify chains` does not prove **all** chains were recorded. We can do this by tallying up the chains in the system, and compare to the number of chains we recorded.
