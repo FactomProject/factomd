@@ -9,6 +9,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Done is called to close up the snapshots
+func (s *Snapshotter) Done() error {
+	err := s.Dump()
+	if err != nil {
+		return fmt.Errorf("dump balances: %w", err)
+	}
+
+	s.entries.Close(s.log)
+
+	return nil
+}
+
 func (s *Snapshotter) Dump() error {
 	if s.dumpDir == "" {
 		s.log.Debug("no dump directory to write to")
@@ -56,6 +68,8 @@ func (s *Snapshotter) WalkDB() error {
 	}
 	start := time.Now()
 	for i := uint32(0); i <= topHeight; i++ {
+		printDiagnostic := (i%10000 == 0 || i == topHeight) && i > 0
+
 		if i%1000 == 0 && i > 0 {
 			bps := float64(i) / time.Since(start).Seconds()
 			remain := topHeight - i
@@ -72,9 +86,16 @@ func (s *Snapshotter) WalkDB() error {
 			}).Debug("completed")
 		}
 
-		err = s.balances.Process(s.log, db, i, (i%10000 == 0 || i == topHeight) && i > 0)
+		err = s.balances.Process(s.log, db, i, printDiagnostic)
 		if err != nil {
 			return fmt.Errorf("balance snapshot, height %d: %w", i, err)
+		}
+
+		if s.recordEntries {
+			err = s.entries.Process(s.log, db, i, printDiagnostic)
+			if err != nil {
+				return fmt.Errorf("entry snapshot, height %d: %w", i, err)
+			}
 		}
 	}
 
