@@ -39,6 +39,9 @@ func LoadBalances(file io.Reader) (bal *Balances, err error) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
+		if len(line) == 0 {
+			continue
+		}
 		parts := strings.Split(line, ":")
 		addr := parts[0]
 		balPart := strings.TrimSpace(parts[1])

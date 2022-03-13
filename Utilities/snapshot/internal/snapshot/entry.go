@@ -2,10 +2,13 @@ package snapshot
 
 import (
 	"bufio"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/FactomProject/FactomCode/common"
 
 	"github.com/FactomProject/factomd/Utilities/tools"
 
@@ -56,16 +59,30 @@ func (es *entrySnapshot) writeNewEntry(entry interfaces.IEBEntry) error {
 		return fmt.Errorf("write eblock: %w", err)
 	}
 
+	cid := common.NewHash()
+	_ = cid.SetBytes(entry.GetChainID().Bytes())
+	slimEntry := common.Entry{
+		Version: 0,
+		ChainID: cid,
+		ExtIDs:  entry.ExternalIDs(),
+		Content: entry.GetContent(),
+	}
+
 	// Wish I could write straight to the buffer
-	data, err := entry.MarshalBinary()
+	data, err := slimEntry.MarshalBinary()
 	if err != nil {
 		return fmt.Errorf("marshal entry %s: %w", entry.GetHash().String(), err)
 	}
 
-	_, err = file.Write([]byte(fmt.Sprintf("%s%s\n", EntryPreix, data)))
+	_, err = fmt.Fprint(file, EntryPreix)
 	if err != nil {
-		return fmt.Errorf("write eblock: %w", err)
+		return err
 	}
+	_, err = fmt.Fprintln(file, base64.StdEncoding.EncodeToString(data))
+	if err != nil {
+		return err
+	}
+
 	return err
 }
 

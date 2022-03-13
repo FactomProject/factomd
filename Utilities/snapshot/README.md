@@ -53,7 +53,7 @@ Entries will be written to a `snapshot/entries` directory in flat files for each
 
 ```
 eb:4340 176d5e0e0cecfce6887268cb5753615fd10b3011f34c2654a5c8cdad9eb08a19
-et:<entry_binary>
+et:<entry_binary in base64>
 ```
 
 # Verify snapshot

@@ -33,3 +33,19 @@ func (fa *FactomFetcher) Height(_ context.Context) (int64, error) {
 	}
 	return heights.DirectoryBlockHeight, nil
 }
+
+func (fa *FactomFetcher) Eblock(_ context.Context, keyMR string) (*factom.EBlock, error) {
+	eblock, err := factom.GetEBlock(keyMR)
+	if err != nil {
+		return nil, err
+	}
+	return eblock, err
+}
+
+func (fa *FactomFetcher) ChainHead(_ context.Context, cid string) (string, error) {
+	head, _, err := factom.GetChainHead(cid)
+	if err != nil {
+		return "", err
+	}
+	return head, err
+}

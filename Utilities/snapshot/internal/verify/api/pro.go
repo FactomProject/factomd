@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/FactomProject/factom"
 )
 
 type FactomProFetcher struct {
@@ -132,4 +134,12 @@ func jsonRequest(ctx context.Context, u string, method string, body interface{},
 	}
 
 	return resp, nil
+}
+
+func (FactomProFetcher) Eblock(_ context.Context, keyMR string) (*factom.EBlock, error) {
+	return nil, fmt.Errorf("not implemented for facotm.pro")
+}
+
+func (FactomProFetcher) ChainHead(_ context.Context, cid string) (string, error) {
+	return "", fmt.Errorf("not implemented for facotm.pro")
 }
