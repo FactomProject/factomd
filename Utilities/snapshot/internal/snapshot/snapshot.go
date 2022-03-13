@@ -6,15 +6,16 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/FactomProject/factomd/Utilities/tools"
+
 	"github.com/FactomProject/factomd/Utilities/snapshot/internal"
 
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/sirupsen/logrus"
 )
 
 type Snapshotter struct {
 	log           *logrus.Logger
-	db            *databaseOverlay.Overlay
+	db            tools.Fetcher
 	debugHeights  []uint32
 	stop          int64
 	dumpDir       string
@@ -26,7 +27,7 @@ type Snapshotter struct {
 
 type Config struct {
 	Log           *logrus.Logger
-	DB            *databaseOverlay.Overlay
+	DB            tools.Fetcher
 	DebugHeights  []uint32
 	Stop          int64
 	DumpDir       string

@@ -27,7 +27,8 @@ func logger(cmd *cobra.Command) (*logrus.Logger, error) {
 
 func RootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "snapshot",
+		Use:          "snapshot",
+		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
 		},
@@ -49,6 +50,7 @@ func snapshotCmd() *cobra.Command {
 		dumpDirectory string
 		debugHeights  uint32ArrayFlags
 		recordEntries bool
+		cleanFirst    bool
 	)
 
 	cmd := &cobra.Command{
@@ -59,6 +61,13 @@ func snapshotCmd() *cobra.Command {
 			log, err := logger(cmd)
 			if err != nil {
 				return err
+			}
+
+			if cleanFirst {
+				err := clean(log, dumpDirectory)
+				if err != nil {
+					return fmt.Errorf("clean first: %w", err)
+				}
 			}
 
 			defer func() {
@@ -77,7 +86,15 @@ func snapshotCmd() *cobra.Command {
 			}
 
 			dbPath = os.ExpandEnv(dbPath)
-			db := tools.NewDBReader(dbType, dbPath)
+
+			var db tools.Fetcher
+			switch dbType {
+			case "api":
+				db = tools.NewAPIReader(dbPath)
+			default:
+				db = tools.NewDBReader(dbType, dbPath)
+			}
+
 			s, err := snapshot.New(snapshot.Config{
 				Log:           log,
 				DB:            db,
@@ -106,11 +123,12 @@ func snapshotCmd() *cobra.Command {
 
 	cmd.Flags().BoolVarP(&recordEntries, "record-entries", "e", false, "enable snapshotting entry data")
 	cmd.Flags().Int64VarP(&stopHeight, "stop-height", "s", -1, "height to stop the snapshot at")
-	cmd.Flags().StringVar(&dbType, "db-type", "level", "optionally change the type to 'bolt'")
+	cmd.Flags().StringVar(&dbType, "db-type", "level", "optionally change the type to 'bolt' or 'api'")
 	cmd.Flags().StringVar(&dbPath, "db", "$HOME/.factom/m2/main-database/ldb/MAIN/factoid_level.db",
-		"the location of the database to use")
+		"the location of the database to use. If using 'api', this should be an http url")
 	cmd.Flags().Var(&debugHeights, "debug-heights", "heights to print diagnostic information at")
 	cmd.Flags().StringVarP(&dumpDirectory, "dump-dir", "d", internal.DefaultSnapshotDir, "where to dump snapshot data. empty means do not dump")
+	cmd.Flags().BoolVar(&cleanFirst, "clean", false, "clean before running snapshot")
 
 	return cmd
 }

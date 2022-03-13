@@ -9,6 +9,9 @@ require (
 	github.com/spf13/cobra v1.4.0
 )
 
+// Use the local factomd
+replace github.com/FactomProject/factomd  => ../../
+
 require (
 	github.com/FactomProject/basen v0.0.0-20150613233007-fe3947df716e // indirect
 	github.com/FactomProject/bolt v1.1.1-0.20170202195217-952a1b4e9a55 // indirect

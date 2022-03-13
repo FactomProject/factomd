@@ -46,16 +46,7 @@ func cleanCmd() *cobra.Command {
 				}
 			}
 
-			err = os.RemoveAll(dumpDirectory)
-			if err != nil {
-				log.WithFields(logrus.Fields{
-					"error":     err.Error(),
-					"directory": dumpDirectory,
-				}).Error("delete directory")
-				return fmt.Errorf("clean failed")
-			}
-
-			return nil
+			return clean(log, dumpDirectory)
 		},
 	}
 
@@ -63,4 +54,16 @@ func cleanCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&dumpDirectory, "dump-dir", "d", internal.DefaultSnapshotDir, "where to dump snapshot data. empty means do not dump")
 
 	return cmd
+}
+
+func clean(log *logrus.Logger, dumpDirectory string) error {
+	err := os.RemoveAll(dumpDirectory)
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"error":     err.Error(),
+			"directory": dumpDirectory,
+		}).Error("delete directory")
+		return fmt.Errorf("clean failed")
+	}
+	return nil
 }

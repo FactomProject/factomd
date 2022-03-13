@@ -7,9 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/FactomProject/factomd/Utilities/tools"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/sirupsen/logrus"
 )
 
@@ -105,7 +106,7 @@ func (es *entrySnapshot) ChainFile(chainID interfaces.IHash) (io.WriteCloser, er
 // Process will process the height specified and load new entries into their flat files.
 // We pass the entire database to allow this function to do w/e it needs.
 // Passing the height in explicitly just ensures we are loading blocks sequentially
-func (es *entrySnapshot) Process(log *logrus.Logger, db *databaseOverlay.Overlay, height uint32, diagnostic bool) error {
+func (es *entrySnapshot) Process(log *logrus.Logger, db tools.Fetcher, height uint32, diagnostic bool) error {
 	defer func() {
 		es.NextHeight++
 	}()

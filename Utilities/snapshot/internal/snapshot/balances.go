@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/FactomProject/factomd/Utilities/tools"
+
 	"github.com/FactomProject/factomd/state"
 
 	"github.com/sirupsen/logrus"
@@ -12,7 +14,6 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 )
 
 type balanceSnapshot struct {
@@ -52,7 +53,7 @@ func (bs *balanceSnapshot) Dump(w io.Writer) error {
 // Process will process the height specified and load the balance changes into the memory maps.
 // We pass the entire database to allow this function to do w/e it needs.
 // Passing the height in explicitly just ensures we are loading blocks sequentially
-func (bs *balanceSnapshot) Process(log *logrus.Logger, db *databaseOverlay.Overlay, height uint32, diagnostic bool) error {
+func (bs *balanceSnapshot) Process(log *logrus.Logger, db tools.Fetcher, height uint32, diagnostic bool) error {
 	defer func() {
 		bs.NextHeight++
 	}()

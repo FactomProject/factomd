@@ -6,7 +6,12 @@ All output will be written to a directory, default `./snapshot`.
 
 ## CLI
 
-Use `snapshot new` to take a new snapshot of a given database. To delete the snapshot, you can use `snapshot clean`
+Use `snapshot new` to take a new snapshot of a given database. To delete the snapshot, you can use `snapshot clean`.
+
+You can run against an API of a running node:
+```
+snapshot new --db-type=api --db=http://localhost:8088
+```
 
 ```bash
 Usage:
@@ -15,14 +20,17 @@ Usage:
 
 Available Commands:
   clean       Deletes the snapshotted data.
+  completion  Generate the autocompletion script for the specified shell
   help        Help about any command
   new         Take a new snapshot of a factom database
+  verify      verifies the snapshotted data against factom
 
 Flags:
   -h, --help         help for snapshot
       --log string   set the log level (default "debug")
 
 Use "snapshot [command] --help" for more information about a command.
+
 ```
 
 # Data Formats
@@ -46,4 +54,12 @@ Entries will be written to a `snapshot/entries` directory in flat files for each
 ```
 eb:4340 176d5e0e0cecfce6887268cb5753615fd10b3011f34c2654a5c8cdad9eb08a19
 et:<entry_binary>
+```
+
+# Verify snapshot
+
+You can verify the snapshot against a running node. Keep in mind, if a node is on a running network, then the balances will mismatch. Ideally you check against a node that loaded a db and is not syncing any network.
+
+```
+snapshot verify balances
 ```
