@@ -2,7 +2,7 @@ package snapshot
 
 import (
 	"fmt"
-	"io"
+	"github.com/FactomProject/factomd/Utilities/snapshot/pkg/balances"
 
 	"github.com/FactomProject/factomd/Utilities/tools"
 
@@ -16,44 +16,23 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-type balanceSnapshot struct {
+type BalanceSnapshot struct {
 	NextHeight uint32
-	// Use int64s because temporarily during the math, we might have a negative balance
-	FCTAddressMap map[[32]byte]int64
-	ECAddressMap  map[[32]byte]int64
+
+	*balances.Balances
 }
 
-func newBalanceSnapshot() *balanceSnapshot {
-	return &balanceSnapshot{
-		NextHeight:    0,
-		FCTAddressMap: make(map[[32]byte]int64),
-		ECAddressMap:  make(map[[32]byte]int64),
+func newBalanceSnapshot() *BalanceSnapshot {
+	return &BalanceSnapshot{
+		NextHeight: 0,
+		Balances:   balances.NewBalances(),
 	}
-}
-
-func (bs *balanceSnapshot) Dump(w io.Writer) error {
-	height := bs.NextHeight - 1
-	_, _ = fmt.Fprintf(w, "height %d\n", height)
-	for k, v := range bs.FCTAddressMap {
-		_, err := fmt.Fprintf(w, "%s: %d\n", primitives.ConvertFctAddressToUserStr(factoid.NewAddress(k[:])), v)
-		if err != nil {
-			return fmt.Errorf("write fct addr: %w", err)
-		}
-	}
-	for k, v := range bs.ECAddressMap {
-		_, err := fmt.Fprintf(w, "%s: %d\n", primitives.ConvertECAddressToUserStr(factoid.NewAddress(k[:])), v)
-		if err != nil {
-			return fmt.Errorf("write ec addr: %w", err)
-		}
-	}
-
-	return nil
 }
 
 // Process will process the height specified and load the balance changes into the memory maps.
 // We pass the entire database to allow this function to do w/e it needs.
 // Passing the height in explicitly just ensures we are loading blocks sequentially
-func (bs *balanceSnapshot) Process(log *logrus.Logger, db tools.Fetcher, height uint32, diagnostic bool) error {
+func (bs *BalanceSnapshot) Process(log *logrus.Logger, db tools.Fetcher, height uint32, diagnostic bool) error {
 	defer func() {
 		bs.NextHeight++
 	}()
@@ -140,6 +119,9 @@ func (bs *balanceSnapshot) Process(log *logrus.Logger, db tools.Fetcher, height 
 			"ec_hash":       ecHash.String(),
 		}).Info("balance info")
 	}
+
+	// Processed!
+	bs.Height = bs.NextHeight
 
 	return nil
 }

@@ -37,6 +37,7 @@ func RootCmd() *cobra.Command {
 	cmd.AddCommand(snapshotCmd())
 	cmd.AddCommand(cleanCmd())
 	cmd.AddCommand(verifyCmd())
+	cmd.AddCommand(trimCmd())
 	cmd.PersistentFlags().String("log", "debug", "set the log level")
 
 	return cmd

@@ -6,9 +6,12 @@ import (
 	"io"
 	"time"
 
+	"github.com/FactomProject/factomd/common/primitives"
+
+	"github.com/FactomProject/factomd/Utilities/snapshot/pkg/balances"
+
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/Utilities/snapshot/internal/verify/api"
-	"github.com/FactomProject/factomd/Utilities/snapshot/load"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,7 +29,7 @@ func VerifyBalancesAgainstFactomd(ctx context.Context, log *logrus.Logger, facto
 }
 
 func VerifyBalances(ctx context.Context, log *logrus.Logger, fetcher api.APIFetcher, balancesFile io.Reader) error {
-	balances, err := load.LoadBalances(balancesFile)
+	bals, err := balances.LoadBalances(balancesFile)
 	if err != nil {
 		return fmt.Errorf("load balances: %w", err)
 	}
@@ -37,10 +40,10 @@ func VerifyBalances(ctx context.Context, log *logrus.Logger, fetcher api.APIFetc
 	}
 
 	log.WithFields(logrus.Fields{
-		"height":     balances.Height,
+		"height":     bals.Height,
 		"api_height": fetcherHeight,
-		"fa_total":   len(balances.FCTAddressMap),
-		"ec_total":   len(balances.ECAddressMap),
+		"fa_total":   len(bals.FCTAddressMap),
+		"ec_total":   len(bals.ECAddressMap),
 	}).Info("Verifying balances...")
 	badEC, badFA := 0, 0
 
@@ -51,35 +54,39 @@ func VerifyBalances(ctx context.Context, log *logrus.Logger, fetcher api.APIFetc
 		if time.Since(last) > time.Second*5 {
 			log.WithFields(logrus.Fields{
 				"fa_done":  faDone,
-				"fa_total": len(balances.FCTAddressMap),
+				"fa_total": len(bals.FCTAddressMap),
 				"fa_bad":   badFA,
 
 				"ec_done":  ecDone,
-				"ec_total": len(balances.ECAddressMap),
+				"ec_total": len(bals.ECAddressMap),
 				"ec_bad":   badEC,
 			}).Debug()
 			last = time.Now()
 		}
 	}
 
-	for addr, exp := range balances.FCTAddressMap {
-		bal, err := fetcher.FactoidBalance(ctx, addr)
+	for addr, exp := range bals.FCTAddressMap {
+		human := primitives.ConvertFctAddressToUserStr(primitives.NewHash(addr[:]))
+
+		bal, err := fetcher.FactoidBalance(ctx, human)
 		if err != nil {
 			return fmt.Errorf("fetch balance %s: %w", addr, err)
 		}
-		if !compare(log, addr, exp, bal, " FCT") {
+		if !compare(log, human, exp, bal, " FCT") {
 			badFA++
 		}
 		faDone++
 		debug()
 	}
 
-	for addr, exp := range balances.ECAddressMap {
-		bal, err := fetcher.EntryCreditBalance(ctx, addr)
+	for addr, exp := range bals.ECAddressMap {
+		human := primitives.ConvertECAddressToUserStr(primitives.NewHash(addr[:]))
+
+		bal, err := fetcher.EntryCreditBalance(ctx, human)
 		if err != nil {
 			return fmt.Errorf("fetch balance %s: %w", addr, err)
 		}
-		if !compare(log, addr, exp, bal, " EC") {
+		if !compare(log, human, exp, bal, " EC") {
 			badEC++
 		}
 		ecDone++
@@ -91,7 +98,7 @@ func VerifyBalances(ctx context.Context, log *logrus.Logger, fetcher api.APIFetc
 		"fct_done":        faDone,
 		"ec_done":         ecDone,
 		"ec_mismatches":   badEC,
-		"snapshot_height": balances.Height,
+		"snapshot_height": bals.Height,
 		"api_height":      fetcherHeight,
 	}
 	if badFA+badEC == 0 {

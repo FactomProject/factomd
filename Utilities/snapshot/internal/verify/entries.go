@@ -3,10 +3,9 @@ package verify
 import (
 	"context"
 	"fmt"
+	"github.com/FactomProject/factomd/Utilities/snapshot/pkg/load"
 	"io"
 	"strings"
-
-	"github.com/FactomProject/factomd/Utilities/snapshot/load"
 
 	"github.com/FactomProject/factomd/Utilities/snapshot/internal/verify/api"
 	"github.com/sirupsen/logrus"

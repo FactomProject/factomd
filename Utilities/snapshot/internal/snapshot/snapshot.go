@@ -21,7 +21,7 @@ type Snapshotter struct {
 	dumpDir       string
 	recordEntries bool
 
-	balances *balanceSnapshot
+	balances *BalanceSnapshot
 	entries  *entrySnapshot
 }
 
