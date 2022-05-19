@@ -28,7 +28,6 @@ _obj
 _test
 build
 bin
-pkg
 .vagrant
 
 # Architecture specific extensions/prefixes
