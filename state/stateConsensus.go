@@ -1446,6 +1446,13 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
+	// If the maximum Factom Height is reached, stop the Factom Protocol.  Note that the last Factom Block
+	// will be 1 block less than the specified MAX_FACTOM_HEIGHT.
+	if s.IsActive(activations.MAX_FACTOM_HEIGHT) && s.GetCurrentMinute() > 1 {
+		fmt.Printf("STOPPING FACTOM\n")
+		return
+	}
+
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	vm := pl.VMs[s.LeaderVMIndex]
 
@@ -1647,7 +1654,7 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 				newFedsAdded, startingFedsRemoved := pl.CountFederatedServersAddedAndRemoved()
 				startingFedsRemaining := startingFedsCount - startingFedsRemoved
 				if startingFedsRemaining < (startingFedsRemaining+newFedsAdded+1)/2+1 {
-					if s.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+					if s.IsActive(activations.AUTHORITY_SET_MAX_DELTA) {
 						s.LogPrintf("process", "Failed to process AddServerMessage: by adding %s as a new fed, the block's starting feds no longer have a majority", as.ServerChainID.String()[:10])
 						return true
 					}
@@ -1659,7 +1666,7 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 				newFedsAdded, startingFedsRemoved := pl.CountFederatedServersAddedAndRemoved()
 				startingFedsRemaining := startingFedsCount - startingFedsRemoved
 				if startingFedsRemaining-1 < (startingFedsRemaining+newFedsAdded-1)/2+1 {
-					if s.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+					if s.IsActive(activations.AUTHORITY_SET_MAX_DELTA) {
 						s.LogPrintf("process", "Failed to process AddServerMessage: by demoting %s to an audit, the block's starting feds no longer have a majority", as.ServerChainID.String()[:10])
 						return true
 					}
@@ -1701,7 +1708,7 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 		newFedsAdded, startingFedsRemoved := pl.CountFederatedServersAddedAndRemoved()
 		startingFedsRemaining := startingFedsCount - startingFedsRemoved
 		if startingFedsRemaining-1 < (startingFedsRemaining+newFedsAdded-1)/2+1 {
-			if s.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+			if s.IsActive(activations.AUTHORITY_SET_MAX_DELTA) {
 				s.LogPrintf("process", "Failed to process RemoveServerMessage: by removing %s as a server, the block's starting feds no longer have a majority", rs.ServerChainID.String()[:10])
 				return true
 			} else {

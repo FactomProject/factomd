@@ -250,7 +250,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	}
 
 	if startingFedsCount > 1 && startingFedsRemaining < (startingFedsRemaining+newFedsAdded)/2+1 {
-		if state.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+		if state.IsActive(activations.AUTHORITY_SET_MAX_DELTA) {
 			state.AddStatus("DBStateMsg.Validate() FAIL: the block's starting feds no longer have a majority")
 			return -1
 		} else {

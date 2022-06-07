@@ -90,7 +90,7 @@ func (m *FedVoteLevelMsg) ElectionProcess(is interfaces.IState, elect interfaces
 
 	// TODO: determine if we need to check here too, or if checking before every election is fine
 	if !e.IsSafeToReplaceFed(e.FedID) {
-		if is.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
+		if is.IsActive(activations.AUTHORITY_SET_MAX_DELTA) {
 			e.LogPrintf("election", "FedVoteLevelMsg.ElectionProcess(): cannot remove more than half of the block's starting feds")
 			return
 		} else {
