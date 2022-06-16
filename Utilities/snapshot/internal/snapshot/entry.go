@@ -2,18 +2,12 @@ package snapshot
 
 import (
 	"bufio"
-	"encoding/base64"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/FactomProject/FactomCode/common"
-
 	"github.com/FactomProject/factomd/Utilities/tools"
-
 	"github.com/FactomProject/factomd/common/interfaces"
-
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,41 +17,35 @@ const (
 )
 
 type entrySnapshot struct {
-	NextHeight uint32
-	Directory  string
+	FirstHeight uint32
+	NextHeight  uint32
+	Directory   string
 
 	eblocksProcessed int
 	entriesProcessed int
-	chains           map[[32]byte]int
-
-	OpenFiles map[[32]byte]io.WriteCloser
+	chainsCount      int
+	Entries          io.WriteCloser
 }
 
 func NewEntrySnapshot(dir string) *entrySnapshot {
-	return &entrySnapshot{
+	es := &entrySnapshot{
 		Directory: dir,
-		OpenFiles: make(map[[32]byte]io.WriteCloser),
-		chains:    make(map[[32]byte]int),
 	}
+	return es
 }
 
 func (es *entrySnapshot) Close(log *logrus.Logger) {
-	for cid, f := range es.OpenFiles {
-		err := f.Close()
-		if err != nil {
-			log.WithFields(logrus.Fields{
-				"error": err.Error(),
-				"chain": fmt.Sprintf("%x", cid),
-			}).Errorf("close file")
-		}
+	err := es.Entries.Close()
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"error": err.Error(),
+			"file":  fmt.Sprintf("entries"),
+		}).Errorf("close file")
 	}
+
 }
 
 func (es *entrySnapshot) writeNewEntry(entry interfaces.IEBEntry) error {
-	file, err := es.ChainFile(entry.GetChainID())
-	if err != nil {
-		return fmt.Errorf("write eblock: %w", err)
-	}
 
 	cid := common.NewHash()
 	_ = cid.SetBytes(entry.GetChainID().Bytes())
@@ -69,55 +57,30 @@ func (es *entrySnapshot) writeNewEntry(entry interfaces.IEBEntry) error {
 	}
 
 	// Wish I could write straight to the buffer
-	data, err := slimEntry.MarshalBinary()
-	if err != nil {
-		return fmt.Errorf("marshal entry %s: %w", entry.GetHash().String(), err)
+	data, e1 := slimEntry.MarshalBinary()
+	L := len(data)
+	_, e2 := es.Entries.Write(append([]byte{}, byte(L>>8), byte(L)))
+	_, e3 := es.Entries.Write(data)
+	switch {
+	case e1 != nil:
+		return e1
+	case e2 != nil:
+		return e1
+	case e3 != nil:
+		return e1
 	}
-
-	_, err = fmt.Fprint(file, EntryPreix)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintln(file, base64.StdEncoding.EncodeToString(data))
-	if err != nil {
-		return err
-	}
-
-	return err
+	return nil
 }
 
 // writeNewEblock will write the height and eblock hash to the file with the `eb:` prefix
 func (es *entrySnapshot) writeNewEblock(eblock interfaces.IEntryBlock) error {
-	file, err := es.ChainFile(eblock.GetChainID())
-	if err != nil {
-		return fmt.Errorf("write eblock: %w", err)
-	}
 
-	keyMR, err := eblock.KeyMR()
-	if err != nil {
-		return fmt.Errorf("keymr: %w", err)
-	}
-	_, err = file.Write([]byte(fmt.Sprintf("%s%d %s\n", EblockPrefix, eblock.GetDatabaseHeight(), keyMR.String())))
-	if err != nil {
-		return fmt.Errorf("write eblock: %w", err)
-	}
-	return err
+	return nil
 }
 
 func (es *entrySnapshot) ChainFile(chainID interfaces.IHash) (io.WriteCloser, error) {
-	if file, ok := es.OpenFiles[chainID.Fixed()]; ok {
-		return file, nil
-	}
 
-	file, err := os.OpenFile(filepath.Join(es.Directory, chainID.String()), os.O_CREATE|os.O_WRONLY, 0777)
-	if err != nil {
-		return nil, fmt.Errorf("open file: %w", err)
-	}
-
-	w := newBufWriteCloser(file)
-	es.OpenFiles[chainID.Fixed()] = w
-
-	return file, nil
+	return nil, nil
 }
 
 // Process will process the height specified and load new entries into their flat files.
@@ -148,7 +111,6 @@ func (es *entrySnapshot) Process(log *logrus.Logger, db tools.Fetcher, height ui
 			return fmt.Errorf("write eblock: %w", err)
 		}
 
-		cid := eblock.GetChainID().Fixed()
 		entries := eblock.GetEntryHashes()
 		cidS := eblock.GetChainID().String()
 		var _ = cidS
@@ -166,21 +128,13 @@ func (es *entrySnapshot) Process(log *logrus.Logger, db tools.Fetcher, height ui
 				return fmt.Errorf("write entry: %w", err)
 			}
 
-			es.chains[cid]++
+			es.chainsCount++
 			es.entriesProcessed++
 		}
 		es.eblocksProcessed++
 
 	}
 
-	if diagnostic {
-		log.WithFields(logrus.Fields{
-			"height":  height,
-			"entries": es.entriesProcessed,
-			"eblocks": es.eblocksProcessed,
-			"chains":  len(es.chains),
-		}).Info("entry info")
-	}
 
 	return nil
 }

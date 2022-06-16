@@ -1,9 +1,6 @@
 package snapshot
 
 import (
-	"errors"
-	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/FactomProject/factomd/Utilities/tools"
@@ -13,10 +10,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var DBHeight uint32
+
 type Snapshotter struct {
 	log           *logrus.Logger
 	db            tools.Fetcher
-	debugHeights  []uint32
+	debugHeight   uint32
 	stop          int64
 	dumpDir       string
 	recordEntries bool
@@ -28,7 +27,7 @@ type Snapshotter struct {
 type Config struct {
 	Log           *logrus.Logger
 	DB            tools.Fetcher
-	DebugHeights  []uint32
+	DebugHeight   uint32
 	Stop          int64
 	DumpDir       string
 	RecordEntries bool
@@ -38,19 +37,12 @@ func New(cfg Config) (*Snapshotter, error) {
 	s := &Snapshotter{
 		log:           cfg.Log,
 		db:            cfg.DB,
-		debugHeights:  cfg.DebugHeights,
+		debugHeight:   cfg.DebugHeight,
 		balances:      newBalanceSnapshot(),
 		entries:       NewEntrySnapshot(filepath.Join(cfg.DumpDir, internal.DefaultChainDir)),
 		stop:          cfg.Stop,
 		dumpDir:       cfg.DumpDir,
 		recordEntries: cfg.RecordEntries,
-	}
-
-	if cfg.RecordEntries {
-		err := os.MkdirAll(s.entries.Directory, 0777)
-		if err != nil && !errors.Is(err, os.ErrExist) {
-			return nil, fmt.Errorf("create dir %s: %w", s.entries.Directory, err)
-		}
 	}
 
 	return s, nil

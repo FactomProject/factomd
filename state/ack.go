@@ -614,6 +614,12 @@ func (s *State) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, er
 		return nil, nil
 	}
 
+	dbase := s.GetDB()
+
+	if entry, err := dbase.FetchEntry(hash); err == nil {
+		return entry, nil
+	}
+
 	//pl := s.ProcessLists.LastList()
 	for _, pl := range s.ProcessLists.Lists {
 		keys := pl.GetKeysNewEntries()
@@ -647,8 +653,6 @@ func (s *State) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, er
 			}
 		}
 	}
-
-	dbase := s.GetDB()
 
 	return dbase.FetchEntry(hash)
 }

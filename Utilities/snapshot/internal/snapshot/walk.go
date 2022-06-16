@@ -11,6 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const DBsPerFile = uint32(10000)
+
 // Done is called to close up the snapshots
 func (s *Snapshotter) Done() error {
 	err := s.Dump()
@@ -68,29 +70,46 @@ func (s *Snapshotter) WalkDB() error {
 	if s.stop >= 0 {
 		topHeight = uint32(s.stop)
 	}
+
+	s.entries.FirstHeight = (DBHeight / DBsPerFile) * DBsPerFile
+	s.entries.NextHeight = s.entries.FirstHeight
+
+	SnapshotDir := "./factomEntries"
+	if err := os.Mkdir(SnapshotDir, 0766); err != nil {
+		fmt.Println("directory Exists.  Starting on directory block ", s.entries.FirstHeight)
+	}
+
+	filename := fmt.Sprintf("entries-%d.dat", s.entries.FirstHeight)
+	s.entries.Entries, err = os.OpenFile(filepath.Join(SnapshotDir, filename), os.O_CREATE|os.O_WRONLY, 0777)
+
 	start := time.Now()
-	for i := uint32(0); i <= topHeight; i++ {
+	for i := s.entries.FirstHeight; i <= topHeight; i++ {
+		s.db.Trim()
+		if i > s.entries.FirstHeight && i%DBsPerFile == 0 {
+			s.entries.Entries.Close()
+			filename := fmt.Sprintf("entries-%d.dat", i)
+			if s.entries.Entries, err = os.OpenFile(filepath.Join(SnapshotDir, filename), os.O_CREATE|os.O_WRONLY, 0777); err != nil {
+				panic(err)
+			}
+		}
+
 		printDiagnostic := (i%10000 == 0 || i == topHeight) && i > 0
 
-		if i%1000 == 0 && i > 0 {
+		if (i*10)%DBsPerFile == 0 && i > 0 {
 			bps := float64(i) / time.Since(start).Seconds()
 			remain := topHeight - i
 			etaSecs := float64(remain) / bps
 			eta := time.Duration(etaSecs * 1e9)
 
 			s.log.WithFields(logrus.Fields{
-				"done":   i,
-				"remain": remain,
-				"total":  topHeight,
-				"bps":    fmt.Sprintf("%.2f", bps),
+				"entries": s.entries.entriesProcessed,
+				"done":    i,
+				"remain":  remain,
+				"total":   topHeight,
+				"bps":     fmt.Sprintf("%.2f", bps),
 				// Take this ETA with a grain of salt. Dense blocks take A LOT longer than smaller ones.
 				"eta": eta.String(),
 			}).Debug("completed")
-		}
-
-		err = s.balances.Process(s.log, db, i, printDiagnostic)
-		if err != nil {
-			return fmt.Errorf("balance snapshot, height %d: %w", i, err)
 		}
 
 		if s.recordEntries {

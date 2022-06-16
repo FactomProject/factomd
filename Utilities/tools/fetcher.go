@@ -32,6 +32,7 @@ type Fetcher interface {
 	FetchFBlockByHeight(blockHeight uint32) (interfaces.IFBlock, error)
 	FetchECBlockByHeight(blockHeight uint32) (interfaces.IEntryCreditBlock, error)
 	FetchECBlockByPrimary(keymr interfaces.IHash) (interfaces.IEntryCreditBlock, error)
+	Trim()
 }
 
 var _ Fetcher = (*APIReader)(nil)
@@ -64,6 +65,8 @@ func NewAPIReader(loc string) *APIReader {
 
 	return a
 }
+
+func (a *APIReader) Trim() {}
 
 func (a *APIReader) SetChainHeads(primaryIndexes, chainIDs []interfaces.IHash) error {
 	return nil

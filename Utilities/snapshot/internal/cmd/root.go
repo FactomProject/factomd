@@ -49,7 +49,6 @@ func snapshotCmd() *cobra.Command {
 		dbPath        string
 		stopHeight    int64
 		dumpDirectory string
-		debugHeights  uint32ArrayFlags
 		recordEntries bool
 		cleanFirst    bool
 	)
@@ -89,17 +88,11 @@ func snapshotCmd() *cobra.Command {
 			dbPath = os.ExpandEnv(dbPath)
 
 			var db tools.Fetcher
-			switch dbType {
-			case "api":
-				db = tools.NewAPIReader(dbPath)
-			default:
-				db = tools.NewDBReader(dbType, dbPath)
-			}
+			db = tools.NewDBReader(dbType, dbPath)
 
 			s, err := snapshot.New(snapshot.Config{
 				Log:           log,
 				DB:            db,
-				DebugHeights:  debugHeights,
 				Stop:          stopHeight,
 				DumpDir:       dumpDirectory,
 				RecordEntries: recordEntries,
@@ -121,15 +114,17 @@ func snapshotCmd() *cobra.Command {
 			return nil
 		},
 	}
-
+    var dbh uint32
 	cmd.Flags().BoolVarP(&recordEntries, "record-entries", "e", false, "enable snapshotting entry data")
 	cmd.Flags().Int64VarP(&stopHeight, "stop-height", "s", -1, "height to stop the snapshot at")
 	cmd.Flags().StringVar(&dbType, "db-type", "level", "optionally change the type to 'bolt' or 'api'")
 	cmd.Flags().StringVar(&dbPath, "db", "$HOME/.factom/m2/main-database/ldb/MAIN/factoid_level.db",
 		"the location of the database to use. If using 'api', this should be an http url")
-	cmd.Flags().Var(&debugHeights, "debug-heights", "heights to print diagnostic information at")
+	cmd.Flags().Uint32VarP(&dbh, "DBHeight","g", 0, "DirectoryBlock Height to start entry Extraction")
 	cmd.Flags().StringVarP(&dumpDirectory, "dump-dir", "d", internal.DefaultSnapshotDir, "where to dump snapshot data. empty means do not dump")
 	cmd.Flags().BoolVar(&cleanFirst, "clean", false, "clean before running snapshot")
+
+	snapshot.DBHeight=dbh
 
 	return cmd
 }

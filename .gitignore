@@ -22,6 +22,8 @@ peers.json
 *.gz
 *.swp
 out
+factomEntries/
+
 
 # Folders
 _obj
