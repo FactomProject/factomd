@@ -5,7 +5,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/FactomProject/factomd/Utilities/snapshot/internal/cmd"
+	"github.com/FactomProject/factomd/Utilities/snapshot/stuff/cmd"
 )
 
 func main() {

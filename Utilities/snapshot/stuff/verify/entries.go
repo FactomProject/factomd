@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/FactomProject/factomd/Utilities/snapshot/internal/verify/api"
+	"github.com/FactomProject/factomd/Utilities/snapshot/stuff/verify/api"
 	"github.com/sirupsen/logrus"
 )
 

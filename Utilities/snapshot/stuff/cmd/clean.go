@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FactomProject/factomd/Utilities/snapshot/internal"
+	"github.com/FactomProject/factomd/Utilities/snapshot/stuff"
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/sirupsen/logrus"

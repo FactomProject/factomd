@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/FactomProject/factomd/Utilities/snapshot/internal"
-	"github.com/FactomProject/factomd/Utilities/snapshot/internal/snapshot"
+	"github.com/FactomProject/factomd/Utilities/snapshot/stuff"
+	"github.com/FactomProject/factomd/Utilities/snapshot/stuff/snapshot"
 	"github.com/FactomProject/factomd/Utilities/tools"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -114,17 +114,17 @@ func snapshotCmd() *cobra.Command {
 			return nil
 		},
 	}
-    var dbh uint32
+	var dbh uint32
 	cmd.Flags().BoolVarP(&recordEntries, "record-entries", "e", false, "enable snapshotting entry data")
 	cmd.Flags().Int64VarP(&stopHeight, "stop-height", "s", -1, "height to stop the snapshot at")
 	cmd.Flags().StringVar(&dbType, "db-type", "level", "optionally change the type to 'bolt' or 'api'")
 	cmd.Flags().StringVar(&dbPath, "db", "$HOME/.factom/m2/main-database/ldb/MAIN/factoid_level.db",
 		"the location of the database to use. If using 'api', this should be an http url")
-	cmd.Flags().Uint32VarP(&dbh, "DBHeight","g", 0, "DirectoryBlock Height to start entry Extraction")
+	cmd.Flags().Uint32VarP(&dbh, "DBHeight", "g", 0, "DirectoryBlock Height to start entry Extraction")
 	cmd.Flags().StringVarP(&dumpDirectory, "dump-dir", "d", internal.DefaultSnapshotDir, "where to dump snapshot data. empty means do not dump")
 	cmd.Flags().BoolVar(&cleanFirst, "clean", false, "clean before running snapshot")
 
-	snapshot.DBHeight=dbh
+	snapshot.DBHeight = dbh
 
 	return cmd
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/FactomProject/factomd/Utilities/snapshot/pkg/balances"
 
 	"github.com/FactomProject/factom"
-	"github.com/FactomProject/factomd/Utilities/snapshot/internal/verify/api"
+	"github.com/FactomProject/factomd/Utilities/snapshot/stuff/verify/api"
 	"github.com/sirupsen/logrus"
 )
 

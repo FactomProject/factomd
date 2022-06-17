@@ -22,7 +22,7 @@ peers.json
 *.gz
 *.swp
 out
-factomEntries/
+FactomState/
 
 
 # Folders

@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/FactomProject/factomd/Utilities/snapshot/internal"
+	"github.com/FactomProject/factomd/Utilities/snapshot/stuff"
 
-	"github.com/FactomProject/factomd/Utilities/snapshot/internal/verify"
+	"github.com/FactomProject/factomd/Utilities/snapshot/stuff/verify"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +39,7 @@ func verifyBalances() *cobra.Command {
 		Use:   "balances",
 		Short: "verify found balances",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := cmd.Context()
+			//ctx := cmd.Context()
 			dumpDirectory, err := cmd.Flags().GetString("dump-dir")
 			if err != nil {
 				return err
@@ -58,12 +58,12 @@ func verifyBalances() *cobra.Command {
 			defer file.Close()
 			switch apiType {
 			case "factomd":
-				err := verify.VerifyBalancesAgainstFactomd(ctx, log, apiAddr, file)
+				err := verify.VerifyBalancesAgainstFactomd(nil, log, apiAddr, file)
 				if err != nil {
 					return fmt.Errorf("verify: %w", err)
 				}
 			case "factom.pro":
-				err := verify.VerifyBalancesAgainstFactomPro(ctx, log, apiAddr, file)
+				err := verify.VerifyBalancesAgainstFactomPro(nil, log, apiAddr, file)
 				if err != nil {
 					return fmt.Errorf("verify: %w", err)
 				}
@@ -96,7 +96,7 @@ func verifyEntries() *cobra.Command {
 			" We can check for untracked chains by checking the total number of chains recorded against the expected" +
 			" number.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := cmd.Context()
+			//ctx := cmd.Context()
 			dumpDirectory, err := cmd.Flags().GetString("dump-dir")
 			if err != nil {
 				return err
@@ -128,12 +128,12 @@ func verifyEntries() *cobra.Command {
 
 				switch apiType {
 				case "factomd":
-					err := verify.VerifyChainAgainstFactomd(ctx, log, apiAddr, chainID, file)
+					err := verify.VerifyChainAgainstFactomd(nil, log, apiAddr, chainID, file)
 					if err != nil {
 						return fmt.Errorf("verify: %w", err)
 					}
 				case "factom.pro":
-					err := verify.VerifyChainAgainstFactomPro(ctx, log, apiAddr, chainID, file)
+					err := verify.VerifyChainAgainstFactomPro(nil, log, apiAddr, chainID, file)
 					if err != nil {
 						return fmt.Errorf("verify: %w", err)
 					}

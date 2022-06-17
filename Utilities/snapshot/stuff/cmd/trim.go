@@ -9,7 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/Utilities/snapshot/pkg/balances"
 
-	"github.com/FactomProject/factomd/Utilities/snapshot/internal"
+	"github.com/FactomProject/factomd/Utilities/snapshot/stuff"
 	"github.com/spf13/cobra"
 )
 
