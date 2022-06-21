@@ -41,7 +41,7 @@ func main() {
 	h2 := primitives.Sha(b)
 	if h.IsSameAs(h2) == false {
 		fmt.Fprintf(os.Stderr, "LoadDBStateList - Integrity hashes do not match!")
-		panic(errors.New("fastboot file does not match its hash"))
+		panic(errors.New("fastboot file does not match its hash"))internal "github.com/FactomProject/factomd/Utilities/snapshot/stuff"
 		//return fmt.Errorf("Integrity hashes do not match")
 	}
 
