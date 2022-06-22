@@ -3,6 +3,7 @@ module github.com/FactomProject/factomd
 go 1.13
 
 require (
+	github.com/FactomProject/FactomCode v0.3.6-0.20171228170625-d7e03150a9d5
 	github.com/FactomProject/bolt v1.1.1-0.20170202195217-952a1b4e9a55
 	github.com/FactomProject/btcutil v0.0.0-20200312214114-5fd3eaf71bd2
 	github.com/FactomProject/ed25519 v0.0.0-20150814230546-38002c4fe7b6
