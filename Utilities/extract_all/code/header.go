@@ -9,6 +9,7 @@ type Header struct {
 
 const (
 	TagDBlock = iota
+	TagABlock
 	TagFBlock
 	TagECBlock
 	TagEBlock

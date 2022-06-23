@@ -30,48 +30,59 @@ func ProcessDictionaries() {
 	Start = time.Now()
 
 	DB = FactomdState.GetDB()
-	dbHeight := FactomdState.GetDBHeightComplete()
-	fmt.Println("Height Complete ", dbHeight)
+	currentDBHeight := FactomdState.GetDBHeightComplete()
+	fmt.Println("Height Complete ", currentDBHeight)
 
 	fmt.Println("Factoid Addresses:      ", FCTAccountCnt)
 	fmt.Println("Entry Credit Addresses: ", ECAccountCnt)
 
-	for i := uint32(0); i < dbHeight; i++ {
+	DBHeight := uint32(0)
+
+	for ; ; DBHeight++ {
+		for i := 0; DBHeight == currentDBHeight; i++ {
+			if i == 0 {
+				fmt.Println("waiting")
+			}
+			time.Sleep(1 * time.Second)
+			currentDBHeight = FactomdState.GetDBHeightComplete()
+		}
 		// Do any needed output file updating, and
 		// console feedback
-		if i%DBlockFreq == 0 {
+		if DBHeight%DBlockFreq == 0 || currentDBHeight-DBHeight < 2 {
 
 			// Split up output files by Directory Block Height
-			filename := fmt.Sprintf("objects-%d.dat", i)
+			filename := fmt.Sprintf("objects-%d.dat", DBHeight)
 			if f, err := os.Create(path.Join(FullDir, filename)); err != nil {
 				panic(fmt.Sprintf("Could not open %s: %v", path.Join(FullDir, filename), err))
 			} else {
 				OutputFile = f
 			}
-			if i > 0 {
+			if DBHeight > 0 {
 				runtime := time.Now().Sub(Start).Seconds()
 				seconds := int(runtime) % 60
 				minutes := int(runtime) / 60
-				bps := float64(i) / float64(runtime) // blocks per second
-				stg := float64(dbHeight-i) / bps     // seconds to go
+				bps := float64(DBHeight) / float64(runtime)    // blocks per second
+				stg := float64(currentDBHeight-DBHeight) / bps // seconds to go
 				ToGoseconds := int(stg) % 60
 				ToGominutes := int(stg) / 60
 				fmt.Printf("%5d:%02d ETA: %5d:%02d blocks/sec: %5d Height %7d/%d Entries %9d TXs %7d\n",
 					minutes, seconds,
-					ToGominutes,ToGoseconds, 
+					ToGominutes, ToGoseconds,
 					int(bps),
-					i, dbHeight,
+					DBHeight, currentDBHeight,
 					EntryCnt, TXCnt,
 				)
 			}
 		}
-		DBlock, err := DB.FetchDBlockByHeight(i)
+		DBlock, err := DB.FetchDBlockByHeight(DBHeight)
 		if err != nil {
 			panic("Bad DBHeight")
 		}
 
 		ProcessDirectory(DBlock)
-		ProcessFactoids(i)
+		ProcessAdmin(DBHeight)
+		ProcessECBlock(DBHeight)
+		ProcessFactoids(DBHeight)
 		ProcessEntries(DBlock)
 	}
 }
@@ -81,9 +92,37 @@ func ProcessDirectory(DBlock interfaces.IDirectoryBlock) {
 
 	DBlockBytes, err := DBlock.MarshalBinary()
 	if err != nil {
-		print("Bad DBheight")
+		panic("Bad DBheight")
 	}
 	header := Header{Tag: TagDBlock, Size: uint64(len(DBlockBytes))}
 	OutputFile.Write(header.MarshalBinary())
 	OutputFile.Write(DBlockBytes)
+}
+
+func ProcessAdmin(dbheight uint32) {
+	ABlock, err := DB.FetchABlockByHeight(dbheight)
+	if err != nil {
+		panic("Bad Admin Block")
+	}
+	ABlockBytes, err := ABlock.MarshalBinary()
+	if err != nil {
+		panic("Bad ABlock")
+	}
+	header := Header{Tag: TagABlock, Size: uint64(len(ABlockBytes))}
+	OutputFile.Write(header.MarshalBinary())
+	OutputFile.Write(ABlockBytes)
+}
+
+func ProcessECBlock(dbheight uint32) {
+	ECBlock, err := DB.FetchECBlockByHeight(dbheight)
+	if err != nil {
+		panic("Bad Entry Credit Block")
+	}
+	ECBlockBytes, err := ECBlock.MarshalBinary()
+	if err != nil {
+		print("Bad ECBlock")
+	}
+	header := Header{Tag: TagABlock, Size: uint64(len(ECBlockBytes))}
+	OutputFile.Write(header.MarshalBinary())
+	OutputFile.Write(ECBlockBytes)
 }

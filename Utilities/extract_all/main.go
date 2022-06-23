@@ -23,7 +23,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	args := []string{"--enablenet=false"}
+	args := []string{"--enablenet=false"} // Enable or disable the network
 	params := engine.ParseCmdLine(args)
 	params.PrettyPrint()
 	code.FactomdState = engine.Factomd(params)
