@@ -69,6 +69,7 @@ func ProcessBalances() {
 		panic(fmt.Sprintf("Could not open %s: %v", path.Join(FullDir, filename), err))
 	} else {
 		OutputFile = f
+		defer OutputFile.Close()
 	}
 
 	h := Header{Tag: TagFCT, Size: 40}

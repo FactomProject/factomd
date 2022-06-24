@@ -17,6 +17,7 @@ const (
 
 var FactomdState interfaces.IState
 var DB interfaces.DBOverlaySimple
+var CurrentFile string
 var OutputFile *os.File
 var EntryCnt uint64
 var TXCnt uint64
@@ -26,6 +27,8 @@ var FCTAccountCnt uint64
 var ECAccountCnt uint64
 
 func ProcessDictionaries() {
+
+	ProcessBalances() // In case we are using a static Factom Database
 
 	_, _ = EntryCnt, TXCnt
 	Start = time.Now()
@@ -44,11 +47,18 @@ func ProcessDictionaries() {
 
 	for {
 		currentDBHeight = FactomdState.GetHighestSavedBlk()
+		newblock := false
 		for i := uint32(0); DBHeight > currentDBHeight; i++ {
 			fmt.Printf("Highest block: %d Want to process block: %d minute %d\n", currentDBHeight, DBHeight, i+1)
 			time.Sleep(60 * time.Second)
 			currentDBHeight = FactomdState.GetHighestSavedBlk()
+			newblock = true
 		}
+
+		if newblock {	// If we have a new block, update the balances
+			ProcessBalances()
+		}
+
 		// Do any needed output file updating, and
 		// console feedback
 		if DBHeight != StartHeight && (DBHeight%DBlockFreq == 0) {
@@ -90,26 +100,37 @@ func ProcessDictionaries() {
 
 func Open(dbheight uint32) uint32 {
 	inc := 0
+	tmpname := path.Join(FullDir, "objects.tmp")
 	for {
 		// Split up output files by Directory Block Height
-		filename := fmt.Sprintf("objects-%d.dat", dbheight)
-		filename = path.Join(FullDir, filename)
-		_, err := os.Stat(filename)
+		NextFile := fmt.Sprintf("objects-%d.dat", dbheight)
+		NextFile = path.Join(FullDir, NextFile)
+		_, err := os.Stat(NextFile)
 		if errors.Is(err, os.ErrNotExist) {
 			if dbheight > DBlockFreq && inc > 1 { // If we are catching up to a prior effort
 				dbheight -= DBlockFreq
-				filename = fmt.Sprintf("objects-%d.dat", dbheight)
-				filename = path.Join(FullDir, filename)
-				os.Remove(filename)
+				NextFile = fmt.Sprintf("objects-%d.dat", dbheight)
+				NextFile = path.Join(FullDir, NextFile)
+				os.Remove(NextFile)
 			}
 			// Note that we create and overwrite the last file (which could be incomplete) if
 			// it exists.
-			if f, err := os.Create(filename); err != nil {
-				panic(fmt.Sprintf("Could not open %s: %v", path.Join(FullDir, filename), err))
+			if len(CurrentFile) > 0 {
+				OutputFile.Close()
+				err := os.Rename(tmpname, CurrentFile)
+				if err != nil {
+					panic(err)
+				}
+			}
+			CurrentFile = NextFile
+			
+			if f, err := os.Create(tmpname); err != nil {
+				panic(fmt.Sprintf("Could not open %s: %v", path.Join(FullDir, NextFile), err))
 			} else {
 				OutputFile.Close()
 				OutputFile = f
 			}
+
 			return dbheight
 		}
 		dbheight += DBlockFreq
