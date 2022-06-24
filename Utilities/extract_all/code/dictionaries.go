@@ -24,7 +24,9 @@ var TXCnt uint64
 var Start time.Time
 var FullDir string
 var FCTAccountCnt uint64
+var FCTAccountTotal uint64
 var ECAccountCnt uint64
+var ECAccountTotal uint64
 
 func ProcessDictionaries() {
 
@@ -38,7 +40,10 @@ func ProcessDictionaries() {
 	fmt.Println("Height Complete ", currentDBHeight)
 
 	fmt.Println("Factoid Addresses:      ", FCTAccountCnt) // Add Totals
+	fmt.Println("Factoid Total:          ",
+		fmt.Sprintf("%d.%08d", FCTAccountTotal/100000000, FCTAccountTotal%100000000))
 	fmt.Println("Entry Credit Addresses: ", ECAccountCnt)
+	fmt.Println("Entry Credit Total:     ", ECAccountTotal)
 
 	DBHeight := uint32(0)
 
@@ -55,7 +60,7 @@ func ProcessDictionaries() {
 			newblock = true
 		}
 
-		if newblock {	// If we have a new block, update the balances
+		if newblock { // If we have a new block, update the balances
 			ProcessBalances()
 		}
 
@@ -123,7 +128,7 @@ func Open(dbheight uint32) uint32 {
 				}
 			}
 			CurrentFile = NextFile
-			
+
 			if f, err := os.Create(tmpname); err != nil {
 				panic(fmt.Sprintf("Could not open %s: %v", path.Join(FullDir, NextFile), err))
 			} else {

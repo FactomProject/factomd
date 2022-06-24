@@ -34,6 +34,9 @@ func (b *account) MarshalTextEC() []byte {
 }
 
 func ProcessBalances() {
+	var datFile, txtFile *os.File
+	var err error
+
 	state := FactomdState.(*state.State)       // Get the Factom State
 	state.FactoidBalancesPMutex.Lock()         // Lock the balances
 	defer state.FactoidBalancesPMutex.Unlock() // unlock the balances when done
@@ -65,45 +68,42 @@ func ProcessBalances() {
 
 	// Write out binary balances
 	filename := "balances.dat"
-	if f, err := os.Create(path.Join(FullDir, filename)); err != nil {
+	if datFile, err = os.Create(path.Join(FullDir, filename)); err != nil {
 		panic(fmt.Sprintf("Could not open %s: %v", path.Join(FullDir, filename), err))
-	} else {
-		OutputFile = f
-		defer OutputFile.Close()
 	}
+	defer datFile.Close()
 
 	h := Header{Tag: TagFCT, Size: 40}
 	hb := h.MarshalBinary()
 	for _, v := range factoids {
-		OutputFile.Write(hb)
-		OutputFile.Write(v.MarshalBinary())
-
+		datFile.Write(hb)
+		datFile.Write(v.MarshalBinary())
 	}
 
 	h = Header{Tag: TagEC, Size: 40}
 	hb = h.MarshalBinary()
 	for _, v := range entryCredits {
-		OutputFile.Write(hb)
-		OutputFile.Write(v.MarshalBinary())
-
+		datFile.Write(hb)
+		datFile.Write(v.MarshalBinary())
 	}
 
 	// Write out text balances
 	filename = "balances.txt"
-	if f, err := os.Create(path.Join(FullDir, filename)); err != nil {
+	if txtFile, err = os.Create(path.Join(FullDir, filename)); err != nil {
 		panic(fmt.Sprintf("Could not open %s: %v", path.Join(FullDir, filename), err))
-	} else {
-		OutputFile = f
 	}
+	defer txtFile.Close()
 
 	for _, v := range factoids {
-		OutputFile.Write([]byte("FCT: "))
-		OutputFile.Write(v.MarshalText())
+		txtFile.Write([]byte("FCT: "))
+		txtFile.Write(v.MarshalText())
+		FCTAccountTotal += uint64(v.balance)
 	}
 
 	for _, v := range entryCredits {
-		OutputFile.Write([]byte("EC:  "))
-		OutputFile.Write(v.MarshalTextEC())
+		txtFile.Write([]byte("EC:  "))
+		txtFile.Write(v.MarshalTextEC())
+		ECAccountTotal += uint64(v.balance)
 	}
 
 	FCTAccountCnt = uint64(len(factoids))
