@@ -2,6 +2,6 @@ package main
 
 import "github.com/FactomProject/factomd/Utilities/read_all/code"
 
-func main(){
+func main() {
 	code.Process()
 }

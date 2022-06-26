@@ -1,6 +1,8 @@
 package code
 
 import (
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -23,9 +25,21 @@ func ProcessEntries(DBlock interfaces.IDirectoryBlock) {
 			if e.IsMinuteMarker() {
 				continue
 			}
-			entry, err := DB.FetchEntry(e)
-			if err != nil {
-				panic("Missing Entry")
+
+			// When syncing with the network, the entry isn't necessarily ready
+			// from the database immediately.  So go into a loop where if
+			// the entry isn't ready (which should be there), we pause and try
+			// again
+			var entry interfaces.IEBEntry
+			for {
+				entry, err = DB.FetchEntry(e)
+				if err != nil {
+					panic("Missing Entry")
+				}
+				if entry != nil {
+					break
+				}
+				time.Sleep(time.Millisecond) // Don't go crazy CPU wise if an Entry isn't ready
 			}
 			entryData, err := entry.MarshalBinary()
 			if err != nil {
