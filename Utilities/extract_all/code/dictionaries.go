@@ -160,10 +160,15 @@ func ProcessAdmin(dbheight uint32) {
 	if err != nil {
 		panic("Bad Admin Block")
 	}
+	
 	ABlockBytes, err := ABlock.MarshalBinary()
 	if err != nil {
 		panic("Bad ABlock")
 	}
+	if  _, err := ABlock.UnmarshalBinaryData(ABlockBytes); err != nil {
+		panic("BadABlock")
+	}
+
 	header := Header{Tag: TagABlock, Size: uint64(len(ABlockBytes))}
 	OutputFile.Write(header.MarshalBinary())
 	OutputFile.Write(ABlockBytes)
@@ -190,7 +195,7 @@ func ProcessECBlock(dbheight uint32) {
 	if err != nil {
 		print("Bad ECBlock")
 	}
-	header := Header{Tag: TagABlock, Size: uint64(len(ECBlockBytes))}
+	header := Header{Tag: TagECBlock, Size: uint64(len(ECBlockBytes))}
 	OutputFile.Write(header.MarshalBinary())
 	OutputFile.Write(ECBlockBytes)
 }

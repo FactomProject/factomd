@@ -8,14 +8,15 @@ type Header struct {
 }
 
 const (
-	TagDBlock = iota
+	TagDBlock = iota // Blockchain structs
 	TagABlock
 	TagFBlock
 	TagECBlock
 	TagEBlock
 	TagEntry
 	TagTX
-	TagFCT
+
+	TagFCT    // Balances
 	TagEC
 )
 

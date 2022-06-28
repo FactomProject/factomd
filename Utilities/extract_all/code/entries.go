@@ -39,7 +39,7 @@ func ProcessEntries(DBlock interfaces.IDirectoryBlock) {
 				if entry != nil {
 					break
 				}
-				time.Sleep(time.Millisecond) // Don't go crazy CPU wise if an Entry isn't ready
+				time.Sleep(10*time.Millisecond) // Don't go crazy CPU wise if an Entry isn't ready
 			}
 			entryData, err := entry.MarshalBinary()
 			if err != nil {
