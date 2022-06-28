@@ -16,7 +16,7 @@ const (
 	TagEntry
 	TagTX
 
-	TagFCT    // Balances
+	TagFCT // Balances
 	TagEC
 )
 

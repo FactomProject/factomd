@@ -6,8 +6,11 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"github.com/FactomProject/FactomCode/common"
 	ecode "github.com/FactomProject/factomd/Utilities/extract_all/code"
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 )
 
@@ -44,15 +47,15 @@ func Open() bool {
 func Process() {
 
 	header := new(ecode.Header)
-	dBlock := common.NewDBlock()
-	aBlock := new(common.AdminBlock)
+	dBlock := directoryBlock.NewDirectoryBlock(nil)
+	aBlock := adminBlock.NewAdminBlock(nil)
 	fBlock := new(factoid.FBlock)
-	ecBlock := new(common.ECBlock)
-	eBlock := common.NewEBlock()
+	ecBlock := entryCreditBlock.NewECBlock()
+	eBlock := entryBlock.NewEBlock()
 
 	for Open() {
 
-		entry := common.NewEntry()
+		entry := new(entryBlock.Entry)
 		tx := new(factoid.Transaction)
 		_, _, _, _, _, _, _ = dBlock, aBlock, fBlock, ecBlock, eBlock, entry, tx
 		for len(buff) > 0 {
@@ -65,7 +68,7 @@ func Process() {
 			case ecode.TagABlock:
 				if err := aBlock.UnmarshalBinary(buff[:header.Size]); err != nil {
 					fmt.Printf("Ht %d Admin size %d %v \n",
-						dBlock.Header.DBHeight, header.Size, err)
+						dBlock.GetHeader().GetDBHeight(), header.Size, err)
 				}
 			case ecode.TagFBlock:
 				if err := fBlock.UnmarshalBinary(buff[:header.Size]); err != nil {
