@@ -22,7 +22,13 @@ func main() {
 		fmt.Println(err)
 	}
 
+	// By disabling the network, you can extract all the data in your local
+	// database without syncing completely with the current Factom Network.
+	// Useful if you don't want to sync all of Factom before accessing the
+	// data your factom node has already downloaded.
+
 	args := []string{"--enablenet=true"} // Enable or disable the network
+
 	params := engine.ParseCmdLine(args)
 	params.PrettyPrint()
 	code.FactomdState = engine.Factomd(params)

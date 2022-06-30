@@ -52,10 +52,10 @@ func Process() {
 	fBlock := new(factoid.FBlock)
 	ecBlock := entryCreditBlock.NewECBlock()
 	eBlock := entryBlock.NewEBlock()
+	entry := new(entryBlock.Entry)
 
 	for Open() {
 
-		entry := new(entryBlock.Entry)
 		tx := new(factoid.Transaction)
 		_, _, _, _, _, _, _ = dBlock, aBlock, fBlock, ecBlock, eBlock, entry, tx
 		for len(buff) > 0 {
