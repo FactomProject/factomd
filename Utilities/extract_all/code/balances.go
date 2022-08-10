@@ -8,6 +8,7 @@ import (
 	"path"
 	"sort"
 
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 )
 
@@ -88,21 +89,40 @@ func ProcessBalances() {
 	}
 
 	// Write out text balances
+	// The target format:
+	//
+	// height 361001
+	// FA1y6bodD6NRYj2KpxZnWU664ZkuQkRxUCZ9QrtHru82eQQpJpvp: 300000
+	// FA1y7AeBqVDNngBiZzJhrHvGsY5f2VCKocuexZDyovK8qJKnJQco: 1990000000
+	// [,,,]
 	filename = "balances.txt"
 	if txtFile, err = os.Create(path.Join(FullDir, filename)); err != nil {
 		panic(fmt.Sprintf("Could not open %s: %v", path.Join(FullDir, filename), err))
 	}
 	defer txtFile.Close()
+	txtFile.Write([]byte(fmt.Sprintf("height %d\n", state.GetDBHeightComplete())))
 
 	for _, v := range factoids {
-		txtFile.Write([]byte("FCT: "))
-		txtFile.Write(v.MarshalText())
+		h := new(primitives.Hash) // We need a Hash object to call the convert to User Address
+		h.SetBytes(v.address[:])
+
+		txtFile.Write([]byte( // Write out the original balance format
+			fmt.Sprintf("%s: %d\n",
+				primitives.ConvertFctAddressToUserStr(h),
+				v.balance)))
+
 		FCTAccountTotal += uint64(v.balance)
 	}
 
 	for _, v := range entryCredits {
-		txtFile.Write([]byte("EC:  "))
-		txtFile.Write(v.MarshalTextEC())
+		h := new(primitives.Hash) // We need a Hash object to call the convert to User Address
+		h.SetBytes(v.address[:])
+
+		txtFile.Write([]byte( // Write out the original balance format
+			fmt.Sprintf("%s: %d\n",
+				primitives.ConvertECAddressToUserStr(h),
+				v.balance)))
+
 		ECAccountTotal += uint64(v.balance)
 	}
 
