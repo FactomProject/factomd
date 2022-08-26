@@ -93,6 +93,12 @@ func ProcessDictionaries() {
 			panic("Bad DBHeight")
 		}
 
+		if DBlock == nil {	//           If the node has not been initialized, then wait for blocks
+			fmt.Printf("Sleeping one minute at block %d\n",DBHeight)
+			time.Sleep(60*time.Second) // to get added to the database.
+			continue
+		}
+
 		ProcessDirectory(DBlock)
 		ProcessAdmin(DBHeight)
 		ProcessECBlock(DBHeight)
@@ -106,6 +112,11 @@ func ProcessDictionaries() {
 func Open(dbheight uint32) uint32 {
 	inc := 0
 	tmpname := path.Join(FullDir, "objects.tmp")
+	defer func(){
+		if inc > 1 {
+		  fmt.Printf("Found %d blocks already processed.\n",uint32(inc)*DBlockFreq)
+		}
+	}()
 	for {
 		// Split up output files by Directory Block Height
 		NextFile := fmt.Sprintf("objects-%d.dat", dbheight)

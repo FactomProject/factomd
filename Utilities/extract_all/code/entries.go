@@ -2,7 +2,7 @@ package code
 
 import (
 	"time"
-
+	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -39,7 +39,8 @@ func ProcessEntries(DBlock interfaces.IDirectoryBlock) {
 				if entry != nil {
 					break
 				}
-				time.Sleep(10 * time.Millisecond) // Don't go crazy CPU wise if an Entry isn't ready
+				fmt.Printf("Waiting for entries on block %d\n",DBlock.GetHeader().GetDBHeight())
+				time.Sleep(60 * time.Second) // Don't go crazy CPU wise if an Entry isn't ready
 			}
 			entryData, err := entry.MarshalBinary()
 			if err != nil {
