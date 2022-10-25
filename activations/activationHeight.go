@@ -60,9 +60,9 @@ func init() {
 			"The maximum Height of the Factom Blockchain prior to Accumulate Activation",
 			math.MaxInt32, //                           Don't activate by default
 			map[string]int{ //
-				"MAIN":                      374000, // The Last Block of the Factom ERA
+				"MAIN":                      374000, // The Last Block of the Factom ERA.
 				"LOCAL":                     400000, // Factom will continue processing into the next block, but
-				"CUSTOM:fct_community_test": 400000, // stop at minute 2.  That last block will not be included
+				"CUSTOM:fct_community_test": 400000, // stop at minute 2. That last block will not be included
 			}, //                                       in the History provided to the Accumulate ERA.
 		},
 	}
