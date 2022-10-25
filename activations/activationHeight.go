@@ -61,8 +61,8 @@ func init() {
 			math.MaxInt32, //                           Don't activate by default
 			map[string]int{ //
 				"MAIN":                      374000, // The Last Block of the Factom ERA
-				"LOCAL":                     5,      // Factom will continue processing into the next block, but
-				"CUSTOM:fct_community_test": 400002, // stop at minute 2.  That last block will not be included
+				"LOCAL":                     400000, // Factom will continue processing into the next block, but
+				"CUSTOM:fct_community_test": 400000, // stop at minute 2.  That last block will not be included
 			}, //                                       in the History provided to the Accumulate ERA.
 		},
 	}
