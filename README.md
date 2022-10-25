@@ -1,5 +1,8 @@
 # Factom
 
+**The Factom Era Ends on 30 Oct 2022.  The Accumulate Era Begins 31 Oct 2022**
+**The Project reposiotorys for the Protocol have moved to https://GitLab.com/AccumulateNetwork"
+
 Official Golang implementation of the Factom Protocol.
 
 [![CircleCI](https://circleci.com/gh/FactomProject/factomd/tree/master.svg?style=shield)](https://circleci.com/gh/FactomProject/factomd/tree/master)
