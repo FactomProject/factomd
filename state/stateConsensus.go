@@ -1446,6 +1446,16 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
+	// ======================================================================================================
+	// When the maximum Factom Height is reached, stop the Factom Protocol.                                ||
+	// This ends the Factom Era, and begins the Accumulate Era                                             ||
+	if s.IsActive(activations.MAX_FACTOM_HEIGHT) && s.GetCurrentMinute() > 1 { //                          ||
+		fmt.Printf("The End of the Factom Era: Block %d\n", s.GetEntryBlockDBHeightComplete()) //          ||
+		fmt.Printf("The Beginning of the Accumulate Era\n")                                    //          ||
+		return                                                                                 //          ||
+	} //                                                                                                   ||
+	// ======================================================================================================
+
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	vm := pl.VMs[s.LeaderVMIndex]
 

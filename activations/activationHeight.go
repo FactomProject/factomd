@@ -18,6 +18,7 @@ const (
 	TESTNET_COINBASE_PERIOD                = iota // 1 -- this is a passing activation and this ID may be reused once that height is passes and the references are removed
 	//
 	AUTHRORITY_SET_MAX_DELTA = iota
+	MAX_FACTOM_HEIGHT        = iota
 	ACTIVATION_TYPE_COUNT    = iota - 1 // Always Last
 )
 
@@ -54,6 +55,15 @@ func init() {
 				"LOCAL":                     25,
 				"CUSTOM:fct_community_test": 109387,
 			},
+		},
+		{"FactomMaxHeight", MAX_FACTOM_HEIGHT,
+			"The maximum Height of the Factom Blockchain prior to Accumulate Activation",
+			math.MaxInt32, //                           Don't activate by default
+			map[string]int{ //
+				"MAIN":                      374000, // The Last Block of the Factom ERA
+				"LOCAL":                     400000, // Factom will continue processing into the next block, but
+				"CUSTOM:fct_community_test": 400000, // stop at minute 2.  That last block will not be included
+			}, //                                       in the History provided to the Accumulate ERA.
 		},
 	}
 

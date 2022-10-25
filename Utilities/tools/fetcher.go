@@ -1,8 +1,11 @@
 package tools
 
 import (
+	"fmt"
+
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -147,15 +150,30 @@ func (a *APIReader) FetchECBlockByPrimary(keymr interfaces.IHash) (interfaces.IE
 	return ecblock, err
 }
 
+// FetchECBlockByHeight has to fetch by the dblock and keyMR as for some reason the api for fetch ecblock by height
+// directly is broken. Until it's fixed, this is how we will do it.
 func (a *APIReader) FetchECBlockByHeight(height uint32) (interfaces.IEntryCreditBlock, error) {
-	_, data, err := factom.GetECBlockByHeight(int64(height))
+	dblock, err := a.FetchDBlockByHeight(height)
 	if err != nil {
 		return nil, err
 	}
+	for _, ent := range dblock.GetDBEntries() {
+		if ent.GetChainID().String() == constants.EC_CHAINID_STRING {
+			data, err := factom.GetRaw(ent.GetKeyMR().String())
+			if err != nil {
+				return nil, err
+			}
 
-	ecblock := entryCreditBlock.NewECBlock()
-	err = UnmarshalGeneric(ecblock, data)
-	return ecblock, err
+			ecblock := entryCreditBlock.NewECBlock()
+			err = UnmarshalGeneric(ecblock, data)
+			if err != nil {
+				return nil, err
+			}
+
+			return ecblock, nil
+		}
+	}
+	return nil, fmt.Errorf("ec block %d not found", height)
 }
 
 func (a *APIReader) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces.IHash, error) {
