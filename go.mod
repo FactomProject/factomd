@@ -51,5 +51,5 @@ require (
 	golang.org/x/text v0.3.1-0.20181010134911-4d1c5fb19474 // indirect
 	gopkg.in/AlecAivazis/survey.v1 v1.6.2
 	gopkg.in/gcfg.v1 v1.2.3
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.2.5
 )

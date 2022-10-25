@@ -149,7 +149,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		fedID := e.Federated[electing].GetChainID()
 
 		if !e.IsSafeToReplaceFed(fedID) {
-			if is.IsActive(activations.AUTHORITY_SET_MAX_DELTA) {
+			if is.IsActive(activations.AUTHRORITY_SET_MAX_DELTA) {
 				e.LogPrintf("election", "TimeoutInternal.ElectionProcess(): cannot remove more than half of the block's starting feds")
 				return
 			} else {

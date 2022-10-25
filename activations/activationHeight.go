@@ -17,9 +17,9 @@ const (
 	_                       ActivationType = iota // 0 Don't use ZERO
 	TESTNET_COINBASE_PERIOD                = iota // 1 -- this is a passing activation and this ID may be reused once that height is passes and the references are removed
 	//
-	AUTHORITY_SET_MAX_DELTA = iota
-	MAX_FACTOM_HEIGHT       = iota
-	ACTIVATION_TYPE_COUNT   = iota - 1 // Always Last
+	AUTHRORITY_SET_MAX_DELTA = iota
+	MAX_FACTOM_HEIGHT        = iota
+	ACTIVATION_TYPE_COUNT    = iota - 1 // Always Last
 )
 
 type activation struct {
@@ -47,7 +47,7 @@ func init() {
 				"CUSTOM:fct_community_test": 45335, //  Monday morning September 17
 			},
 		},
-		{"AuthorityMaxDelta", AUTHORITY_SET_MAX_DELTA,
+		{"AuthorityMaxDelta", AUTHRORITY_SET_MAX_DELTA,
 			"Ensures fewer than half of federated notes are replaced in a single election",
 			0, // always active for consistency
 			map[string]int{
@@ -60,10 +60,10 @@ func init() {
 			"The maximum Height of the Factom Blockchain prior to Accumulate Activation",
 			math.MaxInt32, //                           Don't activate by default
 			map[string]int{ //
-				"MAIN":                      400002, // Note that the Maximum Factom Block Height will be
-				"LOCAL":                     12,     // one block less than specified here (X).  We halt on
-				"CUSTOM:fct_community_test": 400002, // block X after we have processed minute 1 to write out
-			}, //                                       block X-1
+				"MAIN":                      374000, // The Last Block of the Factom ERA
+				"LOCAL":                     5,      // Factom will continue processing into the next block, but
+				"CUSTOM:fct_community_test": 400002, // stop at minute 2.  That last block will not be included
+			}, //                                       in the History provided to the Accumulate ERA.
 		},
 	}
 
