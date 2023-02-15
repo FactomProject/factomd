@@ -24,13 +24,12 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/gogo/protobuf v1.3.1-0.20190908201246-8a5ed79f6888
-	github.com/golang/protobuf v1.3.4
+	github.com/golang/protobuf v1.4.3
 	github.com/gorilla/mux v1.7.4-0.20190720201435-e67b3c02c719
 	github.com/hashicorp/go-plugin v1.3.0
 	github.com/hinshun/vt10x v0.0.0-20180809195222-d55458df857c // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
-	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/kr/pty v1.1.8 // indirect
 	github.com/mattn/go-colorable v0.1.0 // indirect
@@ -38,18 +37,15 @@ require (
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
-	github.com/prometheus/client_golang v1.5.1
+	github.com/prometheus/client_golang v1.11.1
 	github.com/prometheus/client_model v0.2.0
 	github.com/rs/cors v1.7.0
-	github.com/sirupsen/logrus v1.5.0
+	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v0.0.4-0.20180915222204-8d114be902bc
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/testify v1.5.1
-	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4
-	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
-	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775 // indirect
-	golang.org/x/text v0.3.1-0.20181010134911-4d1c5fb19474 // indirect
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	gopkg.in/AlecAivazis/survey.v1 v1.6.2
 	gopkg.in/gcfg.v1 v1.2.3
-	gopkg.in/yaml.v2 v2.2.5
+	gopkg.in/yaml.v2 v2.3.0
 )
