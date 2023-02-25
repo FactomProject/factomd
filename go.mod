@@ -45,10 +45,7 @@ require (
 	github.com/spf13/cobra v0.0.4-0.20180915222204-8d114be902bc
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/testify v1.5.1
-	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4
-	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
-	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775 // indirect
-	golang.org/x/text v0.3.1-0.20181010134911-4d1c5fb19474 // indirect
+	golang.org/x/crypto v0.1.0
 	gopkg.in/AlecAivazis/survey.v1 v1.6.2
 	gopkg.in/gcfg.v1 v1.2.3
 	gopkg.in/yaml.v2 v2.2.5
