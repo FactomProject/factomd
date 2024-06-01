@@ -69,6 +69,16 @@ type ISignatureBlock interface {
 	IsSameAs(ISignatureBlock) bool
 }
 
+type IFullSignatureBlock interface {
+	BinaryMarshallable
+	Printable
+
+	AddSignature(sig IFullSignature)
+	GetSignature(int) IFullSignature
+	GetSignatures() []IFullSignature
+	IsSameAs(IFullSignatureBlock) bool
+}
+
 type ISignable interface {
 	Sign(privateKey []byte) error
 	MarshalBinarySig() ([]byte, error)
