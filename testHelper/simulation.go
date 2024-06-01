@@ -24,8 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var par = globals.FactomParams{}
-
 var quit = make(chan struct{})
 var ExpectedHeight, Leaders, Audits, Followers int
 var startTime, endTime time.Time
@@ -133,6 +131,7 @@ func StartPeer(CmdLineOptions map[string]string) *state.State {
 // this is useful for creating scripts that will start/stop a simulation outside of the context of a unit test
 // this allows for consistent tweaking of a simulation to induce load add message loss or adjust timing
 func StartSim(nodeCount int, UserAddedOptions map[string]string) *state.State {
+	quit = make(chan struct{})
 	UserAddedOptions["--count"] = fmt.Sprintf("%v", nodeCount)
 	params := optionsToParams(UserAddedOptions)
 	return engine.Factomd(params).(*state.State)
@@ -618,11 +617,16 @@ func GetLongTestHome(t *testing.T) string {
 // remove files from a home dir and remake .factom config dir
 func ResetTestHome(homeDir string, t *testing.T) {
 	t.Logf("Removing old test run in %s", homeDir)
-	os.RemoveAll(homeDir)
-	os.MkdirAll(homeDir+"/.factom/m2", 0755)
+	if err := os.RemoveAll(homeDir); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(homeDir+"/.factom/m2", 0755); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func ResetSimHome(t *testing.T) string {
+	engine.ResetFNodes()
 	h := GetSimTestHome(t)
 	ResetTestHome(h, t)
 	return h

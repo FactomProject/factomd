@@ -32,6 +32,7 @@ func TestOne(t *testing.T) {
 		return
 	}
 	state.MMR_enable = false // No MMR for you!
+	ResetSimHome(t)
 
 	RanSimTest = true
 
@@ -53,6 +54,7 @@ func TestDualElections(t *testing.T) {
 	state.MMR_enable = false // No MMR for you!
 
 	RanSimTest = true
+	ResetSimHome(t)
 
 	// 							  01234567
 	state0 := SetupSim("LALLLALFFLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "20"}, 12, 0, 0, t)
@@ -78,6 +80,7 @@ func TestLoad(t *testing.T) {
 	}
 
 	RanSimTest = true
+	ResetSimHome(t)
 
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LLLLFFFF", map[string]string{"--debuglog": ".", "--blktime": "30"}, 15, 0, 0, t)
@@ -101,6 +104,7 @@ func TestErr(t *testing.T) {
 	}
 
 	RanSimTest = true
+	ResetSimHome(t)
 	state0 := SetupSim("LF", map[string]string{"--debuglog": ".", "--db": "LDB", "--controlpanelsetting": "readwrite",
 		"--network": "LOCAL", "--fastsaverate": "4", "--checkheads": "false", "--net": "alot",
 		"--blktime": "15", "--faulttimeout": "120000", "--enablenet": "false", "--startdelay": "1"},
@@ -122,6 +126,7 @@ func TestCatchup(t *testing.T) {
 	}
 
 	RanSimTest = true
+	ResetSimHome(t)
 
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LF", map[string]string{}, 15, 0, 0, t)
@@ -153,6 +158,7 @@ func TestTXTimestampsAndBlocks(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 
 	go RunCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
 	state0 := SetupSim("LLLAAAFFF", map[string]string{}, 24, 0, 0, t)
@@ -173,6 +179,7 @@ func TestLoad2(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 
 	// use tree node setup so messages get reordered
 	go RunCmd("Re") // Turn on tight allocation of EC as soon as the simulator is up and running
@@ -219,6 +226,7 @@ func TestLoadScrambled(t *testing.T) {
 	}()
 
 	RanSimTest = true
+	ResetSimHome(t)
 
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LLFFFFFF", map[string]string{"--net": "tree"}, 32, 0, 0, t)
@@ -241,6 +249,7 @@ func TestMinute9Election(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 
 	// use a tree so the messages get reordered
 	state0 := SetupSim("LLAL", map[string]string{"--net": "line"}, 10, 1, 1, t)
@@ -264,6 +273,7 @@ func TestMakeALeader(t *testing.T) {
 	}
 
 	RanSimTest = true
+	ResetSimHome(t)
 
 	state0 := SetupSim("LF", map[string]string{}, 5, 0, 0, t)
 	RunCmd("g1")
@@ -371,6 +381,7 @@ func TestAnElection(t *testing.T) {
 	}
 
 	RanSimTest = true
+	ResetSimHome(t)
 
 	state0 := SetupSim("LLLAAF", map[string]string{"--blktime": "15"}, 9, 1, 1, t)
 
@@ -386,6 +397,7 @@ func TestAnElection(t *testing.T) {
 	// wait for the election
 	WaitMinutes(state0, 2)
 	//bring him back
+	RunCmd("2")
 	RunCmd("x")
 
 	// wait for him to update via dbstate and become an audit
@@ -412,6 +424,7 @@ func TestDBsigEOMElection(t *testing.T) {
 	}
 
 	RanSimTest = true
+	ResetSimHome(t)
 
 	state0 := SetupSim("LLLLLAAF", map[string]string{}, 9, 4, 4, t)
 
@@ -474,6 +487,7 @@ func TestMultiple2Election(t *testing.T) {
 	}
 
 	RanSimTest = true
+	ResetSimHome(t)
 
 	state0 := SetupSim("LLLLLAAF", map[string]string{}, 7, 2, 2, t)
 
@@ -502,6 +516,7 @@ func TestMultiple3Election(t *testing.T) {
 	}
 
 	RanSimTest = true
+	ResetSimHome(t)
 
 	state0 := SetupSim("LLLLLLLAAAAF", map[string]string{}, 9, 3, 3, t)
 
@@ -532,6 +547,7 @@ func TestSimCtrl(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 
 	type walletcallHelper struct {
 		Status string `json:"status"`
@@ -598,6 +614,7 @@ func TestMultipleFTAccountsAPI(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 	// only have one leader because if you are not the leader responcible for the FCT transaction then
 	// you will return transACK before teh balance is updated which will make thsi test fail.
 	state0 := SetupSim("LAF", map[string]string{}, 6, 0, 0, t)
@@ -789,6 +806,7 @@ func TestMultipleECAccountsAPI(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 
 	// only have one leader because if you are not the leader responcible for the FCT transaction then
 	// you will return transACK before teh balance is updated which will make thsi test fail.
@@ -995,6 +1013,7 @@ func TestDBSigElection(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 
 	state0 := SetupSim("LLLAF", map[string]string{"--faulttimeout": "10"}, 8, 1, 1, t)
 
@@ -1025,6 +1044,7 @@ func TestCoinbaseCancel(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 
 	state0 := SetupSim("LFFFFF", map[string]string{"-blktime": "5"}, 30, 0, 0, t)
 	// Make it quicker
@@ -1164,6 +1184,7 @@ func TestElection9(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 
 	state0 := SetupSim("LLAL", map[string]string{"--debuglog": "", "--faulttimeout": "10"}, 8, 1, 1, t)
 	StatusEveryMinute(state0)
@@ -1195,6 +1216,7 @@ func TestBadDBStateUnderflow(t *testing.T) {
 	}
 
 	RanSimTest = true
+	ResetSimHome(t)
 	state0 := SetupSim("LF", map[string]string{}, 6, 0, 0, t)
 	RunCmd("g1")
 	WaitBlocks(state0, 2)
@@ -1229,6 +1251,7 @@ func TestFactoidDBState(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 
 	state0 := SetupSim("LAF", map[string]string{"--faulttimeout": "10", "--blktime": "5"}, 120, 0, 0, t)
 	WaitBlocks(state0, 1)
@@ -1257,6 +1280,7 @@ func TestNoMMR(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 
 	state0 := SetupSim("LLLAAFFFFF", map[string]string{}, 10, 0, 0, t)
 	state.MMR_enable = false // turn off MMR processing
@@ -1273,6 +1297,7 @@ func TestDBStateCatchup(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 
 	state0 := SetupSim("LFF", map[string]string{}, 100, 0, 0, t)
 	state.MMR_enable = false // turn off MMR processing
@@ -1302,6 +1327,7 @@ func TestDBState(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 
 	state0 := SetupSim("LLLFFFF", map[string]string{"--net": "line"}, 100, 0, 0, t)
 	state1 := GetFnodes()[1].State
@@ -1333,6 +1359,7 @@ func TestCatchupEveryMinute(t *testing.T) {
 	}
 
 	RanSimTest = true
+	ResetSimHome(t)
 	//							  01234567890
 	state0 := SetupSim("LFFFFFFFFFF", map[string]string{"--debuglog": ".", "--blktime": "6"}, 20, 1, 1, t)
 
@@ -1369,6 +1396,7 @@ func TestDebugLocation(t *testing.T) {
 		return
 	}
 	RanSimTest = true
+	ResetSimHome(t)
 
 	tempdir := os.TempDir() + string(os.PathSeparator) + "logs" + string(os.PathSeparator) // get os agnostic path to the temp directory
 
